@@ -48,10 +48,9 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui.html").permitAll()
                 
                 // Public market data endpoints (read-only)
-                .requestMatchers(HttpMethod.GET, "/api/v1/market/currencies").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/market/currencies/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/news").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/market/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/news/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/news").permitAll()
                 
                 // Admin endpoints
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")

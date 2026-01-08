@@ -7,15 +7,43 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 second timeout
 })
+
+// Store keycloak instance reference
+let keycloakInstance = null
+
+// Set keycloak instance
+export const setKeycloakInstance = (keycloak) => {
+  keycloakInstance = keycloak
+}
+
+// Get current token (for debugging)
+export const getCurrentToken = () => {
+  return keycloakInstance?.token
+}
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
-  (config) => {
-    // Get token from localStorage or context
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+  async (config) => {
+    if (keycloakInstance) {
+      // Check if authenticated
+      if (keycloakInstance.authenticated) {
+        // Try to refresh token if it's about to expire (within 30 seconds)
+        try {
+          const refreshed = await keycloakInstance.updateToken(30)
+          if (refreshed) {
+            console.log('Token refreshed successfully')
+          }
+        } catch (error) {
+          console.warn('Token refresh failed, using existing token:', error)
+        }
+        
+        // Add token to request if available
+        if (keycloakInstance.token) {
+          config.headers.Authorization = `Bearer ${keycloakInstance.token}`
+        }
+      }
     }
     return config
   },
@@ -27,25 +55,42 @@ api.interceptors.request.use(
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid - redirect to login
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+  async (error) => {
+    const originalRequest = error.config
+    
+    // Handle 401 errors
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true
+      
+      console.warn('Received 401 - attempting token refresh')
+      
+      if (keycloakInstance && keycloakInstance.authenticated) {
+        try {
+          // Force token refresh
+          await keycloakInstance.updateToken(-1) // Force refresh
+          
+          // Retry the request with new token
+          if (keycloakInstance.token) {
+            originalRequest.headers.Authorization = `Bearer ${keycloakInstance.token}`
+            return api(originalRequest)
+          }
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError)
+          // Redirect to login if refresh fails
+          if (!window.location.pathname.includes('/login')) {
+            keycloakInstance.login()
+          }
+        }
+      }
     }
+    
     return Promise.reject(error)
   }
 )
 
-// Set token method to be called from AuthContext
+// Legacy function for backwards compatibility
 export const setAuthToken = (token) => {
-  if (token) {
-    localStorage.setItem('token', token)
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-  } else {
-    localStorage.removeItem('token')
-    delete api.defaults.headers.common['Authorization']
-  }
+  // Not needed anymore since we use keycloak instance directly
 }
 
 export default api

@@ -11,9 +11,10 @@ export default function PortfolioPage() {
   const [newPortfolio, setNewPortfolio] = useState({ name: '', description: '' })
   const queryClient = useQueryClient()
 
-  const { data: portfolios, isLoading } = useQuery({
+  const { data: portfolios, isLoading, error } = useQuery({
     queryKey: ['portfolios'],
     queryFn: portfolioService.getPortfolios,
+    retry: 1,
   })
 
   const createMutation = useMutation({
@@ -76,7 +77,21 @@ export default function PortfolioPage() {
 
       {isLoading ? (
         <Loading />
-      ) : portfolios?.length === 0 ? (
+      ) : error ? (
+        <div className="card p-12 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/10 flex items-center justify-center">
+            <span className="text-3xl">⚠️</span>
+          </div>
+          <h3 className="text-xl font-semibold text-white mb-2">Portföyler yüklenemedi</h3>
+          <p className="text-dark-400 mb-4">Lütfen sayfayı yenileyin veya daha sonra tekrar deneyin</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="btn-primary"
+          >
+            Sayfayı Yenile
+          </button>
+        </div>
+      ) : !portfolios || portfolios.length === 0 ? (
         <div className="card p-12 text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-dark-800 flex items-center justify-center">
             <PlusIcon className="w-8 h-8 text-dark-500" />
@@ -92,7 +107,7 @@ export default function PortfolioPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {portfolios.map((portfolio) => {
+          {portfolios?.map((portfolio) => {
             const isUp = portfolio.profitLoss > 0
             const isDown = portfolio.profitLoss < 0
 

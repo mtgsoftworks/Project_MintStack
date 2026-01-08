@@ -1,61 +1,69 @@
-import api from './api'
+import axios from 'axios'
+
+// Public API client (no auth required for market data)
+const publicApi = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
 
 export const marketService = {
-  // Currencies
+  // Currencies (public)
   getCurrencies: async () => {
-    const response = await api.get('/market/currencies')
+    const response = await publicApi.get('/market/currencies')
     return response.data.data
   },
 
   getCurrency: async (code) => {
-    const response = await api.get(`/market/currencies/${code}`)
+    const response = await publicApi.get(`/market/currencies/${code}`)
     return response.data.data
   },
 
   getCurrencyHistory: async (code, startDate, endDate) => {
-    const response = await api.get(`/market/currencies/${code}/history`, {
+    const response = await publicApi.get(`/market/currencies/${code}/history`, {
       params: { startDate, endDate },
     })
     return response.data.data
   },
 
-  // Stocks
+  // Stocks (public)
   getStocks: async (params = {}) => {
-    const response = await api.get('/market/stocks', { params })
+    const response = await publicApi.get('/market/stocks', { params })
     return response.data
   },
 
   getStock: async (symbol) => {
-    const response = await api.get(`/market/stocks/${symbol}`)
+    const response = await publicApi.get(`/market/stocks/${symbol}`)
     return response.data.data
   },
 
   getStockHistory: async (symbol, params = {}) => {
-    const response = await api.get(`/market/stocks/${symbol}/history`, { params })
+    const response = await publicApi.get(`/market/stocks/${symbol}/history`, { params })
     return response.data.data
   },
 
-  // Bonds
+  // Bonds (public)
   getBonds: async (params = {}) => {
-    const response = await api.get('/market/bonds', { params })
+    const response = await publicApi.get('/market/bonds', { params })
     return response.data
   },
 
-  // Funds
+  // Funds (public)
   getFunds: async (params = {}) => {
-    const response = await api.get('/market/funds', { params })
+    const response = await publicApi.get('/market/funds', { params })
     return response.data
   },
 
-  // VIOP
+  // VIOP (public)
   getViop: async (params = {}) => {
-    const response = await api.get('/market/viop', { params })
+    const response = await publicApi.get('/market/viop', { params })
     return response.data
   },
 
-  // Search
+  // Search (public)
   search: async (query) => {
-    const response = await api.get('/market/search', { params: { query } })
+    const response = await publicApi.get('/market/search', { params: { query } })
     return response.data
   },
 }

@@ -67,13 +67,76 @@ public class MarketDataScheduler {
     @Scheduled(initialDelay = 10000, fixedDelay = Long.MAX_VALUE)
     public void initialDataLoad() {
         log.info("Starting initial data load");
+        
+        // Fetch initial TCMB rates
         try {
-            // Fetch initial TCMB rates
             List<CurrencyRate> rates = tcmbApiClient.fetchTodayRates();
             marketDataService.saveCurrencyRates(rates);
             log.info("Initial TCMB rates loaded: {} rates", rates.size());
         } catch (Exception e) {
             log.warn("Initial TCMB rates load failed: {}", e.getMessage());
         }
+        
+        // Fetch initial stock prices
+        try {
+            List<String> stockSymbols = instrumentRepository
+                .findByTypeAndIsActiveTrue(Instrument.InstrumentType.STOCK)
+                .stream()
+                .map(Instrument::getSymbol)
+                .collect(Collectors.toList());
+            
+            if (!stockSymbols.isEmpty()) {
+                yahooFinanceClient.updateStockPrices(stockSymbols);
+                log.info("Initial stock prices loaded: {} stocks", stockSymbols.size());
+            }
+        } catch (Exception e) {
+            log.warn("Initial stock prices load failed: {}", e.getMessage());
+        }
+        
+        // Fetch initial bond/fund/viop prices (using mock data for now as real APIs require subscription)
+        try {
+            loadMockInstrumentPrices();
+            log.info("Initial instrument prices loaded");
+        } catch (Exception e) {
+            log.warn("Initial instrument prices load failed: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * Load mock prices for bonds, funds, and VIOP (real APIs require subscription)
+     * In production, replace with real API calls
+     */
+    private void loadMockInstrumentPrices() {
+        // Bonds
+        updateInstrumentPrice("TBOND-2Y", new java.math.BigDecimal("98.50"), new java.math.BigDecimal("0.25"));
+        updateInstrumentPrice("TBOND-5Y", new java.math.BigDecimal("95.30"), new java.math.BigDecimal("-0.15"));
+        updateInstrumentPrice("TBOND-10Y", new java.math.BigDecimal("92.10"), new java.math.BigDecimal("-0.08"));
+        updateInstrumentPrice("EUROBOND-30", new java.math.BigDecimal("87.25"), new java.math.BigDecimal("0.12"));
+        
+        // Funds
+        updateInstrumentPrice("AFT", new java.math.BigDecimal("125.45"), new java.math.BigDecimal("1.25"));
+        updateInstrumentPrice("IPB", new java.math.BigDecimal("98.70"), new java.math.BigDecimal("0.85"));
+        updateInstrumentPrice("YAF", new java.math.BigDecimal("215.30"), new java.math.BigDecimal("0.45"));
+        updateInstrumentPrice("TI2", new java.math.BigDecimal("112.80"), new java.math.BigDecimal("-0.32"));
+        updateInstrumentPrice("GAF", new java.math.BigDecimal("198.60"), new java.math.BigDecimal("0.55"));
+        
+        // VIOP
+        updateInstrumentPrice("F_XU030", new java.math.BigDecimal("9850.00"), new java.math.BigDecimal("1.15"));
+        updateInstrumentPrice("F_USDTRY", new java.math.BigDecimal("43.25"), new java.math.BigDecimal("0.18"));
+        updateInstrumentPrice("F_EURTRY", new java.math.BigDecimal("50.45"), new java.math.BigDecimal("0.22"));
+        updateInstrumentPrice("F_GOLDTRY", new java.math.BigDecimal("2850.00"), new java.math.BigDecimal("0.35"));
+    }
+    
+    private void updateInstrumentPrice(String symbol, java.math.BigDecimal price, java.math.BigDecimal mockChangePercent) {
+        instrumentRepository.findBySymbol(symbol).ifPresent(instrument -> {
+            // Calculate previousClose based on mockChangePercent to get correct calculated change
+            java.math.BigDecimal prevClose = price.divide(
+                java.math.BigDecimal.ONE.add(mockChangePercent.divide(new java.math.BigDecimal("100"), 6, java.math.RoundingMode.HALF_UP)),
+                6, java.math.RoundingMode.HALF_UP
+            );
+            instrument.setPreviousClose(prevClose);
+            instrument.setCurrentPrice(price);
+            instrumentRepository.save(instrument);
+        });
     }
 }

@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import Keycloak from 'keycloak-js'
+import { setKeycloakInstance } from '../services/api'
 
 const AuthContext = createContext(null)
 
@@ -9,6 +10,7 @@ const keycloakConfig = {
   clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'finance-frontend',
 }
 
+// Create keycloak instance once
 const keycloak = new Keycloak(keycloakConfig)
 
 export function AuthProvider({ children }) {
@@ -16,10 +18,18 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(null)
+  const initStarted = useRef(false)
 
   useEffect(() => {
+    // Prevent double initialization in strict mode
+    if (initStarted.current) return
+    initStarted.current = true
+
     const initKeycloak = async () => {
       try {
+        // Set keycloak instance for API calls BEFORE init
+        setKeycloakInstance(keycloak)
+        
         const authenticated = await keycloak.init({
           onLoad: 'check-sso',
           silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
@@ -27,10 +37,14 @@ export function AuthProvider({ children }) {
           checkLoginIframe: false,
         })
 
+        console.log('Keycloak initialized, authenticated:', authenticated)
+        
         setIsAuthenticated(authenticated)
 
         if (authenticated) {
+          console.log('User authenticated, token available:', !!keycloak.token)
           setToken(keycloak.token)
+          
           setUser({
             id: keycloak.subject,
             email: keycloak.tokenParsed?.email,
@@ -40,16 +54,22 @@ export function AuthProvider({ children }) {
             roles: keycloak.tokenParsed?.realm_access?.roles || [],
           })
 
-          // Set up token refresh
-          setInterval(() => {
-            keycloak.updateToken(70).then((refreshed) => {
+          // Set up token refresh every 30 seconds
+          const refreshInterval = setInterval(async () => {
+            try {
+              const refreshed = await keycloak.updateToken(70)
               if (refreshed) {
+                console.log('Token auto-refreshed')
                 setToken(keycloak.token)
               }
-            }).catch(() => {
-              console.error('Failed to refresh token')
-            })
-          }, 60000)
+            } catch (error) {
+              console.error('Failed to refresh token:', error)
+              clearInterval(refreshInterval)
+            }
+          }, 30000)
+
+          // Cleanup interval on unmount
+          return () => clearInterval(refreshInterval)
         }
       } catch (error) {
         console.error('Keycloak init error:', error)
@@ -73,6 +93,20 @@ export function AuthProvider({ children }) {
     return user?.roles?.includes(role) || false
   }, [user])
 
+  // Get fresh token
+  const getToken = useCallback(async () => {
+    if (keycloak.authenticated) {
+      try {
+        await keycloak.updateToken(30)
+        return keycloak.token
+      } catch (error) {
+        console.error('Failed to get fresh token:', error)
+        return null
+      }
+    }
+    return null
+  }, [])
+
   const value = {
     isLoading,
     isAuthenticated,
@@ -81,6 +115,7 @@ export function AuthProvider({ children }) {
     login,
     logout,
     hasRole,
+    getToken,
     keycloak,
   }
 

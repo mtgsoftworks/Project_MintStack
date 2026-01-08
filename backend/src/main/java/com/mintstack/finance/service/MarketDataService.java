@@ -152,6 +152,8 @@ public class MarketDataService {
             .currencyName(rate.getCurrencyName())
             .buyingRate(rate.getBuyingRate())
             .sellingRate(rate.getSellingRate())
+            .effectiveBuyingRate(rate.getEffectiveBuyingRate())
+            .effectiveSellingRate(rate.getEffectiveSellingRate())
             .averageRate(rate.getAverageRate())
             .source(rate.getSource().name())
             .fetchedAt(rate.getFetchedAt())

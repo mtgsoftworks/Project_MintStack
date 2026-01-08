@@ -25,6 +25,10 @@ public class CurrencyRateResponse {
     
     private BigDecimal sellingRate;
     
+    private BigDecimal effectiveBuyingRate;
+    
+    private BigDecimal effectiveSellingRate;
+    
     private BigDecimal averageRate;
     
     private BigDecimal changePercent;

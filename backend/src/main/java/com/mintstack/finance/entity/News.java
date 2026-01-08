@@ -47,6 +47,10 @@ public class News extends BaseEntity {
     @Builder.Default
     private Boolean isFeatured = false;
 
+    @Column(name = "is_published")
+    @Builder.Default
+    private Boolean isPublished = true;
+
     @Column(name = "view_count")
     @Builder.Default
     private Long viewCount = 0L;

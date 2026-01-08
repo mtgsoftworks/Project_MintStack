@@ -98,14 +98,10 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="p-4 border-t border-dark-800">
-        <div className="card p-4 bg-gradient-to-br from-primary-500/10 to-accent-500/10">
-          <p className="text-sm font-medium text-white mb-1">Pro'ya Yükseltin</p>
-          <p className="text-xs text-dark-400 mb-3">
-            Daha fazla özellik ve analiz araçlarına erişin
+        <div className="text-center">
+          <p className="text-xs text-dark-500">
+            © 2026 MintStack Finance
           </p>
-          <button className="w-full btn-accent text-sm">
-            Yükselt
-          </button>
         </div>
       </div>
     </aside>
