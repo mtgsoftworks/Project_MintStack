@@ -1,0 +1,33 @@
+# Admin User
+dn: uid=admin,ou=users,dc=mintstack,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: admin
+sn: User
+givenName: Admin
+cn: Admin User
+displayName: Admin User
+mail: admin@mintstack.local
+uidNumber: 1000
+gidNumber: 1000
+homeDirectory: /home/admin
+loginShell: /bin/bash
+userPassword: {SSHA}Admin123!
+
+# Test User
+dn: uid=testuser,ou=users,dc=mintstack,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: testuser
+sn: User
+givenName: Test
+cn: Test User
+displayName: Test User
+mail: testuser@mintstack.local
+uidNumber: 1001
+gidNumber: 1000
+homeDirectory: /home/testuser
+loginShell: /bin/bash
+userPassword: {SSHA}Test123!

@@ -1,0 +1,10 @@
+# Base organizational units
+dn: ou=users,dc=mintstack,dc=local
+objectClass: organizationalUnit
+ou: users
+description: MintStack Users
+
+dn: ou=groups,dc=mintstack,dc=local
+objectClass: organizationalUnit
+ou: groups
+description: MintStack Groups

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Properties>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-}] %-5level %logger{36} - %msg%n</Property>
+        <Property name="KAFKA_SERVERS">${env:SPRING_KAFKA_BOOTSTRAP_SERVERS:-localhost:29092}</Property>
+        <Property name="SERVICE_NAME">${env:OTEL_SERVICE_NAME:-finance-portal}</Property>
+    </Properties>
+
+    <Appenders>
+        <!-- Console Appender -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Console>
+
+        <!-- JSON Console Appender for structured logging -->
+        <Console name="JsonConsole" target="SYSTEM_OUT">
+            <JsonTemplateLayout eventTemplateUri="classpath:LogstashJsonEventLayoutV1.json">
+                <EventTemplateAdditionalField key="service" value="${SERVICE_NAME}"/>
+            </JsonTemplateLayout>
+        </Console>
+
+        <!-- Kafka Appender -->
+        <Kafka name="Kafka" topic="mintstack-logs">
+            <JsonTemplateLayout eventTemplateUri="classpath:LogstashJsonEventLayoutV1.json">
+                <EventTemplateAdditionalField key="service" value="${SERVICE_NAME}"/>
+            </JsonTemplateLayout>
+            <Property name="bootstrap.servers">${KAFKA_SERVERS}</Property>
+            <Property name="max.block.ms">2000</Property>
+            <Property name="acks">1</Property>
+            <Property name="retries">2</Property>
+        </Kafka>
+
+        <!-- Async Kafka Appender for better performance -->
+        <Async name="AsyncKafka">
+            <AppenderRef ref="Kafka"/>
+        </Async>
+
+        <!-- Rolling File Appender for backup -->
+        <RollingFile name="RollingFile" 
+                     fileName="logs/finance-portal.log"
+                     filePattern="logs/finance-portal-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+                <TimeBasedTriggeringPolicy interval="1"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <!-- Application Logger -->
+        <Logger name="com.mintstack.finance" level="DEBUG" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncKafka"/>
+            <AppenderRef ref="RollingFile"/>
+        </Logger>
+
+        <!-- Spring Framework -->
+        <Logger name="org.springframework" level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncKafka"/>
+        </Logger>
+
+        <!-- Spring Security -->
+        <Logger name="org.springframework.security" level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncKafka"/>
+        </Logger>
+
+        <!-- Hibernate -->
+        <Logger name="org.hibernate" level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <Logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Kafka -->
+        <Logger name="org.apache.kafka" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Root Logger -->
+        <Root level="INFO">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncKafka"/>
+            <AppenderRef ref="RollingFile"/>
+        </Root>
+    </Loggers>
+</Configuration>

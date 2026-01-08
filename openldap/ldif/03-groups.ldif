@@ -1,0 +1,18 @@
+# Users Group
+dn: cn=users,ou=groups,dc=mintstack,dc=local
+objectClass: posixGroup
+objectClass: top
+cn: users
+gidNumber: 1000
+description: Regular Users Group
+memberUid: admin
+memberUid: testuser
+
+# Admins Group
+dn: cn=admins,ou=groups,dc=mintstack,dc=local
+objectClass: posixGroup
+objectClass: top
+cn: admins
+gidNumber: 1001
+description: Administrators Group
+memberUid: admin
