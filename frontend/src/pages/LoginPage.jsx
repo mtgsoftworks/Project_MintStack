@@ -1,8 +1,23 @@
+import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { ChartBarIcon, ShieldCheckIcon, BoltIcon } from '@heroicons/react/24/outline'
+import { ChartBarIcon, ShieldCheckIcon, BoltIcon, DevicePhoneMobileIcon } from '@heroicons/react/24/outline'
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, keycloak } = useAuth()
+  const [rememberMe, setRememberMe] = useState(false)
+
+  const handleLogin = () => {
+    // Pass rememberMe option to Keycloak login
+    login({ 
+      prompt: 'login',
+      // Keycloak'ta "Remember Me" için
+      loginHint: rememberMe ? 'remember' : undefined
+    })
+  }
+
+  const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180'
+  const keycloakRealm = import.meta.env.VITE_KEYCLOAK_REALM || 'mintstack-finance'
+  const twoFactorUrl = `${keycloakUrl}/realms/${keycloakRealm}/account/totp`
 
   const features = [
     {
@@ -81,12 +96,56 @@ export default function LoginPage() {
               <p className="text-dark-400">Devam etmek için giriş yapın</p>
             </div>
 
+            {/* Remember Me Checkbox */}
+            <label className="flex items-center gap-3 mb-6 cursor-pointer group">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-5 h-5 rounded border-2 border-dark-600 bg-dark-800 
+                              peer-checked:bg-primary-600 peer-checked:border-primary-600
+                              peer-focus:ring-2 peer-focus:ring-primary-500/50
+                              transition-all duration-200">
+                  <svg
+                    className={`w-3 h-3 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 
+                               transition-opacity ${rememberMe ? 'opacity-100' : 'opacity-0'}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={3}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+              <span className="text-dark-300 text-sm group-hover:text-dark-200 transition-colors">
+                Beni hatırla
+              </span>
+            </label>
+
             <button
-              onClick={login}
-              className="w-full btn-primary py-3 text-lg font-semibold mb-6"
+              onClick={handleLogin}
+              className="w-full btn-primary py-3 text-lg font-semibold mb-4"
             >
               Keycloak ile Giriş Yap
             </button>
+
+            {/* 2FA Setup Link */}
+            <a
+              href={twoFactorUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 mb-6
+                        border border-dark-700 rounded-lg text-dark-300 
+                        hover:border-primary-500/50 hover:text-primary-400 hover:bg-dark-800/50
+                        transition-all duration-200"
+            >
+              <DevicePhoneMobileIcon className="w-5 h-5" />
+              <span className="text-sm font-medium">2FA Aktive Et</span>
+            </a>
 
             <div className="relative mb-6">
               <div className="absolute inset-0 flex items-center">
@@ -100,7 +159,7 @@ export default function LoginPage() {
             <div className="text-center">
               <p className="text-dark-400 text-sm">
                 Hesabınız yok mu?{' '}
-                <button onClick={login} className="text-primary-400 hover:text-primary-300">
+                <button onClick={handleLogin} className="text-primary-400 hover:text-primary-300">
                   Kayıt olun
                 </button>
               </p>
