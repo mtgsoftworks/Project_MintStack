@@ -23,9 +23,9 @@ processors:
         action: upsert
 
 exporters:
-  opensearch:
-    http:
-      endpoint: http://opensearch:9200
+  # Use elasticsearch exporter for OpenSearch (compatible)
+  elasticsearch:
+    endpoints: ["http://opensearch:9200"]
     logs_index: mintstack-logs
     traces_index: mintstack-traces
   
@@ -33,8 +33,8 @@ exporters:
     endpoint: 0.0.0.0:8889
     namespace: mintstack
   
-  logging:
-    verbosity: detailed
+  debug:
+    verbosity: basic
 
 extensions:
   health_check:
@@ -52,15 +52,15 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch, resource]
-      exporters: [opensearch, logging]
+      exporters: [elasticsearch, debug]
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [prometheus, logging]
+      exporters: [prometheus, debug]
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch, resource]
-      exporters: [opensearch, logging]
+      exporters: [elasticsearch, debug]
   
   telemetry:
     logs:

@@ -154,47 +154,6 @@
       ]
     }
   ],
-  "clientScopes": [
-    {
-      "name": "roles",
-      "description": "OpenID Connect scope for roles",
-      "protocol": "openid-connect",
-      "attributes": {
-        "include.in.token.scope": "true",
-        "display.on.consent.screen": "true"
-      },
-      "protocolMappers": [
-        {
-          "name": "realm roles",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-realm-role-mapper",
-          "consentRequired": false,
-          "config": {
-            "multivalued": "true",
-            "user.attribute": "foo",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "claim.name": "realm_access.roles",
-            "jsonType.label": "String"
-          }
-        },
-        {
-          "name": "client roles",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-client-role-mapper",
-          "consentRequired": false,
-          "config": {
-            "multivalued": "true",
-            "user.attribute": "foo",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "claim.name": "resource_access.${client_id}.roles",
-            "jsonType.label": "String"
-          }
-        }
-      ]
-    }
-  ],
   "users": [
     {
       "username": "admin",
@@ -304,59 +263,17 @@
           "fullSyncPeriod": ["-1"],
           "changedSyncPeriod": ["-1"],
           "cachePolicy": ["DEFAULT"],
-          "evictionDay": [],
-          "evictionHour": [],
-          "evictionMinute": [],
-          "maxLifespan": [],
           "priority": ["0"],
           "validatePasswordPolicy": ["false"],
           "trustEmail": ["false"],
           "useTruststoreSpi": ["ldapsOnly"],
           "connectionPooling": ["true"],
-          "connectionPoolingAuthentication": [],
-          "connectionPoolingDebug": [],
-          "connectionPoolingInitSize": [],
-          "connectionPoolingMaxSize": [],
-          "connectionPoolingPrefSize": [],
-          "connectionPoolingProtocol": [],
-          "connectionPoolingTimeout": [],
-          "connectionTimeout": [],
-          "readTimeout": [],
           "startTls": ["false"],
           "useKerberosForPasswordAuthentication": ["false"]
         }
       }
     ]
   },
-  "browserFlow": "browser",
-  "registrationFlow": "registration",
-  "directGrantFlow": "direct grant",
-  "resetCredentialsFlow": "reset credentials",
-  "clientAuthenticationFlow": "clients",
-  "dockerAuthenticationFlow": "docker auth",
-  "authenticationFlows": [
-    {
-      "alias": "browser-with-otp",
-      "description": "Browser flow with OTP",
-      "providerId": "basic-flow",
-      "topLevel": true,
-      "builtIn": false,
-      "authenticationExecutions": [
-        {
-          "authenticator": "auth-cookie",
-          "authenticatorFlow": false,
-          "requirement": "ALTERNATIVE",
-          "priority": 10
-        },
-        {
-          "authenticatorFlow": true,
-          "requirement": "ALTERNATIVE",
-          "priority": 20,
-          "flowAlias": "forms"
-        }
-      ]
-    }
-  ],
   "smtpServer": {},
   "internationalizationEnabled": true,
   "supportedLocales": ["en", "tr"],

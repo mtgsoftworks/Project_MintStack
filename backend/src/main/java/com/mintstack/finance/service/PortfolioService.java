@@ -152,7 +152,8 @@ public class PortfolioService {
     @Transactional
     public PortfolioResponse removeItem(String keycloakId, UUID portfolioId, UUID itemId) {
         User user = userService.getUserByKeycloakId(keycloakId);
-        Portfolio portfolio = portfolioRepository.findByIdAndUserId(portfolioId, user.getId())
+        // Verify portfolio exists and belongs to user
+        portfolioRepository.findByIdAndUserId(portfolioId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Portföy", "id", portfolioId));
         
         PortfolioItem item = portfolioItemRepository.findByIdAndPortfolioId(itemId, portfolioId)

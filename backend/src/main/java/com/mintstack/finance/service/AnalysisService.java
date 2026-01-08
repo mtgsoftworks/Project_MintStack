@@ -1,7 +1,6 @@
 package com.mintstack.finance.service;
 
 import com.mintstack.finance.dto.request.CompareInstrumentsRequest;
-import com.mintstack.finance.dto.response.PriceHistoryResponse;
 import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.PriceHistory;
 import com.mintstack.finance.exception.ResourceNotFoundException;
