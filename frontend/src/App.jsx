@@ -24,8 +24,8 @@ import LoginPage from '@/pages/LoginPage'
 // Keycloak configuration
 const keycloakConfig = {
   url: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180',
-  realm: import.meta.env.VITE_KEYCLOAK_REALM || 'mintstack',
-  clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'mintstack-frontend',
+  realm: import.meta.env.VITE_KEYCLOAK_REALM || 'mintstack-finance',
+  clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'finance-frontend',
 }
 
 // Initialize Keycloak
@@ -39,7 +39,7 @@ function App() {
     // Initialize Keycloak
     keycloak
       .init({
-        onLoad: 'check-sso',
+        onLoad: 'login-required',
         silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
         pkceMethod: 'S256',
       })
@@ -95,19 +95,55 @@ function App() {
       {/* Protected routes with Layout */}
       <Route element={<Layout />}>
         {/* Dashboard */}
-        <Route path="/" element={<DashboardPage />} />
+        <Route path="/" element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        } />
 
         {/* News */}
-        <Route path="/news" element={<NewsPage />} />
-        <Route path="/news/:id" element={<NewsDetailPage />} />
+        <Route path="/news" element={
+          <ProtectedRoute>
+            <NewsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/news/:id" element={
+          <ProtectedRoute>
+            <NewsDetailPage />
+          </ProtectedRoute>
+        } />
 
-        {/* Market Data (public - no auth required) */}
-        <Route path="/market/currencies" element={<CurrencyPage />} />
-        <Route path="/market/stocks" element={<StocksPage />} />
-        <Route path="/market/stocks/:symbol" element={<StockDetailPage />} />
-        <Route path="/market/bonds" element={<BondsPage />} />
-        <Route path="/market/funds" element={<FundsPage />} />
-        <Route path="/market/viop" element={<ViopPage />} />
+        {/* Market Data */}
+        <Route path="/market/currencies" element={
+          <ProtectedRoute>
+            <CurrencyPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/market/stocks" element={
+          <ProtectedRoute>
+            <StocksPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/market/stocks/:symbol" element={
+          <ProtectedRoute>
+            <StockDetailPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/market/bonds" element={
+          <ProtectedRoute>
+            <BondsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/market/funds" element={
+          <ProtectedRoute>
+            <FundsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/market/viop" element={
+          <ProtectedRoute>
+            <ViopPage />
+          </ProtectedRoute>
+        } />
 
         {/* Protected routes */}
         <Route

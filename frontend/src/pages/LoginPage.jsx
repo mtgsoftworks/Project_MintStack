@@ -55,32 +55,12 @@ export default function LoginPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <Button 
-            onClick={handleLogin} 
+          <Button
+            onClick={handleLogin}
             className="w-full h-12 text-base"
             size="lg"
           >
             Giriş Yap
-          </Button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                veya
-              </span>
-            </div>
-          </div>
-
-          <Button 
-            variant="outline" 
-            className="w-full h-12 text-base"
-            size="lg"
-            onClick={() => navigate('/')}
-          >
-            Misafir Olarak Devam Et
           </Button>
 
           <p className="text-center text-xs text-muted-foreground">

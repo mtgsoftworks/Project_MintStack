@@ -30,6 +30,7 @@ export default function CurrencyPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const { data: currencies, isLoading, isFetching, refetch } = useGetCurrenciesQuery()
 
+
   const filteredCurrencies = currencies?.filter((currency) =>
     currency.currencyCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
     currency.currencyName?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -71,7 +72,7 @@ export default function CurrencyPage() {
         {['USD', 'EUR', 'GBP', 'CHF'].map((code) => {
           const currency = currencies?.find(c => c.currencyCode === code)
           const change = currency?.changePercent || 0
-          
+
           return (
             <Card key={code} className="card-hover">
               <CardContent className="p-4">
@@ -90,7 +91,7 @@ export default function CurrencyPage() {
                     </div>
                     <div>
                       <p className="font-semibold">
-                        {currency ? formatCurrency(currency.forexSelling, 'TRY') : '-'}
+                        {currency ? formatCurrency(currency.sellingRate, 'TRY') : '-'}
                       </p>
                       <p className="text-xs text-muted-foreground">{code}/TRY</p>
                     </div>
@@ -155,10 +156,10 @@ export default function CurrencyPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {formatNumber(currency.forexBuying, 4)}
+                        {formatNumber(currency.buyingRate, 4)}
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {formatNumber(currency.forexSelling, 4)}
+                        {formatNumber(currency.sellingRate, 4)}
                       </TableCell>
                       <TableCell className="text-right">
                         {currency.effectiveBuyingRate ? formatNumber(currency.effectiveBuyingRate, 4) : '-'}
