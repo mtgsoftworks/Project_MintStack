@@ -27,11 +27,13 @@ import java.util.UUID;
 public class PortfolioController {
 
     private final PortfolioService portfolioService;
+    private final com.mintstack.finance.service.UserService userService;
 
     @GetMapping
     @Operation(summary = "Kullanıcının portföylerini listele")
     public ResponseEntity<ApiResponse<List<PortfolioResponse>>> getPortfolios(
             @AuthenticationPrincipal Jwt jwt) {
+        userService.getOrCreateUser(jwt);
         List<PortfolioResponse> portfolios = portfolioService.getUserPortfolios(jwt.getSubject());
         return ResponseEntity.ok(ApiResponse.success(portfolios));
     }
@@ -50,6 +52,7 @@ public class PortfolioController {
     public ResponseEntity<ApiResponse<PortfolioResponse>> createPortfolio(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CreatePortfolioRequest request) {
+        userService.getOrCreateUser(jwt);
         PortfolioResponse portfolio = portfolioService.createPortfolio(jwt.getSubject(), request);
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.success(portfolio, "Portföy başarıyla oluşturuldu"));

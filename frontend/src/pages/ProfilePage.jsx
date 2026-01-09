@@ -1,4 +1,4 @@
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { User, Mail, Phone, Settings, Key, Bell, Shield } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { selectUser, selectRoles } from '@/store/slices/authSlice'
+import { selectTheme, setTheme } from '@/store/slices/uiSlice'
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/store/api/userApi'
 import { getInitials } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -18,6 +19,8 @@ import { useState } from 'react'
 export default function ProfilePage() {
   const user = useSelector(selectUser)
   const roles = useSelector(selectRoles)
+  const theme = useSelector(selectTheme)
+  const dispatch = useDispatch()
   const { data: profile, isLoading } = useGetProfileQuery()
   const [updateProfile, { isLoading: updating }] = useUpdateProfileMutation()
 
@@ -75,16 +78,16 @@ export default function ProfilePage() {
             <Separator className="my-6" />
 
             <div className="space-y-4">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start"
                 onClick={handleKeycloakSettings}
               >
                 <Key className="mr-2 h-4 w-4" />
                 Şifre Değiştir
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start"
                 onClick={handleKeycloakSettings}
               >
@@ -147,7 +150,7 @@ export default function ProfilePage() {
                     </p>
                   </div>
 
-                  <Button 
+                  <Button
                     onClick={handleUpdateProfile}
                     disabled={updating}
                   >
@@ -223,7 +226,10 @@ export default function ProfilePage() {
                         Karanlık tema kullan
                       </p>
                     </div>
-                    <Switch />
+                    <Switch
+                      checked={theme === 'dark'}
+                      onCheckedChange={(checked) => dispatch(setTheme(checked ? 'dark' : 'light'))}
+                    />
                   </div>
 
                   <Separator />

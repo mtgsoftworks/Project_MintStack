@@ -23,8 +23,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn, formatCurrency, formatPercent } from '@/lib/utils'
-import { 
-  useGetPortfoliosQuery, 
+import {
+  useGetPortfoliosQuery,
   useGetPortfolioSummaryQuery,
   useCreatePortfolioMutation,
   useDeletePortfolioMutation,
@@ -231,7 +231,7 @@ export default function PortfolioPage() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {portfolios.map((portfolio) => (
+          {portfolios?.map((portfolio) => (
             <Card key={portfolio.id} className="card-hover">
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">

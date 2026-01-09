@@ -1,8 +1,8 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
-import { 
-  LayoutDashboard, 
-  Newspaper, 
+import {
+  LayoutDashboard,
+  Newspaper,
   TrendingUp,
   DollarSign,
   BarChart3,
@@ -14,32 +14,33 @@ import {
   ChevronRight,
   Menu,
   X,
+  Settings,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { 
-  selectSidebarCollapsed, 
+import {
+  selectSidebarCollapsed,
   selectSidebarMobileOpen,
   toggleSidebar,
-  setMobileSidebarOpen 
+  setMobileSidebarOpen
 } from '@/store/slices/uiSlice'
 import { useState } from 'react'
 
 const navigation = [
-  { 
-    name: 'Dashboard', 
-    href: '/', 
-    icon: LayoutDashboard 
+  {
+    name: 'Dashboard',
+    href: '/',
+    icon: LayoutDashboard
   },
-  { 
-    name: 'Haberler', 
-    href: '/news', 
-    icon: Newspaper 
+  {
+    name: 'Haberler',
+    href: '/news',
+    icon: Newspaper
   },
-  { 
+  {
     name: 'Piyasalar',
     icon: TrendingUp,
     children: [
@@ -50,15 +51,19 @@ const navigation = [
       { name: 'VIOP', href: '/market/viop', icon: LineChart },
     ],
   },
-  { 
-    name: 'Portföy', 
-    href: '/portfolio', 
-    icon: PieChart 
+  {
+    name: 'Portföy',
+    href: '/portfolio',
+    icon: PieChart
   },
-  { 
-    name: 'Analiz', 
-    href: '/analysis', 
-    icon: BarChart3 
+  {
+    href: '/analysis',
+    icon: BarChart3
+  },
+  {
+    name: 'Ayarlar',
+    href: '/settings',
+    icon: Settings
   },
 ]
 
@@ -154,7 +159,7 @@ export function Sidebar() {
     <TooltipProvider delayDuration={0}>
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
           onClick={() => dispatch(setMobileSidebarOpen(false))}
         />
@@ -171,8 +176,8 @@ export function Sidebar() {
         {/* Logo */}
         <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-600">
-              <span className="text-lg font-bold text-white">M</span>
+            <div className="flex bg-white h-10 w-10 items-center justify-center rounded-xl overflow-hidden">
+              <img src="/logo.png" alt="MintStack" className="h-full w-full object-cover" />
             </div>
             {!collapsed && (
               <div>
@@ -181,7 +186,7 @@ export function Sidebar() {
               </div>
             )}
           </div>
-          
+
           {/* Mobile close button */}
           <Button
             variant="ghost"

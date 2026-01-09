@@ -8,11 +8,11 @@ const baseQuery = fetchBaseQuery({
   prepareHeaders: (headers, { getState }) => {
     // Get token from auth state or keycloak
     const token = getState().auth?.token
-    
+
     if (token) {
       headers.set('Authorization', `Bearer ${token}`)
     }
-    
+
     return headers
   },
 })
@@ -20,7 +20,7 @@ const baseQuery = fetchBaseQuery({
 // Base query with re-auth on 401
 const baseQueryWithReauth = async (args, api, extraOptions) => {
   let result = await baseQuery(args, api, extraOptions)
-  
+
   if (result?.error?.status === 401) {
     // Try to refresh token via keycloak
     const keycloak = window.keycloak
@@ -38,7 +38,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
       }
     }
   }
-  
+
   return result
 }
 
@@ -57,6 +57,7 @@ export const baseApi = createApi({
     'Portfolios',
     'PortfolioItems',
     'User',
+    'Settings',
   ],
   endpoints: () => ({}),
 })

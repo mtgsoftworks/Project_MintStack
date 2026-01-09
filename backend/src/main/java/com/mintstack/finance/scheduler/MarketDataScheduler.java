@@ -2,6 +2,7 @@ package com.mintstack.finance.scheduler;
 
 import com.mintstack.finance.entity.CurrencyRate;
 import com.mintstack.finance.entity.Instrument;
+import com.mintstack.finance.entity.PriceHistory;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.service.MarketDataService;
 import com.mintstack.finance.service.external.TcmbApiClient;
@@ -11,7 +12,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-
+import com.mintstack.finance.entity.UserApiConfig;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,19 +46,36 @@ public class MarketDataScheduler {
 
     /**
      * Fetch stock prices every 15 minutes during market hours (9:00-18:00) on weekdays
+     * Also saves daily price history
      */
     @Scheduled(cron = "${app.scheduler.stock-prices-cron}")
     public void fetchStockPrices() {
         log.info("Starting stock prices fetch job");
         try {
-            List<String> stockSymbols = instrumentRepository
-                .findByTypeAndIsActiveTrue(Instrument.InstrumentType.STOCK)
-                .stream()
-                .map(Instrument::getSymbol)
-                .collect(Collectors.toList());
+            List<Instrument> stocks = instrumentRepository.findByTypeAndIsActiveTrue(Instrument.InstrumentType.STOCK);
             
-            yahooFinanceClient.updateStockPrices(stockSymbols);
-            log.info("Stock prices fetch completed: {} stocks updated", stockSymbols.size());
+            UserApiConfig config = marketDataService.getActiveYahooConfig();
+            String apiKey = config != null ? config.getApiKey() : null;
+            String baseUrl = config != null ? config.getBaseUrl() : null;
+            
+            for (Instrument stock : stocks) {
+                try {
+                    BigDecimal price = yahooFinanceClient.fetchStockPrice(stock.getSymbol(), apiKey, baseUrl);
+                    
+                    // Update current price
+                    stock.setPreviousClose(stock.getCurrentPrice());
+                    stock.setCurrentPrice(price);
+                    instrumentRepository.save(stock);
+                    
+                    // Save to price history (one entry per day)
+                    saveDailyPriceHistory(stock, price);
+                    
+                } catch (Exception e) {
+                    log.error("Failed to update price for {}: {}", stock.getSymbol(), e.getMessage());
+                }
+            }
+            
+            log.info("Stock prices fetch completed: {} stocks updated", stocks.size());
         } catch (Exception e) {
             log.error("Stock prices fetch failed", e);
         }
@@ -77,28 +97,83 @@ public class MarketDataScheduler {
             log.warn("Initial TCMB rates load failed: {}", e.getMessage());
         }
         
-        // Fetch initial stock prices
+        // Fetch initial stock prices AND historical data
         try {
-            List<String> stockSymbols = instrumentRepository
-                .findByTypeAndIsActiveTrue(Instrument.InstrumentType.STOCK)
-                .stream()
-                .map(Instrument::getSymbol)
-                .collect(Collectors.toList());
+            List<Instrument> stocks = instrumentRepository.findByTypeAndIsActiveTrue(Instrument.InstrumentType.STOCK);
             
-            if (!stockSymbols.isEmpty()) {
-                yahooFinanceClient.updateStockPrices(stockSymbols);
-                log.info("Initial stock prices loaded: {} stocks", stockSymbols.size());
+            UserApiConfig config = marketDataService.getActiveYahooConfig();
+            String apiKey = config != null ? config.getApiKey() : null;
+            String baseUrl = config != null ? config.getBaseUrl() : null;
+            
+            for (Instrument stock : stocks) {
+                try {
+                    // Fetch current price
+                    BigDecimal price = yahooFinanceClient.fetchStockPrice(stock.getSymbol(), apiKey, baseUrl);
+                    stock.setPreviousClose(stock.getCurrentPrice());
+                    stock.setCurrentPrice(price);
+                    instrumentRepository.save(stock);
+                    
+                    // Fetch and save historical data (last 180 days)
+                    fetchAndSaveHistoricalData(stock.getSymbol(), apiKey, baseUrl);
+                    
+                } catch (Exception e) {
+                    log.warn("Failed to load data for {}: {}", stock.getSymbol(), e.getMessage());
+                }
             }
+            
+            log.info("Initial stock prices and history loaded: {} stocks", stocks.size());
         } catch (Exception e) {
             log.warn("Initial stock prices load failed: {}", e.getMessage());
         }
         
-        // Fetch initial bond/fund/viop prices (using mock data for now as real APIs require subscription)
+        // Fetch initial bond/fund/viop prices
+        /* Mock data disabled by user request
         try {
             loadMockInstrumentPrices();
             log.info("Initial instrument prices loaded");
         } catch (Exception e) {
             log.warn("Initial instrument prices load failed: {}", e.getMessage());
+        }
+        */
+    }
+    
+    /**
+     * Fetch and save historical price data for a symbol
+     */
+    private void fetchAndSaveHistoricalData(String symbol, String apiKey, String baseUrl) {
+        try {
+            LocalDate endDate = LocalDate.now();
+            LocalDate startDate = endDate.minusDays(180);
+            
+            List<PriceHistory> history = yahooFinanceClient.fetchHistoricalData(symbol, startDate, endDate, apiKey, baseUrl);
+            
+            for (PriceHistory ph : history) {
+                marketDataService.savePriceHistory(ph);
+            }
+            
+            log.info("Saved {} historical price records for {}", history.size(), symbol);
+        } catch (Exception e) {
+            log.warn("Failed to fetch historical data for {}: {}", symbol, e.getMessage());
+        }
+    }
+    
+    /**
+     * Save daily price history entry
+     */
+    private void saveDailyPriceHistory(Instrument instrument, BigDecimal price) {
+        try {
+            PriceHistory history = PriceHistory.builder()
+                .instrument(instrument)
+                .priceDate(LocalDate.now())
+                .closePrice(price)
+                .openPrice(price)
+                .highPrice(price)
+                .lowPrice(price)
+                .build();
+            
+            marketDataService.savePriceHistory(history);
+        } catch (Exception e) {
+            log.warn("Failed to save price history for {}: {}", instrument.getSymbol(), e.getMessage());
         }
     }
     

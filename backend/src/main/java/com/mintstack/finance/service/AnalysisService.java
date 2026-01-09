@@ -166,6 +166,17 @@ public class AnalysisService {
         result.put("highPrice", history.stream().map(PriceHistory::getHighPrice).filter(Objects::nonNull).max(BigDecimal::compareTo).orElse(null));
         result.put("lowPrice", history.stream().map(PriceHistory::getLowPrice).filter(Objects::nonNull).min(BigDecimal::compareTo).orElse(null));
         
+        // Add chart data
+        List<Map<String, Object>> chartData = history.stream()
+            .map(h -> {
+                Map<String, Object> point = new HashMap<>();
+                point.put("date", h.getPriceDate());
+                point.put("price", h.getClosePrice());
+                return point;
+            })
+            .collect(Collectors.toList());
+        result.put("data", chartData);
+        
         return result;
     }
 

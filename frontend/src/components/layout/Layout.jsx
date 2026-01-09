@@ -1,13 +1,21 @@
 import { Outlet } from 'react-router-dom'
+import { useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { cn } from '@/lib/utils'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { Toaster } from '@/components/ui/sonner'
-import { selectSidebarCollapsed } from '@/store/slices/uiSlice'
+import { selectSidebarCollapsed, selectTheme } from '@/store/slices/uiSlice'
 
 export function Layout() {
   const collapsed = useSelector(selectSidebarCollapsed)
+  const theme = useSelector(selectTheme)
+
+  useEffect(() => {
+    const root = window.document.documentElement
+    root.classList.remove('light', 'dark')
+    root.classList.add(theme)
+  }, [theme])
 
   return (
     <div className="min-h-screen bg-background">

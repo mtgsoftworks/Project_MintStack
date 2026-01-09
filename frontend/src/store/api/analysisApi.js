@@ -5,18 +5,23 @@ export const analysisApi = baseApi.injectEndpoints({
     // Get moving average analysis
     getMovingAverage: builder.query({
       query: ({ symbol, period = '1M', maType = 'SMA', maPeriod = 20 }) => ({
-        url: `/analysis/moving-average/${symbol}`,
-        params: { period, maType, maPeriod },
+        url: `/analysis/ma/${symbol}`,
+        params: { period: maPeriod },
       }),
       transformResponse: (response) => response.data,
     }),
 
     // Get trend analysis
     getTrendAnalysis: builder.query({
-      query: ({ symbol, period = '1M' }) => ({
-        url: `/analysis/trend/${symbol}`,
-        params: { period },
-      }),
+      query: ({ symbol, period = '1M' }) => {
+        // Convert period string to days
+        const daysMap = { '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365 }
+        const days = daysMap[period] || 30
+        return {
+          url: `/analysis/trend/${symbol}`,
+          params: { days },
+        }
+      },
       transformResponse: (response) => response.data,
     }),
 

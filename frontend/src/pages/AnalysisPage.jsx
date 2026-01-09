@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -14,8 +14,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn, formatCurrency, formatPercent, formatNumber } from '@/lib/utils'
-import { 
-  useGetMovingAverageQuery, 
+import {
+  useGetMovingAverageQuery,
   useGetTrendAnalysisQuery,
   useGetComparisonQuery,
 } from '@/store/api/analysisApi'
@@ -128,7 +128,7 @@ export default function AnalysisPage() {
                 {maLoading ? (
                   <Skeleton className="h-64" />
                 ) : (
-                  <PriceChart data={maData?.priceHistory || []} />
+                  <PriceChart data={maData?.data || []} />
                 )}
               </CardContent>
             </Card>
@@ -184,7 +184,7 @@ export default function AnalysisPage() {
                 {trendLoading ? (
                   <Skeleton className="h-64" />
                 ) : (
-                  <PriceChart data={trendData?.priceHistory || []} />
+                  <PriceChart data={trendData?.data || []} />
                 )}
               </CardContent>
             </Card>

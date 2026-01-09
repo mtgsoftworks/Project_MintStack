@@ -12,6 +12,9 @@ import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.CurrencyRateRepository;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
+import com.mintstack.finance.repository.UserApiConfigRepository;
+import com.mintstack.finance.entity.UserApiConfig;
+import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -32,7 +35,9 @@ public class MarketDataService {
 
     private final InstrumentRepository instrumentRepository;
     private final CurrencyRateRepository currencyRateRepository;
+
     private final PriceHistoryRepository priceHistoryRepository;
+    private final UserApiConfigRepository userApiConfigRepository;
 
     // Currency Rates
     @Cacheable(value = "currencyRates", key = "'tcmb-latest'")
@@ -115,6 +120,15 @@ public class MarketDataService {
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(days);
         return getPriceHistory(symbol, startDate, endDate);
+    }
+
+    // Config
+    @Transactional(readOnly = true)
+    public UserApiConfig getActiveYahooConfig() {
+        return userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.YAHOO_FINANCE)
+            .stream()
+            .findFirst()
+            .orElse(null);
     }
 
     // Save methods

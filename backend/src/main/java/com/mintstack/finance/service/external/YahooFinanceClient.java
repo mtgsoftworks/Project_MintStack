@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,14 +31,16 @@ public class YahooFinanceClient {
     /**
      * Fetch stock quote for BIST stocks (symbol.IS format)
      */
-    public BigDecimal fetchStockPrice(String symbol) {
+    public BigDecimal fetchStockPrice(String symbol, String apiKey, String baseUrl) {
         try {
             String yahooSymbol = symbol + ".IS"; // BIST stocks on Yahoo Finance
             String url = "/chart/" + yahooSymbol + "?interval=1d&range=1d";
             
             log.debug("Fetching Yahoo Finance quote: {}", yahooSymbol);
             
-            String response = yahooFinanceWebClient.get()
+            WebClient client = getClient(apiKey, baseUrl);
+            
+            String response = client.get()
                 .uri(url)
                 .retrieve()
                 .bodyToMono(String.class)
@@ -64,7 +67,7 @@ public class YahooFinanceClient {
     /**
      * Fetch historical data for a stock
      */
-    public List<PriceHistory> fetchHistoricalData(String symbol, LocalDate startDate, LocalDate endDate) {
+    public List<PriceHistory> fetchHistoricalData(String symbol, LocalDate startDate, LocalDate endDate, String apiKey, String baseUrl) {
         List<PriceHistory> history = new ArrayList<>();
         
         try {
@@ -76,7 +79,9 @@ public class YahooFinanceClient {
             
             log.info("Fetching Yahoo Finance historical data: {}", yahooSymbol);
             
-            String response = yahooFinanceWebClient.get()
+            WebClient client = getClient(apiKey, baseUrl);
+            
+            String response = client.get()
                 .uri(url)
                 .retrieve()
                 .bodyToMono(String.class)
@@ -99,6 +104,12 @@ public class YahooFinanceClient {
             }
             
             for (int i = 0; i < timestamps.size(); i++) {
+                // Skip entries with null close price (market holidays, etc.)
+                BigDecimal closePrice = getBigDecimal(indicators.path("close"), i);
+                if (closePrice == null) {
+                    continue;
+                }
+                
                 long timestamp = timestamps.get(i).asLong();
                 LocalDate date = Instant.ofEpochSecond(timestamp)
                     .atZone(ZoneId.systemDefault())
@@ -110,7 +121,7 @@ public class YahooFinanceClient {
                     .openPrice(getBigDecimal(indicators.path("open"), i))
                     .highPrice(getBigDecimal(indicators.path("high"), i))
                     .lowPrice(getBigDecimal(indicators.path("low"), i))
-                    .closePrice(getBigDecimal(indicators.path("close"), i))
+                    .closePrice(closePrice)
                     .volume(indicators.path("volume").get(i) != null && !indicators.path("volume").get(i).isNull() 
                         ? indicators.path("volume").get(i).asLong() : null)
                     .adjustedClose(adjClose != null && adjClose.size() > 0 
@@ -131,10 +142,10 @@ public class YahooFinanceClient {
     /**
      * Fetch multiple stock prices
      */
-    public void updateStockPrices(List<String> symbols) {
+    public void updateStockPrices(List<String> symbols, String apiKey, String baseUrl) {
         for (String symbol : symbols) {
             try {
-                BigDecimal price = fetchStockPrice(symbol);
+                BigDecimal price = fetchStockPrice(symbol, apiKey, baseUrl);
                 instrumentRepository.findBySymbol(symbol).ifPresent(instrument -> {
                     instrument.setPreviousClose(instrument.getCurrentPrice());
                     instrument.setCurrentPrice(price);
@@ -151,5 +162,31 @@ public class YahooFinanceClient {
             return null;
         }
         return new BigDecimal(node.get(index).asText());
+    }
+    private WebClient getClient(String apiKey, String baseUrl) {
+        WebClient client = yahooFinanceWebClient;
+        if (baseUrl != null && !baseUrl.isEmpty()) {
+            client = client.mutate().baseUrl(baseUrl).build();
+        }
+        
+        if (apiKey != null && !apiKey.isEmpty()) {
+            // RapidAPI headers
+            client = client.mutate()
+                .defaultHeader("X-RapidAPI-Key", apiKey)
+                .build();
+                
+            if (baseUrl != null && !baseUrl.isEmpty()) {
+                try {
+                    URI uri = URI.create(baseUrl);
+                    String host = uri.getHost();
+                    if (host != null) {
+                         client = client.mutate().defaultHeader("X-RapidAPI-Host", host).build();
+                    }
+                } catch (Exception e) {
+                    log.warn("Could not parse host from base URL: {}", baseUrl);
+                }
+            }
+        }
+        return client;
     }
 }

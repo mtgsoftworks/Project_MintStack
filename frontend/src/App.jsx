@@ -19,6 +19,7 @@ import PortfolioPage from '@/pages/PortfolioPage'
 import PortfolioDetailPage from '@/pages/PortfolioDetailPage'
 import AnalysisPage from '@/pages/AnalysisPage'
 import ProfilePage from '@/pages/ProfilePage'
+import SettingsPage from '@/pages/SettingsPage'
 import LoginPage from '@/pages/LoginPage'
 
 // Keycloak configuration
@@ -175,6 +176,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
             </ProtectedRoute>
           }
         />

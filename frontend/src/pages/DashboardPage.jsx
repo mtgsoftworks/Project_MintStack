@@ -1,8 +1,8 @@
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  BarChart3, 
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  BarChart3,
   Newspaper,
   Wallet,
   ArrowUpRight,
@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cn, formatCurrency, formatPercent, formatRelativeTime } from '@/lib/utils'
 import { useGetCurrenciesQuery, useGetStocksQuery } from '@/store/api/marketApi'
 import { useGetNewsQuery } from '@/store/api/newsApi'
-import { useGetPortfolioSummaryQuery } from '@/store/api/portfolioApi'
+import { useGetPortfoliosQuery } from '@/store/api/portfolioApi'
 import { useSelector } from 'react-redux'
 import { selectIsAuthenticated } from '@/store/slices/authSlice'
 import { Link } from 'react-router-dom'
@@ -70,7 +70,7 @@ function StatCard({ title, value, change, icon: Icon, trend, loading }) {
 function CurrencyWidget() {
   const { data: currencies, isLoading } = useGetCurrenciesQuery()
 
-  const mainCurrencies = currencies?.filter(c => 
+  const mainCurrencies = currencies?.filter(c =>
     ['USD', 'EUR', 'GBP'].includes(c.currencyCode)
   ) || []
 
@@ -110,7 +110,7 @@ function CurrencyWidget() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold">{formatCurrency(currency.forexSelling, 'TRY')}</p>
+                  <p className="font-semibold">{formatCurrency(currency.sellingRate, 'TRY')}</p>
                   <p className={cn(
                     "text-xs font-medium",
                     currency.changePercent >= 0 ? "text-success" : "text-danger"
@@ -231,10 +231,20 @@ function StocksWidget() {
 export default function DashboardPage() {
   const isAuthenticated = useSelector(selectIsAuthenticated)
   const { data: currencies, isLoading: currenciesLoading } = useGetCurrenciesQuery()
-  const { data: portfolioSummary, isLoading: portfolioLoading } = useGetPortfolioSummaryQuery(
-    undefined,
-    { skip: !isAuthenticated }
-  )
+  const { data: portfolios, isLoading: portfolioLoading } = useGetPortfoliosQuery(undefined, {
+    skip: !isAuthenticated
+  })
+
+  // Calculate portfolio summary
+  const portfolioSummary = portfolios?.reduce((acc, portfolio) => ({
+    totalValue: acc.totalValue + (portfolio.totalValue || 0),
+    totalProfitLoss: acc.totalProfitLoss + (portfolio.profitLoss || 0),
+    totalCost: acc.totalCost + (portfolio.totalCost || 0),
+  }), { totalValue: 0, totalProfitLoss: 0, totalCost: 0 })
+
+  const portfolioProfitLossPercent = portfolioSummary?.totalCost > 0
+    ? (portfolioSummary.totalProfitLoss / portfolioSummary.totalCost) * 100
+    : 0
 
   // Get USD rate
   const usdRate = currencies?.find(c => c.currencyCode === 'USD')
@@ -253,7 +263,7 @@ export default function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="USD/TRY"
-          value={usdRate ? formatCurrency(usdRate.forexSelling, 'TRY') : '-'}
+          value={usdRate ? formatCurrency(usdRate.sellingRate, 'TRY') : '-'}
           change={usdRate?.changePercent}
           icon={DollarSign}
           trend={usdRate?.changePercent >= 0 ? 'up' : 'down'}
@@ -272,17 +282,17 @@ export default function DashboardPage() {
             <StatCard
               title="Portföy Değeri"
               value={portfolioSummary ? formatCurrency(portfolioSummary.totalValue, 'TRY') : '-'}
-              change={portfolioSummary?.totalProfitLossPercent}
+              change={portfolioProfitLossPercent}
               icon={Wallet}
-              trend={portfolioSummary?.totalProfitLossPercent >= 0 ? 'up' : 'down'}
+              trend={portfolioProfitLossPercent >= 0 ? 'up' : 'down'}
               loading={portfolioLoading}
             />
             <StatCard
-              title="Günlük K/Z"
-              value={portfolioSummary ? formatCurrency(portfolioSummary.dailyProfitLoss, 'TRY') : '-'}
-              change={portfolioSummary?.dailyProfitLossPercent}
-              icon={portfolioSummary?.dailyProfitLoss >= 0 ? TrendingUp : TrendingDown}
-              trend={portfolioSummary?.dailyProfitLoss >= 0 ? 'up' : 'down'}
+              title="Toplam K/Z"
+              value={portfolioSummary ? formatCurrency(portfolioSummary.totalProfitLoss, 'TRY') : '-'}
+              change={portfolioProfitLossPercent}
+              icon={portfolioSummary?.totalProfitLoss >= 0 ? TrendingUp : TrendingDown}
+              trend={portfolioSummary?.totalProfitLoss >= 0 ? 'up' : 'down'}
               loading={portfolioLoading}
             />
           </>

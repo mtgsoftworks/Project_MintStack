@@ -3,7 +3,7 @@ import { createSlice } from '@reduxjs/toolkit'
 const initialState = {
   sidebarCollapsed: false,
   sidebarMobileOpen: false,
-  theme: 'light',
+  theme: localStorage.getItem('theme') || 'light',
   loading: false,
   globalError: null,
 }
