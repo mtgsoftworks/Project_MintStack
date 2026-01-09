@@ -79,11 +79,12 @@ function NavItem({ item, collapsed }) {
         <CollapsibleTrigger asChild>
           <button
             className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+              "flex w-full items-center rounded-lg py-2.5 text-sm font-medium transition-colors",
+              collapsed ? "justify-center px-0" : "gap-3 px-3",
               "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
             )}
           >
-            <item.icon className="h-5 w-5 shrink-0" />
+            <item.icon className={cn("shrink-0", collapsed ? "h-6 w-6" : "h-5 w-5")} />
             {!collapsed && (
               <>
                 <span className="flex-1 text-left">{item.name}</span>
@@ -121,20 +122,25 @@ function NavItem({ item, collapsed }) {
     )
   }
 
+  const isActive = location.pathname === item.href ||
+    (item.href !== '/' && location.pathname.startsWith(item.href))
+
   const content = (
     <NavLink
       to={item.href}
-      className={({ isActive }) =>
-        cn(
-          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-          isActive
-            ? "bg-primary/10 text-primary border-l-2 border-primary"
-            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-        )
-      }
+      className={cn(
+        "group relative flex items-center justify-center rounded-lg transition-all",
+        collapsed ? "w-10 h-10" : "gap-3 px-3 py-2.5",
+        isActive
+          ? "bg-white/10 text-blue-300"
+          : "text-slate-400 hover:text-white hover:bg-white/5"
+      )}
     >
-      <item.icon className="h-5 w-5 shrink-0" />
-      {!collapsed && <span>{item.name}</span>}
+      {collapsed && isActive && (
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 -ml-5 w-1 h-6 bg-blue-400 rounded-r-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+      )}
+      <item.icon className={cn("shrink-0", collapsed ? "h-6 w-6" : "h-5 w-5")} />
+      {!collapsed && <span className="text-sm font-medium">{item.name}</span>}
     </NavLink>
   )
 
@@ -168,63 +174,70 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300",
-          collapsed ? "w-[68px]" : "w-64",
+          "fixed left-0 top-0 z-50 flex h-screen flex-col items-center py-6 transition-all duration-300",
+          "bg-gradient-to-b from-blue-900 via-slate-900 to-slate-950 border-r border-white/10 shadow-2xl",
+          collapsed ? "w-20" : "w-64 items-stretch",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         {/* Logo */}
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
+        <div className={cn(
+          "flex items-center transition-all duration-300",
+          collapsed ? "justify-center mb-10" : "justify-between h-16 px-4 border-b border-white/10"
+        )}>
           <div className="flex items-center gap-3">
-            <div className="flex bg-white h-10 w-10 items-center justify-center rounded-xl overflow-hidden">
+            <div className={cn(
+              "flex items-center justify-center rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform",
+              "bg-gradient-to-br from-white to-blue-100 shadow-lg shadow-blue-900/50",
+              collapsed ? "w-10 h-10" : "w-10 h-10"
+            )}>
               <img src="/logo.png" alt="MintStack" className="h-full w-full object-cover" />
             </div>
             {!collapsed && (
               <div>
                 <h1 className="text-lg font-bold text-white">MintStack</h1>
-                <p className="text-xs text-sidebar-foreground/50">Finance Portal</p>
+                <p className="text-xs text-slate-400">Finance Portal</p>
               </div>
             )}
           </div>
 
           {/* Mobile close button */}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="lg:hidden text-sidebar-foreground"
-            onClick={() => dispatch(setMobileSidebarOpen(false))}
-          >
-            <X className="h-5 w-5" />
-          </Button>
+          {!collapsed && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="lg:hidden text-slate-400"
+              onClick={() => dispatch(setMobileSidebarOpen(false))}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          )}
         </div>
 
         {/* Navigation */}
-        <ScrollArea className="flex-1 py-4">
-          <nav className="space-y-1 px-3">
-            {navigation.map((item) => (
-              <NavItem key={item.name} item={item} collapsed={collapsed} />
-            ))}
-          </nav>
-        </ScrollArea>
+        <nav className={cn(
+          "flex-1 flex flex-col w-full",
+          collapsed ? "gap-6 items-center" : "gap-1 px-3 py-4"
+        )}>
+          {navigation.map((item) => (
+            <NavItem key={item.name || item.href} item={item} collapsed={collapsed} />
+          ))}
+        </nav>
 
         {/* Footer */}
-        <div className="border-t border-sidebar-border p-4">
+        <div className="mt-auto">
           {!collapsed && (
-            <p className="text-center text-xs text-sidebar-foreground/50">
+            <p className="text-center text-xs text-slate-500 mb-4">
               © 2026 MintStack Finance
             </p>
           )}
           {/* Desktop collapse toggle */}
-          <div className="mt-2 hidden lg:flex justify-center">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="text-sidebar-foreground/70 hover:text-sidebar-foreground"
-              onClick={() => dispatch(toggleSidebar())}
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-          </div>
+          <button
+            className="w-10 h-10 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+            onClick={() => dispatch(toggleSidebar())}
+          >
+            <Menu className="h-6 w-6" />
+          </button>
         </div>
       </aside>
     </TooltipProvider>
