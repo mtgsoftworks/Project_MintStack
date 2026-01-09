@@ -1,145 +1,190 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
-import { newsService } from '../services/newsService'
-import Loading from '../components/common/Loading'
-import { format } from 'date-fns'
-import { tr } from 'date-fns/locale'
+import { Calendar, Clock, Eye, Search, Filter } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { cn, formatRelativeTime, truncate } from '@/lib/utils'
+import { useGetNewsQuery, useGetNewsCategoriesQuery } from '@/store/api/newsApi'
+
+function NewsCard({ news }) {
+  return (
+    <Link to={`/news/${news.id}`}>
+      <Card className="card-hover h-full">
+        {news.imageUrl && (
+          <div className="aspect-video overflow-hidden rounded-t-xl">
+            <img
+              src={news.imageUrl}
+              alt={news.title}
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          </div>
+        )}
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2 mb-2">
+            {news.category && (
+              <Badge variant="secondary" className="text-xs">
+                {news.category.name}
+              </Badge>
+            )}
+            {news.isFeatured && (
+              <Badge variant="info" className="text-xs">
+                Öne Çıkan
+              </Badge>
+            )}
+          </div>
+          <CardTitle className="text-base font-semibold line-clamp-2 group-hover:text-primary transition-colors">
+            {news.title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+            {news.summary}
+          </p>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {formatRelativeTime(news.publishedAt)}
+              </span>
+              <span className="flex items-center gap-1">
+                <Eye className="h-3 w-3" />
+                {news.viewCount}
+              </span>
+            </div>
+            <span>{news.sourceName}</span>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  )
+}
+
+function NewsCardSkeleton() {
+  return (
+    <Card>
+      <Skeleton className="aspect-video rounded-t-xl" />
+      <CardHeader className="pb-2">
+        <Skeleton className="h-4 w-20 mb-2" />
+        <Skeleton className="h-5 w-full" />
+        <Skeleton className="h-5 w-3/4" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-4 w-full mb-2" />
+        <Skeleton className="h-4 w-2/3 mb-4" />
+        <div className="flex justify-between">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-3 w-16" />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
 
 export default function NewsPage() {
-  const [search, setSearch] = useState('')
-  const [category, setCategory] = useState('')
   const [page, setPage] = useState(0)
+  const [category, setCategory] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
-  const { data: categories } = useQuery({
-    queryKey: ['newsCategories'],
-    queryFn: newsService.getCategories,
+  const { data: categoriesData, isLoading: categoriesLoading } = useGetNewsCategoriesQuery()
+  const { data, isLoading, isFetching } = useGetNewsQuery({
+    page,
+    size: 12,
+    category: category !== 'all' ? category : undefined,
   })
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['news', search, category, page],
-    queryFn: () => newsService.getNews({ search, category, page, size: 12 }),
-  })
-
+  const categories = categoriesData || []
   const news = data?.data || []
-  const pagination = data?.pagination
+  const totalPages = data?.totalPages || 0
 
   return (
     <div className="space-y-6 animate-in">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Haberler</h1>
-        <p className="text-dark-400">Finansal piyasa haberleri</p>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1 max-w-md">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value)
-              setPage(0)
-            }}
-            placeholder="Haber ara..."
-            className="input pl-10"
-          />
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Haberler</h1>
+          <p className="text-muted-foreground">
+            Güncel finans ve ekonomi haberleri
+          </p>
         </div>
-        
-        <select
-          value={category}
-          onChange={(e) => {
-            setCategory(e.target.value)
-            setPage(0)
-          }}
-          className="input max-w-xs"
-        >
-          <option value="">Tüm Kategoriler</option>
-          {categories?.map((cat) => (
-            <option key={cat.id} value={cat.slug}>{cat.name}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Haberlerde ara..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-64"
+            />
+          </div>
+        </div>
       </div>
 
-      {/* News Grid */}
-      {isLoading ? (
-        <Loading />
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {news.map((item, index) => (
-              <Link
-                key={item.id}
-                to={`/news/${item.id}`}
-                className={`card-hover overflow-hidden group animate-in stagger-${Math.min(index + 1, 5)}`}
-                style={{ opacity: 0 }}
-              >
-                {item.imageUrl && (
-                  <div className="aspect-video relative overflow-hidden">
-                    <img
-                      src={item.imageUrl}
-                      alt={item.title}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                    {item.categoryName && (
-                      <span className="absolute top-3 left-3 badge-info">
-                        {item.categoryName}
-                      </span>
-                    )}
-                  </div>
-                )}
-                <div className="p-5">
-                  <h3 className="text-white font-semibold line-clamp-2 mb-2 group-hover:text-primary-400 transition-colors">
-                    {item.title}
-                  </h3>
-                  {item.summary && (
-                    <p className="text-dark-400 text-sm line-clamp-2 mb-4">
-                      {item.summary}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between text-xs text-dark-500">
-                    <span>{item.sourceName}</span>
-                    <span>
-                      {item.publishedAt && format(new Date(item.publishedAt), 'd MMM yyyy', { locale: tr })}
-                    </span>
-                  </div>
+      {/* Category Tabs */}
+      <Tabs value={category} onValueChange={(value) => { setCategory(value); setPage(0); }}>
+        <TabsList className="w-full justify-start overflow-x-auto">
+          <TabsTrigger value="all">Tümü</TabsTrigger>
+          {categoriesLoading ? (
+            <Skeleton className="h-8 w-24" />
+          ) : (
+            categories.map((cat) => (
+              <TabsTrigger key={cat.slug} value={cat.slug}>
+                {cat.name}
+              </TabsTrigger>
+            ))
+          )}
+        </TabsList>
+
+        <TabsContent value={category} className="mt-6">
+          {isLoading ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {[...Array(8)].map((_, i) => (
+                <NewsCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : news.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <p className="text-muted-foreground">Bu kategoride haber bulunamadı.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {news.map((item) => (
+                  <NewsCard key={item.id} news={item} />
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-8">
+                  <Button
+                    variant="outline"
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    disabled={page === 0 || isFetching}
+                  >
+                    Önceki
+                  </Button>
+                  <span className="text-sm text-muted-foreground px-4">
+                    Sayfa {page + 1} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={page >= totalPages - 1 || isFetching}
+                  >
+                    Sonraki
+                  </Button>
                 </div>
-              </Link>
-            ))}
-          </div>
-
-          {news.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-dark-400">Haber bulunamadı</p>
-            </div>
+              )}
+            </>
           )}
-
-          {/* Pagination */}
-          {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4">
-              <button
-                onClick={() => setPage(p => Math.max(0, p - 1))}
-                disabled={pagination.first}
-                className="btn-secondary"
-              >
-                Önceki
-              </button>
-              <span className="text-dark-400">
-                Sayfa {pagination.page + 1} / {pagination.totalPages}
-              </span>
-              <button
-                onClick={() => setPage(p => p + 1)}
-                disabled={pagination.last}
-                className="btn-secondary"
-              >
-                Sonraki
-              </button>
-            </div>
-          )}
-        </>
-      )}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

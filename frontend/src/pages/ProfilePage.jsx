@@ -1,209 +1,259 @@
+import { useSelector } from 'react-redux'
+import { User, Mail, Phone, Settings, Key, Bell, Shield } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { selectUser, selectRoles } from '@/store/slices/authSlice'
+import { useGetProfileQuery, useUpdateProfileMutation } from '@/store/api/userApi'
+import { getInitials } from '@/lib/utils'
+import { toast } from 'sonner'
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { UserCircleIcon, KeyIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
-import { userService } from '../services/userService'
-import { useAuth } from '../context/AuthContext'
-import Loading from '../components/common/Loading'
-import toast from 'react-hot-toast'
 
 export default function ProfilePage() {
-  const { user: authUser, keycloak } = useAuth()
-  const queryClient = useQueryClient()
-  const [isEditing, setIsEditing] = useState(false)
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-  })
+  const user = useSelector(selectUser)
+  const roles = useSelector(selectRoles)
+  const { data: profile, isLoading } = useGetProfileQuery()
+  const [updateProfile, { isLoading: updating }] = useUpdateProfileMutation()
 
-  const { data: profile, isLoading } = useQuery({
-    queryKey: ['profile'],
-    queryFn: userService.getProfile,
-    onSuccess: (data) => {
-      setFormData({
-        firstName: data.firstName || '',
-        lastName: data.lastName || '',
-      })
-    },
-  })
+  const [displayName, setDisplayName] = useState(user?.name || '')
+  const [emailNotifications, setEmailNotifications] = useState(true)
+  const [pushNotifications, setPushNotifications] = useState(true)
 
-  const updateMutation = useMutation({
-    mutationFn: userService.updateProfile,
-    onSuccess: () => {
-      queryClient.invalidateQueries(['profile'])
-      setIsEditing(false)
+  const handleUpdateProfile = async () => {
+    try {
+      await updateProfile({ displayName }).unwrap()
       toast.success('Profil güncellendi')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Bir hata oluştu')
-    },
-  })
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    updateMutation.mutate(formData)
+    } catch (error) {
+      toast.error('Profil güncellenemedi')
+    }
   }
 
-  const handleManageAccount = () => {
-    keycloak?.accountManagement()
-  }
-
-  if (isLoading) {
-    return <Loading />
+  const handleKeycloakSettings = () => {
+    if (window.keycloak) {
+      window.keycloak.accountManagement()
+    }
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in">
+    <div className="space-y-6 animate-in">
+      {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Profil</h1>
-        <p className="text-dark-400">Hesap bilgilerinizi yönetin</p>
+        <h1 className="text-2xl font-bold">Profil</h1>
+        <p className="text-muted-foreground">
+          Hesap ayarlarınızı yönetin
+        </p>
       </div>
 
-      {/* Profile Card */}
-      <div className="card p-6">
-        <div className="flex items-start gap-6">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center flex-shrink-0">
-            <span className="text-3xl font-bold text-white">
-              {profile?.firstName?.[0] || profile?.email?.[0]?.toUpperCase() || '?'}
-            </span>
-          </div>
-          
-          <div className="flex-1">
-            {isEditing ? (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">Ad</label>
-                    <input
-                      type="text"
-                      value={formData.firstName}
-                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                      className="input"
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Profile Card */}
+        <Card className="lg:col-span-1">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center text-center">
+              <Avatar className="h-24 w-24 mb-4">
+                <AvatarImage src={user?.avatar} />
+                <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                  {getInitials(user?.name || user?.username)}
+                </AvatarFallback>
+              </Avatar>
+              <h2 className="text-xl font-semibold">{user?.name || user?.username}</h2>
+              <p className="text-sm text-muted-foreground mb-4">{user?.email}</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {roles.map((role) => (
+                  <Badge key={role} variant="secondary">
+                    {role}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <Separator className="my-6" />
+
+            <div className="space-y-4">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={handleKeycloakSettings}
+              >
+                <Key className="mr-2 h-4 w-4" />
+                Şifre Değiştir
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={handleKeycloakSettings}
+              >
+                <Shield className="mr-2 h-4 w-4" />
+                Güvenlik Ayarları
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Settings Tabs */}
+        <Card className="lg:col-span-2">
+          <Tabs defaultValue="general" className="w-full">
+            <CardHeader>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="general">Genel</TabsTrigger>
+                <TabsTrigger value="notifications">Bildirimler</TabsTrigger>
+                <TabsTrigger value="preferences">Tercihler</TabsTrigger>
+              </TabsList>
+            </CardHeader>
+
+            <CardContent>
+              {/* General Tab */}
+              <TabsContent value="general" className="space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Kullanıcı Adı</Label>
+                    <Input
+                      id="username"
+                      value={user?.username || ''}
+                      disabled
+                      className="bg-muted"
                     />
-                  </div>
-                  <div>
-                    <label className="label">Soyad</label>
-                    <input
-                      type="text"
-                      value={formData.lastName}
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      className="input"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="btn-secondary"
-                  >
-                    İptal
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={updateMutation.isPending}
-                    className="btn-primary"
-                  >
-                    {updateMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-xl font-semibold text-white">
-                      {profile?.fullName || 'İsim belirtilmemiş'}
-                    </h2>
-                    <p className="text-dark-400">{profile?.email}</p>
-                  </div>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="btn-secondary text-sm"
-                  >
-                    Düzenle
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-dark-500">Kayıt Tarihi</p>
-                    <p className="text-dark-200">
-                      {profile?.createdAt && new Date(profile.createdAt).toLocaleDateString('tr-TR')}
+                    <p className="text-xs text-muted-foreground">
+                      Kullanıcı adı değiştirilemez
                     </p>
                   </div>
-                  <div>
-                    <p className="text-dark-500">Portföy Sayısı</p>
-                    <p className="text-dark-200">{profile?.portfolioCount || 0}</p>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="displayName">Görünen Ad</Label>
+                    <Input
+                      id="displayName"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Adınız Soyadınız"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">E-posta</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={user?.email || ''}
+                      disabled
+                      className="bg-muted"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      E-posta değişikliği için Keycloak panelini kullanın
+                    </p>
+                  </div>
+
+                  <Button 
+                    onClick={handleUpdateProfile}
+                    disabled={updating}
+                  >
+                    {updating ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+                  </Button>
+                </div>
+              </TabsContent>
+
+              {/* Notifications Tab */}
+              <TabsContent value="notifications" className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-2">
+                    <div className="space-y-0.5">
+                      <Label>E-posta Bildirimleri</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Önemli güncellemeler için e-posta alın
+                      </p>
+                    </div>
+                    <Switch
+                      checked={emailNotifications}
+                      onCheckedChange={setEmailNotifications}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between py-2">
+                    <div className="space-y-0.5">
+                      <Label>Push Bildirimleri</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Tarayıcı bildirimleri alın
+                      </p>
+                    </div>
+                    <Switch
+                      checked={pushNotifications}
+                      onCheckedChange={setPushNotifications}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between py-2">
+                    <div className="space-y-0.5">
+                      <Label>Fiyat Alarmları</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Hedef fiyatlara ulaşıldığında bildirim alın
+                      </p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between py-2">
+                    <div className="space-y-0.5">
+                      <Label>Portföy Güncellemeleri</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Portföyünüzdeki önemli değişiklikler
+                      </p>
+                    </div>
+                    <Switch defaultChecked />
                   </div>
                 </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+              </TabsContent>
 
-      {/* Account Settings */}
-      <div className="card overflow-hidden">
-        <div className="p-4 border-b border-dark-800">
-          <h2 className="text-lg font-semibold text-white">Hesap Ayarları</h2>
-        </div>
-        <div className="divide-y divide-dark-800">
-          <button
-            onClick={handleManageAccount}
-            className="w-full flex items-center gap-4 p-4 hover:bg-dark-800/50 transition-colors text-left"
-          >
-            <div className="w-10 h-10 rounded-lg bg-dark-800 flex items-center justify-center">
-              <UserCircleIcon className="w-5 h-5 text-dark-400" />
-            </div>
-            <div className="flex-1">
-              <p className="text-white font-medium">Hesap Yönetimi</p>
-              <p className="text-dark-400 text-sm">Keycloak hesap ayarları</p>
-            </div>
-            <span className="text-dark-500">→</span>
-          </button>
-          
-          <button
-            onClick={handleManageAccount}
-            className="w-full flex items-center gap-4 p-4 hover:bg-dark-800/50 transition-colors text-left"
-          >
-            <div className="w-10 h-10 rounded-lg bg-dark-800 flex items-center justify-center">
-              <KeyIcon className="w-5 h-5 text-dark-400" />
-            </div>
-            <div className="flex-1">
-              <p className="text-white font-medium">Şifre Değiştir</p>
-              <p className="text-dark-400 text-sm">Hesap şifrenizi güncelleyin</p>
-            </div>
-            <span className="text-dark-500">→</span>
-          </button>
-          
-          <button
-            onClick={handleManageAccount}
-            className="w-full flex items-center gap-4 p-4 hover:bg-dark-800/50 transition-colors text-left"
-          >
-            <div className="w-10 h-10 rounded-lg bg-dark-800 flex items-center justify-center">
-              <ShieldCheckIcon className="w-5 h-5 text-dark-400" />
-            </div>
-            <div className="flex-1">
-              <p className="text-white font-medium">İki Faktörlü Doğrulama</p>
-              <p className="text-dark-400 text-sm">2FA ile hesabınızı güvence altına alın</p>
-            </div>
-            <span className="text-dark-500">→</span>
-          </button>
-        </div>
-      </div>
+              {/* Preferences Tab */}
+              <TabsContent value="preferences" className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-2">
+                    <div className="space-y-0.5">
+                      <Label>Karanlık Mod</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Karanlık tema kullan
+                      </p>
+                    </div>
+                    <Switch />
+                  </div>
 
-      {/* Roles */}
-      <div className="card p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">Roller</h2>
-        <div className="flex flex-wrap gap-2">
-          {authUser?.roles?.map((role) => (
-            <span key={role} className="badge-info">
-              {role}
-            </span>
-          ))}
-          {(!authUser?.roles || authUser.roles.length === 0) && (
-            <p className="text-dark-400">Rol atanmamış</p>
-          )}
-        </div>
+                  <Separator />
+
+                  <div className="flex items-center justify-between py-2">
+                    <div className="space-y-0.5">
+                      <Label>Kompakt Görünüm</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Daha fazla veri göster
+                      </p>
+                    </div>
+                    <Switch />
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between py-2">
+                    <div className="space-y-0.5">
+                      <Label>Varsayılan Para Birimi</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Fiyatlar için varsayılan para birimi
+                      </p>
+                    </div>
+                    <Badge>TRY</Badge>
+                  </div>
+                </div>
+              </TabsContent>
+            </CardContent>
+          </Tabs>
+        </Card>
       </div>
     </div>
   )

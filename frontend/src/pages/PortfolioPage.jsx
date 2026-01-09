@@ -1,238 +1,301 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { PlusIcon, TrashIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon } from '@heroicons/react/24/outline'
-import { portfolioService } from '../services/portfolioService'
-import Loading from '../components/common/Loading'
-import toast from 'react-hot-toast'
+import { Plus, Wallet, TrendingUp, TrendingDown, MoreVertical, Trash2, Edit } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { cn, formatCurrency, formatPercent } from '@/lib/utils'
+import { 
+  useGetPortfoliosQuery, 
+  useGetPortfolioSummaryQuery,
+  useCreatePortfolioMutation,
+  useDeletePortfolioMutation,
+} from '@/store/api/portfolioApi'
+import { toast } from 'sonner'
+import PieChart from '@/components/charts/PieChart'
 
-export default function PortfolioPage() {
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [newPortfolio, setNewPortfolio] = useState({ name: '', description: '' })
-  const queryClient = useQueryClient()
+function PortfolioCardSkeleton() {
+  return (
+    <Card>
+      <CardHeader>
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-4 w-48" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-10 w-24 mb-2" />
+        <Skeleton className="h-4 w-16" />
+      </CardContent>
+    </Card>
+  )
+}
 
-  const { data: portfolios, isLoading, error } = useQuery({
-    queryKey: ['portfolios'],
-    queryFn: portfolioService.getPortfolios,
-    retry: 1,
-  })
+function CreatePortfolioDialog({ open, onOpenChange }) {
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [createPortfolio, { isLoading }] = useCreatePortfolioMutation()
 
-  const createMutation = useMutation({
-    mutationFn: portfolioService.createPortfolio,
-    onSuccess: () => {
-      queryClient.invalidateQueries(['portfolios'])
-      setShowCreateModal(false)
-      setNewPortfolio({ name: '', description: '' })
-      toast.success('Portföy oluşturuldu')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Bir hata oluştu')
-    },
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: portfolioService.deletePortfolio,
-    onSuccess: () => {
-      queryClient.invalidateQueries(['portfolios'])
-      toast.success('Portföy silindi')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Bir hata oluştu')
-    },
-  })
-
-  const handleCreate = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    createMutation.mutate(newPortfolio)
-  }
-
-  const handleDelete = (id, name) => {
-    if (window.confirm(`"${name}" portföyünü silmek istediğinize emin misiniz?`)) {
-      deleteMutation.mutate(id)
+    try {
+      await createPortfolio({ name, description }).unwrap()
+      toast.success('Portföy oluşturuldu')
+      onOpenChange(false)
+      setName('')
+      setDescription('')
+    } catch (error) {
+      toast.error('Portföy oluşturulamadı')
     }
   }
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: 'TRY',
-    }).format(value || 0)
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Yeni Portföy</DialogTitle>
+          <DialogDescription>
+            Yeni bir portföy oluşturun ve varlıklarınızı takip edin.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Portföy Adı</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ana Portföy"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Açıklama (Opsiyonel)</Label>
+              <Input
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Uzun vadeli yatırımlar"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              İptal
+            </Button>
+            <Button type="submit" disabled={isLoading || !name}>
+              {isLoading ? 'Oluşturuluyor...' : 'Oluştur'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export default function PortfolioPage() {
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const { data: portfolios, isLoading } = useGetPortfoliosQuery()
+  const { data: summary } = useGetPortfolioSummaryQuery()
+  const [deletePortfolio] = useDeletePortfolioMutation()
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Bu portföyü silmek istediğinizden emin misiniz?')) {
+      try {
+        await deletePortfolio(id).unwrap()
+        toast.success('Portföy silindi')
+      } catch (error) {
+        toast.error('Portföy silinemedi')
+      }
+    }
   }
 
   return (
     <div className="space-y-6 animate-in">
-      <div className="flex items-center justify-between">
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Portföylerim</h1>
-          <p className="text-dark-400">Yatırım portföylerinizi yönetin</p>
+          <h1 className="text-2xl font-bold">Portföyler</h1>
+          <p className="text-muted-foreground">
+            Yatırım portföylerinizi yönetin
+          </p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="btn-primary flex items-center gap-2"
-        >
-          <PlusIcon className="w-5 h-5" />
+        <Button onClick={() => setCreateDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
           Yeni Portföy
-        </button>
+        </Button>
       </div>
 
+      {/* Summary Cards */}
+      {summary && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="card-hover">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-medium text-muted-foreground">Toplam Değer</span>
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Wallet className="h-5 w-5 text-primary" />
+                </div>
+              </div>
+              <div className="stat-value">{formatCurrency(summary.totalValue, 'TRY')}</div>
+            </CardContent>
+          </Card>
+          <Card className="card-hover">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-medium text-muted-foreground">Toplam Maliyet</span>
+                <div className="p-2 rounded-lg bg-muted">
+                  <Wallet className="h-5 w-5 text-muted-foreground" />
+                </div>
+              </div>
+              <div className="stat-value">{formatCurrency(summary.totalCost, 'TRY')}</div>
+            </CardContent>
+          </Card>
+          <Card className="card-hover">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-medium text-muted-foreground">Toplam K/Z</span>
+                <div className={cn(
+                  "p-2 rounded-lg",
+                  summary.totalProfitLoss >= 0 ? "bg-success/10" : "bg-danger/10"
+                )}>
+                  {summary.totalProfitLoss >= 0 ? (
+                    <TrendingUp className="h-5 w-5 text-success" />
+                  ) : (
+                    <TrendingDown className="h-5 w-5 text-danger" />
+                  )}
+                </div>
+              </div>
+              <div className={cn(
+                "stat-value",
+                summary.totalProfitLoss >= 0 ? "text-success" : "text-danger"
+              )}>
+                {formatCurrency(summary.totalProfitLoss, 'TRY')}
+              </div>
+              <Badge variant={summary.totalProfitLossPercent >= 0 ? 'success' : 'danger'} className="mt-2">
+                {formatPercent(summary.totalProfitLossPercent)}
+              </Badge>
+            </CardContent>
+          </Card>
+          <Card className="card-hover">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-medium text-muted-foreground">Portföy Sayısı</span>
+                <div className="p-2 rounded-lg bg-info/10">
+                  <Wallet className="h-5 w-5 text-info" />
+                </div>
+              </div>
+              <div className="stat-value">{portfolios?.length || 0}</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Portfolio Grid */}
       {isLoading ? (
-        <Loading />
-      ) : error ? (
-        <div className="card p-12 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/10 flex items-center justify-center">
-            <span className="text-3xl">⚠️</span>
-          </div>
-          <h3 className="text-xl font-semibold text-white mb-2">Portföyler yüklenemedi</h3>
-          <p className="text-dark-400 mb-4">Lütfen sayfayı yenileyin veya daha sonra tekrar deneyin</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="btn-primary"
-          >
-            Sayfayı Yenile
-          </button>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <PortfolioCardSkeleton key={i} />
+          ))}
         </div>
-      ) : !portfolios || portfolios.length === 0 ? (
-        <div className="card p-12 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-dark-800 flex items-center justify-center">
-            <PlusIcon className="w-8 h-8 text-dark-500" />
-          </div>
-          <h3 className="text-xl font-semibold text-white mb-2">Henüz portföy yok</h3>
-          <p className="text-dark-400 mb-4">İlk portföyünüzü oluşturarak başlayın</p>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="btn-primary"
-          >
-            Portföy Oluştur
-          </button>
-        </div>
+      ) : portfolios?.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Wallet className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">Henüz portföyünüz yok</h3>
+            <p className="text-muted-foreground text-center mb-4">
+              Yatırımlarınızı takip etmek için ilk portföyünüzü oluşturun.
+            </p>
+            <Button onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Portföy Oluştur
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {portfolios?.map((portfolio) => {
-            const isUp = portfolio.profitLoss > 0
-            const isDown = portfolio.profitLoss < 0
-
-            return (
-              <div key={portfolio.id} className="card-hover p-6 group">
-                <div className="flex items-start justify-between mb-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {portfolios.map((portfolio) => (
+            <Card key={portfolio.id} className="card-hover">
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between">
                   <div>
-                    <Link
-                      to={`/portfolio/${portfolio.id}`}
-                      className="text-lg font-semibold text-white hover:text-primary-400 transition-colors"
-                    >
-                      {portfolio.name}
-                    </Link>
-                    {portfolio.isDefault && (
-                      <span className="ml-2 badge-info text-xs">Varsayılan</span>
-                    )}
+                    <CardTitle className="text-lg">{portfolio.name}</CardTitle>
                     {portfolio.description && (
-                      <p className="text-dark-400 text-sm mt-1 line-clamp-1">
-                        {portfolio.description}
-                      </p>
+                      <CardDescription>{portfolio.description}</CardDescription>
                     )}
                   </div>
-                  <button
-                    onClick={() => handleDelete(portfolio.id, portfolio.name)}
-                    className="p-2 rounded-lg text-dark-500 hover:text-red-400 hover:bg-dark-800 transition-colors opacity-0 group-hover:opacity-100"
-                  >
-                    <TrashIcon className="w-5 h-5" />
-                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon-sm">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild>
+                        <Link to={`/portfolio/${portfolio.id}`}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Düzenle
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-danger"
+                        onClick={() => handleDelete(portfolio.id)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Sil
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-dark-500 text-xs">Toplam Değer</p>
-                    <p className="text-2xl font-bold text-white">
-                      {formatCurrency(portfolio.totalValue)}
-                    </p>
+              </CardHeader>
+              <CardContent>
+                <Link to={`/portfolio/${portfolio.id}`} className="block">
+                  <div className="text-2xl font-bold mb-1">
+                    {formatCurrency(portfolio.totalValue || 0, 'TRY')}
                   </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-dark-500 text-xs">Kar/Zarar</p>
-                      <div className={`flex items-center gap-1 ${
-                        isUp ? 'price-up' : isDown ? 'price-down' : 'price-neutral'
-                      }`}>
-                        {isUp ? (
-                          <ArrowTrendingUpIcon className="w-4 h-4" />
-                        ) : isDown ? (
-                          <ArrowTrendingDownIcon className="w-4 h-4" />
-                        ) : null}
-                        <span className="font-medium">
-                          {formatCurrency(portfolio.profitLoss)}
-                        </span>
-                        {portfolio.profitLossPercent !== null && (
-                          <span className="text-sm">
-                            ({portfolio.profitLossPercent > 0 ? '+' : ''}{portfolio.profitLossPercent?.toFixed(2)}%)
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-dark-500 text-xs">Enstrüman</p>
-                      <p className="text-white font-medium">{portfolio.itemCount || 0}</p>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={portfolio.profitLossPercent >= 0 ? 'success' : 'danger'}>
+                      {formatPercent(portfolio.profitLossPercent || 0)}
+                    </Badge>
+                    <span className={cn(
+                      "text-sm font-medium",
+                      portfolio.profitLoss >= 0 ? "text-success" : "text-danger"
+                    )}>
+                      {formatCurrency(portfolio.profitLoss || 0, 'TRY')}
+                    </span>
                   </div>
-                </div>
-
-                <Link
-                  to={`/portfolio/${portfolio.id}`}
-                  className="mt-4 block text-center py-2 text-sm text-primary-400 hover:text-primary-300 border-t border-dark-800"
-                >
-                  Detayları Gör →
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {portfolio.itemCount || 0} varlık
+                  </p>
                 </Link>
-              </div>
-            )
-          })}
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
 
-      {/* Create Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="card p-6 w-full max-w-md animate-in">
-            <h2 className="text-xl font-semibold text-white mb-4">Yeni Portföy</h2>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="label">Portföy Adı</label>
-                <input
-                  type="text"
-                  value={newPortfolio.name}
-                  onChange={(e) => setNewPortfolio({ ...newPortfolio, name: e.target.value })}
-                  className="input"
-                  placeholder="Örn: Ana Portföy"
-                  required
-                />
-              </div>
-              <div>
-                <label className="label">Açıklama (Opsiyonel)</label>
-                <textarea
-                  value={newPortfolio.description}
-                  onChange={(e) => setNewPortfolio({ ...newPortfolio, description: e.target.value })}
-                  className="input"
-                  rows={3}
-                  placeholder="Portföy hakkında kısa bir açıklama..."
-                />
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="btn-secondary flex-1"
-                >
-                  İptal
-                </button>
-                <button
-                  type="submit"
-                  disabled={createMutation.isPending}
-                  className="btn-primary flex-1"
-                >
-                  {createMutation.isPending ? 'Oluşturuluyor...' : 'Oluştur'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Create Portfolio Dialog */}
+      <CreatePortfolioDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+      />
     </div>
   )
 }

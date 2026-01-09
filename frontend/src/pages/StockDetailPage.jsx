@@ -1,193 +1,172 @@
-import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { ArrowLeftIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon } from '@heroicons/react/24/outline'
-import { marketService } from '../services/marketService'
-import { analysisService } from '../services/analysisService'
-import Loading from '../components/common/Loading'
-import PriceChart from '../components/charts/PriceChart'
-
-const TIME_RANGES = [
-  { label: '1H', days: 7 },
-  { label: '1A', days: 30 },
-  { label: '3A', days: 90 },
-  { label: '6A', days: 180 },
-  { label: '1Y', days: 365 },
-]
+import { ArrowLeft, TrendingUp, TrendingDown, RefreshCw, Plus } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { cn, formatCurrency, formatPercent, formatNumber } from '@/lib/utils'
+import { useGetStockQuery, useGetStockHistoryQuery } from '@/store/api/marketApi'
+import PriceChart from '@/components/charts/PriceChart'
+import { useState } from 'react'
 
 export default function StockDetailPage() {
   const { symbol } = useParams()
-  const [selectedRange, setSelectedRange] = useState(30)
-
-  const { data: stock, isLoading: stockLoading } = useQuery({
-    queryKey: ['stock', symbol],
-    queryFn: () => marketService.getStock(symbol),
-  })
-
-  const { data: history, isLoading: historyLoading } = useQuery({
-    queryKey: ['stockHistory', symbol, selectedRange],
-    queryFn: () => marketService.getStockHistory(symbol, { days: selectedRange }),
-  })
-
-  const { data: trend } = useQuery({
-    queryKey: ['trend', symbol, selectedRange],
-    queryFn: () => analysisService.getTrend(symbol, selectedRange),
-    enabled: !!symbol,
-  })
+  const [period, setPeriod] = useState('1M')
+  
+  const { data: stock, isLoading: stockLoading, refetch } = useGetStockQuery(symbol)
+  const { data: history, isLoading: historyLoading } = useGetStockHistoryQuery({ symbol, period })
 
   if (stockLoading) {
-    return <Loading />
-  }
-
-  if (!stock) {
     return (
-      <div className="text-center py-12">
-        <p className="text-dark-400">Hisse bulunamadı</p>
-        <Link to="/market/stocks" className="btn-primary mt-4">
-          Geri Dön
-        </Link>
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <Skeleton className="h-96" />
+          </div>
+          <Skeleton className="h-96" />
+        </div>
       </div>
     )
   }
 
-  const isUp = stock.changePercent > 0
-  const isDown = stock.changePercent < 0
+  if (!stock) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <p className="text-muted-foreground mb-4">Hisse senedi bulunamadı.</p>
+          <Button asChild>
+            <Link to="/market/stocks">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Hisselere Dön
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
 
-  const chartData = history?.map(h => ({
-    date: h.date,
-    close: h.close,
-  })) || []
+  const change = stock.changePercent || 0
+  const isUp = change >= 0
 
   return (
     <div className="space-y-6 animate-in">
       {/* Back Button */}
-      <Link
-        to="/market/stocks"
-        className="inline-flex items-center gap-2 text-dark-400 hover:text-white transition-colors"
-      >
-        <ArrowLeftIcon className="w-4 h-4" />
-        Hisselere Dön
-      </Link>
+      <Button variant="ghost" asChild>
+        <Link to="/market/stocks">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Hisselere Dön
+        </Link>
+      </Button>
 
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+      {/* Stock Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-xl bg-dark-800 flex items-center justify-center">
-            <span className="text-xl font-bold text-dark-300">{stock.symbol.slice(0, 3)}</span>
+          <div className={cn(
+            "flex h-14 w-14 items-center justify-center rounded-xl",
+            isUp ? "bg-success/10" : "bg-danger/10"
+          )}>
+            {isUp ? (
+              <TrendingUp className="h-7 w-7 text-success" />
+            ) : (
+              <TrendingDown className="h-7 w-7 text-danger" />
+            )}
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">{stock.symbol}</h1>
-            <p className="text-dark-400">{stock.name}</p>
+            <h1 className="text-2xl font-bold">{stock.symbol}</h1>
+            <p className="text-muted-foreground">{stock.name}</p>
           </div>
         </div>
-
-        <div className="flex flex-col items-end">
-          <p className="text-3xl font-bold text-white">
-            ₺{stock.currentPrice?.toFixed(2) || '—'}
-          </p>
-          <div className={`flex items-center gap-2 mt-1 ${
-            isUp ? 'price-up' : isDown ? 'price-down' : 'price-neutral'
-          }`}>
-            {isUp ? (
-              <ArrowTrendingUpIcon className="w-5 h-5" />
-            ) : isDown ? (
-              <ArrowTrendingDownIcon className="w-5 h-5" />
-            ) : null}
-            <span className="font-medium">
-              {stock.change ? `${stock.change > 0 ? '+' : ''}₺${stock.change.toFixed(2)}` : '—'}
-              {stock.changePercent ? ` (${stock.changePercent > 0 ? '+' : ''}${stock.changePercent.toFixed(2)}%)` : ''}
-            </span>
-          </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => refetch()}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Yenile
+          </Button>
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Portföye Ekle
+          </Button>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="stat-card">
-          <p className="stat-label">Önceki Kapanış</p>
-          <p className="stat-value text-xl">₺{stock.previousClose?.toFixed(2) || '—'}</p>
-        </div>
-        <div className="stat-card">
-          <p className="stat-label">Borsa</p>
-          <p className="stat-value text-xl">{stock.exchange || 'BIST'}</p>
-        </div>
-        <div className="stat-card">
-          <p className="stat-label">Trend</p>
-          <p className={`stat-value text-xl ${
-            trend?.trend === 'UPTREND' ? 'text-primary-400' : 
-            trend?.trend === 'DOWNTREND' ? 'text-red-400' : 'text-dark-400'
-          }`}>
-            {trend?.trend === 'UPTREND' ? 'Yükseliş' : 
-             trend?.trend === 'DOWNTREND' ? 'Düşüş' : 'Yatay'}
-          </p>
-        </div>
-        <div className="stat-card">
-          <p className="stat-label">Volatilite</p>
-          <p className="stat-value text-xl">{trend?.volatility?.toFixed(2) || '—'}</p>
-        </div>
-      </div>
+      {/* Price Info */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Chart */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-3xl font-bold">
+                  {formatCurrency(stock.currentPrice, 'TRY')}
+                </CardTitle>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant={isUp ? 'success' : 'danger'} className="text-sm">
+                    {isUp ? '+' : ''}{formatCurrency(stock.currentPrice - stock.previousClose, 'TRY')}
+                  </Badge>
+                  <Badge variant={isUp ? 'success' : 'danger'} className="text-sm">
+                    {formatPercent(change)}
+                  </Badge>
+                </div>
+              </div>
+              <Tabs value={period} onValueChange={setPeriod}>
+                <TabsList>
+                  <TabsTrigger value="1W">1H</TabsTrigger>
+                  <TabsTrigger value="1M">1A</TabsTrigger>
+                  <TabsTrigger value="3M">3A</TabsTrigger>
+                  <TabsTrigger value="1Y">1Y</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {historyLoading ? (
+              <Skeleton className="h-64" />
+            ) : (
+              <PriceChart data={history || []} />
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Chart */}
-      <div className="card p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-white">Fiyat Grafiği</h2>
-          <div className="flex gap-2">
-            {TIME_RANGES.map((range) => (
-              <button
-                key={range.days}
-                onClick={() => setSelectedRange(range.days)}
-                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                  selectedRange === range.days
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-dark-800 text-dark-400 hover:text-white'
-                }`}
-              >
-                {range.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        {historyLoading ? (
-          <Loading />
-        ) : chartData.length > 0 ? (
-          <PriceChart 
-            data={chartData} 
-            height={400}
-            color={isUp ? '#22c55e' : isDown ? '#ef4444' : '#64748b'}
-            formatValue={(v) => `₺${v?.toFixed(2)}`}
-          />
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-dark-400">Grafik verisi bulunamadı</p>
-          </div>
-        )}
+        {/* Stock Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Detaylar</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-muted-foreground">Önceki Kapanış</span>
+              <span className="font-medium">{formatCurrency(stock.previousClose, 'TRY')}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-muted-foreground">Açılış</span>
+              <span className="font-medium">{formatCurrency(stock.openPrice || stock.previousClose, 'TRY')}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-muted-foreground">En Yüksek</span>
+              <span className="font-medium">{formatCurrency(stock.highPrice || stock.currentPrice, 'TRY')}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-muted-foreground">En Düşük</span>
+              <span className="font-medium">{formatCurrency(stock.lowPrice || stock.currentPrice, 'TRY')}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-muted-foreground">Hacim</span>
+              <span className="font-medium">{stock.volume?.toLocaleString('tr-TR') || '-'}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-muted-foreground">Piyasa Değeri</span>
+              <span className="font-medium">{stock.marketCap ? formatCurrency(stock.marketCap, 'TRY') : '-'}</span>
+            </div>
+            <div className="flex justify-between py-2">
+              <span className="text-muted-foreground">52 Hafta Aralığı</span>
+              <span className="font-medium text-sm">
+                {stock.week52Low ? `${formatNumber(stock.week52Low)} - ${formatNumber(stock.week52High)}` : '-'}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-
-      {/* Trend Analysis */}
-      {trend && (
-        <div className="card p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Trend Analizi</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-            <div>
-              <p className="text-dark-400">Başlangıç Fiyatı</p>
-              <p className="text-white font-medium">₺{trend.startPrice?.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className="text-dark-400">Bitiş Fiyatı</p>
-              <p className="text-white font-medium">₺{trend.endPrice?.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className="text-dark-400">En Yüksek</p>
-              <p className="text-white font-medium">₺{trend.highPrice?.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className="text-dark-400">En Düşük</p>
-              <p className="text-white font-medium">₺{trend.lowPrice?.toFixed(2)}</p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

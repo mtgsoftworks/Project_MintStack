@@ -1,252 +1,299 @@
-import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
 import { 
-  ArrowTrendingUpIcon, 
-  ArrowTrendingDownIcon,
-  CurrencyDollarIcon,
-  BriefcaseIcon,
-  NewspaperIcon,
-  ChartBarIcon,
-} from '@heroicons/react/24/outline'
-import { marketService } from '../services/marketService'
-import { portfolioService } from '../services/portfolioService'
-import { newsService } from '../services/newsService'
-import Loading from '../components/common/Loading'
-import PriceChart from '../components/charts/PriceChart'
-import PieChart from '../components/charts/PieChart'
+  TrendingUp, 
+  TrendingDown, 
+  DollarSign, 
+  BarChart3, 
+  Newspaper,
+  Wallet,
+  ArrowUpRight,
+  ArrowDownRight,
+} from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { cn, formatCurrency, formatPercent, formatRelativeTime } from '@/lib/utils'
+import { useGetCurrenciesQuery, useGetStocksQuery } from '@/store/api/marketApi'
+import { useGetNewsQuery } from '@/store/api/newsApi'
+import { useGetPortfolioSummaryQuery } from '@/store/api/portfolioApi'
+import { useSelector } from 'react-redux'
+import { selectIsAuthenticated } from '@/store/slices/authSlice'
+import { Link } from 'react-router-dom'
 
-export default function DashboardPage() {
-  const { data: currencies, isLoading: currenciesLoading } = useQuery({
-    queryKey: ['currencies'],
-    queryFn: marketService.getCurrencies,
-  })
-
-  const { data: portfolios, isLoading: portfoliosLoading } = useQuery({
-    queryKey: ['portfolios'],
-    queryFn: portfolioService.getPortfolios,
-  })
-
-  const { data: news, isLoading: newsLoading } = useQuery({
-    queryKey: ['latestNews'],
-    queryFn: newsService.getLatestNews,
-  })
-
-  // Mock data for demo chart
-  const chartData = Array.from({ length: 30 }, (_, i) => ({
-    date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString(),
-    close: 34.5 + Math.random() * 2,
-  }))
-
-  const totalPortfolioValue = portfolios?.reduce((sum, p) => sum + (p.totalValue || 0), 0) || 0
-  const totalProfitLoss = portfolios?.reduce((sum, p) => sum + (p.profitLoss || 0), 0) || 0
-
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: 'TRY',
-    }).format(value)
+function StatCard({ title, value, change, icon: Icon, trend, loading }) {
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <Skeleton className="h-4 w-24 mb-4" />
+          <Skeleton className="h-8 w-32 mb-2" />
+          <Skeleton className="h-4 w-20" />
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
+    <Card className="card-hover">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-sm font-medium text-muted-foreground">{title}</span>
+          <div className={cn(
+            "p-2 rounded-lg",
+            trend === 'up' ? "bg-success/10" : trend === 'down' ? "bg-danger/10" : "bg-muted"
+          )}>
+            <Icon className={cn(
+              "h-5 w-5",
+              trend === 'up' ? "text-success" : trend === 'down' ? "text-danger" : "text-muted-foreground"
+            )} />
+          </div>
+        </div>
+        <div className="stat-value">{value}</div>
+        {change !== undefined && (
+          <div className={cn(
+            "flex items-center gap-1 mt-2 text-sm font-medium",
+            change >= 0 ? "text-success" : "text-danger"
+          )}>
+            {change >= 0 ? (
+              <ArrowUpRight className="h-4 w-4" />
+            ) : (
+              <ArrowDownRight className="h-4 w-4" />
+            )}
+            {formatPercent(change)}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function CurrencyWidget() {
+  const { data: currencies, isLoading } = useGetCurrenciesQuery()
+
+  const mainCurrencies = currencies?.filter(c => 
+    ['USD', 'EUR', 'GBP'].includes(c.currencyCode)
+  ) || []
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base font-semibold">Döviz Kurları</CardTitle>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/market/currencies">Tümünü Gör</Link>
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {mainCurrencies.map((currency) => (
+              <div
+                key={currency.currencyCode}
+                className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                    <span className="text-sm font-bold text-primary">
+                      {currency.currencyCode}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium">{currency.currencyCode}/TRY</p>
+                    <p className="text-xs text-muted-foreground">{currency.currencyName}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold">{formatCurrency(currency.forexSelling, 'TRY')}</p>
+                  <p className={cn(
+                    "text-xs font-medium",
+                    currency.changePercent >= 0 ? "text-success" : "text-danger"
+                  )}>
+                    {formatPercent(currency.changePercent || 0)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function NewsWidget() {
+  const { data, isLoading } = useGetNewsQuery({ page: 0, size: 5 })
+  const news = data?.data || []
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base font-semibold">Son Haberler</CardTitle>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/news">Tümünü Gör</Link>
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {news.map((item) => (
+              <Link
+                key={item.id}
+                to={`/news/${item.id}`}
+                className="block group"
+              >
+                <div className="space-y-1">
+                  <p className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-2">
+                    {item.title}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{item.sourceName}</span>
+                    <span>•</span>
+                    <span>{formatRelativeTime(item.publishedAt)}</span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function StocksWidget() {
+  const { data, isLoading } = useGetStocksQuery({ size: 5 })
+  const stocks = data?.data || []
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base font-semibold">Popüler Hisseler</CardTitle>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/market/stocks">Tümünü Gör</Link>
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {stocks.map((stock) => (
+              <Link
+                key={stock.symbol}
+                to={`/market/stocks/${stock.symbol}`}
+                className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+              >
+                <div>
+                  <p className="font-medium">{stock.symbol}</p>
+                  <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                    {stock.name}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold">{formatCurrency(stock.currentPrice, 'TRY')}</p>
+                  <Badge variant={stock.changePercent >= 0 ? 'success' : 'danger'}>
+                    {formatPercent(stock.changePercent || 0)}
+                  </Badge>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+export default function DashboardPage() {
+  const isAuthenticated = useSelector(selectIsAuthenticated)
+  const { data: currencies, isLoading: currenciesLoading } = useGetCurrenciesQuery()
+  const { data: portfolioSummary, isLoading: portfolioLoading } = useGetPortfolioSummaryQuery(
+    undefined,
+    { skip: !isAuthenticated }
+  )
+
+  // Get USD rate
+  const usdRate = currencies?.find(c => c.currencyCode === 'USD')
+
+  return (
     <div className="space-y-6 animate-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-dark-400">Finansal piyasalara genel bakış</p>
-        </div>
-        <div className="text-sm text-dark-500">
-          Son güncelleme: {new Date().toLocaleTimeString('tr-TR')}
-        </div>
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground">
+          Piyasa özetine ve portföy durumunuza genel bakış
+        </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="stat-card">
-          <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-lg bg-primary-500/10 flex items-center justify-center">
-              <BriefcaseIcon className="w-6 h-6 text-primary-400" />
-            </div>
-            {totalProfitLoss >= 0 ? (
-              <span className="badge-success">
-                <ArrowTrendingUpIcon className="w-4 h-4 mr-1" />
-                Kar
-              </span>
-            ) : (
-              <span className="badge-danger">
-                <ArrowTrendingDownIcon className="w-4 h-4 mr-1" />
-                Zarar
-              </span>
-            )}
-          </div>
-          <div className="mt-4">
-            <p className="stat-value">{formatCurrency(totalPortfolioValue)}</p>
-            <p className="stat-label">Toplam Portföy Değeri</p>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-lg bg-accent-500/10 flex items-center justify-center">
-              <CurrencyDollarIcon className="w-6 h-6 text-accent-400" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <p className="stat-value">
-              {currencies?.[0]?.sellingRate?.toFixed(4) || '—'}
-            </p>
-            <p className="stat-label">USD/TRY Satış</p>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <ChartBarIcon className="w-6 h-6 text-blue-400" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <p className="stat-value">{portfolios?.length || 0}</p>
-            <p className="stat-label">Aktif Portföy</p>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
-              <NewspaperIcon className="w-6 h-6 text-purple-400" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <p className="stat-value">{news?.length || 0}</p>
-            <p className="stat-label">Güncel Haber</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Chart */}
-        <div className="lg:col-span-2 card p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-lg font-semibold text-white">USD/TRY</h2>
-              <p className="text-dark-400 text-sm">Son 30 gün</p>
-            </div>
-            <Link to="/market/currencies" className="text-primary-400 text-sm hover:text-primary-300">
-              Tümünü Gör →
-            </Link>
-          </div>
-          <PriceChart data={chartData} height={250} />
-        </div>
-
-        {/* Portfolio Distribution */}
-        <div className="card p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-white">Portföy Dağılımı</h2>
-          </div>
-          {portfoliosLoading ? (
-            <Loading />
-          ) : portfolios?.length > 0 ? (
-            <PieChart
-              data={portfolios.map(p => ({
-                name: p.name,
-                value: p.totalValue || 0,
-                percent: ((p.totalValue || 0) / totalPortfolioValue * 100).toFixed(1),
-              }))}
-              height={200}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="USD/TRY"
+          value={usdRate ? formatCurrency(usdRate.forexSelling, 'TRY') : '-'}
+          change={usdRate?.changePercent}
+          icon={DollarSign}
+          trend={usdRate?.changePercent >= 0 ? 'up' : 'down'}
+          loading={currenciesLoading}
+        />
+        <StatCard
+          title="BIST 100"
+          value="9,450.25"
+          change={1.25}
+          icon={BarChart3}
+          trend="up"
+          loading={false}
+        />
+        {isAuthenticated && (
+          <>
+            <StatCard
+              title="Portföy Değeri"
+              value={portfolioSummary ? formatCurrency(portfolioSummary.totalValue, 'TRY') : '-'}
+              change={portfolioSummary?.totalProfitLossPercent}
+              icon={Wallet}
+              trend={portfolioSummary?.totalProfitLossPercent >= 0 ? 'up' : 'down'}
+              loading={portfolioLoading}
             />
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-dark-400 text-sm mb-4">Henüz portföy bulunmuyor</p>
-              <Link to="/portfolio" className="btn-primary text-sm">
-                Portföy Oluştur
-              </Link>
-            </div>
-          )}
-        </div>
+            <StatCard
+              title="Günlük K/Z"
+              value={portfolioSummary ? formatCurrency(portfolioSummary.dailyProfitLoss, 'TRY') : '-'}
+              change={portfolioSummary?.dailyProfitLossPercent}
+              icon={portfolioSummary?.dailyProfitLoss >= 0 ? TrendingUp : TrendingDown}
+              trend={portfolioSummary?.dailyProfitLoss >= 0 ? 'up' : 'down'}
+              loading={portfolioLoading}
+            />
+          </>
+        )}
       </div>
 
-      {/* Bottom Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Currency Rates */}
-        <div className="card p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-white">Döviz Kurları</h2>
-            <Link to="/market/currencies" className="text-primary-400 text-sm hover:text-primary-300">
-              Tümünü Gör →
-            </Link>
-          </div>
-          {currenciesLoading ? (
-            <Loading />
-          ) : (
-            <div className="space-y-3">
-              {currencies?.slice(0, 5).map((currency) => (
-                <div
-                  key={currency.currencyCode}
-                  className="flex items-center justify-between py-2 border-b border-dark-800 last:border-0"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-dark-800 flex items-center justify-center">
-                      <span className="text-xs font-medium text-dark-300">
-                        {currency.currencyCode}
-                      </span>
-                    </div>
-                    <span className="text-dark-200">{currency.currencyName}</span>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-white font-medium">
-                      {currency.sellingRate?.toFixed(4)}
-                    </p>
-                    <p className="text-dark-500 text-xs">
-                      Alış: {currency.buyingRate?.toFixed(4)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Latest News */}
-        <div className="card p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-white">Son Haberler</h2>
-            <Link to="/news" className="text-primary-400 text-sm hover:text-primary-300">
-              Tümünü Gör →
-            </Link>
-          </div>
-          {newsLoading ? (
-            <Loading />
-          ) : (
-            <div className="space-y-4">
-              {news?.slice(0, 4).map((item) => (
-                <Link
-                  key={item.id}
-                  to={`/news/${item.id}`}
-                  className="block group"
-                >
-                  <div className="flex gap-3">
-                    {item.imageUrl && (
-                      <img
-                        src={item.imageUrl}
-                        alt=""
-                        className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-dark-200 text-sm font-medium line-clamp-2 group-hover:text-white transition-colors">
-                        {item.title}
-                      </h3>
-                      <p className="text-dark-500 text-xs mt-1">
-                        {item.sourceName} • {new Date(item.publishedAt).toLocaleDateString('tr-TR')}
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* Widgets Grid */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <CurrencyWidget />
+        <StocksWidget />
+        <NewsWidget />
       </div>
     </div>
   )

@@ -1,64 +1,115 @@
+import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useAuth } from './context/AuthContext'
-import Layout from './components/common/Layout'
-import ProtectedRoute from './components/common/ProtectedRoute'
-import Loading from './components/common/Loading'
+import { useDispatch } from 'react-redux'
+import Keycloak from 'keycloak-js'
+import { setAuth, setInitialized } from '@/store/slices/authSlice'
+import { Layout, ProtectedRoute, LoadingPage } from '@/components/layout'
 
 // Pages
-import LoginPage from './pages/LoginPage'
-import DashboardPage from './pages/DashboardPage'
-import NewsPage from './pages/NewsPage'
-import NewsDetailPage from './pages/NewsDetailPage'
-import CurrencyPage from './pages/CurrencyPage'
-import StocksPage from './pages/StocksPage'
-import StockDetailPage from './pages/StockDetailPage'
-import BondsPage from './pages/BondsPage'
-import FundsPage from './pages/FundsPage'
-import ViopPage from './pages/ViopPage'
-import PortfolioPage from './pages/PortfolioPage'
-import PortfolioDetailPage from './pages/PortfolioDetailPage'
-import AnalysisPage from './pages/AnalysisPage'
-import ProfilePage from './pages/ProfilePage'
+import DashboardPage from '@/pages/DashboardPage'
+import NewsPage from '@/pages/NewsPage'
+import NewsDetailPage from '@/pages/NewsDetailPage'
+import CurrencyPage from '@/pages/CurrencyPage'
+import StocksPage from '@/pages/StocksPage'
+import StockDetailPage from '@/pages/StockDetailPage'
+import BondsPage from '@/pages/BondsPage'
+import FundsPage from '@/pages/FundsPage'
+import ViopPage from '@/pages/ViopPage'
+import PortfolioPage from '@/pages/PortfolioPage'
+import PortfolioDetailPage from '@/pages/PortfolioDetailPage'
+import AnalysisPage from '@/pages/AnalysisPage'
+import ProfilePage from '@/pages/ProfilePage'
+import LoginPage from '@/pages/LoginPage'
+
+// Keycloak configuration
+const keycloakConfig = {
+  url: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180',
+  realm: import.meta.env.VITE_KEYCLOAK_REALM || 'mintstack',
+  clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'mintstack-frontend',
+}
+
+// Initialize Keycloak
+const keycloak = new Keycloak(keycloakConfig)
+window.keycloak = keycloak
 
 function App() {
-  const { isLoading, isAuthenticated } = useAuth()
+  const dispatch = useDispatch()
 
-  if (isLoading) {
-    return <Loading fullScreen text="Yükleniyor..." />
-  }
+  useEffect(() => {
+    // Initialize Keycloak
+    keycloak
+      .init({
+        onLoad: 'check-sso',
+        silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
+        pkceMethod: 'S256',
+      })
+      .then((authenticated) => {
+        if (authenticated) {
+          // User is authenticated
+          const user = {
+            id: keycloak.subject,
+            username: keycloak.tokenParsed?.preferred_username,
+            name: keycloak.tokenParsed?.name,
+            email: keycloak.tokenParsed?.email,
+            roles: keycloak.tokenParsed?.realm_access?.roles || [],
+          }
+
+          dispatch(setAuth({
+            token: keycloak.token,
+            user,
+            roles: user.roles,
+          }))
+
+          // Set up token refresh
+          setInterval(() => {
+            keycloak
+              .updateToken(30)
+              .then((refreshed) => {
+                if (refreshed) {
+                  dispatch(setAuth({
+                    token: keycloak.token,
+                    user,
+                    roles: user.roles,
+                  }))
+                }
+              })
+              .catch(() => {
+                console.error('Token refresh failed')
+              })
+          }, 60000) // Check every minute
+        }
+
+        dispatch(setInitialized(true))
+      })
+      .catch((error) => {
+        console.error('Keycloak init failed:', error)
+        dispatch(setInitialized(true))
+      })
+  }, [dispatch])
 
   return (
     <Routes>
-      {/* Public Routes */}
-      <Route 
-        path="/login" 
-        element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} 
-      />
-      
-      {/* Protected Routes with Layout */}
+      {/* Public route */}
+      <Route path="/login" element={<LoginPage />} />
+
+      {/* Protected routes with Layout */}
       <Route element={<Layout />}>
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        
-        {/* News - Public but with layout */}
+        {/* Dashboard */}
+        <Route path="/" element={<DashboardPage />} />
+
+        {/* News */}
         <Route path="/news" element={<NewsPage />} />
         <Route path="/news/:id" element={<NewsDetailPage />} />
-        
-        {/* Market Data - Public but with layout */}
+
+        {/* Market Data (public - no auth required) */}
         <Route path="/market/currencies" element={<CurrencyPage />} />
         <Route path="/market/stocks" element={<StocksPage />} />
         <Route path="/market/stocks/:symbol" element={<StockDetailPage />} />
         <Route path="/market/bonds" element={<BondsPage />} />
         <Route path="/market/funds" element={<FundsPage />} />
         <Route path="/market/viop" element={<ViopPage />} />
-        
-        {/* Portfolio - Protected */}
+
+        {/* Protected routes */}
         <Route
           path="/portfolio"
           element={
@@ -75,8 +126,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-        
-        {/* Analysis - Protected */}
         <Route
           path="/analysis"
           element={
@@ -85,8 +134,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-        
-        {/* Profile - Protected */}
         <Route
           path="/profile"
           element={
@@ -96,8 +143,8 @@ function App() {
           }
         />
       </Route>
-      
-      {/* Catch all - redirect to home */}
+
+      {/* Catch all */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

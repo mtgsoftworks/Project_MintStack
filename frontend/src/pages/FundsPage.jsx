@@ -1,93 +1,137 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
-import { marketService } from '../services/marketService'
-import Loading from '../components/common/Loading'
+import { Search, RefreshCw, TrendingUp, TrendingDown, Wallet } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { cn, formatCurrency, formatPercent } from '@/lib/utils'
+import { useGetFundsQuery } from '@/store/api/marketApi'
+
+function FundTableSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[...Array(10)].map((_, i) => (
+        <Skeleton key={i} className="h-14 w-full" />
+      ))}
+    </div>
+  )
+}
 
 export default function FundsPage() {
-  const [search, setSearch] = useState('')
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['funds', search],
-    queryFn: () => marketService.getFunds({ search, size: 50 }),
-  })
+  const [searchQuery, setSearchQuery] = useState('')
+  const { data, isLoading, isFetching, refetch } = useGetFundsQuery({})
 
   const funds = data?.data || []
 
+  const filteredFunds = funds.filter((fund) =>
+    fund.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    fund.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   return (
     <div className="space-y-6 animate-in">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Yatırım Fonları</h1>
-        <p className="text-dark-400">Borsa yatırım fonları</p>
-      </div>
-
-      <div className="relative max-w-md">
-        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Fon ara..."
-          className="input pl-10"
-        />
-      </div>
-
-      {isLoading ? (
-        <Loading />
-      ) : (
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Fon</th>
-                  <th className="text-right">Son Fiyat</th>
-                  <th className="text-right">Değişim</th>
-                  <th className="text-right">Para Birimi</th>
-                  <th className="text-right">Durum</th>
-                </tr>
-              </thead>
-              <tbody>
-                {funds.map((fund) => (
-                  <tr key={fund.id}>
-                    <td>
-                      <div>
-                        <p className="font-medium text-white">{fund.symbol}</p>
-                        <p className="text-dark-400 text-sm">{fund.name}</p>
-                      </div>
-                    </td>
-                    <td className="text-right font-mono text-white">
-                      {fund.currentPrice?.toFixed(4) || '—'}
-                    </td>
-                    <td className={`text-right font-mono ${
-                      fund.changePercent > 0 ? 'price-up' :
-                      fund.changePercent < 0 ? 'price-down' : 'price-neutral'
-                    }`}>
-                      {fund.changePercent ? `${fund.changePercent > 0 ? '+' : ''}${fund.changePercent.toFixed(2)}%` : '—'}
-                    </td>
-                    <td className="text-right">
-                      <span className="badge-info">{fund.currency}</span>
-                    </td>
-                    <td className="text-right">
-                      {fund.isActive ? (
-                        <span className="badge-success">Aktif</span>
-                      ) : (
-                        <span className="badge-danger">Pasif</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {funds.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-dark-400">Sonuç bulunamadı</p>
-            </div>
-          )}
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Yatırım Fonları</h1>
+          <p className="text-muted-foreground">
+            Yatırım fonları ve borsa yatırım fonları
+          </p>
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Fon ara..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-64"
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+          </Button>
+        </div>
+      </div>
+
+      {/* Funds Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Fon Listesi</CardTitle>
+          <CardDescription>
+            {funds.length} adet yatırım fonu listeleniyor
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <FundTableSkeleton />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Kod</TableHead>
+                  <TableHead>Fon Adı</TableHead>
+                  <TableHead className="text-right">Fiyat</TableHead>
+                  <TableHead className="text-right">Değişim</TableHead>
+                  <TableHead className="text-right">Toplam Değer</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredFunds.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      Sonuç bulunamadı
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredFunds.map((fund) => (
+                    <TableRow key={fund.symbol}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10">
+                            <Wallet className="h-5 w-5 text-info" />
+                          </div>
+                          <span className="font-semibold">{fund.symbol}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-muted-foreground truncate max-w-[250px] block">
+                          {fund.name}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {formatCurrency(fund.currentPrice, 'TRY')}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant={fund.changePercent >= 0 ? 'success' : 'danger'}>
+                          {formatPercent(fund.changePercent || 0)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {fund.totalValue ? formatCurrency(fund.totalValue, 'TRY') : '-'}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

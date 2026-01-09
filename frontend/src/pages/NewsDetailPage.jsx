@@ -1,120 +1,160 @@
 import { useParams, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { ArrowLeftIcon, ShareIcon, BookmarkIcon } from '@heroicons/react/24/outline'
-import { newsService } from '../services/newsService'
-import Loading from '../components/common/Loading'
-import { format } from 'date-fns'
-import { tr } from 'date-fns/locale'
+import { ArrowLeft, Calendar, Clock, Eye, ExternalLink, Share2 } from 'lucide-react'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
+import { formatDateTime, formatRelativeTime } from '@/lib/utils'
+import { useGetNewsByIdQuery, useIncrementViewCountMutation } from '@/store/api/newsApi'
+import { useEffect } from 'react'
 
 export default function NewsDetailPage() {
   const { id } = useParams()
+  const { data: news, isLoading, error } = useGetNewsByIdQuery(id)
+  const [incrementViewCount] = useIncrementViewCountMutation()
 
-  const { data: news, isLoading } = useQuery({
-    queryKey: ['news', id],
-    queryFn: () => newsService.getNewsById(id),
-  })
+  useEffect(() => {
+    if (id) {
+      incrementViewCount(id)
+    }
+  }, [id, incrementViewCount])
 
   if (isLoading) {
-    return <Loading />
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <Card>
+          <Skeleton className="aspect-video" />
+          <CardHeader>
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-3/4" />
+            <div className="flex gap-4 mt-4">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-3/4" />
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
-  if (!news) {
+  if (error || !news) {
     return (
-      <div className="text-center py-12">
-        <p className="text-dark-400">Haber bulunamadı</p>
-        <Link to="/news" className="btn-primary mt-4">
-          Haberlere Dön
-        </Link>
+      <div className="max-w-4xl mx-auto">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <p className="text-muted-foreground mb-4">Haber bulunamadı.</p>
+            <Button asChild>
+              <Link to="/news">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Haberlere Dön
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="max-w-4xl mx-auto animate-in">
+    <div className="max-w-4xl mx-auto space-y-6 animate-in">
       {/* Back Button */}
-      <Link
-        to="/news"
-        className="inline-flex items-center gap-2 text-dark-400 hover:text-white transition-colors mb-6"
-      >
-        <ArrowLeftIcon className="w-4 h-4" />
-        Haberlere Dön
-      </Link>
+      <Button variant="ghost" asChild>
+        <Link to="/news">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Haberlere Dön
+        </Link>
+      </Button>
 
-      <article className="card overflow-hidden">
-        {/* Image */}
+      {/* News Article */}
+      <Card>
         {news.imageUrl && (
-          <div className="aspect-video relative">
+          <div className="aspect-video overflow-hidden rounded-t-xl">
             <img
               src={news.imageUrl}
               alt={news.title}
-              className="w-full h-full object-cover"
+              className="h-full w-full object-cover"
             />
           </div>
         )}
-
-        <div className="p-6 lg:p-8">
-          {/* Category & Date */}
-          <div className="flex items-center gap-4 mb-4">
-            {news.categoryName && (
-              <span className="badge-info">{news.categoryName}</span>
+        
+        <CardHeader className="space-y-4">
+          <div className="flex items-center gap-2 flex-wrap">
+            {news.category && (
+              <Badge variant="secondary">{news.category.name}</Badge>
             )}
-            <span className="text-dark-500 text-sm">
-              {news.publishedAt && format(new Date(news.publishedAt), 'd MMMM yyyy, HH:mm', { locale: tr })}
-            </span>
+            {news.isFeatured && (
+              <Badge variant="info">Öne Çıkan</Badge>
+            )}
           </div>
-
-          {/* Title */}
-          <h1 className="text-2xl lg:text-3xl font-bold text-white mb-4">
+          
+          <h1 className="text-2xl md:text-3xl font-bold leading-tight">
             {news.title}
           </h1>
 
-          {/* Summary */}
+          <div className="flex items-center flex-wrap gap-4 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Calendar className="h-4 w-4" />
+              {formatDateTime(news.publishedAt)}
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              {formatRelativeTime(news.publishedAt)}
+            </span>
+            <span className="flex items-center gap-1">
+              <Eye className="h-4 w-4" />
+              {news.viewCount} görüntülenme
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-sm font-medium">
+              Kaynak: {news.sourceName}
+            </span>
+            <div className="flex items-center gap-2">
+              {news.sourceUrl && (
+                <Button variant="outline" size="sm" asChild>
+                  <a href={news.sourceUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Kaynağa Git
+                  </a>
+                </Button>
+              )}
+              <Button variant="outline" size="sm">
+                <Share2 className="mr-2 h-4 w-4" />
+                Paylaş
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+
+        <Separator />
+
+        <CardContent className="pt-6">
           {news.summary && (
-            <p className="text-lg text-dark-300 mb-6 leading-relaxed">
+            <p className="text-lg text-muted-foreground mb-6 font-medium">
               {news.summary}
             </p>
           )}
-
-          {/* Content */}
-          {news.content && (
-            <div className="prose prose-invert prose-dark max-w-none">
-              <p className="text-dark-200 leading-relaxed whitespace-pre-wrap">
-                {news.content}
-              </p>
-            </div>
-          )}
-
-          {/* Footer */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-dark-800">
-            <div>
-              <p className="text-dark-400 text-sm">Kaynak</p>
-              <a
-                href={news.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary-400 hover:text-primary-300"
-              >
-                {news.sourceName}
-              </a>
-            </div>
-            <div className="flex items-center gap-3">
-              <button className="p-2 rounded-lg bg-dark-800 text-dark-400 hover:text-white transition-colors">
-                <BookmarkIcon className="w-5 h-5" />
-              </button>
-              <button className="p-2 rounded-lg bg-dark-800 text-dark-400 hover:text-white transition-colors">
-                <ShareIcon className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Views */}
-          {news.viewCount > 0 && (
-            <p className="text-dark-500 text-xs mt-4">
-              {news.viewCount} görüntülenme
+          
+          {news.content ? (
+            <div 
+              className="prose prose-neutral dark:prose-invert max-w-none"
+              dangerouslySetInnerHTML={{ __html: news.content }}
+            />
+          ) : (
+            <p className="text-muted-foreground">
+              İçerik mevcut değil. Daha fazla bilgi için kaynağa göz atın.
             </p>
           )}
-        </div>
-      </article>
+        </CardContent>
+      </Card>
     </div>
   )
 }
