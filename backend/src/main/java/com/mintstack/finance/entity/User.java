@@ -30,9 +30,38 @@ public class User extends BaseEntity {
     @Column(name = "last_name")
     private String lastName;
 
+    @Column(name = "phone_number")
+    private String phoneNumber;
+
+    @Column(name = "bio", length = 500)
+    private String bio;
+
+    @Column(name = "location")
+    private String location;
+
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;
+
+    @Column(name = "email_notifications")
+    @Builder.Default
+    private Boolean emailNotifications = true;
+
+    @Column(name = "push_notifications")
+    @Builder.Default
+    private Boolean pushNotifications = true;
+
+    @Column(name = "price_alerts")
+    @Builder.Default
+    private Boolean priceAlerts = true;
+
+    @Column(name = "portfolio_updates")
+    @Builder.Default
+    private Boolean portfolioUpdates = true;
+
+    @Column(name = "compact_view")
+    @Builder.Default
+    private Boolean compactView = false;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

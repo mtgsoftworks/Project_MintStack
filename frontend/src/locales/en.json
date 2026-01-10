@@ -1,0 +1,124 @@
+{
+    "common": {
+        "loading": "Loading...",
+        "error": "An error occurred",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "add": "Add",
+        "search": "Search",
+        "filter": "Filter",
+        "refresh": "Refresh",
+        "close": "Close",
+        "confirm": "Confirm",
+        "yes": "Yes",
+        "no": "No",
+        "back": "Back",
+        "next": "Next",
+        "submit": "Submit",
+        "noData": "No data found"
+    },
+    "auth": {
+        "login": "Login",
+        "logout": "Logout",
+        "register": "Register",
+        "forgotPassword": "Forgot Password",
+        "resetPassword": "Reset Password"
+    },
+    "nav": {
+        "home": "Home",
+        "market": "Markets",
+        "portfolio": "My Portfolio",
+        "watchlist": "Watchlist",
+        "alerts": "Alerts",
+        "news": "News",
+        "analysis": "Analysis",
+        "settings": "Settings",
+        "profile": "Profile",
+        "admin": "Admin"
+    },
+    "market": {
+        "currencies": "Currency Rates",
+        "stocks": "Stocks",
+        "bonds": "Bonds & Treasury",
+        "funds": "Funds",
+        "viop": "VİOP (Derivatives)",
+        "currentPrice": "Current Price",
+        "change": "Change",
+        "changePercent": "Change %",
+        "volume": "Volume",
+        "high": "High",
+        "low": "Low",
+        "open": "Open",
+        "close": "Close",
+        "buyingRate": "Buy",
+        "sellingRate": "Sell"
+    },
+    "portfolio": {
+        "title": "My Portfolio",
+        "totalValue": "Total Value",
+        "totalCost": "Total Cost",
+        "totalProfit": "Total Profit/Loss",
+        "profitPercent": "Profit/Loss %",
+        "addPosition": "Add Position",
+        "symbol": "Symbol",
+        "quantity": "Quantity",
+        "averageCost": "Average Cost",
+        "currentValue": "Current Value"
+    },
+    "watchlist": {
+        "title": "Watchlist",
+        "create": "Create New List",
+        "addInstrument": "Add Instrument",
+        "removeInstrument": "Remove Instrument",
+        "empty": "Your list is empty",
+        "maxItems": "You can add up to {{count}} instruments"
+    },
+    "alerts": {
+        "title": "Price Alerts",
+        "create": "Create Alert",
+        "priceAbove": "Price Goes Above",
+        "priceBelow": "Price Goes Below",
+        "percentUp": "Percent Increase",
+        "percentDown": "Percent Decrease",
+        "targetPrice": "Target Price",
+        "triggered": "Triggered",
+        "active": "Active",
+        "inactive": "Inactive"
+    },
+    "news": {
+        "title": "Financial News",
+        "latest": "Latest News",
+        "featured": "Featured",
+        "readMore": "Read More",
+        "categories": "Categories"
+    },
+    "settings": {
+        "title": "Settings",
+        "language": "Language",
+        "theme": "Theme",
+        "notifications": "Notifications",
+        "emailNotifications": "Email Notifications",
+        "pushNotifications": "Push Notifications"
+    },
+    "admin": {
+        "dashboard": "Admin Dashboard",
+        "users": "Users",
+        "totalUsers": "Total Users",
+        "activeUsers": "Active Users",
+        "activate": "Activate",
+        "deactivate": "Deactivate"
+    },
+    "errors": {
+        "networkError": "Network error",
+        "unauthorized": "You are not authorized",
+        "notFound": "Page not found",
+        "serverError": "Server error"
+    },
+    "success": {
+        "saved": "Successfully saved",
+        "deleted": "Successfully deleted",
+        "updated": "Successfully updated"
+    }
+}

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MintStack Finance'e Hoş Geldiniz</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .card { background: white; border-radius: 12px; padding: 40px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .logo { font-size: 32px; font-weight: bold; color: #10b981; }
+        .title { color: #1f2937; font-size: 24px; margin: 20px 0; }
+        .content { color: #4b5563; line-height: 1.8; }
+        .features { margin: 30px 0; padding: 20px; background: #f0fdf4; border-radius: 8px; }
+        .feature { padding: 10px 0; border-bottom: 1px solid #d1fae5; }
+        .feature:last-child { border-bottom: none; }
+        .button { display: inline-block; background: #10b981; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; }
+        .footer { text-align: center; color: #9ca3af; font-size: 14px; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <div class="logo">💰 MintStack Finance</div>
+                <h1 class="title">Hoş Geldiniz, <span th:text="${userName}">Kullanıcı</span>!</h1>
+            </div>
+            
+            <div class="content">
+                <p>MintStack Finance ailesine katıldığınız için teşekkür ederiz! Artık Türkiye'nin en kapsamlı finansal veri platformuna erişiminiz var.</p>
+                
+                <div class="features">
+                    <div class="feature">📈 Gerçek zamanlı döviz kurları (TCMB)</div>
+                    <div class="feature">📊 BIST hisse senedi takibi</div>
+                    <div class="feature">💼 Kişisel portföy yönetimi</div>
+                    <div class="feature">🔔 Fiyat alarmları</div>
+                    <div class="feature">📰 Finansal haberler</div>
+                </div>
+                
+                <p>Hemen platforma giriş yaparak portföyünüzü oluşturabilir ve piyasaları takip etmeye başlayabilirsiniz.</p>
+                
+                <div style="text-align: center;">
+                    <a href="https://mintstack.com" class="button">Platforma Giriş Yap</a>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p>Bu e-posta <span th:text="${appName}">MintStack Finance</span> tarafından gönderilmiştir.</p>
+                <p>© 2024 MintStack. Tüm hakları saklıdır.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -12,37 +12,16 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserResponse {
+public class UserAdminResponse {
 
     private UUID id;
-    
+    private String keycloakId;
+    private String username;
     private String email;
-    
     private String firstName;
-    
     private String lastName;
-    
-    private String fullName;
-    
     private Boolean isActive;
-    
-    private int portfolioCount;
-    
+    private Integer portfolioCount;
     private LocalDateTime createdAt;
-
-    private String phoneNumber;
-
-    private String bio;
-
-    private String location;
-
-    private Boolean emailNotifications;
-
-    private Boolean pushNotifications;
-
-    private Boolean priceAlerts;
-
-    private Boolean portfolioUpdates;
-
-    private Boolean compactView;
+    private LocalDateTime lastLoginAt;
 }

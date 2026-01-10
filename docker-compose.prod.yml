@@ -1,0 +1,211 @@
+# ===========================================
+# MintStack Finance Portal - Production Docker Compose
+# ===========================================
+# This file uses Docker Secrets for sensitive data
+# Run with: docker-compose -f docker-compose.prod.yml up -d
+# ===========================================
+
+version: '3.8'
+
+services:
+  # ===========================================
+  # DATA LAYER
+  # ===========================================
+  
+  postgres:
+    image: postgres:15-alpine
+    container_name: mintstack-postgres-prod
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_MULTIPLE_DATABASES: mintstack_finance,keycloak
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
+    networks:
+      - mintstack-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  redis:
+    image: redis:7-alpine
+    container_name: mintstack-redis-prod
+    command: >
+      sh -c "redis-server --requirepass $$(cat /run/secrets/redis_password)"
+    secrets:
+      - redis_password
+    volumes:
+      - redis_data:/data
+    networks:
+      - mintstack-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # ===========================================
+  # AUTH LAYER
+  # ===========================================
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: mintstack-keycloak-prod
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD_FILE: /run/secrets/keycloak_admin_password
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD_FILE: /run/secrets/postgres_password
+      KC_HOSTNAME_STRICT: "true"
+      KC_HOSTNAME: ${KC_HOSTNAME:-localhost}
+      KC_PROXY: edge
+    secrets:
+      - keycloak_admin_password
+      - postgres_password
+    command: start --import-realm --optimized
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mintstack-network
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080;echo -e 'GET /health/ready HTTP/1.1\r\nhost: localhost\r\nConnection: close\r\n\r\n' >&3;if [ $? -eq 0 ]; then exit 0; else exit 1; fi;"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # ===========================================
+  # APPLICATION LAYER
+  # ===========================================
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mintstack-backend-prod
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD_FILE: /run/secrets/postgres_password
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD_FILE: /run/secrets/redis_password
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/mintstack-finance/protocol/openid-connect/certs
+      ALPHA_VANTAGE_API_KEY_FILE: /run/secrets/alpha_vantage_key
+    secrets:
+      - postgres_password
+      - redis_password
+      - alpha_vantage_key
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    networks:
+      - mintstack-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+      replicas: 2
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api/v1}
+        VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL}
+        VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM:-mintstack-finance}
+        VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID:-finance-frontend}
+    container_name: mintstack-frontend-prod
+    depends_on:
+      - backend
+    networks:
+      - mintstack-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # ===========================================
+  # REVERSE PROXY
+  # ===========================================
+
+  nginx:
+    image: nginx:alpine
+    container_name: mintstack-nginx-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - mintstack-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+networks:
+  mintstack-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+
+# ===========================================
+# DOCKER SECRETS CONFIGURATION
+# ===========================================
+# Create secrets before deploying:
+#   echo "your_postgres_password" | docker secret create postgres_password -
+#   echo "your_redis_password" | docker secret create redis_password -
+#   echo "your_keycloak_password" | docker secret create keycloak_admin_password -
+#   echo "your_alpha_vantage_key" | docker secret create alpha_vantage_key -
+# ===========================================
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  redis_password:
+    file: ./secrets/redis_password.txt
+  keycloak_admin_password:
+    file: ./secrets/keycloak_admin_password.txt
+  alpha_vantage_key:
+    file: ./secrets/alpha_vantage_key.txt

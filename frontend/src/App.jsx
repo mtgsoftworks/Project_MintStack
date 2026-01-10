@@ -20,6 +20,9 @@ import PortfolioDetailPage from '@/pages/PortfolioDetailPage'
 import AnalysisPage from '@/pages/AnalysisPage'
 import ProfilePage from '@/pages/ProfilePage'
 import SettingsPage from '@/pages/SettingsPage'
+import WatchlistPage from '@/pages/WatchlistPage'
+import AlertsPage from '@/pages/AlertsPage'
+import AdminDashboard from '@/pages/AdminDashboard'
 import LoginPage from '@/pages/LoginPage'
 
 // Keycloak configuration
@@ -184,6 +187,36 @@ function App() {
           element={
             <ProtectedRoute>
               <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Watchlist */}
+        <Route
+          path="/watchlist"
+          element={
+            <ProtectedRoute>
+              <WatchlistPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Alerts */}
+        <Route
+          path="/alerts"
+          element={
+            <ProtectedRoute>
+              <AlertsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin (role check is done in component) */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />

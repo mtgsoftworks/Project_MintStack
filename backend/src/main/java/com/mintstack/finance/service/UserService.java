@@ -61,6 +61,30 @@ public class UserService {
         if (request.getLastName() != null) {
             user.setLastName(request.getLastName());
         }
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
+        if (request.getBio() != null) {
+            user.setBio(request.getBio());
+        }
+        if (request.getLocation() != null) {
+            user.setLocation(request.getLocation());
+        }
+        if (request.getEmailNotifications() != null) {
+            user.setEmailNotifications(request.getEmailNotifications());
+        }
+        if (request.getPushNotifications() != null) {
+            user.setPushNotifications(request.getPushNotifications());
+        }
+        if (request.getPriceAlerts() != null) {
+            user.setPriceAlerts(request.getPriceAlerts());
+        }
+        if (request.getPortfolioUpdates() != null) {
+            user.setPortfolioUpdates(request.getPortfolioUpdates());
+        }
+        if (request.getCompactView() != null) {
+            user.setCompactView(request.getCompactView());
+        }
         
         User updatedUser = userRepository.save(user);
         log.info("User profile updated: {}", keycloakId);
@@ -90,6 +114,14 @@ public class UserService {
             .isActive(user.getIsActive())
             .portfolioCount(user.getPortfolios().size())
             .createdAt(user.getCreatedAt())
+            .phoneNumber(user.getPhoneNumber())
+            .bio(user.getBio())
+            .location(user.getLocation())
+            .emailNotifications(user.getEmailNotifications())
+            .pushNotifications(user.getPushNotifications())
+            .priceAlerts(user.getPriceAlerts())
+            .portfolioUpdates(user.getPortfolioUpdates())
+            .compactView(user.getCompactView())
             .build();
     }
 }

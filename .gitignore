@@ -12,7 +12,16 @@ frontend/dist/
 
 # Environment files
 .env
+.env.local
+.env.production
+.env.*.local
 *.local
+
+# Secrets (NEVER commit these!)
+secrets/*.txt
+secrets/*.key
+secrets/*.pem
+!secrets/README.md
 
 # Logs
 *.log

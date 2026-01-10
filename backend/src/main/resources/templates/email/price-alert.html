@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiyat Alarmı</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #10b981;
+        }
+
+        .alert-icon {
+            font-size: 48px;
+            margin: 20px 0;
+        }
+
+        .title {
+            color: #1f2937;
+            font-size: 22px;
+            margin: 20px 0;
+        }
+
+        .content {
+            color: #4b5563;
+            line-height: 1.8;
+        }
+
+        .price-box {
+            margin: 30px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-radius: 12px;
+            color: white;
+            text-align: center;
+        }
+
+        .symbol {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .price {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .price-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .details {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+
+        .detail-item {
+            text-align: center;
+        }
+
+        .button {
+            display: inline-block;
+            background: #1f2937;
+            color: white;
+            padding: 14px 32px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 20px 0;
+        }
+
+        .footer {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 14px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <div class="logo">💰 MintStack Finance</div>
+                <div class="alert-icon">🔔</div>
+                <h1 class="title">Fiyat Alarmınız Tetiklendi!</h1>
+            </div>
+
+            <div class="content">
+                <p>Merhaba <span th:text="${userName}">Kullanıcı</span>,</p>
+                <p>Ayarladığınız fiyat alarmı koşulu gerçekleşti:</p>
+
+                <div class="price-box">
+                    <div class="symbol" th:text="${symbol}">THYAO</div>
+                    <div class="price-label">Güncel Fiyat</div>
+                    <div class="price">₺<span th:text="${currentPrice}">285.50</span></div>
+                    <div class="details">
+                        <div class="detail-item">
+                            <div class="price-label">Alarm Tipi</div>
+                            <div th:text="${alertType}">Üzeri</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="price-label">Hedef Fiyat</div>
+                            <div>₺<span th:text="${targetPrice}">280.00</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <p>Detaylı bilgi ve işlem yapmak için platforma giriş yapabilirsiniz.</p>
+
+                <div style="text-align: center;">
+                    <a href="https://mintstack.com/market" class="button">Piyasayı Görüntüle</a>
+                </div>
+            </div>
+
+            <div class="footer">
+                <p>Bu alarm sizin tarafınızdan ayarlanmıştır.</p>
+                <p>© 2024 MintStack Finance. Tüm hakları saklıdır.</p>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

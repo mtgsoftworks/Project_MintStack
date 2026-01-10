@@ -1,0 +1,124 @@
+{
+    "common": {
+        "loading": "Yükleniyor...",
+        "error": "Bir hata oluştu",
+        "save": "Kaydet",
+        "cancel": "İptal",
+        "delete": "Sil",
+        "edit": "Düzenle",
+        "add": "Ekle",
+        "search": "Ara",
+        "filter": "Filtrele",
+        "refresh": "Yenile",
+        "close": "Kapat",
+        "confirm": "Onayla",
+        "yes": "Evet",
+        "no": "Hayır",
+        "back": "Geri",
+        "next": "İleri",
+        "submit": "Gönder",
+        "noData": "Veri bulunamadı"
+    },
+    "auth": {
+        "login": "Giriş Yap",
+        "logout": "Çıkış Yap",
+        "register": "Kayıt Ol",
+        "forgotPassword": "Şifremi Unuttum",
+        "resetPassword": "Şifre Sıfırla"
+    },
+    "nav": {
+        "home": "Ana Sayfa",
+        "market": "Piyasalar",
+        "portfolio": "Portföyüm",
+        "watchlist": "İzleme Listesi",
+        "alerts": "Alarmlar",
+        "news": "Haberler",
+        "analysis": "Analiz",
+        "settings": "Ayarlar",
+        "profile": "Profil",
+        "admin": "Yönetim"
+    },
+    "market": {
+        "currencies": "Döviz Kurları",
+        "stocks": "Hisse Senetleri",
+        "bonds": "Tahvil & Bono",
+        "funds": "Fonlar",
+        "viop": "VİOP",
+        "currentPrice": "Güncel Fiyat",
+        "change": "Değişim",
+        "changePercent": "Değişim %",
+        "volume": "Hacim",
+        "high": "Yüksek",
+        "low": "Düşük",
+        "open": "Açılış",
+        "close": "Kapanış",
+        "buyingRate": "Alış",
+        "sellingRate": "Satış"
+    },
+    "portfolio": {
+        "title": "Portföyüm",
+        "totalValue": "Toplam Değer",
+        "totalCost": "Toplam Maliyet",
+        "totalProfit": "Toplam Kar/Zarar",
+        "profitPercent": "Kar/Zarar %",
+        "addPosition": "Pozisyon Ekle",
+        "symbol": "Sembol",
+        "quantity": "Miktar",
+        "averageCost": "Ortalama Maliyet",
+        "currentValue": "Güncel Değer"
+    },
+    "watchlist": {
+        "title": "İzleme Listesi",
+        "create": "Yeni Liste Oluştur",
+        "addInstrument": "Enstrüman Ekle",
+        "removeInstrument": "Enstrümanı Kaldır",
+        "empty": "Listeniz boş",
+        "maxItems": "Maksimum {{count}} enstrüman ekleyebilirsiniz"
+    },
+    "alerts": {
+        "title": "Fiyat Alarmları",
+        "create": "Alarm Oluştur",
+        "priceAbove": "Fiyat Üzerine Çıkarsa",
+        "priceBelow": "Fiyat Altına Düşerse",
+        "percentUp": "Yüzde Artış",
+        "percentDown": "Yüzde Düşüş",
+        "targetPrice": "Hedef Fiyat",
+        "triggered": "Tetiklendi",
+        "active": "Aktif",
+        "inactive": "Pasif"
+    },
+    "news": {
+        "title": "Finansal Haberler",
+        "latest": "Son Haberler",
+        "featured": "Öne Çıkanlar",
+        "readMore": "Devamını Oku",
+        "categories": "Kategoriler"
+    },
+    "settings": {
+        "title": "Ayarlar",
+        "language": "Dil",
+        "theme": "Tema",
+        "notifications": "Bildirimler",
+        "emailNotifications": "E-posta Bildirimleri",
+        "pushNotifications": "Push Bildirimleri"
+    },
+    "admin": {
+        "dashboard": "Yönetim Paneli",
+        "users": "Kullanıcılar",
+        "totalUsers": "Toplam Kullanıcı",
+        "activeUsers": "Aktif Kullanıcı",
+        "activate": "Aktif Et",
+        "deactivate": "Pasif Et"
+    },
+    "errors": {
+        "networkError": "Bağlantı hatası",
+        "unauthorized": "Bu işlem için yetkiniz yok",
+        "notFound": "Sayfa bulunamadı",
+        "serverError": "Sunucu hatası"
+    },
+    "success": {
+        "saved": "Başarıyla kaydedildi",
+        "deleted": "Başarıyla silindi",
+        "updated": "Başarıyla güncellendi"
+    }
+}

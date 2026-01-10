@@ -47,6 +47,10 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/swagger-ui.html").permitAll()
                 
+                // WebSocket endpoints
+                .requestMatchers("/ws/**").permitAll()
+                .requestMatchers("/ws-native/**").permitAll()
+                
                 // Public market data endpoints (read-only)
                 .requestMatchers(HttpMethod.GET, "/api/v1/market/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/news/**").permitAll()

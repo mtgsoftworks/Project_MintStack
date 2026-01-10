@@ -17,4 +17,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByKeycloakId(String keycloakId);
 
     boolean existsByEmail(String email);
+
+    long countByIsActiveTrue();
+
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE " +
+           "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :query, '%'))")
+    org.springframework.data.domain.Page<User> searchByEmailOrName(@org.springframework.data.repository.query.Param("query") String query, org.springframework.data.domain.Pageable pageable);
 }

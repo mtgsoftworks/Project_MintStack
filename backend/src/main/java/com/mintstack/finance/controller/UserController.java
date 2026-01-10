@@ -23,7 +23,7 @@ public class UserController {
 
     private final UserService userService;
 
-    @GetMapping("/profile")
+    @GetMapping("/me")
     @Operation(summary = "Kullanıcı profilini getir")
     public ResponseEntity<ApiResponse<UserResponse>> getProfile(
             @AuthenticationPrincipal Jwt jwt) {
@@ -35,7 +35,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(profile));
     }
 
-    @PutMapping("/profile")
+    @PutMapping("/me")
     @Operation(summary = "Kullanıcı profilini güncelle")
     public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
             @AuthenticationPrincipal Jwt jwt,

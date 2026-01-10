@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { store } from '@/store'
 import { ErrorBoundary } from '@/components/layout'
 import App from './App'
+import './i18n' // i18n initialization
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(

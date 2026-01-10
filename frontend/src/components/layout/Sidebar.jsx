@@ -57,6 +57,7 @@ const navigation = [
     icon: PieChart
   },
   {
+    name: 'Analiz',
     href: '/analysis',
     icon: BarChart3
   },
@@ -129,8 +130,8 @@ function NavItem({ item, collapsed }) {
     <NavLink
       to={item.href}
       className={cn(
-        "group relative flex items-center justify-center rounded-lg transition-all",
-        collapsed ? "w-10 h-10" : "gap-3 px-3 py-2.5",
+        "group relative flex items-center rounded-lg transition-all",
+        collapsed ? "w-10 h-10 justify-center" : "w-full gap-3 px-3 py-2.5 justify-start",
         isActive
           ? "bg-white/10 text-blue-300"
           : "text-slate-400 hover:text-white hover:bg-white/5"
@@ -225,12 +226,7 @@ export function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="mt-auto">
-          {!collapsed && (
-            <p className="text-center text-xs text-slate-500 mb-4">
-              © 2026 MintStack Finance
-            </p>
-          )}
+        <div className="mt-auto flex flex-col items-center">
           {/* Desktop collapse toggle */}
           <button
             className="w-10 h-10 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
@@ -238,6 +234,11 @@ export function Sidebar() {
           >
             <Menu className="h-6 w-6" />
           </button>
+          {!collapsed && (
+            <p className="text-center text-xs text-slate-500 mt-4 mb-2">
+              © 2026 MintStack Finance
+            </p>
+          )}
         </div>
       </aside>
     </TooltipProvider>

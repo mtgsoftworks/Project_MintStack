@@ -24,16 +24,69 @@ export default function ProfilePage() {
   const { data: profile, isLoading } = useGetProfileQuery()
   const [updateProfile, { isLoading: updating }] = useUpdateProfileMutation()
 
-  const [displayName, setDisplayName] = useState(user?.name || '')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [bio, setBio] = useState('')
+  const [location, setLocation] = useState('')
+
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [pushNotifications, setPushNotifications] = useState(true)
+  const [priceAlerts, setPriceAlerts] = useState(true)
+  const [portfolioUpdates, setPortfolioUpdates] = useState(true)
+  const [compactView, setCompactView] = useState(false)
+
+  // Sync state with fetching profile
+  useEffect(() => {
+    if (profile) {
+      setFirstName(profile.firstName || '')
+      setLastName(profile.lastName || '')
+      setPhoneNumber(profile.phoneNumber || '')
+      setBio(profile.bio || '')
+      setLocation(profile.location || '')
+
+      setEmailNotifications(profile.emailNotifications ?? true)
+      setPushNotifications(profile.pushNotifications ?? true)
+      setPriceAlerts(profile.priceAlerts ?? true)
+      setPortfolioUpdates(profile.portfolioUpdates ?? true)
+      setCompactView(profile.compactView ?? false)
+    }
+  }, [profile])
 
   const handleUpdateProfile = async () => {
     try {
-      await updateProfile({ displayName }).unwrap()
+      await updateProfile({
+        firstName,
+        lastName,
+        phoneNumber,
+        bio,
+        location
+      }).unwrap()
       toast.success('Profil güncellendi')
     } catch (error) {
       toast.error('Profil güncellenemedi')
+    }
+  }
+
+  const handlePreferenceChange = async (key, value) => {
+    try {
+      // Optimistic update
+      if (key === 'emailNotifications') setEmailNotifications(value)
+      if (key === 'pushNotifications') setPushNotifications(value)
+      if (key === 'priceAlerts') setPriceAlerts(value)
+      if (key === 'portfolioUpdates') setPortfolioUpdates(value)
+      if (key === 'compactView') setCompactView(value)
+
+      await updateProfile({ [key]: value }).unwrap()
+
+      // Handle theme dispatch if it's the theme toggle (although that's separate in UI, let's keep it clean)
+      // Note: Theme is handled by Redux purely in the current UI logic, not persisted to backend user profile yet unless we add theme to user profile too.
+      // For now, only the new fields are persisted via updateProfile.
+
+      toast.success('Ayarlar güncellendi')
+    } catch (error) {
+      toast.error('Ayarlar güncellenemedi')
+      // Revert state if needed (optional for simplicity)
     }
   }
 
@@ -61,10 +114,10 @@ export default function ProfilePage() {
               <Avatar className="h-24 w-24 mb-4">
                 <AvatarImage src={user?.avatar} />
                 <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-                  {getInitials(user?.name || user?.username)}
+                  {getInitials(profile?.fullName || user?.name || user?.username)}
                 </AvatarFallback>
               </Avatar>
-              <h2 className="text-xl font-semibold">{user?.name || user?.username}</h2>
+              <h2 className="text-xl font-semibold">{profile?.fullName || user?.name || user?.username}</h2>
               <p className="text-sm text-muted-foreground mb-4">{user?.email}</p>
               <div className="flex flex-wrap justify-center gap-2">
                 {roles.map((role) => (
@@ -126,14 +179,25 @@ export default function ProfilePage() {
                     </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="displayName">Görünen Ad</Label>
-                    <Input
-                      id="displayName"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="Adınız Soyadınız"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">Ad</Label>
+                      <Input
+                        id="firstName"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        placeholder="Adınız"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Soyad</Label>
+                      <Input
+                        id="lastName"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        placeholder="Soyadınız"
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -148,6 +212,38 @@ export default function ProfilePage() {
                     <p className="text-xs text-muted-foreground">
                       E-posta değişikliği için Keycloak panelini kullanın
                     </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNumber">Telefon</Label>
+                      <Input
+                        id="phoneNumber"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        placeholder="+90 5XX XXX XX XX"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Konum</Label>
+                      <Input
+                        id="location"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        placeholder="Şehir, Ülke"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bio">Hakkımda</Label>
+                    <textarea
+                      id="bio"
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      placeholder="Kendinizden bahsedin..."
+                    />
                   </div>
 
                   <Button
@@ -171,7 +267,7 @@ export default function ProfilePage() {
                     </div>
                     <Switch
                       checked={emailNotifications}
-                      onCheckedChange={setEmailNotifications}
+                      onCheckedChange={(val) => handlePreferenceChange('emailNotifications', val)}
                     />
                   </div>
 
@@ -186,7 +282,7 @@ export default function ProfilePage() {
                     </div>
                     <Switch
                       checked={pushNotifications}
-                      onCheckedChange={setPushNotifications}
+                      onCheckedChange={(val) => handlePreferenceChange('pushNotifications', val)}
                     />
                   </div>
 
@@ -199,7 +295,10 @@ export default function ProfilePage() {
                         Hedef fiyatlara ulaşıldığında bildirim alın
                       </p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch
+                      checked={priceAlerts}
+                      onCheckedChange={(val) => handlePreferenceChange('priceAlerts', val)}
+                    />
                   </div>
 
                   <Separator />
@@ -211,7 +310,10 @@ export default function ProfilePage() {
                         Portföyünüzdeki önemli değişiklikler
                       </p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch
+                      checked={portfolioUpdates}
+                      onCheckedChange={(val) => handlePreferenceChange('portfolioUpdates', val)}
+                    />
                   </div>
                 </div>
               </TabsContent>
@@ -241,7 +343,10 @@ export default function ProfilePage() {
                         Daha fazla veri göster
                       </p>
                     </div>
-                    <Switch />
+                    <Switch
+                      checked={compactView}
+                      onCheckedChange={(val) => handlePreferenceChange('compactView', val)}
+                    />
                   </div>
 
                   <Separator />

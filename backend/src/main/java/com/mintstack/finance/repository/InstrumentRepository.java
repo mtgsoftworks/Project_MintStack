@@ -43,4 +43,6 @@ public interface InstrumentRepository extends JpaRepository<Instrument, UUID> {
     List<Instrument> findBySymbolIn(List<String> symbols);
 
     boolean existsBySymbol(String symbol);
+
+    long countByIsActiveTrue();
 }
