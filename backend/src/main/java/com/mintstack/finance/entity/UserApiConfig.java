@@ -39,6 +39,7 @@ public class UserApiConfig extends BaseEntity {
         YAHOO_FINANCE,
         ALPHA_VANTAGE,
         FINNHUB,
+        TCMB,
         OTHER
     }
 }

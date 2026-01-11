@@ -161,10 +161,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
         response.setHeader("Retry-After", String.valueOf(retryAfterSeconds));
         response.setHeader("X-RateLimit-Remaining", "0");
         
-        ApiResponse<?> errorResponse = ApiResponse.error(
-                "Rate limit exceeded. Please try again in " + retryAfterSeconds + " seconds.",
-                "RATE_LIMIT_EXCEEDED"
-        );
+        com.mintstack.finance.dto.response.ErrorResponse error = com.mintstack.finance.dto.response.ErrorResponse.builder()
+                .status(HttpStatus.TOO_MANY_REQUESTS.value())
+                .error("RATE_LIMIT_EXCEEDED")
+                .message("Rate limit exceeded. Please try again in " + retryAfterSeconds + " seconds.")
+                .timestamp(java.time.LocalDateTime.now())
+                .build();
+        
+        ApiResponse<?> errorResponse = ApiResponse.error(error);
         
         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
     }

@@ -100,7 +100,102 @@
         "theme": "Tema",
         "notifications": "Bildirimler",
         "emailNotifications": "E-posta Bildirimleri",
-        "pushNotifications": "Push Bildirimleri"
+        "pushNotifications": "Push Bildirimleri",
+        "apiKeys": {
+            "title": "API Anahtarları",
+            "manage": "API Bağlantılarını Yönet",
+            "add": "Yeni Ekle",
+            "edit": "Düzenle",
+            "provider": "Sağlayıcı",
+            "apiKey": "API Anahtarı",
+            "secretKey": "Gizli Anahtar (Opsiyonel)",
+            "baseUrl": "Base URL (Opsiyonel)",
+            "active": "Aktif",
+            "test": "Test Et",
+            "valid": "Geçerli",
+            "invalid": "Geçersiz",
+            "save": "Kaydet",
+            "update": "Güncelle",
+            "deleteConfirm": "Bu API anahtarını silmek istediğinize emin misiniz?",
+            "placeholder": {
+                "key": "Anahtarınızı buraya yapıştırın",
+                "tcmb": "TCMB için gerekmez (boş bırakabilirsiniz)"
+            },
+            "validation": {
+                "required": "Lütfen API anahtarı girin",
+                "testRequired": "Kaydetmeden önce test etmelisiniz",
+                "tcmbInfo": "TCMB ücretsizdir, test ederek doğrulayabilirsiniz."
+            }
+        },
+        "providers": {
+            "supported": "✅ Desteklenenler:",
+            "missing": "❌ Eksik Veriler:",
+            "info": {
+                "YAHOO_FINANCE": {
+                    "title": "Yahoo Finance (Önerilen)",
+                    "desc": "En kapsamlı veri sağlayıcısı.",
+                    "supported": [
+                        "BIST Hisseleri",
+                        "BIST Endeksleri",
+                        "Döviz Kurları",
+                        "Fonlar",
+                        "Emtialar"
+                    ],
+                    "missing": []
+                },
+                "ALPHA_VANTAGE": {
+                    "title": "Alpha Vantage",
+                    "desc": "Küresel hisse senetleri için iyidir ancak kısıtlıdır.",
+                    "supported": [
+                        "ABD Hisseleri",
+                        "Döviz Kurları",
+                        "Bazı Teknik Veriler"
+                    ],
+                    "missing": [
+                        "Canlı BIST 100 Endeksi",
+                        "Türk Fonları",
+                        "VIOP"
+                    ]
+                },
+                "FINNHUB": {
+                    "title": "Finnhub",
+                    "desc": "ABD odaklı finansal veriler sağlar.",
+                    "supported": [
+                        "ABD Hisseleri",
+                        "Bazı Dövizler"
+                    ],
+                    "missing": [
+                        "BIST Endeksleri",
+                        "Türk Yatırım Fonları"
+                    ]
+                },
+                "TCMB": {
+                    "title": "T.C. Merkez Bankası",
+                    "desc": "Sadece resmi kur bilgileri içindir.",
+                    "supported": [
+                        "Resmi Döviz Kurları"
+                    ],
+                    "missing": [
+                        "Hisse Senetleri",
+                        "Borsa Endeksleri",
+                        "Fonlar",
+                        "Kripto"
+                    ]
+                }
+            }
+        }
+    },
+    "dashboard": {
+        "subtitle": "Piyasa özetine ve portföy durumunuza genel bakış",
+        "widgets": {
+            "bist100": {
+                "title": "BIST 100",
+                "noProvider": "Yapılandırılmadı",
+                "noSource": "Kaynaksız",
+                "error": "Veri Alınamadı",
+                "addConfig": "Ayarlardan Ekleyin"
+            }
+        }
     },
     "admin": {
         "dashboard": "Yönetim Paneli",

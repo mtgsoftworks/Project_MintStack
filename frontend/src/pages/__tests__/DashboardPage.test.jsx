@@ -1,99 +1,108 @@
-import { render, screen, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
-import { BrowserRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
+import { screen } from '@testing-library/react'
+import { renderWithProviders } from '../../utils/test-utils'
 import DashboardPage from '../DashboardPage'
+import { useGetCurrenciesQuery, useGetStocksQuery } from '../../store/api/marketApi'
+import { useGetNewsQuery } from '../../store/api/newsApi'
+import { useGetPortfoliosQuery } from '../../store/api/portfolioApi'
 
-// Mock useAuth hook
-vi.mock('../../context/AuthContext', () => ({
-  useAuth: () => ({
-    isAuthenticated: true,
-    user: {
-      firstName: 'Test',
-      lastName: 'User',
-      email: 'test@example.com',
-      roles: ['user'],
-    },
-    token: 'mock-token',
-    hasRole: (role) => role === 'user',
-  }),
+// Mock API hooks
+vi.mock('../../store/api/marketApi', () => ({
+  useGetCurrenciesQuery: vi.fn(),
+  useGetStocksQuery: vi.fn(),
 }))
 
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-        staleTime: 0,
-      },
-    },
-  })
+vi.mock('../../store/api/newsApi', () => ({
+  useGetNewsQuery: vi.fn(),
+}))
 
-  return ({ children }) => (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        {children}
-      </BrowserRouter>
-    </QueryClientProvider>
-  )
-}
+vi.mock('../../store/api/portfolioApi', () => ({
+  useGetPortfoliosQuery: vi.fn(),
+}))
+
+// Mock Auth Context (although likely handled by renderWithProviders, explicitly mocking helps if used directly)
+// But DashboardPage uses Redux for auth: useSelector(selectIsAuthenticated)
+// mockAuthContext is not needed if we rely on Redux state.
+// renderWithProviders handles Redux.
+// So no need to mock AuthContext hook if it's not used (DashboardPage uses useSelector)
 
 describe('DashboardPage Component', () => {
-  it('renders dashboard title', async () => {
-    render(<DashboardPage />, { wrapper: createWrapper() })
-    
-    await waitFor(() => {
-      const title = screen.queryByText(/dashboard/i) ||
-                   screen.queryByText(/ana sayfa/i) ||
-                   screen.queryByText(/genel bakış/i)
-      expect(title || document.querySelector('h1, h2')).toBeTruthy()
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    // Setup default mock values
+    useGetCurrenciesQuery.mockReturnValue({
+      data: [
+        { currencyCode: 'USD', sellingRate: 32.50, changePercent: 0.5, currencyName: 'US Dollar' },
+        { currencyCode: 'EUR', sellingRate: 35.20, changePercent: -0.2, currencyName: 'Euro' }
+      ],
+      isLoading: false
+    })
+
+    useGetStocksQuery.mockReturnValue({
+      data: {
+        data: [
+          { symbol: 'THYAO', name: 'Türk Hava Yolları', currentPrice: 280.50, changePercent: 1.2 }
+        ]
+      },
+      isLoading: false
+    })
+
+    useGetNewsQuery.mockReturnValue({
+      data: {
+        data: [
+          { id: 1, title: 'Market News', sourceName: 'Bloomberg', publishedAt: new Date().toISOString() }
+        ]
+      },
+      isLoading: false
+    })
+
+    useGetPortfoliosQuery.mockReturnValue({
+      data: [
+        { totalValue: 1000, profitLoss: 100, totalCost: 900 }
+      ],
+      isLoading: false
     })
   })
 
-  it('displays welcome message with user name', async () => {
-    render(<DashboardPage />, { wrapper: createWrapper() })
-    
-    await waitFor(() => {
-      // Check for personalized greeting
-      const greeting = screen.queryByText(/Test/i) ||
-                      screen.queryByText(/hoş geldin/i)
-      expect(greeting || document.body).toBeTruthy()
-    })
+  it('renders dashboard title', () => {
+    renderWithProviders(<DashboardPage />)
+    expect(screen.getByRole('heading', { level: 1, name: /Dashboard/i })).toBeInTheDocument()
   })
 
-  it('shows currency rates section', async () => {
-    render(<DashboardPage />, { wrapper: createWrapper() })
-    
-    await waitFor(() => {
-      const currencySection = screen.queryByText(/döviz/i) ||
-                             screen.queryByText(/kur/i) ||
-                             screen.queryByText(/USD/i)
-      expect(currencySection || document.body).toBeTruthy()
-    })
+  // Removed welcome message test as it's not present in the component
+
+  it('shows currency rates section', () => {
+    renderWithProviders(<DashboardPage />)
+    // USD is in stat card and widget
+    expect(screen.getAllByText(/USD/i).length).toBeGreaterThan(0)
+    expect(screen.getByText(/D.viz Kurlar./i)).toBeInTheDocument()
   })
 
-  it('shows portfolio summary', async () => {
-    render(<DashboardPage />, { wrapper: createWrapper() })
-    
-    await waitFor(() => {
-      const portfolioSection = screen.queryByText(/portföy/i) ||
-                              screen.queryByText(/portfolio/i)
-      expect(portfolioSection || document.body).toBeTruthy()
-    })
+  it('shows portfolio summary when authenticated', () => {
+    const preloadedState = {
+      auth: {
+        isAuthenticated: true,
+        user: { name: 'Test User' },
+        isInitialized: true
+      }
+    }
+    renderWithProviders(<DashboardPage />, { preloadedState })
+    // Check for Portfolio Value card
+    expect(screen.getByText(/Portf.y De.eri/i)).toBeInTheDocument()
+    // Check for Total P/L
+    expect(screen.getByText(/Toplam K\/Z/i)).toBeInTheDocument()
   })
 
-  it('shows recent news section', async () => {
-    render(<DashboardPage />, { wrapper: createWrapper() })
-    
-    await waitFor(() => {
-      const newsSection = screen.queryByText(/haber/i) ||
-                         screen.queryByText(/news/i)
-      expect(newsSection || document.body).toBeTruthy()
-    })
+  it('shows recent news section', () => {
+    renderWithProviders(<DashboardPage />)
+    expect(screen.getByText(/Son Haberler/i)).toBeInTheDocument()
+    // "Tümünü Gör" appears multiple times, check if at least one exists
+    expect(screen.getAllByText(/T.m.n. G.r/i).length).toBeGreaterThan(0)
   })
 
   it('renders without crashing', () => {
-    const { container } = render(<DashboardPage />, { wrapper: createWrapper() })
-    expect(container).toBeTruthy()
+    const { container } = renderWithProviders(<DashboardPage />)
+    expect(container).toBeInTheDocument()
   })
 })

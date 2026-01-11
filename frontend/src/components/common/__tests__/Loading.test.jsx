@@ -5,28 +5,32 @@ import Loading from '../Loading'
 describe('Loading Component', () => {
   it('renders loading spinner', () => {
     render(<Loading />)
-    
+
     // Check for loading indicator
     const loadingElement = screen.getByRole('status') || document.querySelector('.animate-spin')
     expect(loadingElement || document.querySelector('[class*="animate"]')).toBeTruthy()
   })
 
   it('renders with custom message', () => {
-    render(<Loading message="Veriler yükleniyor..." />)
-    
-    expect(screen.getByText(/yükleniyor/i)).toBeInTheDocument()
+    // Component uses 'text' prop
+    render(<Loading text="Veriler yükleniyor..." />)
+
+    expect(screen.getByText(/Veriler yükleniyor/i)).toBeInTheDocument()
   })
 
   it('renders fullscreen variant', () => {
-    const { container } = render(<Loading fullscreen />)
-    
-    // Check for fullscreen styling
-    expect(container.firstChild).toHaveClass(/fixed|inset|min-h-screen/i)
+    // The component uses 'fullScreen' prop
+    // Use 'render' instead of 'renderWithProviders' as it's a simple component
+    const { getByRole } = render(<Loading fullScreen={true} />)
+    const element = getByRole('status')
+    // Check strict class match or substring match
+    expect(element.className).toContain('fixed')
+    expect(element.className).toContain('inset-0')
   })
 
   it('renders inline variant', () => {
     const { container } = render(<Loading inline />)
-    
+
     // Should not have fullscreen styling
     expect(container.firstChild).not.toHaveClass('fixed')
   })

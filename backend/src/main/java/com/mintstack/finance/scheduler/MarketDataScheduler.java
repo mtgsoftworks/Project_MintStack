@@ -3,8 +3,12 @@ package com.mintstack.finance.scheduler;
 import com.mintstack.finance.entity.CurrencyRate;
 import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.PriceHistory;
+import com.mintstack.finance.entity.UserApiConfig;
+import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
 import com.mintstack.finance.repository.InstrumentRepository;
+import com.mintstack.finance.repository.UserApiConfigRepository;
 import com.mintstack.finance.service.MarketDataService;
+import com.mintstack.finance.service.external.AlphaVantageClient;
 import com.mintstack.finance.service.external.TcmbApiClient;
 import com.mintstack.finance.service.external.YahooFinanceClient;
 import lombok.RequiredArgsConstructor;
@@ -12,11 +16,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import com.mintstack.finance.entity.UserApiConfig;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -26,11 +32,19 @@ public class MarketDataScheduler {
 
     private final TcmbApiClient tcmbApiClient;
     private final YahooFinanceClient yahooFinanceClient;
+    private final AlphaVantageClient alphaVantageClient;
     private final MarketDataService marketDataService;
     private final InstrumentRepository instrumentRepository;
+    private final UserApiConfigRepository userApiConfigRepository;
+
+    private static final List<String> INITIAL_BIST_STOCKS = Arrays.asList(
+            "THYAO", "GARAN", "AKBNK", "EREGL", "SISE",
+            "KCHOL", "SAHOL", "TUPRS", "ASELS", "BIMAS",
+            "TCELL", "PGSUS", "SASA", "TOASO", "FROTO"
+    );
 
     /**
-     * Fetch TCMB currency rates at 9:00, 12:00, 15:00 on weekdays
+     * Fetch TCMB currency rates (9:00, 12:00, 15:00 weekdays)
      */
     @Scheduled(cron = "${app.scheduler.tcmb-rates-cron}")
     public void fetchTcmbRates() {
@@ -45,122 +59,151 @@ public class MarketDataScheduler {
     }
 
     /**
-     * Fetch stock prices every 15 minutes during market hours (9:00-18:00) on weekdays
-     * Also saves daily price history
+     * Fetch stock prices every 15 mins (market hours)
      */
     @Scheduled(cron = "${app.scheduler.stock-prices-cron}")
     public void fetchStockPrices() {
         log.info("Starting stock prices fetch job");
         try {
             List<Instrument> stocks = instrumentRepository.findByTypeAndIsActiveTrue(Instrument.InstrumentType.STOCK);
-            
-            UserApiConfig config = marketDataService.getActiveYahooConfig();
-            String apiKey = config != null ? config.getApiKey() : null;
-            String baseUrl = config != null ? config.getBaseUrl() : null;
-            
+            if (stocks.isEmpty()) {
+                log.info("No stocks found to update.");
+                return;
+            }
+
+            // Check Provider Configs
+            UserApiConfig yahooConfig = getActiveConfig(ApiProvider.YAHOO_FINANCE);
+            UserApiConfig alphaConfig = getActiveConfig(ApiProvider.ALPHA_VANTAGE);
+
             for (Instrument stock : stocks) {
                 try {
-                    BigDecimal price = yahooFinanceClient.fetchStockPrice(stock.getSymbol(), apiKey, baseUrl);
+                    BigDecimal price = null;
                     
-                    // Update current price
-                    stock.setPreviousClose(stock.getCurrentPrice());
-                    stock.setCurrentPrice(price);
-                    instrumentRepository.save(stock);
-                    
-                    // Save to price history (one entry per day)
-                    saveDailyPriceHistory(stock, price);
-                    
+                    // Try Yahoo First
+                    if (yahooConfig != null) {
+                        try {
+                            price = yahooFinanceClient.fetchStockPrice(stock.getSymbol(), yahooConfig.getApiKey(), yahooConfig.getBaseUrl());
+                        } catch (Exception e) {
+                            log.warn("Yahoo fetch failed for {}, trying failover...", stock.getSymbol());
+                        }
+                    }
+
+                    // Fallback to Alpha Vantage
+                    if (price == null && alphaConfig != null) {
+                        // Append .IS for BIST stocks if needed, Alpha Vantage usually needs suffix for non-US
+                        // Assuming BIST stocks, we try adding .IS or .TR depending on symbol
+                        String querySymbol = stock.getSymbol().endsWith(".IS") ? stock.getSymbol() : stock.getSymbol() + ".IS";
+                        price = alphaVantageClient.fetchGlobalQuote(querySymbol, alphaConfig.getApiKey());
+                    }
+
+                    if (price != null) {
+                        stock.setPreviousClose(stock.getCurrentPrice()); // Shift current to previous
+                        stock.setCurrentPrice(price);
+                        instrumentRepository.save(stock);
+                        saveDailyPriceHistory(stock, price);
+                    }
+
                 } catch (Exception e) {
                     log.error("Failed to update price for {}: {}", stock.getSymbol(), e.getMessage());
                 }
             }
-            
-            log.info("Stock prices fetch completed: {} stocks updated", stocks.size());
+            log.info("Stock prices fetch completed.");
         } catch (Exception e) {
             log.error("Stock prices fetch failed", e);
         }
     }
 
     /**
-     * Initial data load on application startup
+     * Initial data load and periodic bootstrap check
+     * Runs every 60 seconds - if DB is empty and API key exists, bootstraps stocks
      */
-    @Scheduled(initialDelay = 10000, fixedDelay = Long.MAX_VALUE)
+    @Scheduled(initialDelay = 5000, fixedDelay = 60000)
     public void initialDataLoad() {
-        log.info("Starting initial data load");
-        
-        // Fetch initial TCMB rates
+        // 1. Load TCMB Rates (always try)
         try {
             List<CurrencyRate> rates = tcmbApiClient.fetchTodayRates();
-            marketDataService.saveCurrencyRates(rates);
-            log.info("Initial TCMB rates loaded: {} rates", rates.size());
+            if (rates != null && !rates.isEmpty()) {
+                marketDataService.saveCurrencyRates(rates);
+            }
         } catch (Exception e) {
-            log.warn("Initial TCMB rates load failed: {}", e.getMessage());
+            log.debug("TCMB load: {}", e.getMessage());
         }
-        
-        // Fetch initial stock prices AND historical data
-        try {
-            List<Instrument> stocks = instrumentRepository.findByTypeAndIsActiveTrue(Instrument.InstrumentType.STOCK);
+
+        // 2. Bootstrap Stocks from API if DB is empty
+        long stockCount = instrumentRepository.count();
+        if (stockCount == 0) {
+            UserApiConfig alphaConfig = getActiveConfig(ApiProvider.ALPHA_VANTAGE);
+            UserApiConfig yahooConfig = getActiveConfig(ApiProvider.YAHOO_FINANCE);
             
-            UserApiConfig config = marketDataService.getActiveYahooConfig();
-            String apiKey = config != null ? config.getApiKey() : null;
-            String baseUrl = config != null ? config.getBaseUrl() : null;
-            
-            for (Instrument stock : stocks) {
-                try {
-                    // Fetch current price
-                    BigDecimal price = yahooFinanceClient.fetchStockPrice(stock.getSymbol(), apiKey, baseUrl);
-                    stock.setPreviousClose(stock.getCurrentPrice());
-                    stock.setCurrentPrice(price);
-                    instrumentRepository.save(stock);
-                    
-                    // Fetch and save historical data (last 180 days)
-                    fetchAndSaveHistoricalData(stock.getSymbol(), apiKey, baseUrl);
-                    
-                } catch (Exception e) {
-                    log.warn("Failed to load data for {}: {}", stock.getSymbol(), e.getMessage());
+            if (alphaConfig != null || yahooConfig != null) {
+                log.info("Database empty & API key found. Bootstrapping stocks from API...");
+                bootstrapStocksFromApi();
+            } else {
+                log.debug("Database empty but no API key configured yet. Waiting...");
+            }
+        }
+    }
+
+    private void bootstrapStocksFromApi() {
+        UserApiConfig alphaConfig = getActiveConfig(ApiProvider.ALPHA_VANTAGE);
+        UserApiConfig yahooConfig = getActiveConfig(ApiProvider.YAHOO_FINANCE);
+
+        if (alphaConfig == null && yahooConfig == null) {
+            log.warn("No active API configuration found (Yahoo/AlphaVantage). Cannot bootstrap stocks.");
+            return;
+        }
+
+        for (String symbol : INITIAL_BIST_STOCKS) {
+            try {
+                // Check if already exists
+                if (instrumentRepository.findBySymbol(symbol).isPresent()) continue;
+
+                BigDecimal price = null;
+                String name = symbol; // Default name if not fetched
+
+                // Try fetching to validate and get price
+                if (yahooConfig != null) {
+                    try {
+                        price = yahooFinanceClient.fetchStockPrice(symbol, yahooConfig.getApiKey(), yahooConfig.getBaseUrl());
+                        // Yahoo might return name in a more complex response, simplifying here
+                    } catch (Exception ignored) {}
                 }
+
+                if (price == null && alphaConfig != null) {
+                    try {
+                        price = alphaVantageClient.fetchGlobalQuote(symbol + ".IS", alphaConfig.getApiKey());
+                    } catch (Exception ignored) {}
+                }
+
+                if (price != null) {
+                    Instrument stock = new Instrument();
+                    stock.setId(UUID.randomUUID());
+                    stock.setSymbol(symbol);
+                    stock.setName(symbol + " (BIST)"); // Simplified naming
+                    stock.setType(Instrument.InstrumentType.STOCK);
+                    stock.setExchange("BIST");
+                    stock.setCurrency("TRY");
+                    stock.setIsActive(true);
+                    stock.setCurrentPrice(price);
+                    stock.setPreviousClose(price); // Initial state
+                    
+                    instrumentRepository.save(stock);
+                    log.info("Bootstrapped stock: {} - Price: {}", symbol, price);
+                } else {
+                    log.warn("Could not fetch price for {}, skipping bootstrap.", symbol);
+                }
+                
+                // Rate limit protection
+                Thread.sleep(1000); 
+
+            } catch (Exception e) {
+                log.error("Error bootstrapping stock {}", symbol, e);
             }
-            
-            log.info("Initial stock prices and history loaded: {} stocks", stocks.size());
-        } catch (Exception e) {
-            log.warn("Initial stock prices load failed: {}", e.getMessage());
-        }
-        
-        // Fetch initial bond/fund/viop prices
-        /* Mock data disabled by user request
-        try {
-            loadMockInstrumentPrices();
-            log.info("Initial instrument prices loaded");
-        } catch (Exception e) {
-            log.warn("Initial instrument prices load failed: {}", e.getMessage());
-        }
-        */
-    }
-    
-    /**
-     * Fetch and save historical price data for a symbol
-     */
-    private void fetchAndSaveHistoricalData(String symbol, String apiKey, String baseUrl) {
-        try {
-            LocalDate endDate = LocalDate.now();
-            LocalDate startDate = endDate.minusDays(180);
-            
-            List<PriceHistory> history = yahooFinanceClient.fetchHistoricalData(symbol, startDate, endDate, apiKey, baseUrl);
-            
-            for (PriceHistory ph : history) {
-                marketDataService.savePriceHistory(ph);
-            }
-            
-            log.info("Saved {} historical price records for {}", history.size(), symbol);
-        } catch (Exception e) {
-            log.warn("Failed to fetch historical data for {}: {}", symbol, e.getMessage());
         }
     }
-    
-    /**
-     * Save daily price history entry
-     */
+
     private void saveDailyPriceHistory(Instrument instrument, BigDecimal price) {
+        if (price == null) return;
         try {
             PriceHistory history = PriceHistory.builder()
                 .instrument(instrument)
@@ -170,48 +213,14 @@ public class MarketDataScheduler {
                 .highPrice(price)
                 .lowPrice(price)
                 .build();
-            
             marketDataService.savePriceHistory(history);
         } catch (Exception e) {
-            log.warn("Failed to save price history for {}: {}", instrument.getSymbol(), e.getMessage());
+            log.warn("Failed to history for {}", instrument.getSymbol());
         }
     }
-    
-    /**
-     * Load mock prices for bonds, funds, and VIOP (real APIs require subscription)
-     * In production, replace with real API calls
-     */
-    private void loadMockInstrumentPrices() {
-        // Bonds
-        updateInstrumentPrice("TBOND-2Y", new java.math.BigDecimal("98.50"), new java.math.BigDecimal("0.25"));
-        updateInstrumentPrice("TBOND-5Y", new java.math.BigDecimal("95.30"), new java.math.BigDecimal("-0.15"));
-        updateInstrumentPrice("TBOND-10Y", new java.math.BigDecimal("92.10"), new java.math.BigDecimal("-0.08"));
-        updateInstrumentPrice("EUROBOND-30", new java.math.BigDecimal("87.25"), new java.math.BigDecimal("0.12"));
-        
-        // Funds
-        updateInstrumentPrice("AFT", new java.math.BigDecimal("125.45"), new java.math.BigDecimal("1.25"));
-        updateInstrumentPrice("IPB", new java.math.BigDecimal("98.70"), new java.math.BigDecimal("0.85"));
-        updateInstrumentPrice("YAF", new java.math.BigDecimal("215.30"), new java.math.BigDecimal("0.45"));
-        updateInstrumentPrice("TI2", new java.math.BigDecimal("112.80"), new java.math.BigDecimal("-0.32"));
-        updateInstrumentPrice("GAF", new java.math.BigDecimal("198.60"), new java.math.BigDecimal("0.55"));
-        
-        // VIOP
-        updateInstrumentPrice("F_XU030", new java.math.BigDecimal("9850.00"), new java.math.BigDecimal("1.15"));
-        updateInstrumentPrice("F_USDTRY", new java.math.BigDecimal("43.25"), new java.math.BigDecimal("0.18"));
-        updateInstrumentPrice("F_EURTRY", new java.math.BigDecimal("50.45"), new java.math.BigDecimal("0.22"));
-        updateInstrumentPrice("F_GOLDTRY", new java.math.BigDecimal("2850.00"), new java.math.BigDecimal("0.35"));
-    }
-    
-    private void updateInstrumentPrice(String symbol, java.math.BigDecimal price, java.math.BigDecimal mockChangePercent) {
-        instrumentRepository.findBySymbol(symbol).ifPresent(instrument -> {
-            // Calculate previousClose based on mockChangePercent to get correct calculated change
-            java.math.BigDecimal prevClose = price.divide(
-                java.math.BigDecimal.ONE.add(mockChangePercent.divide(new java.math.BigDecimal("100"), 6, java.math.RoundingMode.HALF_UP)),
-                6, java.math.RoundingMode.HALF_UP
-            );
-            instrument.setPreviousClose(prevClose);
-            instrument.setCurrentPrice(price);
-            instrumentRepository.save(instrument);
-        });
+
+    private UserApiConfig getActiveConfig(ApiProvider provider) {
+        return userApiConfigRepository.findByProviderAndIsActiveTrue(provider)
+                .stream().findFirst().orElse(null);
     }
 }

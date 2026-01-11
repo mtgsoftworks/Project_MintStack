@@ -28,10 +28,14 @@ public class AlphaVantageClient {
     /**
      * Fetch currency exchange rate
      */
-    public CurrencyRate fetchExchangeRate(String fromCurrency, String toCurrency) {
+    /**
+     * Fetch currency exchange rate
+     */
+    public CurrencyRate fetchExchangeRate(String fromCurrency, String toCurrency, String apiKey) {
+        String effectiveKey = (apiKey != null && !apiKey.isEmpty()) ? apiKey : this.apiKey;
         try {
             String url = "?function=CURRENCY_EXCHANGE_RATE&from_currency=" + fromCurrency 
-                + "&to_currency=" + toCurrency + "&apikey=" + apiKey;
+                + "&to_currency=" + toCurrency + "&apikey=" + effectiveKey;
             
             log.debug("Fetching Alpha Vantage rate: {}/{}", fromCurrency, toCurrency);
             
@@ -81,16 +85,21 @@ public class AlphaVantageClient {
             throw e;
         } catch (Exception e) {
             log.error("Error fetching Alpha Vantage data", e);
-            throw new ExternalApiException("Alpha Vantage", "Kur bilgisi alınamadı", e);
+            throw new ExternalApiException("Alpha Vantage", "Kur bilgisi alinamadi", e);
         }
+    }
+
+    public CurrencyRate fetchExchangeRate(String fromCurrency, String toCurrency) {
+        return fetchExchangeRate(fromCurrency, toCurrency, null);
     }
 
     /**
      * Fetch global quote for a stock
      */
-    public BigDecimal fetchGlobalQuote(String symbol) {
+    public BigDecimal fetchGlobalQuote(String symbol, String apiKey) {
+        String effectiveKey = (apiKey != null && !apiKey.isEmpty()) ? apiKey : this.apiKey;
         try {
-            String url = "?function=GLOBAL_QUOTE&symbol=" + symbol + "&apikey=" + apiKey;
+            String url = "?function=GLOBAL_QUOTE&symbol=" + symbol + "&apikey=" + effectiveKey;
             
             log.debug("Fetching Alpha Vantage quote: {}", symbol);
             
@@ -126,5 +135,9 @@ public class AlphaVantageClient {
             log.error("Error fetching Alpha Vantage quote for {}", symbol, e);
             throw new ExternalApiException("Alpha Vantage", "Fiyat bilgisi alınamadı: " + symbol, e);
         }
+    }
+
+    public BigDecimal fetchGlobalQuote(String symbol) {
+        return fetchGlobalQuote(symbol, null);
     }
 }

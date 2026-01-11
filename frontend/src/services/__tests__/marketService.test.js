@@ -1,14 +1,25 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { marketService } from '../marketService'
 import api from '../api'
 
-// Mock the api module
-vi.mock('../api', () => ({
+// Define the mock get function using vi.hoisted to ensure it's available for the factory
+const mocks = vi.hoisted(() => ({
+  get: vi.fn(),
+}))
+
+vi.mock('axios', () => ({
   default: {
-    get: vi.fn(),
-    post: vi.fn(),
+    create: () => ({
+      get: mocks.get,
+      interceptors: {
+        request: { use: vi.fn(), eject: vi.fn() },
+        response: { use: vi.fn(), eject: vi.fn() },
+      },
+    }),
   },
 }))
+
+const mockGet = mocks.get
 
 describe('marketService', () => {
   beforeEach(() => {
@@ -21,31 +32,31 @@ describe('marketService', () => {
         { currencyCode: 'USD', buyingRate: 32.50 },
         { currencyCode: 'EUR', buyingRate: 35.20 },
       ]
-      
-      api.get.mockResolvedValue({ data: { data: mockRates } })
 
-      const result = await marketService.getCurrencyRates()
+      mockGet.mockResolvedValue({ data: { data: mockRates } })
 
-      expect(api.get).toHaveBeenCalledWith('/market/currencies')
+      const result = await marketService.getCurrencies()
+
+      expect(mockGet).toHaveBeenCalledWith('/market/currencies')
       expect(result).toEqual(mockRates)
     })
 
     it('should handle errors', async () => {
-      api.get.mockRejectedValue(new Error('Network error'))
+      mockGet.mockRejectedValue(new Error('Network error'))
 
-      await expect(marketService.getCurrencyRates()).rejects.toThrow('Network error')
+      await expect(marketService.getCurrencies()).rejects.toThrow('Network error')
     })
   })
 
   describe('getCurrencyRate', () => {
     it('should fetch specific currency rate', async () => {
       const mockRate = { currencyCode: 'USD', buyingRate: 32.50 }
-      
-      api.get.mockResolvedValue({ data: { data: mockRate } })
 
-      const result = await marketService.getCurrencyRate('USD')
+      mockGet.mockResolvedValue({ data: { data: mockRate } })
 
-      expect(api.get).toHaveBeenCalledWith('/market/currencies/USD')
+      const result = await marketService.getCurrency('USD')
+
+      expect(mockGet).toHaveBeenCalledWith('/market/currencies/USD')
       expect(result).toEqual(mockRate)
     })
   })
@@ -56,12 +67,12 @@ describe('marketService', () => {
         content: [{ symbol: 'THYAO', name: 'THY' }],
         totalElements: 1,
       }
-      
-      api.get.mockResolvedValue({ data: { data: mockStocks } })
+
+      mockGet.mockResolvedValue({ data: mockStocks })
 
       const result = await marketService.getStocks({ page: 0, size: 20 })
 
-      expect(api.get).toHaveBeenCalledWith('/market/stocks', {
+      expect(mockGet).toHaveBeenCalledWith('/market/stocks', {
         params: { page: 0, size: 20 },
       })
       expect(result).toEqual(mockStocks)
@@ -71,12 +82,12 @@ describe('marketService', () => {
   describe('getStock', () => {
     it('should fetch specific stock', async () => {
       const mockStock = { symbol: 'THYAO', name: 'THY', currentPrice: 280.50 }
-      
-      api.get.mockResolvedValue({ data: { data: mockStock } })
+
+      mockGet.mockResolvedValue({ data: { data: mockStock } })
 
       const result = await marketService.getStock('THYAO')
 
-      expect(api.get).toHaveBeenCalledWith('/market/stocks/THYAO')
+      expect(mockGet).toHaveBeenCalledWith('/market/stocks/THYAO')
       expect(result).toEqual(mockStock)
     })
   })
@@ -87,15 +98,15 @@ describe('marketService', () => {
         { date: '2024-01-01', close: 275.00 },
         { date: '2024-01-02', close: 280.50 },
       ]
-      
-      api.get.mockResolvedValue({ data: { data: mockHistory } })
 
-      const result = await marketService.getPriceHistory('THYAO', {
+      mockGet.mockResolvedValue({ data: { data: mockHistory } })
+
+      const result = await marketService.getStockHistory('THYAO', {
         startDate: '2024-01-01',
         endDate: '2024-01-02',
       })
 
-      expect(api.get).toHaveBeenCalledWith('/market/stocks/THYAO/history', {
+      expect(mockGet).toHaveBeenCalledWith('/market/stocks/THYAO/history', {
         params: { startDate: '2024-01-01', endDate: '2024-01-02' },
       })
       expect(result).toEqual(mockHistory)
@@ -107,13 +118,13 @@ describe('marketService', () => {
       const mockResults = {
         content: [{ symbol: 'THYAO', name: 'Türk Hava Yolları' }],
       }
-      
-      api.get.mockResolvedValue({ data: { data: mockResults } })
 
-      const result = await marketService.searchStocks('THY')
+      mockGet.mockResolvedValue({ data: mockResults })
 
-      expect(api.get).toHaveBeenCalledWith('/market/stocks/search', {
-        params: { q: 'THY' },
+      const result = await marketService.search('THY')
+
+      expect(mockGet).toHaveBeenCalledWith('/market/search', {
+        params: { query: 'THY' },
       })
       expect(result).toEqual(mockResults)
     })
@@ -124,12 +135,12 @@ describe('marketService', () => {
       const mockBonds = {
         content: [{ symbol: 'GOVT-2Y', name: '2 Yıllık DİBS' }],
       }
-      
-      api.get.mockResolvedValue({ data: { data: mockBonds } })
+
+      mockGet.mockResolvedValue({ data: mockBonds })
 
       const result = await marketService.getBonds()
 
-      expect(api.get).toHaveBeenCalledWith('/market/bonds', expect.any(Object))
+      expect(mockGet).toHaveBeenCalledWith('/market/bonds', expect.any(Object))
     })
   })
 
@@ -138,12 +149,12 @@ describe('marketService', () => {
       const mockFunds = {
         content: [{ symbol: 'TRF001', name: 'Türk Fonu' }],
       }
-      
-      api.get.mockResolvedValue({ data: { data: mockFunds } })
+
+      mockGet.mockResolvedValue({ data: mockFunds })
 
       const result = await marketService.getFunds()
 
-      expect(api.get).toHaveBeenCalledWith('/market/funds', expect.any(Object))
+      expect(mockGet).toHaveBeenCalledWith('/market/funds', expect.any(Object))
     })
   })
 
@@ -152,12 +163,12 @@ describe('marketService', () => {
       const mockViop = {
         content: [{ symbol: 'F_XU030', name: 'BIST 30 Vadeli' }],
       }
-      
-      api.get.mockResolvedValue({ data: { data: mockViop } })
+
+      mockGet.mockResolvedValue({ data: mockViop })
 
       const result = await marketService.getViop()
 
-      expect(api.get).toHaveBeenCalledWith('/market/viop', expect.any(Object))
+      expect(mockGet).toHaveBeenCalledWith('/market/viop', expect.any(Object))
     })
   })
 })

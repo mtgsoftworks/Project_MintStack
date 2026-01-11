@@ -100,7 +100,102 @@
         "theme": "Theme",
         "notifications": "Notifications",
         "emailNotifications": "Email Notifications",
-        "pushNotifications": "Push Notifications"
+        "pushNotifications": "Push Notifications",
+        "apiKeys": {
+            "title": "API Keys",
+            "manage": "Manage API Connections",
+            "add": "Add New",
+            "edit": "Edit",
+            "provider": "Provider",
+            "apiKey": "API Key",
+            "secretKey": "Secret Key (Optional)",
+            "baseUrl": "Base URL (Optional)",
+            "active": "Active",
+            "test": "Test",
+            "valid": "Valid",
+            "invalid": "Invalid",
+            "save": "Save",
+            "update": "Update",
+            "deleteConfirm": "Are you sure you want to delete this API key?",
+            "placeholder": {
+                "key": "Paste your key here",
+                "tcmb": "Not required for TCMB (can leave empty)"
+            },
+            "validation": {
+                "required": "Please enter an API key",
+                "testRequired": "You must test before saving",
+                "tcmbInfo": "TCMB is free, test to verify."
+            }
+        },
+        "providers": {
+            "supported": "✅ Supported:",
+            "missing": "❌ Missing Data:",
+            "info": {
+                "YAHOO_FINANCE": {
+                    "title": "Yahoo Finance (Recommended)",
+                    "desc": "Most comprehensive data provider.",
+                    "supported": [
+                        "BIST Stocks",
+                        "BIST Indices",
+                        "Exchange Rates",
+                        "Funds",
+                        "Commodities"
+                    ],
+                    "missing": []
+                },
+                "ALPHA_VANTAGE": {
+                    "title": "Alpha Vantage",
+                    "desc": "Good for global stocks but limited.",
+                    "supported": [
+                        "US Stocks",
+                        "Exchange Rates",
+                        "Some Technical Data"
+                    ],
+                    "missing": [
+                        "Live BIST 100 Index",
+                        "Turkish Funds",
+                        "VIOP"
+                    ]
+                },
+                "FINNHUB": {
+                    "title": "Finnhub",
+                    "desc": "Focused on US financial data.",
+                    "supported": [
+                        "US Stocks",
+                        "Some Currencies"
+                    ],
+                    "missing": [
+                        "BIST Indices",
+                        "Turkish Funds"
+                    ]
+                },
+                "TCMB": {
+                    "title": "Central Bank of Turkey",
+                    "desc": "Official exchange rates only.",
+                    "supported": [
+                        "Official Rates"
+                    ],
+                    "missing": [
+                        "Stocks",
+                        "Indices",
+                        "Funds",
+                        "Crypto"
+                    ]
+                }
+            }
+        }
+    },
+    "dashboard": {
+        "subtitle": "Overview of market summary and your portfolio status",
+        "widgets": {
+            "bist100": {
+                "title": "BIST 100",
+                "noProvider": "Not Configured",
+                "noSource": "No Source",
+                "error": "Fetch Failed",
+                "addConfig": "Add in Settings"
+            }
+        }
     },
     "admin": {
         "dashboard": "Admin Dashboard",

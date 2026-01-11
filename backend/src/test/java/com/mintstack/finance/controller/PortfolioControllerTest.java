@@ -2,13 +2,16 @@ package com.mintstack.finance.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mintstack.finance.config.CorsProperties;
+import com.mintstack.finance.config.RateLimitConfig;
 import com.mintstack.finance.dto.request.CreatePortfolioRequest;
 import com.mintstack.finance.dto.response.PortfolioResponse;
 import com.mintstack.finance.service.PortfolioService;
+import com.mintstack.finance.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -29,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(PortfolioController.class)
 @Import(CorsProperties.class)
+
 class PortfolioControllerTest {
 
     @Autowired
@@ -39,6 +43,12 @@ class PortfolioControllerTest {
 
     @MockBean
     private PortfolioService portfolioService;
+
+    @MockBean
+    private UserService userService;
+
+    @MockBean
+    private RateLimitConfig rateLimitConfig;
 
     @Test
     @WithMockUser

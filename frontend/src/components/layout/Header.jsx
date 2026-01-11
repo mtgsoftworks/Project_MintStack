@@ -1,8 +1,8 @@
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { 
-  Menu, 
-  Bell, 
+import {
+  Menu,
+  Bell,
   Search,
   User,
   Settings,
@@ -22,8 +22,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { 
-  selectSidebarCollapsed, 
+import {
+  selectSidebarCollapsed,
   setMobileSidebarOpen,
 } from '@/store/slices/uiSlice'
 import { selectUser, selectIsAuthenticated } from '@/store/slices/authSlice'
@@ -87,8 +87,8 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
-              <Badge 
-                variant="danger-solid" 
+              <Badge
+                variant="danger-solid"
                 className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]"
               >
                 3
@@ -125,7 +125,10 @@ export function Header() {
               </DropdownMenuItem>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="justify-center text-primary cursor-pointer">
+            <DropdownMenuItem
+              className="justify-center text-primary cursor-pointer"
+              onClick={() => navigate('/notifications')}
+            >
               Tüm bildirimleri gör
             </DropdownMenuItem>
           </DropdownMenuContent>

@@ -1,15 +1,12 @@
 # Test Configuration for MintStack Finance Portal
 spring:
-  profiles:
-    active: test
-    
   # H2 In-Memory Database for Tests
   datasource:
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
-    password: 
-    
+    password:
+
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -18,11 +15,11 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
         format_sql: true
-        
+
   # Disable Flyway for Tests
   flyway:
     enabled: false
-    
+
   # Disable Redis for Tests
   data:
     redis:
@@ -30,7 +27,7 @@ spring:
         enabled: false
   cache:
     type: none
-    
+
   # Disable Kafka for Tests
   kafka:
     bootstrap-servers: localhost:9092
@@ -39,7 +36,7 @@ spring:
     producer:
       bootstrap-servers: localhost:9092
 
-# Security - Mock JWT for Tests
+  # Security - Mock JWT for Tests
   security:
     oauth2:
       resourceserver:
@@ -57,7 +54,7 @@ logging:
 
 # Server
 server:
-  port: 0  # Random port for tests
+  port: 0 # Random port for tests
 
 # Application
 app:
@@ -67,6 +64,11 @@ app:
     allowed-headers: "*"
     allow-credentials: true
     max-age: 3600
+  rate-limit:
+    enabled: false
+    anonymous-requests-per-minute: 1000
+    authenticated-requests-per-minute: 2000
+    admin-requests-per-minute: 5000
 
 # External APIs (mocked in tests)
 external:

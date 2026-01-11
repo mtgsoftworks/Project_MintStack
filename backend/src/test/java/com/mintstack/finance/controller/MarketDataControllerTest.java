@@ -1,12 +1,14 @@
 package com.mintstack.finance.controller;
 
 import com.mintstack.finance.config.CorsProperties;
+import com.mintstack.finance.config.RateLimitConfig;
 import com.mintstack.finance.dto.response.CurrencyRateResponse;
 import com.mintstack.finance.service.MarketDataService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -21,6 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(MarketDataController.class)
 @Import(CorsProperties.class)
+
 class MarketDataControllerTest {
 
     @Autowired
@@ -28,6 +31,9 @@ class MarketDataControllerTest {
 
     @MockBean
     private MarketDataService marketDataService;
+
+    @MockBean
+    private RateLimitConfig rateLimitConfig;
 
     @Test
     void getCurrencyRates_ShouldReturnRates() throws Exception {

@@ -38,6 +38,7 @@ public class MarketDataService {
 
     private final PriceHistoryRepository priceHistoryRepository;
     private final UserApiConfigRepository userApiConfigRepository;
+    private final com.mintstack.finance.service.external.YahooFinanceClient yahooFinanceClient;
 
     // Currency Rates
     @Cacheable(value = "currencyRates", key = "'tcmb-latest'")
@@ -129,6 +130,54 @@ public class MarketDataService {
             .stream()
             .findFirst()
             .orElse(null);
+    }
+
+    // Market Index (e.g. BIST 100)
+    public InstrumentResponse getMarketIndex(String symbol) {
+        // Try to find in DB first
+        Instrument instrument = instrumentRepository.findBySymbol(symbol).orElse(null);
+        
+        // If instrument exists and has recent price, return it
+        if (instrument != null && instrument.getCurrentPrice() != null) {
+            return mapToInstrumentResponse(instrument);
+        }
+
+        // Facebook from Yahoo Finance requires active configuration
+        UserApiConfig config = getActiveYahooConfig();
+        if (config == null) {
+            throw new ResourceNotFoundException("Provider", "type", "Yahoo Finance (Aktif)");
+        }
+
+        try {
+            String apiKey = config.getApiKey();
+            String baseUrl = config.getBaseUrl();
+            
+            BigDecimal price = yahooFinanceClient.fetchStockPrice(symbol, apiKey, baseUrl);
+            
+            // Create temporary instrument response if not in DB
+            InstrumentResponse.InstrumentResponseBuilder builder = InstrumentResponse.builder()
+                .symbol(symbol)
+                .name(symbol) // We don't have name if not in DB
+                .currentPrice(price)
+                .type(InstrumentType.STOCK) // Treat as stock for now
+                .currency("TRY");
+                
+            if (instrument != null) {
+                builder.id(instrument.getId())
+                       .name(instrument.getName())
+                       .previousClose(instrument.getPreviousClose());
+                
+                // Update instrument price in DB async or sync? Let's just return for now.
+                // ideally call updateInstrumentPrice(symbol, price) but that requires transaction
+            }
+            
+            return builder.build();
+            
+        } catch (Exception e) {
+            log.error("Failed to fetch market index {}: {}", symbol, e.getMessage());
+            // Fallback to empty/error response
+            return InstrumentResponse.builder().symbol(symbol).build();
+        }
     }
 
     // Save methods

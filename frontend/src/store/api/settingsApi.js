@@ -6,6 +6,13 @@ export const settingsApi = baseApi.injectEndpoints({
             query: () => '/settings/api-keys',
             providesTags: ['Settings'],
         }),
+        testApiKey: builder.mutation({
+            query: (data) => ({
+                url: '/settings/api-keys/test',
+                method: 'POST',
+                body: data,
+            }),
+        }),
         addApiConfig: builder.mutation({
             query: (data) => ({
                 url: '/settings/api-keys',
@@ -26,6 +33,8 @@ export const settingsApi = baseApi.injectEndpoints({
 
 export const {
     useGetApiConfigsQuery,
+    useTestApiKeyMutation,
     useAddApiConfigMutation,
     useDeleteApiConfigMutation,
 } = settingsApi
+

@@ -9,7 +9,7 @@ spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mintstack_finance}
     username: ${SPRING_DATASOURCE_USERNAME:mintstack}
-    password: ${SPRING_DATASOURCE_PASSWORD:MintStack2026!}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
@@ -43,7 +43,7 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
-      password: ${SPRING_DATA_REDIS_PASSWORD:RedisPass2026!}
+      password: ${SPRING_DATA_REDIS_PASSWORD}
       timeout: 2000ms
       lettuce:
         pool:
@@ -198,8 +198,8 @@ logging:
     root: INFO
     com.mintstack.finance: DEBUG
     org.springframework.security: INFO
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId}] %-5level %logger{36} - %msg%n"
 
@@ -241,3 +241,5 @@ logging:
   level:
     root: WARN
     com.mintstack.finance: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN

@@ -14,7 +14,7 @@ import { selectTheme, setTheme } from '@/store/slices/uiSlice'
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/store/api/userApi'
 import { getInitials } from '@/lib/utils'
 import { toast } from 'sonner'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function ProfilePage() {
   const user = useSelector(selectUser)

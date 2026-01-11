@@ -40,7 +40,7 @@ export default function StocksPage() {
   })
 
   const stocks = data?.data || []
-  const totalPages = data?.totalPages || 0
+  const totalPages = data?.pagination?.totalPages || 0
 
   const filteredStocks = stocks.filter((stock) =>
     stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -92,7 +92,7 @@ export default function StocksPage() {
         <CardHeader>
           <CardTitle>Hisse Listesi</CardTitle>
           <CardDescription>
-            {data?.totalElements || 0} hisse senedi listeleniyor
+            {data?.pagination?.totalElements || 0} hisse senedi listeleniyor
           </CardDescription>
         </CardHeader>
         <CardContent>

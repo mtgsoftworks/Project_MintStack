@@ -133,6 +133,15 @@ public class MarketDataController {
         return ResponseEntity.ok(ApiResponse.success(viop.getContent(), PaginationInfo.from(viop)));
     }
 
+    // Index Endpoints
+    @GetMapping("/indices/{symbol}")
+    @Operation(summary = "Piyasa endeksi verisini getir (örn: XU100.IS)")
+    public ResponseEntity<ApiResponse<InstrumentResponse>> getIndex(
+            @PathVariable String symbol) {
+        InstrumentResponse index = marketDataService.getMarketIndex(symbol);
+        return ResponseEntity.ok(ApiResponse.success(index));
+    }
+
     // Search
     @GetMapping("/search")
     @Operation(summary = "Tüm enstrümanlarda ara")

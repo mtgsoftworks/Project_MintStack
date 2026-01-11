@@ -23,6 +23,7 @@ import SettingsPage from '@/pages/SettingsPage'
 import WatchlistPage from '@/pages/WatchlistPage'
 import AlertsPage from '@/pages/AlertsPage'
 import AdminDashboard from '@/pages/AdminDashboard'
+import NotificationsPage from '@/pages/NotificationsPage'
 import LoginPage from '@/pages/LoginPage'
 
 // Keycloak configuration
@@ -207,6 +208,16 @@ function App() {
           element={
             <ProtectedRoute>
               <AlertsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Notifications */}
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationsPage />
             </ProtectedRoute>
           }
         />

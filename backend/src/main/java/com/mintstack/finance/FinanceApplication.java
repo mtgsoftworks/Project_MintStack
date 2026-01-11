@@ -18,7 +18,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableCaching
 @EnableScheduling
-@EnableJpaAuditing
 public class FinanceApplication {
 
     public static void main(String[] args) {

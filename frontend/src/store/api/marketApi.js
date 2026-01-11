@@ -83,6 +83,13 @@ export const marketApi = baseApi.injectEndpoints({
       providesTags: ['Viop'],
     }),
 
+    // Index
+    getMarketIndex: builder.query({
+      query: (symbol) => `/market/indices/${symbol}`,
+      transformResponse: (response) => response.data,
+      providesTags: (result, error, symbol) => [{ type: 'Indices', id: symbol }],
+    }),
+
     // Search
     searchMarket: builder.query({
       query: (query) => ({
@@ -106,5 +113,6 @@ export const {
   useGetFundsQuery,
   useGetFundQuery,
   useGetViopQuery,
+  useGetMarketIndexQuery,
   useSearchMarketQuery,
 } = marketApi

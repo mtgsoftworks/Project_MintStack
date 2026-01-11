@@ -28,7 +28,7 @@ describe('portfolioService', () => {
 
             const result = await portfolioService.getPortfolios()
 
-            expect(api.get).toHaveBeenCalledWith('/portfolio')
+            expect(api.get).toHaveBeenCalledWith('/portfolios')
             expect(result).toEqual(mockPortfolios)
         })
 
@@ -52,7 +52,7 @@ describe('portfolioService', () => {
 
             const result = await portfolioService.getPortfolio('1')
 
-            expect(api.get).toHaveBeenCalledWith('/portfolio/1')
+            expect(api.get).toHaveBeenCalledWith('/portfolios/1')
             expect(result).toEqual(mockPortfolio)
         })
     })
@@ -66,7 +66,7 @@ describe('portfolioService', () => {
 
             const result = await portfolioService.createPortfolio(newPortfolio)
 
-            expect(api.post).toHaveBeenCalledWith('/portfolio', newPortfolio)
+            expect(api.post).toHaveBeenCalledWith('/portfolios', newPortfolio)
             expect(result).toEqual(mockResponse)
         })
     })
@@ -80,7 +80,7 @@ describe('portfolioService', () => {
 
             const result = await portfolioService.updatePortfolio('1', updateData)
 
-            expect(api.put).toHaveBeenCalledWith('/portfolio/1', updateData)
+            expect(api.put).toHaveBeenCalledWith('/portfolios/1', updateData)
             expect(result).toEqual(mockResponse)
         })
     })
@@ -91,7 +91,7 @@ describe('portfolioService', () => {
 
             await portfolioService.deletePortfolio('1')
 
-            expect(api.delete).toHaveBeenCalledWith('/portfolio/1')
+            expect(api.delete).toHaveBeenCalledWith('/portfolios/1')
         })
     })
 
@@ -108,7 +108,7 @@ describe('portfolioService', () => {
 
             const result = await portfolioService.addItem('1', newItem)
 
-            expect(api.post).toHaveBeenCalledWith('/portfolio/1/items', newItem)
+            expect(api.post).toHaveBeenCalledWith('/portfolios/1/items', newItem)
             expect(result).toEqual(mockResponse)
         })
     })
@@ -119,7 +119,7 @@ describe('portfolioService', () => {
 
             await portfolioService.removeItem('1', 'item-1')
 
-            expect(api.delete).toHaveBeenCalledWith('/portfolio/1/items/item-1')
+            expect(api.delete).toHaveBeenCalledWith('/portfolios/1/items/item-1')
         })
     })
 
@@ -134,9 +134,9 @@ describe('portfolioService', () => {
 
             api.get.mockResolvedValue({ data: { data: mockSummary } })
 
-            const result = await portfolioService.getPortfolioSummary('1')
+            const result = await portfolioService.getSummary('1')
 
-            expect(api.get).toHaveBeenCalledWith('/portfolio/1/summary')
+            expect(api.get).toHaveBeenCalledWith('/portfolios/1/summary')
             expect(result).toEqual(mockSummary)
         })
     })

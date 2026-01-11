@@ -1,12 +1,14 @@
 package com.mintstack.finance.controller;
 
 import com.mintstack.finance.config.CorsProperties;
+import com.mintstack.finance.config.RateLimitConfig;
 import com.mintstack.finance.dto.response.NewsResponse;
 import com.mintstack.finance.service.NewsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -24,6 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(NewsController.class)
 @Import(CorsProperties.class)
+
 class NewsControllerTest {
 
     @Autowired
@@ -31,6 +34,9 @@ class NewsControllerTest {
 
     @MockBean
     private NewsService newsService;
+
+    @MockBean
+    private RateLimitConfig rateLimitConfig;
 
     @Test
     void getAllNews_ShouldReturnNews() throws Exception {

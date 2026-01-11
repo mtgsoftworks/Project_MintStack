@@ -13,12 +13,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn, formatCurrency, formatPercent, formatRelativeTime } from '@/lib/utils'
-import { useGetCurrenciesQuery, useGetStocksQuery } from '@/store/api/marketApi'
+import { useGetCurrenciesQuery, useGetStocksQuery, useGetMarketIndexQuery } from '@/store/api/marketApi'
 import { useGetNewsQuery } from '@/store/api/newsApi'
 import { useGetPortfoliosQuery } from '@/store/api/portfolioApi'
 import { useSelector } from 'react-redux'
 import { selectIsAuthenticated } from '@/store/slices/authSlice'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 function StatCard({ title, value, change, icon: Icon, trend, loading }) {
   if (loading) {
@@ -229,8 +230,10 @@ function StocksWidget() {
 }
 
 export default function DashboardPage() {
+  const { t } = useTranslation()
   const isAuthenticated = useSelector(selectIsAuthenticated)
   const { data: currencies, isLoading: currenciesLoading } = useGetCurrenciesQuery()
+  const { data: bist100, isLoading: bistLoading } = useGetMarketIndexQuery('XU100.IS')
   const { data: portfolios, isLoading: portfolioLoading } = useGetPortfoliosQuery(undefined, {
     skip: !isAuthenticated
   })
@@ -249,13 +252,39 @@ export default function DashboardPage() {
   // Get USD rate
   const usdRate = currencies?.find(c => c.currencyCode === 'USD')
 
+  // BIST 100 Logic
+  const bistData = bist100?.data
+  const bistError = bist100?.error
+  let bistValue = '-'
+  let bistChange = undefined
+  let bistTrend = 'neutral'
+  let bistTitle = t('dashboard.widgets.bist100.title')
+  let bistShow = true
+
+  if (bistLoading) {
+    // Keep loading state
+  } else if (bistError) {
+    if (bistError.status === 404 || (bistError.data?.message && bistError.data.message.includes('Provider'))) {
+      // Provider missing
+      bistValue = t('dashboard.widgets.bist100.noProvider')
+      bistTitle = `${t('dashboard.widgets.bist100.title')} (${t('dashboard.widgets.bist100.noSource')})`
+    } else {
+      // Fetch error
+      bistValue = t('dashboard.widgets.bist100.error')
+    }
+  } else if (bistData) {
+    bistValue = formatCurrency(bistData.currentPrice, 'TRY')
+    bistChange = bistData.changePercent
+    bistTrend = bistData.changePercent >= 0 ? 'up' : 'down'
+  }
+
   return (
     <div className="space-y-6 animate-in">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold">{t('nav.home')}</h1>
         <p className="text-muted-foreground">
-          Piyasa özetine ve portföy durumunuza genel bakış
+          {t('dashboard.subtitle')}
         </p>
       </div>
 
@@ -270,12 +299,12 @@ export default function DashboardPage() {
           loading={currenciesLoading}
         />
         <StatCard
-          title="BIST 100"
-          value="9,450.25"
-          change={1.25}
+          title={bistTitle}
+          value={bistValue}
+          change={bistChange}
           icon={BarChart3}
-          trend="up"
-          loading={false}
+          trend={bistTrend}
+          loading={bistLoading}
         />
         {isAuthenticated && (
           <>

@@ -11,7 +11,7 @@ import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PortfolioItemRepository;
 import com.mintstack.finance.repository.PortfolioRepository;
-import com.mintstack.finance.repository.UserRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,7 +44,7 @@ class PortfolioServiceTest {
     private InstrumentRepository instrumentRepository;
 
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
 
     @InjectMocks
     private PortfolioService portfolioService;
@@ -91,8 +91,8 @@ class PortfolioServiceTest {
     @Test
     void getUserPortfolios_ShouldReturnPortfolios() {
         // Given
-        when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.of(testUser));
-        when(portfolioRepository.findByUserIdOrderByCreatedAtDesc(testUser.getId()))
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
+        when(portfolioRepository.findByUserIdWithItems(testUser.getId()))
             .thenReturn(List.of(testPortfolio));
 
         // When
@@ -107,8 +107,8 @@ class PortfolioServiceTest {
     void getPortfolio_ShouldReturnPortfolio_WhenExists() {
         // Given
         UUID portfolioId = testPortfolio.getId();
-        when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.of(testUser));
-        when(portfolioRepository.findByIdAndUserId(portfolioId, testUser.getId()))
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
+        when(portfolioRepository.findByIdAndUserIdWithItems(portfolioId, testUser.getId()))
             .thenReturn(Optional.of(testPortfolio));
 
         // When
@@ -123,8 +123,8 @@ class PortfolioServiceTest {
     void getPortfolio_ShouldThrowException_WhenNotFound() {
         // Given
         UUID portfolioId = UUID.randomUUID();
-        when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.of(testUser));
-        when(portfolioRepository.findByIdAndUserId(portfolioId, testUser.getId()))
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
+        when(portfolioRepository.findByIdAndUserIdWithItems(portfolioId, testUser.getId()))
             .thenReturn(Optional.empty());
 
         // When & Then
@@ -140,7 +140,7 @@ class PortfolioServiceTest {
             .description("New Description")
             .build();
 
-        when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.of(testUser));
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
         when(portfolioRepository.save(any(Portfolio.class))).thenReturn(testPortfolio);
 
         // When
@@ -155,7 +155,7 @@ class PortfolioServiceTest {
     void deletePortfolio_ShouldDelete_WhenExists() {
         // Given
         UUID portfolioId = testPortfolio.getId();
-        when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.of(testUser));
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
         when(portfolioRepository.findByIdAndUserId(portfolioId, testUser.getId()))
             .thenReturn(Optional.of(testPortfolio));
 
@@ -186,8 +186,10 @@ class PortfolioServiceTest {
             .build();
         savedItem.setId(UUID.randomUUID());
 
-        when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.of(testUser));
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
         when(portfolioRepository.findByIdAndUserId(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(portfolioRepository.findByIdAndUserIdWithItems(portfolioId, testUser.getId()))
             .thenReturn(Optional.of(testPortfolio));
         when(instrumentRepository.findById(testInstrument.getId()))
             .thenReturn(Optional.of(testInstrument));
@@ -216,8 +218,10 @@ class PortfolioServiceTest {
             .build();
         item.setId(itemId);
 
-        when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.of(testUser));
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
         when(portfolioRepository.findByIdAndUserId(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(portfolioRepository.findByIdAndUserIdWithItems(portfolioId, testUser.getId()))
             .thenReturn(Optional.of(testPortfolio));
         when(portfolioItemRepository.findByIdAndPortfolioId(itemId, portfolioId))
             .thenReturn(Optional.of(item));
