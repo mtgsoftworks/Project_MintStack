@@ -4,9 +4,9 @@ export const analysisApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // Get moving average analysis
     getMovingAverage: builder.query({
-      query: ({ symbol, period = '1M', maType = 'SMA', maPeriod = 20 }) => ({
+      query: ({ symbol, maType = 'SMA', maPeriod = 20 }) => ({
         url: `/analysis/ma/${symbol}`,
-        params: { period: maPeriod },
+        params: { period: maPeriod, type: maType },
       }),
       transformResponse: (response) => response.data,
     }),

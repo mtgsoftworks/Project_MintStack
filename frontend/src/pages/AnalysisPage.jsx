@@ -30,7 +30,6 @@ export default function AnalysisPage() {
 
   const { data: maData, isLoading: maLoading, refetch: refetchMa } = useGetMovingAverageQuery({
     symbol,
-    period,
     maType,
     maPeriod: parseInt(maPeriod),
   })

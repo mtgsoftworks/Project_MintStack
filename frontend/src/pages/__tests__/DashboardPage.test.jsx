@@ -1,30 +1,46 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { screen } from '@testing-library/react'
-import { renderWithProviders } from '../../utils/test-utils'
-import DashboardPage from '../DashboardPage'
-import { useGetCurrenciesQuery, useGetStocksQuery } from '../../store/api/marketApi'
-import { useGetNewsQuery } from '../../store/api/newsApi'
-import { useGetPortfoliosQuery } from '../../store/api/portfolioApi'
+import { renderWithProviders } from '@/utils/test-utils'
+import DashboardPage from '@/pages/DashboardPage'
+import { useGetCurrenciesQuery, useGetStocksQuery, useGetMarketIndexQuery } from '@/store/api/marketApi'
+import { useGetNewsQuery } from '@/store/api/newsApi'
+import { useGetPortfoliosQuery } from '@/store/api/portfolioApi'
 
-// Mock API hooks
-vi.mock('../../store/api/marketApi', () => ({
+// Mock API hooks using alias paths to match component imports
+vi.mock('@/store/api/marketApi', () => ({
   useGetCurrenciesQuery: vi.fn(),
   useGetStocksQuery: vi.fn(),
+  useGetMarketIndexQuery: vi.fn(),
 }))
 
-vi.mock('../../store/api/newsApi', () => ({
+vi.mock('@/store/api/newsApi', () => ({
   useGetNewsQuery: vi.fn(),
 }))
 
-vi.mock('../../store/api/portfolioApi', () => ({
+vi.mock('@/store/api/portfolioApi', () => ({
   useGetPortfoliosQuery: vi.fn(),
 }))
 
-// Mock Auth Context (although likely handled by renderWithProviders, explicitly mocking helps if used directly)
-// But DashboardPage uses Redux for auth: useSelector(selectIsAuthenticated)
-// mockAuthContext is not needed if we rely on Redux state.
-// renderWithProviders handles Redux.
-// So no need to mock AuthContext hook if it's not used (DashboardPage uses useSelector)
+// Mock react-i18next
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key) => {
+      if (key === 'nav.home') return 'Dashboard'
+      if (key === 'dashboard.subtitle') return 'Dashboard Subtitle'
+      if (key === 'dashboard.widgets.bist100.title') return 'BIST 100'
+      if (key === 'dashboard.widgets.bist100.noProvider') return '-'
+      if (key === 'dashboard.widgets.bist100.error') return 'Error'
+      return key
+    },
+    i18n: {
+      changeLanguage: () => new Promise(() => { }),
+    },
+  }),
+  initReactI18next: {
+    type: '3rdParty',
+    init: () => { },
+  },
+}))
 
 describe('DashboardPage Component', () => {
   beforeEach(() => {
@@ -44,6 +60,13 @@ describe('DashboardPage Component', () => {
         data: [
           { symbol: 'THYAO', name: 'Türk Hava Yolları', currentPrice: 280.50, changePercent: 1.2 }
         ]
+      },
+      isLoading: false
+    })
+
+    useGetMarketIndexQuery.mockReturnValue({
+      data: {
+        data: { currentPrice: 8000.00, changePercent: 1.5 }
       },
       isLoading: false
     })
@@ -70,8 +93,6 @@ describe('DashboardPage Component', () => {
     expect(screen.getByRole('heading', { level: 1, name: /Dashboard/i })).toBeInTheDocument()
   })
 
-  // Removed welcome message test as it's not present in the component
-
   it('shows currency rates section', () => {
     renderWithProviders(<DashboardPage />)
     // USD is in stat card and widget
@@ -79,25 +100,27 @@ describe('DashboardPage Component', () => {
     expect(screen.getByText(/D.viz Kurlar./i)).toBeInTheDocument()
   })
 
-  it('shows portfolio summary when authenticated', () => {
+  it('shows portfolio summary when authenticated', async () => {
     const preloadedState = {
       auth: {
         isAuthenticated: true,
         user: { name: 'Test User' },
-        isInitialized: true
+        isInitialized: true,
+        token: 'fake-token',
+        roles: ['user']
       }
     }
     renderWithProviders(<DashboardPage />, { preloadedState })
-    // Check for Portfolio Value card
-    expect(screen.getByText(/Portf.y De.eri/i)).toBeInTheDocument()
+
+    // Use findByText to wait for potential async rendering or state updates
+    expect(await screen.findByText(/Portf.y De.eri/i)).toBeInTheDocument()
     // Check for Total P/L
-    expect(screen.getByText(/Toplam K\/Z/i)).toBeInTheDocument()
+    expect(await screen.findByText(/Toplam K\/Z/i)).toBeInTheDocument()
   })
 
   it('shows recent news section', () => {
     renderWithProviders(<DashboardPage />)
     expect(screen.getByText(/Son Haberler/i)).toBeInTheDocument()
-    // "Tümünü Gör" appears multiple times, check if at least one exists
     expect(screen.getAllByText(/T.m.n. G.r/i).length).toBeGreaterThan(0)
   })
 

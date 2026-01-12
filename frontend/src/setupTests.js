@@ -60,6 +60,27 @@ vi.mock('keycloak-js', () => {
   }
 })
 
+// Mock react-i18next
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key) => {
+      if (key === 'nav.home') return 'Dashboard'
+      if (key === 'dashboard.subtitle') return 'Dashboard Subtitle'
+      if (key === 'dashboard.widgets.bist100.title') return 'BIST 100'
+      if (key === 'dashboard.widgets.bist100.noProvider') return '-'
+      if (key === 'dashboard.widgets.bist100.error') return 'Error'
+      return key
+    },
+    i18n: {
+      changeLanguage: () => new Promise(() => { }),
+    },
+  }),
+  initReactI18next: {
+    type: '3rdParty',
+    init: () => { },
+  },
+}))
+
 // Start MSW server before all tests
 beforeAll(() => {
   server.listen({ onUnhandledRequest: 'warn' })
