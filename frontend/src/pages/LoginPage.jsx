@@ -72,7 +72,7 @@ export default function LoginPage() {
             <a href="#" className="underline hover:text-primary">
               Gizlilik Politikası
             </a>
-            'nı kabul etmiş olursunuz.
+            &apos;nı kabul etmiş olursunuz.
           </p>
         </CardContent>
       </Card>
