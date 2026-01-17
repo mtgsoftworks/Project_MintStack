@@ -4,22 +4,31 @@ import com.mintstack.finance.dto.request.AddPortfolioItemRequest;
 import com.mintstack.finance.dto.request.CreatePortfolioRequest;
 import com.mintstack.finance.dto.response.PortfolioItemResponse;
 import com.mintstack.finance.dto.response.PortfolioResponse;
+import com.mintstack.finance.dto.response.PortfolioSummaryResponse;
+import com.mintstack.finance.dto.response.PortfolioTransactionResponse;
 import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.Portfolio;
 import com.mintstack.finance.entity.PortfolioItem;
+import com.mintstack.finance.entity.PortfolioTransaction;
 import com.mintstack.finance.entity.User;
 import com.mintstack.finance.exception.BadRequestException;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PortfolioItemRepository;
 import com.mintstack.finance.repository.PortfolioRepository;
+import com.mintstack.finance.repository.PortfolioTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -32,6 +41,7 @@ public class PortfolioService {
     private final PortfolioRepository portfolioRepository;
     private final PortfolioItemRepository portfolioItemRepository;
     private final InstrumentRepository instrumentRepository;
+    private final PortfolioTransactionRepository portfolioTransactionRepository;
     private final UserService userService;
 
     @Transactional(readOnly = true)
@@ -129,9 +139,18 @@ public class PortfolioService {
         User user = userService.getUserByKeycloakId(keycloakId);
         Portfolio portfolio = portfolioRepository.findByIdAndUserId(portfolioId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Portföy", "id", portfolioId));
-        
-        Instrument instrument = instrumentRepository.findById(request.getInstrumentId())
-            .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "id", request.getInstrumentId()));
+
+        Instrument instrument;
+        if (request.getInstrumentId() != null) {
+            instrument = instrumentRepository.findById(request.getInstrumentId())
+                .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "id", request.getInstrumentId()));
+        } else if (request.getInstrumentSymbol() != null && !request.getInstrumentSymbol().isBlank()) {
+            String symbol = request.getInstrumentSymbol().trim().toUpperCase();
+            instrument = instrumentRepository.findBySymbol(symbol)
+                .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "symbol", symbol));
+        } else {
+            throw new BadRequestException("Enstrüman ID veya sembolü zorunludur");
+        }
         
         PortfolioItem item = PortfolioItem.builder()
             .portfolio(portfolio)
@@ -144,6 +163,16 @@ public class PortfolioService {
         
         portfolioItemRepository.save(item);
         log.info("Item added to portfolio {}: {}", portfolioId, instrument.getSymbol());
+
+        recordTransaction(
+            portfolio,
+            instrument,
+            PortfolioTransaction.TransactionType.BUY,
+            request.getQuantity(),
+            request.getPurchasePrice(),
+            request.getPurchaseDate(),
+            request.getNotes()
+        );
         
         return getPortfolio(keycloakId, portfolioId);
     }
@@ -159,6 +188,16 @@ public class PortfolioService {
         PortfolioItem item = portfolioItemRepository.findByIdAndPortfolioId(itemId, portfolioId)
             .orElseThrow(() -> new ResourceNotFoundException("Portföy kalemi", "id", itemId));
         
+        recordTransaction(
+            item.getPortfolio(),
+            item.getInstrument(),
+            PortfolioTransaction.TransactionType.SELL,
+            item.getQuantity(),
+            resolveSellPrice(item),
+            LocalDate.now(),
+            item.getNotes()
+        );
+
         portfolioItemRepository.delete(item);
         log.info("Item removed from portfolio {}: {}", portfolioId, itemId);
         
@@ -168,6 +207,50 @@ public class PortfolioService {
     @Transactional(readOnly = true)
     public PortfolioResponse getPortfolioSummary(String keycloakId, UUID portfolioId) {
         return getPortfolio(keycloakId, portfolioId);
+    }
+
+    @Transactional(readOnly = true)
+    public PortfolioSummaryResponse getUserPortfolioSummary(String keycloakId) {
+        User user = userService.getUserByKeycloakId(keycloakId);
+        List<Portfolio> portfolios = portfolioRepository.findByUserIdWithItems(user.getId());
+
+        BigDecimal totalValue = portfolios.stream()
+            .map(Portfolio::getTotalValue)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalCost = portfolios.stream()
+            .map(Portfolio::getTotalCost)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalProfitLoss = totalValue.subtract(totalCost);
+
+        BigDecimal totalProfitLossPercent = BigDecimal.ZERO;
+        if (totalCost.compareTo(BigDecimal.ZERO) > 0) {
+            totalProfitLossPercent = totalProfitLoss
+                .divide(totalCost, 6, RoundingMode.HALF_UP)
+                .multiply(new BigDecimal("100"));
+        }
+
+        return PortfolioSummaryResponse.builder()
+            .totalValue(totalValue)
+            .totalCost(totalCost)
+            .totalProfitLoss(totalProfitLoss)
+            .totalProfitLossPercent(totalProfitLossPercent)
+            .portfolioCount(portfolios.size())
+            .build();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PortfolioTransactionResponse> getPortfolioTransactions(
+            String keycloakId,
+            UUID portfolioId,
+            Pageable pageable) {
+        User user = userService.getUserByKeycloakId(keycloakId);
+        portfolioRepository.findByIdAndUserId(portfolioId, user.getId())
+            .orElseThrow(() -> new ResourceNotFoundException("Portföy", "id", portfolioId));
+
+        Page<PortfolioTransaction> transactions = portfolioTransactionRepository
+            .findByPortfolioIdAndUserId(portfolioId, user.getId(), pageable);
+
+        return transactions.map(this::mapToTransactionResponse);
     }
 
     private PortfolioResponse mapToResponse(Portfolio portfolio) {
@@ -209,6 +292,56 @@ public class PortfolioService {
             .profitLossPercent(item.getProfitLossPercent())
             .purchaseDate(item.getPurchaseDate())
             .notes(item.getNotes())
+            .build();
+    }
+
+    private void recordTransaction(
+            Portfolio portfolio,
+            Instrument instrument,
+            PortfolioTransaction.TransactionType type,
+            BigDecimal quantity,
+            BigDecimal price,
+            LocalDate transactionDate,
+            String notes) {
+        PortfolioTransaction transaction = PortfolioTransaction.builder()
+            .portfolio(portfolio)
+            .instrument(instrument)
+            .transactionType(type)
+            .quantity(quantity)
+            .price(price)
+            .transactionDate(transactionDate)
+            .notes(notes)
+            .build();
+
+        portfolioTransactionRepository.save(transaction);
+    }
+
+    private BigDecimal resolveSellPrice(PortfolioItem item) {
+        Instrument instrument = item.getInstrument();
+        if (instrument != null && instrument.getCurrentPrice() != null) {
+            return instrument.getCurrentPrice();
+        }
+        return item.getPurchasePrice();
+    }
+
+    private PortfolioTransactionResponse mapToTransactionResponse(PortfolioTransaction transaction) {
+        Instrument instrument = transaction.getInstrument();
+        BigDecimal total = transaction.getPrice().multiply(transaction.getQuantity());
+
+        return PortfolioTransactionResponse.builder()
+            .id(transaction.getId())
+            .portfolioId(transaction.getPortfolio().getId())
+            .instrumentId(instrument.getId())
+            .instrumentSymbol(instrument.getSymbol())
+            .instrumentName(instrument.getName())
+            .instrumentType(instrument.getType())
+            .transactionType(transaction.getTransactionType())
+            .quantity(transaction.getQuantity())
+            .price(transaction.getPrice())
+            .total(total)
+            .transactionDate(transaction.getTransactionDate())
+            .notes(transaction.getNotes())
+            .createdAt(transaction.getCreatedAt())
             .build();
     }
 }

@@ -182,6 +182,21 @@ export const handlers = [
     return HttpResponse.json(apiResponse(mockPortfolios))
   }),
 
+  http.get(`${API_URL}/portfolios/summary`, () => {
+    const totalValue = mockPortfolios.reduce((acc, p) => acc + (p.totalValue || 0), 0)
+    const totalCost = mockPortfolios.reduce((acc, p) => acc + (p.totalCost || 0), 0)
+    const totalProfitLoss = mockPortfolios.reduce((acc, p) => acc + (p.profitLoss || 0), 0)
+    const totalProfitLossPercent = totalCost > 0 ? (totalProfitLoss / totalCost) * 100 : 0
+
+    return HttpResponse.json(apiResponse({
+      totalValue,
+      totalCost,
+      totalProfitLoss,
+      totalProfitLossPercent,
+      portfolioCount: mockPortfolios.length,
+    }))
+  }),
+
   http.get(`${API_URL}/portfolios/:id`, ({ params }) => {
     const portfolio = mockPortfolios.find(p => p.id === parseInt(params.id))
     if (!portfolio) {
@@ -198,8 +213,13 @@ export const handlers = [
           symbol: 'THYAO',
           name: 'Türk Hava Yolları',
           type: 'STOCK',
+          instrumentSymbol: 'THYAO',
+          instrumentName: 'Türk Hava Yolları',
+          instrumentType: 'STOCK',
           quantity: 100,
           averageCost: 250.00,
+          purchasePrice: 250.00,
+          purchaseDate: '2026-01-01',
           currentPrice: 280.50,
           currentValue: 28050.00,
           profitLoss: 3050.00,
@@ -207,6 +227,63 @@ export const handlers = [
         },
       ],
     }))
+  }),
+
+  http.get(`${API_URL}/portfolios/:id/transactions`, ({ request }) => {
+    const url = new URL(request.url)
+    const page = Number(url.searchParams.get('page') || 0)
+    const size = Number(url.searchParams.get('size') || 10)
+    const allTransactions = [
+      {
+        id: 1,
+        portfolioId: 1,
+        instrumentId: 1,
+        instrumentSymbol: 'THYAO',
+        instrumentName: 'Türk Hava Yolları',
+        instrumentType: 'STOCK',
+        transactionType: 'BUY',
+        quantity: 100,
+        price: 250.0,
+        total: 25000.0,
+        transactionDate: '2026-01-01',
+        notes: 'İlk alım',
+      },
+      {
+        id: 2,
+        portfolioId: 1,
+        instrumentId: 1,
+        instrumentSymbol: 'THYAO',
+        instrumentName: 'Türk Hava Yolları',
+        instrumentType: 'STOCK',
+        transactionType: 'SELL',
+        quantity: 50,
+        price: 280.5,
+        total: 14025.0,
+        transactionDate: '2026-02-01',
+        notes: 'Kısmi satış',
+      },
+    ]
+
+    const start = page * size
+    const data = allTransactions.slice(start, start + size)
+    const totalElements = allTransactions.length
+    const totalPages = Math.ceil(totalElements / size)
+
+    return HttpResponse.json({
+      success: true,
+      data,
+      pagination: {
+        page,
+        size,
+        totalElements,
+        totalPages,
+        first: page === 0,
+        last: page >= totalPages - 1,
+        hasNext: page < totalPages - 1,
+        hasPrevious: page > 0,
+      },
+      timestamp: new Date().toISOString(),
+    })
   }),
 
   http.post(`${API_URL}/portfolios`, async ({ request }) => {
@@ -272,7 +349,16 @@ export const handlers = [
     return HttpResponse.json(apiResponse(mockUser))
   }),
 
+  http.get(`${API_URL}/users/profile`, () => {
+    return HttpResponse.json(apiResponse(mockUser))
+  }),
+
   http.put(`${API_URL}/users/me`, async ({ request }) => {
+    const body = await request.json()
+    return HttpResponse.json(apiResponse({ ...mockUser, ...body }))
+  }),
+
+  http.put(`${API_URL}/users/profile`, async ({ request }) => {
     const body = await request.json()
     return HttpResponse.json(apiResponse({ ...mockUser, ...body }))
   }),
@@ -286,7 +372,18 @@ export const handlers = [
       ma25: 270 + Math.random() * 5,
       ma99: 265 + Math.random() * 5,
     }))
-    return HttpResponse.json(apiResponse({ symbol: 'THYAO', data }))
+    const lastPoint = data[0]
+    return HttpResponse.json(apiResponse({
+      symbol: 'THYAO',
+      period: 20,
+      type: 'SMA',
+      data,
+      currentPrice: lastPoint.price,
+      maValue: lastPoint.ma25,
+      difference: lastPoint.price - lastPoint.ma25,
+      differencePercent: ((lastPoint.price - lastPoint.ma25) / lastPoint.ma25) * 100,
+      signal: lastPoint.price >= lastPoint.ma25 ? 'BUY' : 'SELL',
+    }))
   }),
 
   http.get(`${API_URL}/analysis/trend/:symbol`, () => {
@@ -298,9 +395,16 @@ export const handlers = [
       changePercent: 12.20,
       trend: 'UPTREND',
       trendStrength: 'MODERATE',
+      support: 248.00,
+      resistance: 285.00,
+      strength: 55,
       volatility: 3.45,
       highPrice: 285.00,
       lowPrice: 248.00,
+      data: Array.from({ length: 30 }, (_, i) => ({
+        date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        price: 250 + Math.random() * 30,
+      })),
     }))
   }),
 

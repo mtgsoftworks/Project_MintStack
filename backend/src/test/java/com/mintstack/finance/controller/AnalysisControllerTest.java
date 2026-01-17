@@ -55,7 +55,8 @@ class AnalysisControllerTest {
         maResult.put("period", 20);
         maResult.put("sma", BigDecimal.valueOf(145.50));
 
-        when(analysisService.getMovingAverage(eq("THYAO"), eq(20), any(LocalDate.class))).thenReturn(maResult);
+        when(analysisService.getMovingAverage(eq("THYAO"), eq(20), any(LocalDate.class), eq("SMA")))
+            .thenReturn(maResult);
 
         // When & Then
         mockMvc.perform(get("/api/v1/analysis/ma/{symbol}", "THYAO")
@@ -136,7 +137,8 @@ class AnalysisControllerTest {
         maResult.put("symbol", "AKBNK");
         maResult.put("period", 20);
 
-        when(analysisService.getMovingAverage(eq("AKBNK"), eq(20), any(LocalDate.class))).thenReturn(maResult);
+        when(analysisService.getMovingAverage(eq("AKBNK"), eq(20), any(LocalDate.class), eq("SMA")))
+            .thenReturn(maResult);
 
         // When & Then
         mockMvc.perform(get("/api/v1/analysis/ma/{symbol}", "AKBNK")

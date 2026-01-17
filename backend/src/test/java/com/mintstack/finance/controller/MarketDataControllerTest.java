@@ -2,6 +2,7 @@ package com.mintstack.finance.controller;
 
 import com.mintstack.finance.config.CorsProperties;
 import com.mintstack.finance.config.RateLimitConfig;
+import com.mintstack.finance.config.SecurityConfig;
 import com.mintstack.finance.dto.response.CurrencyRateResponse;
 import com.mintstack.finance.service.MarketDataService;
 import org.junit.jupiter.api.Test;
@@ -22,7 +23,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(MarketDataController.class)
-@Import(CorsProperties.class)
+@Import({CorsProperties.class, SecurityConfig.class})
 
 class MarketDataControllerTest {
 

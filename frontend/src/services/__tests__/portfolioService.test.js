@@ -140,4 +140,36 @@ describe('portfolioService', () => {
             expect(result).toEqual(mockSummary)
         })
     })
+
+    describe('getTransactions', () => {
+        it('should fetch portfolio transactions with pagination', async () => {
+            const mockResponse = {
+                success: true,
+                data: [
+                    {
+                        id: 'txn-1',
+                        instrumentSymbol: 'THYAO',
+                        transactionType: 'BUY',
+                        quantity: 5,
+                        price: 95,
+                    },
+                ],
+                pagination: {
+                    page: 0,
+                    size: 20,
+                    totalElements: 1,
+                    totalPages: 1,
+                },
+            }
+
+            api.get.mockResolvedValue({ data: mockResponse })
+
+            const result = await portfolioService.getTransactions('1', { page: 0, size: 20 })
+
+            expect(api.get).toHaveBeenCalledWith('/portfolios/1/transactions', {
+                params: { page: 0, size: 20 },
+            })
+            expect(result).toEqual(mockResponse)
+        })
+    })
 })

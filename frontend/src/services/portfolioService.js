@@ -62,4 +62,12 @@ export const portfolioService = {
     const response = await api.get(`/portfolios/${id}/summary`)
     return response.data?.data
   },
+
+  // Get portfolio transaction history
+  getTransactions: async (portfolioId, { page = 0, size = 10 } = {}) => {
+    const response = await api.get(`/portfolios/${portfolioId}/transactions`, {
+      params: { page, size },
+    })
+    return response.data
+  },
 }

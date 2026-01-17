@@ -59,57 +59,24 @@ public class MarketDataScheduler {
     }
 
     /**
-     * Fetch stock prices every 15 mins (market hours)
+     * Fetch instrument prices every 15 mins (market hours)
      */
     @Scheduled(cron = "${app.scheduler.stock-prices-cron}")
     public void fetchStockPrices() {
-        log.info("Starting stock prices fetch job");
+        log.info("Starting market prices fetch job");
         try {
-            List<Instrument> stocks = instrumentRepository.findByTypeAndIsActiveTrue(Instrument.InstrumentType.STOCK);
-            if (stocks.isEmpty()) {
-                log.info("No stocks found to update.");
-                return;
-            }
-
             // Check Provider Configs
             UserApiConfig yahooConfig = getActiveConfig(ApiProvider.YAHOO_FINANCE);
             UserApiConfig alphaConfig = getActiveConfig(ApiProvider.ALPHA_VANTAGE);
 
-            for (Instrument stock : stocks) {
-                try {
-                    BigDecimal price = null;
-                    
-                    // Try Yahoo First
-                    if (yahooConfig != null) {
-                        try {
-                            price = yahooFinanceClient.fetchStockPrice(stock.getSymbol(), yahooConfig.getApiKey(), yahooConfig.getBaseUrl());
-                        } catch (Exception e) {
-                            log.warn("Yahoo fetch failed for {}, trying failover...", stock.getSymbol());
-                        }
-                    }
+            updatePricesForType(Instrument.InstrumentType.STOCK, yahooConfig, alphaConfig);
+            updatePricesForType(Instrument.InstrumentType.BOND, yahooConfig, alphaConfig);
+            updatePricesForType(Instrument.InstrumentType.FUND, yahooConfig, alphaConfig);
+            updatePricesForType(Instrument.InstrumentType.VIOP, yahooConfig, alphaConfig);
 
-                    // Fallback to Alpha Vantage
-                    if (price == null && alphaConfig != null) {
-                        // Append .IS for BIST stocks if needed, Alpha Vantage usually needs suffix for non-US
-                        // Assuming BIST stocks, we try adding .IS or .TR depending on symbol
-                        String querySymbol = stock.getSymbol().endsWith(".IS") ? stock.getSymbol() : stock.getSymbol() + ".IS";
-                        price = alphaVantageClient.fetchGlobalQuote(querySymbol, alphaConfig.getApiKey());
-                    }
-
-                    if (price != null) {
-                        stock.setPreviousClose(stock.getCurrentPrice()); // Shift current to previous
-                        stock.setCurrentPrice(price);
-                        instrumentRepository.save(stock);
-                        saveDailyPriceHistory(stock, price);
-                    }
-
-                } catch (Exception e) {
-                    log.error("Failed to update price for {}: {}", stock.getSymbol(), e.getMessage());
-                }
-            }
-            log.info("Stock prices fetch completed.");
+            log.info("Market prices fetch completed.");
         } catch (Exception e) {
-            log.error("Stock prices fetch failed", e);
+            log.error("Market prices fetch failed", e);
         }
     }
 
@@ -171,7 +138,7 @@ public class MarketDataScheduler {
 
                 if (price == null && alphaConfig != null) {
                     try {
-                        price = alphaVantageClient.fetchGlobalQuote(symbol + ".IS", alphaConfig.getApiKey());
+                        price = alphaVantageClient.fetchGlobalQuote(buildAlphaSymbol(symbol), alphaConfig.getApiKey());
                     } catch (Exception ignored) {}
                 }
 
@@ -217,6 +184,54 @@ public class MarketDataScheduler {
         } catch (Exception e) {
             log.warn("Failed to history for {}", instrument.getSymbol());
         }
+    }
+
+    private void updatePricesForType(Instrument.InstrumentType type, UserApiConfig yahooConfig, UserApiConfig alphaConfig) {
+        List<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrue(type);
+        if (instruments.isEmpty()) {
+            log.info("No {} instruments found to update.", type);
+            return;
+        }
+
+        for (Instrument instrument : instruments) {
+            try {
+                BigDecimal price = fetchInstrumentPrice(instrument, yahooConfig, alphaConfig);
+                if (price != null) {
+                    instrument.setPreviousClose(instrument.getCurrentPrice());
+                    instrument.setCurrentPrice(price);
+                    instrumentRepository.save(instrument);
+                    saveDailyPriceHistory(instrument, price);
+                }
+            } catch (Exception e) {
+                log.error("Failed to update price for {} ({}): {}", instrument.getSymbol(), type, e.getMessage());
+            }
+        }
+    }
+
+    private BigDecimal fetchInstrumentPrice(Instrument instrument, UserApiConfig yahooConfig, UserApiConfig alphaConfig) {
+        BigDecimal price = null;
+
+        if (yahooConfig != null) {
+            try {
+                price = yahooFinanceClient.fetchStockPrice(instrument.getSymbol(), yahooConfig.getApiKey(), yahooConfig.getBaseUrl());
+            } catch (Exception e) {
+                log.warn("Yahoo fetch failed for {} ({}), trying failover...", instrument.getSymbol(), instrument.getType());
+            }
+        }
+
+        if (price == null && alphaConfig != null) {
+            String querySymbol = buildAlphaSymbol(instrument.getSymbol());
+            price = alphaVantageClient.fetchGlobalQuote(querySymbol, alphaConfig.getApiKey());
+        }
+
+        return price;
+    }
+
+    private String buildAlphaSymbol(String symbol) {
+        if (symbol == null || symbol.isBlank()) {
+            return symbol;
+        }
+        return symbol.contains(".") ? symbol : symbol + ".IS";
     }
 
     private UserApiConfig getActiveConfig(ApiProvider provider) {

@@ -3,6 +3,7 @@ package com.mintstack.finance.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mintstack.finance.config.CorsProperties;
 import com.mintstack.finance.config.RateLimitConfig;
+import com.mintstack.finance.config.SecurityConfig;
 import com.mintstack.finance.dto.request.UpdateProfileRequest;
 import com.mintstack.finance.dto.response.UserResponse;
 import com.mintstack.finance.service.UserService;
@@ -26,7 +27,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(UserController.class)
-@Import(CorsProperties.class)
+@Import({CorsProperties.class, SecurityConfig.class})
 @AutoConfigureDataJpa
 class UserControllerTest {
 

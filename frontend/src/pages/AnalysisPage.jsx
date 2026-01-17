@@ -44,6 +44,32 @@ export default function AnalysisPage() {
     period,
   })
 
+  const trendDirection = trendData?.trend === 'UPTREND'
+    ? 'UP'
+    : trendData?.trend === 'DOWNTREND'
+      ? 'DOWN'
+      : 'SIDEWAYS'
+
+  const comparisonItems = (comparisonData || [])
+    .map((item) => {
+      const dataPoints = item.data || []
+      if (dataPoints.length === 0) {
+        return null
+      }
+
+      const lastPoint = dataPoints[dataPoints.length - 1]
+      const currentPrice = lastPoint.price ?? lastPoint.value ?? 0
+      const changePercent = lastPoint.value ?? 0
+
+      return {
+        symbol: item.symbol,
+        name: item.name,
+        currentPrice,
+        changePercent,
+      }
+    })
+    .filter(Boolean)
+
   return (
     <div className="space-y-6 animate-in">
       {/* Page Header */}
@@ -195,8 +221,8 @@ export default function AnalysisPage() {
               <CardContent className="space-y-4">
                 <div className="flex justify-between py-2 border-b">
                   <span className="text-muted-foreground">Trend Yönü</span>
-                  <Badge variant={trendData?.trend === 'UP' ? 'success' : trendData?.trend === 'DOWN' ? 'danger' : 'secondary'}>
-                    {trendData?.trend === 'UP' ? 'Yükseliş' : trendData?.trend === 'DOWN' ? 'Düşüş' : 'Yatay'}
+                  <Badge variant={trendDirection === 'UP' ? 'success' : trendDirection === 'DOWN' ? 'danger' : 'secondary'}>
+                    {trendDirection === 'UP' ? 'Yükseliş' : trendDirection === 'DOWN' ? 'Düşüş' : 'Yatay'}
                   </Badge>
                 </div>
                 <div className="flex justify-between py-2 border-b">
@@ -234,9 +260,9 @@ export default function AnalysisPage() {
             <CardContent>
               {comparisonLoading ? (
                 <Skeleton className="h-64" />
-              ) : comparisonData ? (
+              ) : comparisonItems.length > 0 ? (
                 <div className="space-y-4">
-                  {comparisonData.map((item) => (
+                  {comparisonItems.map((item) => (
                     <div key={item.symbol} className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
                       <div className="flex items-center gap-3">
                         <div className={cn(

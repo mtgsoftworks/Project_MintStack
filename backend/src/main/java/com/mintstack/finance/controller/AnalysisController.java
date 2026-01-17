@@ -30,13 +30,14 @@ public class AnalysisController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getMovingAverage(
             @PathVariable String symbol,
             @RequestParam(defaultValue = "20") int period,
+            @RequestParam(defaultValue = "SMA") String type,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         
         if (endDate == null) {
             endDate = LocalDate.now();
         }
         
-        Map<String, Object> ma = analysisService.getMovingAverage(symbol, period, endDate);
+        Map<String, Object> ma = analysisService.getMovingAverage(symbol, period, endDate, type);
         return ResponseEntity.ok(ApiResponse.success(ma));
     }
 

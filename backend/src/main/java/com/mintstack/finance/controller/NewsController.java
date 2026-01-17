@@ -45,6 +45,31 @@ public class NewsController {
         return ResponseEntity.ok(ApiResponse.success(news.getContent(), PaginationInfo.from(news)));
     }
 
+    @GetMapping("/search")
+    @Operation(summary = "Haberlerde ara")
+    public ResponseEntity<ApiResponse<List<NewsResponse>>> searchNews(
+            @RequestParam(required = false, name = "query") String query,
+            @RequestParam(required = false, name = "q") String q,
+            @PageableDefault(size = 10) Pageable pageable) {
+
+        String searchTerm = (query != null && !query.isBlank()) ? query : q;
+        Page<NewsResponse> news = (searchTerm == null || searchTerm.isBlank())
+            ? newsService.getAllNews(pageable)
+            : newsService.searchNews(searchTerm, pageable);
+
+        return ResponseEntity.ok(ApiResponse.success(news.getContent(), PaginationInfo.from(news)));
+    }
+
+    @GetMapping("/category/{slug}")
+    @Operation(summary = "Kategoriye göre haberleri getir")
+    public ResponseEntity<ApiResponse<List<NewsResponse>>> getNewsByCategory(
+            @PathVariable String slug,
+            @PageableDefault(size = 10) Pageable pageable) {
+
+        Page<NewsResponse> news = newsService.getNewsByCategory(slug, pageable);
+        return ResponseEntity.ok(ApiResponse.success(news.getContent(), PaginationInfo.from(news)));
+    }
+
     @GetMapping("/latest")
     @Operation(summary = "Son haberleri getir (5 adet)")
     public ResponseEntity<ApiResponse<List<NewsResponse>>> getLatestNews() {

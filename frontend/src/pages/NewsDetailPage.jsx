@@ -20,6 +20,8 @@ export default function NewsDetailPage() {
     }
   }, [id, incrementViewCount])
 
+  const categoryLabel = news?.category?.name || news?.categoryName
+
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
@@ -86,8 +88,8 @@ export default function NewsDetailPage() {
         
         <CardHeader className="space-y-4">
           <div className="flex items-center gap-2 flex-wrap">
-            {news.category && (
-              <Badge variant="secondary">{news.category.name}</Badge>
+            {categoryLabel && (
+              <Badge variant="secondary">{categoryLabel}</Badge>
             )}
             {news.isFeatured && (
               <Badge variant="info">Öne Çıkan</Badge>

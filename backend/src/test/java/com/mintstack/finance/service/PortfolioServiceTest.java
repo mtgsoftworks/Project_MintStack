@@ -3,24 +3,33 @@ package com.mintstack.finance.service;
 import com.mintstack.finance.dto.request.AddPortfolioItemRequest;
 import com.mintstack.finance.dto.request.CreatePortfolioRequest;
 import com.mintstack.finance.dto.response.PortfolioResponse;
+import com.mintstack.finance.dto.response.PortfolioTransactionResponse;
 import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.Portfolio;
 import com.mintstack.finance.entity.PortfolioItem;
+import com.mintstack.finance.entity.PortfolioTransaction;
 import com.mintstack.finance.entity.User;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PortfolioItemRepository;
 import com.mintstack.finance.repository.PortfolioRepository;
+import com.mintstack.finance.repository.PortfolioTransactionRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -42,6 +51,9 @@ class PortfolioServiceTest {
 
     @Mock
     private InstrumentRepository instrumentRepository;
+
+    @Mock
+    private PortfolioTransactionRepository portfolioTransactionRepository;
 
     @Mock
     private UserService userService;
@@ -194,6 +206,8 @@ class PortfolioServiceTest {
         when(instrumentRepository.findById(testInstrument.getId()))
             .thenReturn(Optional.of(testInstrument));
         when(portfolioItemRepository.save(any(PortfolioItem.class))).thenReturn(savedItem);
+        when(portfolioTransactionRepository.save(any(PortfolioTransaction.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         var result = portfolioService.addItem(keycloakId, portfolioId, request);
@@ -201,6 +215,14 @@ class PortfolioServiceTest {
         // Then
         assertThat(result).isNotNull();
         verify(portfolioItemRepository).save(any(PortfolioItem.class));
+        ArgumentCaptor<PortfolioTransaction> transactionCaptor = ArgumentCaptor.forClass(PortfolioTransaction.class);
+        verify(portfolioTransactionRepository).save(transactionCaptor.capture());
+        PortfolioTransaction transaction = transactionCaptor.getValue();
+        assertThat(transaction.getTransactionType()).isEqualTo(PortfolioTransaction.TransactionType.BUY);
+        assertThat(transaction.getQuantity()).isEqualByComparingTo(request.getQuantity());
+        assertThat(transaction.getPrice()).isEqualByComparingTo(request.getPurchasePrice());
+        assertThat(transaction.getInstrument()).isEqualTo(testInstrument);
+        assertThat(transaction.getPortfolio()).isEqualTo(testPortfolio);
     }
 
     @Test
@@ -225,11 +247,62 @@ class PortfolioServiceTest {
             .thenReturn(Optional.of(testPortfolio));
         when(portfolioItemRepository.findByIdAndPortfolioId(itemId, portfolioId))
             .thenReturn(Optional.of(item));
+        when(portfolioTransactionRepository.save(any(PortfolioTransaction.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         portfolioService.removeItem(keycloakId, portfolioId, itemId);
 
         // Then
         verify(portfolioItemRepository).delete(item);
+        ArgumentCaptor<PortfolioTransaction> transactionCaptor = ArgumentCaptor.forClass(PortfolioTransaction.class);
+        verify(portfolioTransactionRepository).save(transactionCaptor.capture());
+        PortfolioTransaction transaction = transactionCaptor.getValue();
+        assertThat(transaction.getTransactionType()).isEqualTo(PortfolioTransaction.TransactionType.SELL);
+        assertThat(transaction.getQuantity()).isEqualByComparingTo(item.getQuantity());
+        assertThat(transaction.getPrice()).isEqualByComparingTo(testInstrument.getCurrentPrice());
+        assertThat(transaction.getInstrument()).isEqualTo(testInstrument);
+        assertThat(transaction.getPortfolio()).isEqualTo(testPortfolio);
+    }
+
+    @Test
+    void getPortfolioTransactions_ShouldReturnTransactions() {
+        // Given
+        UUID portfolioId = testPortfolio.getId();
+        Pageable pageable = PageRequest.of(0, 20);
+        PortfolioTransaction transaction = PortfolioTransaction.builder()
+            .portfolio(testPortfolio)
+            .instrument(testInstrument)
+            .transactionType(PortfolioTransaction.TransactionType.BUY)
+            .quantity(BigDecimal.valueOf(2))
+            .price(BigDecimal.valueOf(95))
+            .transactionDate(LocalDate.now())
+            .notes("Test işlem")
+            .build();
+        transaction.setId(UUID.randomUUID());
+        transaction.setCreatedAt(LocalDateTime.now());
+
+        Page<PortfolioTransaction> page = new PageImpl<>(List.of(transaction), pageable, 1);
+
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
+        when(portfolioRepository.findByIdAndUserId(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(portfolioTransactionRepository.findByPortfolioIdAndUserId(portfolioId, testUser.getId(), pageable))
+            .thenReturn(page);
+
+        // When
+        Page<PortfolioTransactionResponse> result = portfolioService.getPortfolioTransactions(
+            keycloakId,
+            portfolioId,
+            pageable);
+
+        // Then
+        assertThat(result.getContent()).hasSize(1);
+        PortfolioTransactionResponse response = result.getContent().get(0);
+        assertThat(response.getId()).isEqualTo(transaction.getId());
+        assertThat(response.getInstrumentSymbol()).isEqualTo(testInstrument.getSymbol());
+        assertThat(response.getTransactionType()).isEqualTo(transaction.getTransactionType());
+        assertThat(response.getTotal())
+            .isEqualByComparingTo(transaction.getPrice().multiply(transaction.getQuantity()));
     }
 }

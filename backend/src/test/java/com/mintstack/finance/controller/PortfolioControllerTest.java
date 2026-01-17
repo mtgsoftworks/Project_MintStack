@@ -5,6 +5,7 @@ import com.mintstack.finance.config.CorsProperties;
 import com.mintstack.finance.config.RateLimitConfig;
 import com.mintstack.finance.dto.request.CreatePortfolioRequest;
 import com.mintstack.finance.dto.response.PortfolioResponse;
+import com.mintstack.finance.dto.response.PortfolioTransactionResponse;
 import com.mintstack.finance.service.PortfolioService;
 import com.mintstack.finance.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -16,8 +17,14 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -69,7 +76,7 @@ class PortfolioControllerTest {
         when(portfolioService.getUserPortfolios(any())).thenReturn(List.of(portfolio));
 
         // When & Then
-        mockMvc.perform(get("/api/v1/portfolio")
+        mockMvc.perform(get("/api/v1/portfolios")
                 .with(jwt().jwt(j -> j.subject("test-user"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
@@ -96,7 +103,7 @@ class PortfolioControllerTest {
         when(portfolioService.getPortfolio(any(), eq(portfolioId))).thenReturn(portfolio);
 
         // When & Then
-        mockMvc.perform(get("/api/v1/portfolio/" + portfolioId)
+        mockMvc.perform(get("/api/v1/portfolios/" + portfolioId)
                 .with(jwt().jwt(j -> j.subject("test-user"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
@@ -127,12 +134,12 @@ class PortfolioControllerTest {
         when(portfolioService.createPortfolio(any(), any())).thenReturn(response);
 
         // When & Then
-        mockMvc.perform(post("/api/v1/portfolio")
+        mockMvc.perform(post("/api/v1/portfolios")
                 .with(jwt().jwt(j -> j.subject("test-user")))
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isOk())
+            .andExpect(status().isCreated())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.name").value("New Portfolio"));
     }
@@ -145,10 +152,46 @@ class PortfolioControllerTest {
         doNothing().when(portfolioService).deletePortfolio(any(), eq(portfolioId));
 
         // When & Then
-        mockMvc.perform(delete("/api/v1/portfolio/" + portfolioId)
+        mockMvc.perform(delete("/api/v1/portfolios/" + portfolioId)
                 .with(jwt().jwt(j -> j.subject("test-user")))
                 .with(csrf()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @WithMockUser
+    void getPortfolioTransactions_ShouldReturnPaginatedTransactions() throws Exception {
+        // Given
+        UUID portfolioId = UUID.randomUUID();
+        PortfolioTransactionResponse transaction = PortfolioTransactionResponse.builder()
+            .id(UUID.randomUUID())
+            .portfolioId(portfolioId)
+            .instrumentId(UUID.randomUUID())
+            .instrumentSymbol("THYAO")
+            .instrumentName("Türk Hava Yolları")
+            .transactionType(com.mintstack.finance.entity.PortfolioTransaction.TransactionType.BUY)
+            .quantity(BigDecimal.valueOf(5))
+            .price(BigDecimal.valueOf(95))
+            .total(BigDecimal.valueOf(475))
+            .transactionDate(LocalDate.now())
+            .notes("Test")
+            .createdAt(LocalDateTime.now())
+            .build();
+
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<PortfolioTransactionResponse> page = new PageImpl<>(List.of(transaction), pageable, 1);
+        when(portfolioService.getPortfolioTransactions(any(), eq(portfolioId), any(Pageable.class)))
+            .thenReturn(page);
+
+        // When & Then
+        mockMvc.perform(get("/api/v1/portfolios/" + portfolioId + "/transactions")
+                .param("page", "0")
+                .param("size", "20")
+                .with(jwt().jwt(j -> j.subject("test-user"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data[0].instrumentSymbol").value("THYAO"))
+            .andExpect(jsonPath("$.pagination.totalElements").value(1));
     }
 }

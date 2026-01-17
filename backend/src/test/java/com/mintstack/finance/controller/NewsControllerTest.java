@@ -2,6 +2,7 @@ package com.mintstack.finance.controller;
 
 import com.mintstack.finance.config.CorsProperties;
 import com.mintstack.finance.config.RateLimitConfig;
+import com.mintstack.finance.config.SecurityConfig;
 import com.mintstack.finance.dto.response.NewsResponse;
 import com.mintstack.finance.service.NewsService;
 import org.junit.jupiter.api.Test;
@@ -25,7 +26,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(NewsController.class)
-@Import(CorsProperties.class)
+@Import({CorsProperties.class, SecurityConfig.class})
 
 class NewsControllerTest {
 
@@ -56,7 +57,7 @@ class NewsControllerTest {
         mockMvc.perform(get("/api/v1/news"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.content[0].title").value("Test Haber"));
+            .andExpect(jsonPath("$.data[0].title").value("Test Haber"));
     }
 
     @Test
@@ -117,7 +118,7 @@ class NewsControllerTest {
         when(newsService.searchNews(any(String.class), any())).thenReturn(newsPage);
 
         // When & Then
-        mockMvc.perform(get("/api/v1/news/search").param("keyword", "döviz"))
+        mockMvc.perform(get("/api/v1/news/search").param("query", "döviz"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true));
     }

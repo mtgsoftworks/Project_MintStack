@@ -3,6 +3,7 @@ package com.mintstack.finance.service;
 import com.mintstack.finance.dto.request.CompareInstrumentsRequest;
 import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.PriceHistory;
+import com.mintstack.finance.exception.BadRequestException;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
@@ -27,16 +28,21 @@ public class AnalysisService {
     private final PriceHistoryRepository priceHistoryRepository;
 
     /**
-     * Calculate Simple Moving Average (SMA)
+     * Calculate Moving Average (SMA/EMA/WMA)
      */
     @Transactional(readOnly = true)
-    public Map<String, Object> getMovingAverage(String symbol, int period, LocalDate endDate) {
+    public Map<String, Object> getMovingAverage(String symbol, int period, LocalDate endDate, String type) {
         LocalDate startDate = endDate.minusDays(period + 50); // Extra data for calculation
         
         List<PriceHistory> history = priceHistoryRepository.findBySymbolAndDateRange(symbol, startDate, endDate);
         
-        if (history.isEmpty()) {
+        if (history.isEmpty() || history.size() < period) {
             throw new ResourceNotFoundException("Fiyat geçmişi", "sembol", symbol);
+        }
+
+        String maType = type == null || type.isBlank() ? "SMA" : type.trim().toUpperCase();
+        if (!List.of("SMA", "EMA", "WMA").contains(maType)) {
+            throw new BadRequestException("Desteklenmeyen MA tipi: " + type);
         }
         
         List<BigDecimal> closePrices = history.stream()
@@ -44,13 +50,28 @@ public class AnalysisService {
             .collect(Collectors.toList());
         
         List<Map<String, Object>> maData = new ArrayList<>();
+
+        BigDecimal emaValue = null;
+        BigDecimal emaMultiplier = BigDecimal.valueOf(2.0 / (period + 1.0));
         
         for (int i = period - 1; i < history.size(); i++) {
-            BigDecimal sum = BigDecimal.ZERO;
-            for (int j = i - period + 1; j <= i; j++) {
-                sum = sum.add(closePrices.get(j));
+            BigDecimal ma;
+
+            if ("EMA".equals(maType)) {
+                if (emaValue == null) {
+                    emaValue = calculateSMA(closePrices, i, period);
+                } else {
+                    BigDecimal price = closePrices.get(i);
+                    emaValue = price.subtract(emaValue)
+                        .multiply(emaMultiplier)
+                        .add(emaValue);
+                }
+                ma = emaValue;
+            } else if ("WMA".equals(maType)) {
+                ma = calculateWMA(closePrices, i, period);
+            } else {
+                ma = calculateSMA(closePrices, i, period);
             }
-            BigDecimal ma = sum.divide(BigDecimal.valueOf(period), 6, RoundingMode.HALF_UP);
             
             Map<String, Object> point = new HashMap<>();
             point.put("date", history.get(i).getPriceDate());
@@ -58,11 +79,36 @@ public class AnalysisService {
             point.put("ma", ma);
             maData.add(point);
         }
+
+        BigDecimal currentPrice = closePrices.get(closePrices.size() - 1);
+        BigDecimal maValue = maData.isEmpty() ? null : (BigDecimal) maData.get(maData.size() - 1).get("ma");
+        BigDecimal difference = maValue == null ? null : currentPrice.subtract(maValue);
+        BigDecimal differencePercent = null;
+        if (maValue != null && maValue.compareTo(BigDecimal.ZERO) != 0) {
+            differencePercent = difference
+                .divide(maValue, 6, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+        }
+
+        String signal = "HOLD";
+        if (difference != null) {
+            if (difference.compareTo(BigDecimal.ZERO) > 0) {
+                signal = "BUY";
+            } else if (difference.compareTo(BigDecimal.ZERO) < 0) {
+                signal = "SELL";
+            }
+        }
         
         Map<String, Object> result = new HashMap<>();
         result.put("symbol", symbol);
         result.put("period", period);
+        result.put("type", maType);
         result.put("data", maData);
+        result.put("currentPrice", currentPrice);
+        result.put("maValue", maValue);
+        result.put("difference", difference);
+        result.put("differencePercent", differencePercent);
+        result.put("signal", signal);
         
         return result;
     }
@@ -165,6 +211,9 @@ public class AnalysisService {
         result.put("volatility", BigDecimal.valueOf(volatility).setScale(4, RoundingMode.HALF_UP));
         result.put("highPrice", history.stream().map(PriceHistory::getHighPrice).filter(Objects::nonNull).max(BigDecimal::compareTo).orElse(null));
         result.put("lowPrice", history.stream().map(PriceHistory::getLowPrice).filter(Objects::nonNull).min(BigDecimal::compareTo).orElse(null));
+        result.put("support", result.get("lowPrice"));
+        result.put("resistance", result.get("highPrice"));
+        result.put("strength", mapTrendStrengthToPercent(trendStrength));
         
         // Add chart data
         List<Map<String, Object>> chartData = history.stream()
@@ -242,5 +291,40 @@ public class AnalysisService {
             sum = sum.add(prices.get(i));
         }
         return sum.divide(BigDecimal.valueOf(period), 6, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal calculateSMA(List<BigDecimal> prices, int currentIndex, int period) {
+        return calculateMA(prices, currentIndex, period);
+    }
+
+    private BigDecimal calculateWMA(List<BigDecimal> prices, int currentIndex, int period) {
+        if (currentIndex < period - 1) {
+            return null;
+        }
+
+        BigDecimal weightedSum = BigDecimal.ZERO;
+        BigDecimal weightTotal = BigDecimal.ZERO;
+        int weight = 1;
+        for (int i = currentIndex - period + 1; i <= currentIndex; i++) {
+            BigDecimal weightValue = BigDecimal.valueOf(weight);
+            weightedSum = weightedSum.add(prices.get(i).multiply(weightValue));
+            weightTotal = weightTotal.add(weightValue);
+            weight++;
+        }
+
+        return weightedSum.divide(weightTotal, 6, RoundingMode.HALF_UP);
+    }
+
+    private Integer mapTrendStrengthToPercent(String trendStrength) {
+        if (trendStrength == null) {
+            return null;
+        }
+
+        return switch (trendStrength) {
+            case "STRONG" -> 80;
+            case "MODERATE" -> 55;
+            case "WEAK" -> 30;
+            default -> 0;
+        };
     }
 }

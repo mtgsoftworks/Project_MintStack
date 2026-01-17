@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || 'http://localhost:8050/api/v1'
+const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || 'http://localhost:18080/api/v1'
 
 // Custom base query with auth token
 const baseQuery = fetchBaseQuery({
@@ -56,6 +56,7 @@ export const baseApi = createApi({
     'NewsCategories',
     'Portfolios',
     'PortfolioItems',
+    'PortfolioTransactions',
     'User',
     'Settings',
   ],

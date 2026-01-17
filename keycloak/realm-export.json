@@ -6,6 +6,7 @@
   "sslRequired": "external",
   "registrationAllowed": true,
   "loginWithEmailAllowed": true,
+  "rememberMe": true,
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
   "editUsernameAllowed": false,
@@ -74,7 +75,7 @@
     }
   ],
   "defaultGroups": ["/Users"],
-  "requiredCredentials": ["password"],
+  "requiredCredentials": ["password", "otp"],
   "otpPolicyType": "totp",
   "otpPolicyAlgorithm": "HmacSHA1",
   "otpPolicyInitialCounter": 0,

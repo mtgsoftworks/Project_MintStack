@@ -33,7 +33,10 @@ public class YahooFinanceClient {
      */
     public BigDecimal fetchStockPrice(String symbol, String apiKey, String baseUrl) {
         try {
-            String yahooSymbol = symbol + ".IS"; // BIST stocks on Yahoo Finance
+            String yahooSymbol = symbol;
+            if (!yahooSymbol.contains(".")) {
+                yahooSymbol = symbol + ".IS"; // BIST stocks on Yahoo Finance
+            }
             String url = "/chart/" + yahooSymbol + "?interval=1d&range=1d";
             
             log.debug("Fetching Yahoo Finance quote: {}", yahooSymbol);
@@ -71,7 +74,10 @@ public class YahooFinanceClient {
         List<PriceHistory> history = new ArrayList<>();
         
         try {
-            String yahooSymbol = symbol + ".IS";
+            String yahooSymbol = symbol;
+            if (!yahooSymbol.contains(".")) {
+                yahooSymbol = symbol + ".IS";
+            }
             long period1 = startDate.atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
             long period2 = endDate.atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
             

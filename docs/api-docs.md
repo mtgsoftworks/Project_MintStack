@@ -180,6 +180,11 @@ DELETE /portfolios/{id}/items/{itemId}
 GET /portfolios/{id}/summary
 ```
 
+#### Portföy İşlem Geçmişi
+```http
+GET /portfolios/{id}/transactions?page=0&size=20
+```
+
 ---
 
 ### Analiz (Kimlik Doğrulama Gerekli)

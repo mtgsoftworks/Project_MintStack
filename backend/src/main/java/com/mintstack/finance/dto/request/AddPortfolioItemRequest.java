@@ -16,8 +16,10 @@ import java.util.UUID;
 @AllArgsConstructor
 public class AddPortfolioItemRequest {
 
-    @NotNull(message = "Enstrüman ID zorunludur")
     private UUID instrumentId;
+
+    @Size(max = 20, message = "Enstrüman sembolü en fazla 20 karakter olabilir")
+    private String instrumentSymbol;
 
     @NotNull(message = "Miktar zorunludur")
     @Positive(message = "Miktar pozitif olmalıdır")

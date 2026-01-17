@@ -76,6 +76,7 @@ export const portfolioApi = baseApi.injectEndpoints({
         { type: 'Portfolios', id: portfolioId },
         { type: 'PortfolioItems', id: 'LIST' },
         { type: 'Portfolios', id: 'SUMMARY' },
+        { type: 'PortfolioTransactions', id: `LIST_${portfolioId}` },
       ],
     }),
 
@@ -103,6 +104,19 @@ export const portfolioApi = baseApi.injectEndpoints({
         { type: 'Portfolios', id: portfolioId },
         { type: 'PortfolioItems', id: itemId },
         { type: 'Portfolios', id: 'SUMMARY' },
+        { type: 'PortfolioTransactions', id: `LIST_${portfolioId}` },
+      ],
+    }),
+
+    // Get portfolio transactions
+    getPortfolioTransactions: builder.query({
+      query: ({ portfolioId, page = 0, size = 10 }) => ({
+        url: `/portfolios/${portfolioId}/transactions`,
+        params: { page, size },
+      }),
+      transformResponse: (response) => response,
+      providesTags: (result, error, { portfolioId }) => [
+        { type: 'PortfolioTransactions', id: `LIST_${portfolioId}` },
       ],
     }),
   }),
@@ -118,4 +132,5 @@ export const {
   useAddPortfolioItemMutation,
   useUpdatePortfolioItemMutation,
   useRemovePortfolioItemMutation,
+  useGetPortfolioTransactionsQuery,
 } = portfolioApi

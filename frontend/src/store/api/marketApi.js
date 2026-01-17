@@ -36,10 +36,22 @@ export const marketApi = baseApi.injectEndpoints({
       providesTags: (result, error, symbol) => [{ type: 'Stocks', id: symbol }],
     }),
     getStockHistory: builder.query({
-      query: ({ symbol, period = '1M' }) => ({
-        url: `/market/stocks/${symbol}/history`,
-        params: { period },
-      }),
+      query: ({ symbol, period = '1M', days, startDate, endDate }) => {
+        if (startDate && endDate) {
+          return {
+            url: `/market/stocks/${symbol}/history`,
+            params: { startDate, endDate },
+          }
+        }
+
+        const daysMap = { '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365 }
+        const resolvedDays = days ?? daysMap[period] ?? 30
+
+        return {
+          url: `/market/stocks/${symbol}/history`,
+          params: { days: resolvedDays },
+        }
+      },
       transformResponse: (response) => response.data,
     }),
 

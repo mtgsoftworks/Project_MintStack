@@ -4,6 +4,9 @@ import com.mintstack.finance.dto.request.AddPortfolioItemRequest;
 import com.mintstack.finance.dto.request.CreatePortfolioRequest;
 import com.mintstack.finance.dto.response.ApiResponse;
 import com.mintstack.finance.dto.response.PortfolioResponse;
+import com.mintstack.finance.dto.response.PortfolioSummaryResponse;
+import com.mintstack.finance.dto.response.PortfolioTransactionResponse;
+import com.mintstack.finance.dto.response.PaginationInfo;
 import com.mintstack.finance.service.PortfolioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -15,6 +18,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 
 import java.util.List;
 import java.util.UUID;
@@ -36,6 +42,15 @@ public class PortfolioController {
         userService.getOrCreateUser(jwt);
         List<PortfolioResponse> portfolios = portfolioService.getUserPortfolios(jwt.getSubject());
         return ResponseEntity.ok(ApiResponse.success(portfolios));
+    }
+
+    @GetMapping("/summary")
+    @Operation(summary = "Kullanıcının tüm portföy özetini getir")
+    public ResponseEntity<ApiResponse<PortfolioSummaryResponse>> getPortfolioSummary(
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.getOrCreateUser(jwt);
+        PortfolioSummaryResponse summary = portfolioService.getUserPortfolioSummary(jwt.getSubject());
+        return ResponseEntity.ok(ApiResponse.success(summary));
     }
 
     @GetMapping("/{id}")
@@ -96,6 +111,17 @@ public class PortfolioController {
             @PathVariable UUID itemId) {
         PortfolioResponse portfolio = portfolioService.removeItem(jwt.getSubject(), id, itemId);
         return ResponseEntity.ok(ApiResponse.success(portfolio, "Enstrüman portföyden çıkarıldı"));
+    }
+
+    @GetMapping("/{id}/transactions")
+    @Operation(summary = "Portföy işlem geçmişini getir")
+    public ResponseEntity<ApiResponse<List<PortfolioTransactionResponse>>> getPortfolioTransactions(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id,
+            @PageableDefault(size = 20) Pageable pageable) {
+        Page<PortfolioTransactionResponse> transactions = portfolioService
+            .getPortfolioTransactions(jwt.getSubject(), id, pageable);
+        return ResponseEntity.ok(ApiResponse.success(transactions.getContent(), PaginationInfo.from(transactions)));
     }
 
     @GetMapping("/{id}/summary")

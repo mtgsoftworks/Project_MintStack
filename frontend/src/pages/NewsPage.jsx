@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Calendar, Clock, Eye, Search, Filter } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,9 +8,16 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn, formatRelativeTime, truncate } from '@/lib/utils'
-import { useGetNewsQuery, useGetNewsCategoriesQuery } from '@/store/api/newsApi'
+import {
+  useGetNewsByCategoryQuery,
+  useGetNewsCategoriesQuery,
+  useGetNewsQuery,
+  useSearchNewsQuery,
+} from '@/store/api/newsApi'
 
 function NewsCard({ news }) {
+  const categoryLabel = news?.category?.name || news?.categoryName
+
   return (
     <Link to={`/news/${news.id}`}>
       <Card className="card-hover h-full">
@@ -25,9 +32,9 @@ function NewsCard({ news }) {
         )}
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2 mb-2">
-            {news.category && (
+            {categoryLabel && (
               <Badge variant="secondary" className="text-xs">
-                {news.category.name}
+                {categoryLabel}
               </Badge>
             )}
             {news.isFeatured && (
@@ -90,11 +97,57 @@ export default function NewsPage() {
   const [searchQuery, setSearchQuery] = useState('')
 
   const { data: categoriesData, isLoading: categoriesLoading } = useGetNewsCategoriesQuery()
-  const { data, isLoading, isFetching } = useGetNewsQuery({
-    page,
-    size: 12,
-    category: category !== 'all' ? category : undefined,
-  })
+
+  const trimmedSearch = searchQuery.trim()
+  const isSearching = trimmedSearch.length > 0
+  const isCategoryFiltered = category !== 'all'
+
+  const {
+    data: searchData,
+    isLoading: searchLoading,
+    isFetching: searchFetching,
+  } = useSearchNewsQuery(
+    { query: trimmedSearch, page, size: 12 },
+    { skip: !isSearching }
+  )
+
+  const {
+    data: categoryData,
+    isLoading: categoryLoading,
+    isFetching: categoryFetching,
+  } = useGetNewsByCategoryQuery(
+    { categorySlug: category, page, size: 12 },
+    { skip: isSearching || !isCategoryFiltered }
+  )
+
+  const {
+    data: allNewsData,
+    isLoading: allNewsLoading,
+    isFetching: allNewsFetching,
+  } = useGetNewsQuery(
+    {
+      page,
+      size: 12,
+      category: isCategoryFiltered ? category : undefined,
+    },
+    { skip: isSearching || isCategoryFiltered }
+  )
+
+  const data = isSearching ? searchData : isCategoryFiltered ? categoryData : allNewsData
+  const isLoading = isSearching
+    ? searchLoading
+    : isCategoryFiltered
+      ? categoryLoading
+      : allNewsLoading
+  const isFetching = isSearching
+    ? searchFetching
+    : isCategoryFiltered
+      ? categoryFetching
+      : allNewsFetching
+
+  useEffect(() => {
+    setPage(0)
+  }, [trimmedSearch])
 
   const categories = categoriesData || []
   const news = data?.data || []

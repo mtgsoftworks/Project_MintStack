@@ -2,6 +2,7 @@ package com.mintstack.finance.controller;
 
 import com.mintstack.finance.config.CorsProperties;
 import com.mintstack.finance.config.RateLimitConfig;
+import com.mintstack.finance.config.SecurityConfig;
 import com.mintstack.finance.dto.response.AdminDashboardResponse;
 import com.mintstack.finance.dto.response.UserAdminResponse;
 import com.mintstack.finance.service.AdminService;
@@ -13,6 +14,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,7 +31,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AdminController.class)
-@Import(CorsProperties.class)
+@Import({CorsProperties.class, SecurityConfig.class})
 @AutoConfigureDataJpa
 class AdminControllerTest {
 
@@ -73,7 +75,8 @@ class AdminControllerTest {
             .isActive(true)
             .build();
 
-        Page<UserAdminResponse> page = new PageImpl<>(List.of(user));
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<UserAdminResponse> page = new PageImpl<>(List.of(user), pageable, 1);
         when(adminService.getAllUsers(any(Pageable.class))).thenReturn(page);
 
         // When & Then
@@ -117,7 +120,8 @@ class AdminControllerTest {
             .isActive(true)
             .build();
 
-        Page<UserAdminResponse> page = new PageImpl<>(List.of(user));
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<UserAdminResponse> page = new PageImpl<>(List.of(user), pageable, 1);
         when(adminService.searchUsers(eq("search"), any(Pageable.class))).thenReturn(page);
 
         // When & Then

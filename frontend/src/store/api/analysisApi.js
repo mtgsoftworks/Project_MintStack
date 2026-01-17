@@ -27,11 +27,26 @@ export const analysisApi = baseApi.injectEndpoints({
 
     // Get comparison data for multiple symbols
     getComparison: builder.query({
-      query: ({ symbols, period = '1M' }) => ({
-        url: '/analysis/compare',
-        params: { symbols: symbols.join(','), period },
-      }),
-      transformResponse: (response) => response.data,
+      query: ({ symbols, period = '1M' }) => {
+        const daysMap = { '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365 }
+        const days = daysMap[period] || 30
+        const endDate = new Date()
+        const startDate = new Date(endDate)
+        startDate.setDate(startDate.getDate() - days)
+
+        const formatDate = (date) => date.toISOString().split('T')[0]
+
+        return {
+          url: '/analysis/compare',
+          method: 'POST',
+          body: {
+            symbols,
+            startDate: formatDate(startDate),
+            endDate: formatDate(endDate),
+          },
+        }
+      },
+      transformResponse: (response) => response.data?.instruments || [],
     }),
 
     // Get technical indicators
