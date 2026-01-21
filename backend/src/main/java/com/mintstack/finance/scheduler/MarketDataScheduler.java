@@ -49,9 +49,16 @@ public class MarketDataScheduler {
 
     /**
      * Fetch TCMB currency rates (9:00, 12:00, 15:00 weekdays)
+     * Only runs if TCMB API is configured by user
      */
     @Scheduled(cron = "${app.scheduler.tcmb-rates-cron}")
     public void fetchTcmbRates() {
+        UserApiConfig tcmbConfig = getActiveConfig(ApiProvider.TCMB);
+        if (tcmbConfig == null) {
+            log.debug("TCMB API not configured. Skipping currency rates fetch.");
+            return;
+        }
+        
         log.info("Starting TCMB rates fetch job");
         try {
             List<CurrencyRate> rates = tcmbApiClient.fetchTodayRates();
@@ -111,14 +118,18 @@ public class MarketDataScheduler {
      */
     @Scheduled(initialDelay = 5000, fixedDelay = 60000)
     public void initialDataLoad() {
-        // 1. Load TCMB Rates (always try)
-        try {
-            List<CurrencyRate> rates = tcmbApiClient.fetchTodayRates();
-            if (rates != null && !rates.isEmpty()) {
-                marketDataService.saveCurrencyRates(rates);
+        // 1. Load TCMB Rates (only if configured)
+        UserApiConfig tcmbConfig = getActiveConfig(ApiProvider.TCMB);
+        if (tcmbConfig != null) {
+            try {
+                List<CurrencyRate> rates = tcmbApiClient.fetchTodayRates();
+                if (rates != null && !rates.isEmpty()) {
+                    marketDataService.saveCurrencyRates(rates);
+                    log.info("TCMB rates loaded: {} currencies", rates.size());
+                }
+            } catch (Exception e) {
+                log.debug("TCMB load: {}", e.getMessage());
             }
-        } catch (Exception e) {
-            log.debug("TCMB load: {}", e.getMessage());
         }
 
         // 2. Bootstrap Stocks from API if DB is empty

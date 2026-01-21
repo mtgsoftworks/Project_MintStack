@@ -3,6 +3,8 @@ package com.mintstack.finance.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "user_api_configs", indexes = {
     @Index(name = "idx_user_api_configs_user_id", columnList = "user_id")
@@ -34,6 +36,9 @@ public class UserApiConfig extends BaseEntity {
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;
+
+    @Column(name = "last_triggered_at")
+    private LocalDateTime lastTriggeredAt;
 
     public enum ApiProvider {
         YAHOO_FINANCE,

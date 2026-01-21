@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { selectTheme, setTheme } from '@/store/slices/uiSlice'
+import { 
+    selectTheme, setTheme,
+    selectCurrency, setCurrency,
+    selectTimezone, setTimezone,
+    selectAutoUpdate, setAutoUpdate,
+    selectRefreshRate, setRefreshRate
+} from '@/store/slices/uiSlice'
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/store/api/userApi'
 import {
     Card,
@@ -39,13 +45,17 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Trash2, Plus, Key, RefreshCw, AlertCircle, Pencil, CheckCircle } from 'lucide-react'
+import { Trash2, Plus, Key, RefreshCw, AlertCircle, Pencil, CheckCircle, Database, Zap } from 'lucide-react'
 import {
     useGetApiConfigsQuery,
     useAddApiConfigMutation,
     useDeleteApiConfigMutation,
     useTestApiKeyMutation,
-    useClearCacheMutation
+    useClearCacheMutation,
+    useGetDataSourceCapabilitiesQuery,
+    useGetDataPreferencesQuery,
+    useSetDataPreferenceMutation,
+    useTriggerDataFetchMutation
 } from '@/store/api/settingsApi'
 import { toast } from 'sonner'
 import { portfolioService } from '@/services/portfolioService'
@@ -59,6 +69,10 @@ export default function SettingsPage() {
     const { t, i18n } = useTranslation()
     const dispatch = useDispatch()
     const theme = useSelector(selectTheme)
+    const currency = useSelector(selectCurrency)
+    const timezone = useSelector(selectTimezone)
+    const autoUpdate = useSelector(selectAutoUpdate)
+    const refreshRate = useSelector(selectRefreshRate)
 
     // Profile & Notification Settings
     const { data: profile } = useGetProfileQuery()
@@ -102,6 +116,12 @@ export default function SettingsPage() {
     const [deleteConfig, { isLoading: isDeleting }] = useDeleteApiConfigMutation()
     const [testApiKey, { isLoading: isTesting }] = useTestApiKeyMutation()
     const [clearCache, { isLoading: isClearingCache }] = useClearCacheMutation()
+    const [triggerDataFetch] = useTriggerDataFetchMutation()
+    
+    // Data Source preferences
+    const { data: capabilitiesData } = useGetDataSourceCapabilitiesQuery()
+    const { data: preferencesData, refetch: refetchPreferences } = useGetDataPreferencesQuery()
+    const [setDataPreference] = useSetDataPreferenceMutation()
 
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingConfig, setEditingConfig] = useState(null) // null = new, object = editing
@@ -211,16 +231,41 @@ export default function SettingsPage() {
     const handleAddSubmit = async (e) => {
         e.preventDefault()
 
-        if (!isValidated) {
+        // TCMB doesn't require validation - auto validate it
+        if (formData.provider === 'TCMB') {
+            setIsValidated(true)
+        }
+
+        if (!isValidated && formData.provider !== 'TCMB') {
             toast.error(t('settings.apiKeys.validation.testRequired'))
             return
         }
 
+        // Prepare data with TCMB placeholder if needed
+        const dataToSubmit = {
+            ...formData,
+            apiKey: (formData.provider === 'TCMB' && !formData.apiKey.trim()) ? 'TCMB_PUBLIC' : formData.apiKey
+        }
+
         try {
-            await addConfig(formData).unwrap()
+            const result = await addConfig(dataToSubmit).unwrap()
             toast.success(editingConfig ? t('settings.apiKeys.update') : t('settings.apiKeys.save'))
             setIsDialogOpen(false)
             resetForm()
+            
+            // Trigger immediate data fetch for new API key
+            if (result.data?.id && dataToSubmit.isActive) {
+                try {
+                    toast.loading(t('settings.apiKeys.fetchingData', { defaultValue: 'Veriler çekiliyor...' }))
+                    const triggerResult = await triggerDataFetch(result.data.id).unwrap()
+                    toast.dismiss()
+                    toast.success(triggerResult.message || t('settings.apiKeys.dataFetched', { defaultValue: 'Veriler başarıyla çekildi!' }))
+                    refetchPreferences()
+                } catch (triggerError) {
+                    toast.dismiss()
+                    console.warn('Trigger fetch failed:', triggerError)
+                }
+            }
         } catch (error) {
             console.error('Failed to add config:', error)
             toast.error(error.data?.message || t('common.error'))
@@ -259,6 +304,10 @@ export default function SettingsPage() {
                 <TabsList>
                     <TabsTrigger value="general">{t('settingsPage.tabs.general')}</TabsTrigger>
                     <TabsTrigger value="api-keys">{t('settings.apiKeys.title')}</TabsTrigger>
+                    <TabsTrigger value="data-sources">
+                        <Database className="h-4 w-4 mr-2" />
+                        {t('settings.dataSources.title', { defaultValue: 'Veri Kaynakları' })}
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="general">
@@ -336,7 +385,13 @@ export default function SettingsPage() {
                                         <Label>{t('settingsPage.data.currency.label')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.data.currency.description')}</p>
                                     </div>
-                                    <Select defaultValue="TRY">
+                                    <Select 
+                                        value={currency} 
+                                        onValueChange={(val) => {
+                                            dispatch(setCurrency(val))
+                                            toast.success(t('success.saved'))
+                                        }}
+                                    >
                                         <SelectTrigger className="w-40">
                                             <SelectValue />
                                         </SelectTrigger>
@@ -353,7 +408,13 @@ export default function SettingsPage() {
                                         <Label>{t('settingsPage.data.timezone.label')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.data.timezone.description')}</p>
                                     </div>
-                                    <Select defaultValue="Europe/Istanbul">
+                                    <Select 
+                                        value={timezone}
+                                        onValueChange={(val) => {
+                                            dispatch(setTimezone(val))
+                                            toast.success(t('success.saved'))
+                                        }}
+                                    >
                                         <SelectTrigger className="w-40">
                                             <SelectValue />
                                         </SelectTrigger>
@@ -370,14 +431,26 @@ export default function SettingsPage() {
                                         <Label>{t('settingsPage.data.autoUpdate.label')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.data.autoUpdate.description')}</p>
                                     </div>
-                                    <Switch defaultChecked />
+                                    <Switch 
+                                        checked={autoUpdate}
+                                        onCheckedChange={(val) => {
+                                            dispatch(setAutoUpdate(val))
+                                            toast.success(t('success.saved'))
+                                        }}
+                                    />
                                 </div>
                                 <div className="flex items-center justify-between py-2 border-b">
                                     <div className="space-y-0.5">
                                         <Label>{t('settingsPage.data.refreshRate.label')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.data.refreshRate.description')}</p>
                                     </div>
-                                    <Select defaultValue="60">
+                                    <Select 
+                                        value={refreshRate.toString()}
+                                        onValueChange={(val) => {
+                                            dispatch(setRefreshRate(parseInt(val)))
+                                            toast.success(t('success.saved'))
+                                        }}
+                                    >
                                         <SelectTrigger className="w-40">
                                             <SelectValue />
                                         </SelectTrigger>
@@ -749,8 +822,8 @@ export default function SettingsPage() {
                                         <DialogFooter>
                                             <Button
                                                 type="submit"
-                                                disabled={isAdding || !isValidated}
-                                                className={!isValidated ? 'opacity-50' : ''}
+                                                disabled={isAdding || (!isValidated && formData.provider !== 'TCMB')}
+                                                className={(!isValidated && formData.provider !== 'TCMB') ? 'opacity-50' : ''}
                                             >
                                                 {isAdding ? t('common.loading') : (editingConfig ? t('settings.apiKeys.update') : t('settings.apiKeys.save'))}
                                             </Button>
@@ -826,6 +899,133 @@ export default function SettingsPage() {
                                             ))}
                                         </TableBody>
                                     </Table>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Data Sources Tab */}
+                <TabsContent value="data-sources">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Database className="h-5 w-5" />
+                                {t('settings.dataSources.title', { defaultValue: 'Veri Kaynakları' })}
+                            </CardTitle>
+                            <CardDescription>
+                                {t('settings.dataSources.description', { defaultValue: 'Her veri türü için hangi kaynağı kullanmak istediğinizi seçin' })}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {!apiConfigs || apiConfigs.length === 0 ? (
+                                <div className="text-center p-8 border-2 border-dashed rounded-lg text-muted-foreground">
+                                    <Key className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                                    <p className="mb-2">{t('settings.dataSources.noApiKeys', { defaultValue: 'Önce API anahtarı eklemeniz gerekiyor' })}</p>
+                                    <Button variant="link" onClick={() => document.querySelector('[value="api-keys"]')?.click()}>
+                                        {t('settings.apiKeys.add')}
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {/* Data Type Selection - Updated based on official API docs */}
+                                    {/* TCMB: https://evds2.tcmb.gov.tr/ */}
+                                    {/* Yahoo Finance: https://ranaroussi.github.io/yfinance/ */}
+                                    {/* Alpha Vantage: https://www.alphavantage.co/documentation/ */}
+                                    {/* Finnhub: https://finnhub.io/docs/api */}
+                                    {[
+                                        { type: 'CURRENCY_RATES', label: 'Döviz Kurları', providers: ['TCMB', 'YAHOO_FINANCE', 'ALPHA_VANTAGE', 'FINNHUB'] },
+                                        { type: 'BIST_STOCKS', label: 'BIST Hisseleri', providers: ['YAHOO_FINANCE'] },
+                                        { type: 'US_STOCKS', label: 'ABD Hisseleri', providers: ['YAHOO_FINANCE', 'ALPHA_VANTAGE', 'FINNHUB'] },
+                                        { type: 'CRYPTO', label: 'Kripto Paralar', providers: ['YAHOO_FINANCE', 'ALPHA_VANTAGE', 'FINNHUB'] },
+                                        { type: 'NEWS', label: 'Haberler', providers: ['YAHOO_FINANCE', 'ALPHA_VANTAGE', 'FINNHUB'] },
+                                    ].map((dataType) => {
+                                        const currentPref = preferencesData?.data?.find(p => p.dataType === dataType.type)
+                                        const availableProviders = apiConfigs.filter(c => 
+                                            c.isActive && dataType.providers.includes(c.provider)
+                                        )
+                                        
+                                        return (
+                                            <div key={dataType.type} className="flex items-center justify-between py-4 border-b last:border-0">
+                                                <div className="flex items-center gap-3">
+                                                    <div>
+                                                        <Label className="text-base font-medium">{dataType.label}</Label>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {availableProviders.length > 0 
+                                                                ? `${availableProviders.length} kaynak mevcut`
+                                                                : 'Kaynak yok - API anahtarı ekleyin'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {availableProviders.length > 0 ? (
+                                                        <Select
+                                                            value={currentPref?.provider || ''}
+                                                            onValueChange={async (provider) => {
+                                                                try {
+                                                                    await setDataPreference({
+                                                                        dataType: dataType.type,
+                                                                        provider: provider,
+                                                                        isEnabled: true
+                                                                    }).unwrap()
+                                                                    toast.success(`${dataType.label} kaynağı güncellendi`)
+                                                                    refetchPreferences()
+                                                                } catch (err) {
+                                                                    toast.error(err.data?.message || 'Hata oluştu')
+                                                                }
+                                                            }}
+                                                        >
+                                                            <SelectTrigger className="w-48">
+                                                                <SelectValue placeholder="Kaynak seçin" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {availableProviders.map((config) => (
+                                                                    <SelectItem key={config.provider} value={config.provider}>
+                                                                        {getProviderLabel(config.provider)}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    ) : (
+                                                        <Badge variant="secondary">
+                                                            {t('settings.dataSources.noProvider', { defaultValue: 'Kaynak yok' })}
+                                                        </Badge>
+                                                    )}
+                                                    {currentPref && (
+                                                        <Badge variant="success" className="ml-2">
+                                                            <Zap className="h-3 w-3 mr-1" />
+                                                            Aktif
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                    
+                                    {/* Manual Refresh Button */}
+                                    <div className="pt-4 border-t">
+                                        <Button
+                                            variant="outline"
+                                            onClick={async () => {
+                                                const activeConfig = apiConfigs.find(c => c.isActive)
+                                                if (activeConfig) {
+                                                    try {
+                                                        toast.loading('Veriler çekiliyor...')
+                                                        await triggerDataFetch(activeConfig.id).unwrap()
+                                                        toast.dismiss()
+                                                        toast.success('Veriler güncellendi!')
+                                                    } catch (err) {
+                                                        toast.dismiss()
+                                                        toast.error('Veri çekme başarısız')
+                                                    }
+                                                }
+                                            }}
+                                            disabled={!apiConfigs.some(c => c.isActive)}
+                                        >
+                                            <RefreshCw className="h-4 w-4 mr-2" />
+                                            {t('settings.dataSources.refreshNow', { defaultValue: 'Verileri Şimdi Güncelle' })}
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
                         </CardContent>

@@ -19,7 +19,7 @@ class WebSocketService {
      * Connect to WebSocket server
      */
     connect(options = {}) {
-        const wsUrl = options.url || import.meta.env.VITE_WS_URL || 'http://localhost:8080/ws'
+        const wsUrl = options.url || import.meta.env.VITE_WS_URL || 'http://localhost:18080/ws'
 
         return new Promise((resolve, reject) => {
             try {

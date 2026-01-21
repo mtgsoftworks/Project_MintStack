@@ -142,7 +142,7 @@ git clone https://github.com/YOUR_USERNAME/MintStack-Finance.git
 cd MintStack-Finance
 
 # 2. Environment dosyasını oluşturun
-cp env.local .env
+cp .env.example .env
 
 # 3. Tüm servisleri başlatın
 docker-compose up -d
@@ -160,6 +160,7 @@ docker-compose ps
 | 📚 Swagger UI | http://localhost:18080/swagger-ui.html | API Dokümantasyonu |
 | 🔐 Keycloak | http://localhost:8180 | Identity Management |
 | 📊 OpenSearch Dashboards | http://localhost:15601 | Log & Metrics Dashboard |
+| 📈 Prometheus Metrics | http://localhost:8889 | Metrics Endpoint |
 
 ### Varsayılan Kullanıcılar
 
@@ -168,9 +169,9 @@ docker-compose ps
 | `admin` | `Admin123!` | Admin | Tam yetki |
 | `testuser` | `Test123!` | User | Standart kullanıcı |
 
-**Keycloak Admin Konsolu**: `admin` / `KeycloakAdmin2026!`
+**Keycloak Admin Konsolu:** `admin` / `KeycloakAdmin2026!`
 
-> ⚠️ Production'da bu şifreleri mutlaka değiştirin. Örnek dosyalar: **frontend/.env.production.example** ve **backend/.env.production.example**
+> ⚠️ Production'da bu şifreleri mutlaka değiştirin. `.env.example` dosyasını kopyalayıp düzenleyin.
 
 ### Production Environment Templates
 

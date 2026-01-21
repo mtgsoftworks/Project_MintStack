@@ -15,8 +15,16 @@ http://localhost:18080/api/v1
 ## Authentication
 Bu API, OAuth2/OpenID Connect (Keycloak) kullanır. Korumalı endpoint'ler için JWT token gereklidir.
 
-```
+```http
 Authorization: Bearer <token>
+```
+
+### Token Alma (Login)
+```http
+POST http://localhost:8180/realms/mintstack-finance/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=finance-frontend&username=admin&password=Admin123!
 ```
 
 ## Endpoints
@@ -101,6 +109,11 @@ WebSocket endpoint (SockJS):
 ws://localhost:18080/ws
 ```
 
+Native WebSocket:
+```
+ws://localhost:18080/ws-native
+```
+
 Topics:
 ```
 /topic/prices
@@ -108,12 +121,25 @@ Topics:
 /topic/prices/stocks/{symbol}
 /topic/prices/currency
 /topic/prices/currency/{code}
+/user/queue/notifications
 ```
 
-Notes:
-- STOMP protocol is required
-- SockJS fallback is enabled
-- For direct WebSocket: `/ws-native`
+**Frontend Örneği:**
+```javascript
+import { Client } from '@stomp/stompjs'
+import SockJS from 'sockjs-client'
+
+const client = new Client({
+  webSocketFactory: () => new SockJS('http://localhost:18080/ws'),
+  onConnect: () => {
+    client.subscribe('/topic/prices/stocks/THYAO', (msg) => {
+      const data = JSON.parse(msg.body)
+      console.log('Price update:', data)
+    })
+  }
+})
+client.activate()
+```
 
 ### Haberler
 
@@ -348,5 +374,12 @@ Content-Type: application/json
 ## Swagger UI
 API dokümantasyonuna tarayıcıdan erişebilirsiniz:
 ```
-http://localhost:8080/swagger-ui.html
+http://localhost:18080/swagger-ui.html
 ```
+
+## Rate Limiting
+| Endpoint Type | Limit | Açıklama |
+|--------------|-------|----------|
+| Public | 100 req/dk | Kimliksiz istekler |
+| Authenticated | 200 req/dk | Giriş yapmış kullanıcılar |
+| Admin | 500 req/dk | Admin rolü |

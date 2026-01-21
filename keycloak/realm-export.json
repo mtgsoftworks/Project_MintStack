@@ -120,11 +120,15 @@
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
         "http://localhost:3000/*",
-        "http://127.0.0.1:3000/*"
+        "http://127.0.0.1:3000/*",
+        "http://localhost:3001/*",
+        "http://127.0.0.1:3001/*"
       ],
       "webOrigins": [
         "http://localhost:3000",
-        "http://127.0.0.1:3000"
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001"
       ],
       "bearerOnly": false,
       "consentRequired": false,
@@ -138,7 +142,7 @@
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "access.token.lifespan": "28800",
-        "post.logout.redirect.uris": "http://localhost:3000/*"
+        "post.logout.redirect.uris": "http://localhost:3000/*##http://localhost:3001/*"
       },
       "fullScopeAllowed": true,
       "defaultClientScopes": [
