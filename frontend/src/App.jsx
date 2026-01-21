@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux'
 import Keycloak from 'keycloak-js'
 import { setAuth, setInitialized } from '@/store/slices/authSlice'
 import { Layout, ProtectedRoute, LoadingPage } from '@/components/layout'
+import websocketService from '@/services/websocketService'
 
 // Pages
 import DashboardPage from '@/pages/DashboardPage'
@@ -64,6 +65,13 @@ function App() {
             user,
             roles: user.roles,
           }))
+
+          // Connect WebSocket for real-time price updates
+          try {
+            websocketService.connect()
+          } catch (error) {
+            console.warn('WebSocket connection failed:', error)
+          }
 
           // Set up token refresh
           setInterval(() => {

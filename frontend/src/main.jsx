@@ -4,9 +4,15 @@ import { Provider } from 'react-redux'
 import { BrowserRouter } from 'react-router-dom'
 import { store } from '@/store'
 import { ErrorBoundary } from '@/components/layout'
+import { registerServiceWorker } from '@/utils/serviceWorker'
 import App from './App'
 import './i18n' // i18n initialization
 import './index.css'
+
+// Register PWA service worker in production
+if (import.meta.env.PROD) {
+  registerServiceWorker()
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

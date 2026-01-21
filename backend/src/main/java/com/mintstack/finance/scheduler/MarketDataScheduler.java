@@ -128,14 +128,16 @@ public class MarketDataScheduler {
                 BigDecimal price = null;
                 String name = symbol; // Default name if not fetched
 
-                // Try fetching to validate and get price
-                if (yahooConfig != null) {
-                    try {
-                        price = yahooFinanceClient.fetchStockPrice(symbol, yahooConfig.getApiKey(), yahooConfig.getBaseUrl());
-                        // Yahoo might return name in a more complex response, simplifying here
-                    } catch (Exception ignored) {}
+                // Try Yahoo Finance (works with or without API key via direct fallback)
+                try {
+                    String apiKey = yahooConfig != null ? yahooConfig.getApiKey() : null;
+                    String baseUrl = yahooConfig != null ? yahooConfig.getBaseUrl() : null;
+                    price = yahooFinanceClient.fetchStockPrice(symbol, apiKey, baseUrl);
+                } catch (Exception e) {
+                    log.debug("Yahoo fetch failed for bootstrap {}: {}", symbol, e.getMessage());
                 }
 
+                // Fallback to Alpha Vantage
                 if (price == null && alphaConfig != null) {
                     try {
                         price = alphaVantageClient.fetchGlobalQuote(buildAlphaSymbol(symbol), alphaConfig.getApiKey());
@@ -211,17 +213,23 @@ public class MarketDataScheduler {
     private BigDecimal fetchInstrumentPrice(Instrument instrument, UserApiConfig yahooConfig, UserApiConfig alphaConfig) {
         BigDecimal price = null;
 
-        if (yahooConfig != null) {
-            try {
-                price = yahooFinanceClient.fetchStockPrice(instrument.getSymbol(), yahooConfig.getApiKey(), yahooConfig.getBaseUrl());
-            } catch (Exception e) {
-                log.warn("Yahoo fetch failed for {} ({}), trying failover...", instrument.getSymbol(), instrument.getType());
-            }
+        // Try Yahoo Finance (works with or without API key via direct fallback)
+        try {
+            String apiKey = yahooConfig != null ? yahooConfig.getApiKey() : null;
+            String baseUrl = yahooConfig != null ? yahooConfig.getBaseUrl() : null;
+            price = yahooFinanceClient.fetchStockPrice(instrument.getSymbol(), apiKey, baseUrl);
+        } catch (Exception e) {
+            log.warn("Yahoo fetch failed for {} ({}), trying Alpha Vantage...", instrument.getSymbol(), instrument.getType());
         }
 
+        // Fallback to Alpha Vantage if Yahoo failed and config exists
         if (price == null && alphaConfig != null) {
-            String querySymbol = buildAlphaSymbol(instrument.getSymbol());
-            price = alphaVantageClient.fetchGlobalQuote(querySymbol, alphaConfig.getApiKey());
+            try {
+                String querySymbol = buildAlphaSymbol(instrument.getSymbol());
+                price = alphaVantageClient.fetchGlobalQuote(querySymbol, alphaConfig.getApiKey());
+            } catch (Exception e) {
+                log.warn("Alpha Vantage also failed for {}", instrument.getSymbol());
+            }
         }
 
         return price;

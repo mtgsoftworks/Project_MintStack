@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
+import { selectTheme, setTheme } from '@/store/slices/uiSlice'
+import { useGetProfileQuery, useUpdateProfileMutation } from '@/store/api/userApi'
 import {
     Card,
     CardContent,
@@ -53,6 +56,46 @@ import { useTranslation } from 'react-i18next'
 
 export default function SettingsPage() {
     const { t, i18n } = useTranslation()
+    const dispatch = useDispatch()
+    const theme = useSelector(selectTheme)
+    
+    // Profile & Notification Settings
+    const { data: profile } = useGetProfileQuery()
+    const [updateProfile] = useUpdateProfileMutation()
+    
+    const [notificationSettings, setNotificationSettings] = useState({
+        priceAlerts: true,
+        portfolioUpdates: true,
+        emailNotifications: true,
+        pushNotifications: false
+    })
+    
+    // Sync notification settings from profile
+    useEffect(() => {
+        if (profile) {
+            setNotificationSettings({
+                priceAlerts: profile.priceAlerts ?? true,
+                portfolioUpdates: profile.portfolioUpdates ?? true,
+                emailNotifications: profile.emailNotifications ?? true,
+                pushNotifications: profile.pushNotifications ?? false
+            })
+        }
+    }, [profile])
+    
+    // Handle notification toggle
+    const handleNotificationToggle = async (key, value) => {
+        const newSettings = { ...notificationSettings, [key]: value }
+        setNotificationSettings(newSettings)
+        try {
+            await updateProfile({ [key]: value }).unwrap()
+            toast.success(t('success.saved'))
+        } catch (error) {
+            // Revert on error
+            setNotificationSettings(notificationSettings)
+            toast.error(t('common.error'))
+        }
+    }
+    
     const { data: configsData, isLoading, refetch } = useGetApiConfigsQuery()
     const [addConfig, { isLoading: isAdding }] = useAddApiConfigMutation()
     const [deleteConfig, { isLoading: isDeleting }] = useDeleteApiConfigMutation()
@@ -231,7 +274,23 @@ export default function SettingsPage() {
                                         <Label>{t('settings.theme')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.appearance.themeDescription')}</p>
                                     </div>
-                                    <Select defaultValue="dark">
+                                    <Select 
+                                        value={theme} 
+                                        onValueChange={(val) => {
+                                            dispatch(setTheme(val))
+                                            // Apply theme to document
+                                            if (val === 'dark') {
+                                                document.documentElement.classList.add('dark')
+                                            } else if (val === 'light') {
+                                                document.documentElement.classList.remove('dark')
+                                            } else {
+                                                // System preference
+                                                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+                                                document.documentElement.classList.toggle('dark', prefersDark)
+                                            }
+                                            toast.success(t('settingsPage.appearance.themeChanged'))
+                                        }}
+                                    >
                                         <SelectTrigger className="w-40">
                                             <SelectValue />
                                         </SelectTrigger>
@@ -338,28 +397,40 @@ export default function SettingsPage() {
                                         <Label>{t('settingsPage.notifications.priceAlerts.label')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.notifications.priceAlerts.description')}</p>
                                     </div>
-                                    <Switch defaultChecked />
+                                    <Switch 
+                                        checked={notificationSettings.priceAlerts} 
+                                        onCheckedChange={(val) => handleNotificationToggle('priceAlerts', val)}
+                                    />
                                 </div>
                                 <div className="flex items-center justify-between py-2 border-b">
                                     <div className="space-y-0.5">
                                         <Label>{t('settingsPage.notifications.portfolioUpdates.label')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.notifications.portfolioUpdates.description')}</p>
                                     </div>
-                                    <Switch defaultChecked />
+                                    <Switch 
+                                        checked={notificationSettings.portfolioUpdates} 
+                                        onCheckedChange={(val) => handleNotificationToggle('portfolioUpdates', val)}
+                                    />
                                 </div>
                                 <div className="flex items-center justify-between py-2 border-b">
                                     <div className="space-y-0.5">
                                         <Label>{t('settingsPage.notifications.news.label')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.notifications.news.description')}</p>
                                     </div>
-                                    <Switch defaultChecked />
+                                    <Switch 
+                                        checked={notificationSettings.emailNotifications} 
+                                        onCheckedChange={(val) => handleNotificationToggle('emailNotifications', val)}
+                                    />
                                 </div>
                                 <div className="flex items-center justify-between py-2 border-b">
                                     <div className="space-y-0.5">
                                         <Label>{t('settingsPage.notifications.sound.label')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.notifications.sound.description')}</p>
                                     </div>
-                                    <Switch />
+                                    <Switch 
+                                        checked={notificationSettings.pushNotifications} 
+                                        onCheckedChange={(val) => handleNotificationToggle('pushNotifications', val)}
+                                    />
                                 </div>
                             </div>
 

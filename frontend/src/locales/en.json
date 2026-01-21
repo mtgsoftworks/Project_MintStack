@@ -75,7 +75,7 @@
         }
     },
     "footer": {
-        "copyright": " {{year}} MintStack Finance"
+        "copyright": "© {{year}} MintStack Finance"
     },
     "market": {
         "currencies": "Currency Rates",
@@ -303,6 +303,19 @@
         "saved": "Successfully saved",
         "deleted": "Successfully deleted",
         "updated": "Successfully updated"
+    },
+    "validation": {
+        "required": "This field is required",
+        "minLength": "Must be at least {{min}} characters",
+        "maxLength": "Must be at most {{max}} characters",
+        "invalidEmail": "Invalid email address",
+        "invalidUrl": "Invalid URL format",
+        "invalidNumber": "Must be a valid number",
+        "minValue": "Must be at least {{min}}",
+        "maxValue": "Must be at most {{max}}",
+        "invalidFormat": "Invalid format",
+        "passwordMismatch": "Passwords do not match",
+        "futureDate": "Date cannot be in the future"
     },
     "portfolioPage": {
         "title": "Portfolios",
@@ -584,14 +597,15 @@
             "themeDescription": "Choose the application theme",
             "languageDescription": "Select the interface language",
             "languageChanged": "Language changed to {{language}}",
+            "themeChanged": "Theme changed successfully",
             "themeOptions": {
                 "light": "Light",
                 "dark": "Dark",
                 "system": "System"
             },
             "languageOptions": {
-                "tr": " Turkish",
-                "en": " English"
+                "tr": "🇹🇷 Turkish",
+                "en": "🇬🇧 English"
             }
         },
         "data": {
@@ -599,10 +613,10 @@
                 "label": "Default Currency",
                 "description": "Currency used in portfolio and analysis",
                 "options": {
-                    "try": " Turkish Lira",
+                    "try": "₺ Turkish Lira",
                     "usd": "$ US Dollar",
-                    "eur": " Euro",
-                    "gbp": " British Pound"
+                    "eur": "€ Euro",
+                    "gbp": "£ British Pound"
                 }
             },
             "timezone": {
@@ -659,7 +673,7 @@
                     "title": "Delete All Data",
                     "description": "This action cannot be undone. Your portfolios, watchlists, alerts, and personal settings will be permanently deleted.",
                     "continue": "Click the button below to continue:",
-                    "warningTitle": "",
+                    "warningTitle": "⚠️ This will remove:",
                     "items": [
                         "All portfolios and positions",
                         "Watchlists",

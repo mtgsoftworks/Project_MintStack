@@ -281,6 +281,19 @@
         "deleted": "Başarıyla silindi",
         "updated": "Başarıyla güncellendi"
     },
+    "validation": {
+        "required": "Bu alan zorunludur",
+        "minLength": "En az {{min}} karakter olmalıdır",
+        "maxLength": "En fazla {{max}} karakter olmalıdır",
+        "invalidEmail": "Geçersiz e-posta adresi",
+        "invalidUrl": "Geçersiz URL formatı",
+        "invalidNumber": "Geçerli bir sayı olmalıdır",
+        "minValue": "En az {{min}} olmalıdır",
+        "maxValue": "En fazla {{max}} olmalıdır",
+        "invalidFormat": "Geçersiz format",
+        "passwordMismatch": "Şifreler eşleşmiyor",
+        "futureDate": "Tarih gelecekte olamaz"
+    },
     "portfolioPage": {
         "title": "Portföyler",
         "subtitle": "Yatırım portföylerinizi yönetin",
@@ -368,6 +381,269 @@
             "price": "Fiyat",
             "change": "Değişim",
             "totalValue": "Toplam Değer"
+        }
+    },
+    "viopPage": {
+        "title": "VİOP",
+        "subtitle": "Vadeli işlemler ve opsiyon piyasası",
+        "searchPlaceholder": "Kontrat ara...",
+        "listTitle": "Vadeli Kontratlar",
+        "listDescription": "{{count}} adet kontrat listeleniyor",
+        "empty": "Sonuç bulunamadı",
+        "headers": {
+            "contract": "Kontrat",
+            "underlying": "Dayanak",
+            "price": "Fiyat",
+            "change": "Değişim",
+            "volume": "Hacim",
+            "maturity": "Vade"
+        }
+    },
+    "stocksPage": {
+        "title": "Hisse Senetleri",
+        "subtitle": "BIST'te işlem gören hisseler",
+        "searchPlaceholder": "Hisse ara...",
+        "listTitle": "Hisse Listesi",
+        "listDescription": "{{count}} adet hisse listeleniyor",
+        "empty": "Sonuç bulunamadı",
+        "pagination": "Sayfa {{current}} / {{total}}",
+        "headers": {
+            "symbol": "Sembol",
+            "company": "Şirket",
+            "price": "Fiyat",
+            "change": "Değişim",
+            "previousClose": "Önceki Kapanış",
+            "volume": "Hacim"
+        }
+    },
+    "notificationsPage": {
+        "title": "Bildirimler",
+        "subtitle": "Alarmlarınızı ve sistem bildirimlerini yönetin",
+        "confirmClearAll": "Tüm bildirimleri silmek istediğinize emin misiniz?",
+        "emptyCategory": "Bu kategoride bildirim yok",
+        "actions": {
+            "markAllRead": "Tümünü okundu işaretle",
+            "clearAll": "Tümünü temizle",
+            "markRead": "Okundu işaretle",
+            "delete": "Sil"
+        },
+        "tabs": {
+            "all": "Tümü",
+            "unread": "Okunmamış",
+            "alerts": "Alarmlar",
+            "news": "Haberler"
+        },
+        "cardTitles": {
+            "all": "Tüm Bildirimler",
+            "unread": "Okunmamış Bildirimler",
+            "alerts": "Fiyat Alarmları",
+            "news": "Haber Bildirimleri"
+        },
+        "cardDescription": {
+            "empty": "Henüz bildirim yok",
+            "count": "{{count}} bildirim"
+        }
+    },
+    "alertsPage": {
+        "table": {
+            "type": "Tür",
+            "status": "Durum"
+        },
+        "actions": {
+            "deactivate": "Pasifleştir"
+        },
+        "form": {
+            "alertType": "Alarm Türü",
+            "notes": "Notlar (Opsiyonel)"
+        },
+        "placeholders": {
+            "symbol": "THYAO",
+            "targetValue": "300"
+        }
+    },
+    "portfolioDetailPage": {
+        "addItem": "Varlık Ekle",
+        "confirmDelete": "Bu varlığı silmek istediğinize emin misiniz?",
+        "notFound": "Portföy bulunamadı.",
+        "backToPortfolios": "Portföylere Dön",
+        "toast": {
+            "addSuccess": "Varlık eklendi",
+            "addError": "Varlık eklenemedi",
+            "deleteSuccess": "Varlık silindi",
+            "deleteError": "Varlık silinemedi"
+        },
+        "addItemDialog": {
+            "title": "Varlık Ekle",
+            "description": "Portföyünüze yeni bir varlık ekleyin.",
+            "symbolLabel": "Sembol",
+            "symbolPlaceholder": "THYAO",
+            "quantityLabel": "Adet",
+            "quantityPlaceholder": "100",
+            "purchasePriceLabel": "Alış Fiyatı (TRY)",
+            "purchasePricePlaceholder": "150.00",
+            "purchaseDateLabel": "Alış Tarihi",
+            "submit": "Ekle",
+            "submitting": "Ekleniyor..."
+        },
+        "chart": {
+            "title": "Portföy Dağılımı",
+            "empty": "Henüz varlık yok"
+        },
+        "summary": {
+            "title": "Özet",
+            "totalValue": "Toplam Değer",
+            "totalCost": "Toplam Maliyet",
+            "profitLoss": "Kar/Zarar",
+            "profitLossRatio": "K/Z Oranı"
+        },
+        "items": {
+            "title": "Varlıklar",
+            "count": "{{count}} varlık",
+            "empty": "Bu portföyde henüz varlık yok.",
+            "headers": {
+                "symbol": "Sembol",
+                "quantity": "Adet",
+                "purchasePrice": "Alış Fiyatı",
+                "currentPrice": "Güncel Fiyat",
+                "value": "Değer",
+                "profitLoss": "K/Z"
+            }
+        },
+        "transactions": {
+            "title": "İşlem Geçmişi",
+            "count": "{{count}} işlem kaydedildi",
+            "empty": "Henüz işlem yok.",
+            "pagination": "Sayfa {{current}} / {{total}}",
+            "headers": {
+                "date": "Tarih",
+                "type": "Tür",
+                "symbol": "Sembol",
+                "quantity": "Adet",
+                "price": "Fiyat",
+                "total": "Toplam",
+                "note": "Not"
+            },
+            "types": {
+                "buy": "Alış",
+                "sell": "Satış"
+            }
+        }
+    },
+    "settingsPage": {
+        "tabs": {
+            "general": "Genel"
+        },
+        "general": {
+            "title": "Genel Ayarlar",
+            "description": "Uygulama davranışını özelleştirin."
+        },
+        "sections": {
+            "appearance": "Görünüm",
+            "data": "Veri Ayarları",
+            "notifications": "Bildirim Ayarları"
+        },
+        "appearance": {
+            "themeDescription": "Uygulama temasını seçin",
+            "languageDescription": "Arayüz dilini seçin",
+            "languageChanged": "Dil {{language}} olarak değiştirildi",
+            "themeChanged": "Tema başarıyla değiştirildi",
+            "themeOptions": {
+                "light": "Açık",
+                "dark": "Koyu",
+                "system": "Sistem"
+            },
+            "languageOptions": {
+                "tr": "🇹🇷 Türkçe",
+                "en": "🇬🇧 İngilizce"
+            }
+        },
+        "data": {
+            "currency": {
+                "label": "Varsayılan Para Birimi",
+                "description": "Portföy ve analizlerde kullanılan para birimi",
+                "options": {
+                    "try": "₺ Türk Lirası",
+                    "usd": "$ ABD Doları",
+                    "eur": "€ Euro",
+                    "gbp": "£ İngiliz Sterlini"
+                }
+            },
+            "timezone": {
+                "label": "Saat Dilimi",
+                "description": "Verilerin gösteriminde kullanılan saat dilimi",
+                "options": {
+                    "istanbul": "İstanbul (UTC+3)",
+                    "london": "Londra (UTC+0)",
+                    "newYork": "New York (UTC-5)"
+                }
+            },
+            "autoUpdate": {
+                "label": "Otomatik Veri Güncelleme",
+                "description": "Piyasa verilerini arka planda otomatik yenile"
+            },
+            "refreshRate": {
+                "label": "Yenileme Sıklığı",
+                "description": "Veri yenileme aralığı",
+                "options": {
+                    "30": "30 saniye",
+                    "60": "1 dakika",
+                    "300": "5 dakika",
+                    "900": "15 dakika"
+                }
+            }
+        },
+        "notifications": {
+            "priceAlerts": {
+                "label": "Fiyat Alarmları",
+                "description": "Hedef fiyata ulaşıldığında bildir"
+            },
+            "portfolioUpdates": {
+                "label": "Portföy Güncellemeleri",
+                "description": "Önemli değer değişikliklerinde bildir"
+            },
+            "news": {
+                "label": "Haber Bildirimleri",
+                "description": "İlgili haberler yayınlandığında bildir"
+            },
+            "sound": {
+                "label": "Sesli Bildirimler",
+                "description": "Bildirimler için ses çal"
+            }
+        },
+        "dangerZone": {
+            "title": "Tehlikeli Bölge",
+            "description": "Bu işlemler geri alınamaz. Dikkatli olun.",
+            "reset": {
+                "title": "Tüm Verileri Sıfırla",
+                "description": "Portföyler, izleme listeleri, alarmlar ve tüm kullanıcı verileriniz silinecektir.",
+                "button": "Verileri Sıfırla",
+                "confirmButton": "Evet, tüm verileri sil",
+                "dialog": {
+                    "title": "Tüm Verileri Sil",
+                    "description": "Bu işlem geri alınamaz. Portföyleriniz, izleme listeleriniz, alarmlarınız ve kişisel ayarlarınız kalıcı olarak silinecektir.",
+                    "continue": "Devam etmek için aşağıdaki butona tıklayın:",
+                    "warningTitle": "⚠️ Bunlar silinecek:",
+                    "items": [
+                        "Tüm portföyler ve pozisyonlar",
+                        "İzleme listeleri",
+                        "Fiyat alarmları",
+                        "Bildirim tercihleri",
+                        "Önbellek verileri"
+                    ]
+                },
+                "toast": {
+                    "loading": "Veriler siliniyor...",
+                    "success": "Tüm veriler başarıyla sıfırlandı!",
+                    "error": "Veri silme hatası: {{message}}",
+                    "unknownError": "Bilinmeyen hata"
+                }
+            }
+        },
+        "cache": {
+            "title": "Önbelleği Temizle",
+            "description": "Önbellekteki piyasa verilerini ve geçici dosyaları temizle.",
+            "toastSuccess": "Önbellek temizlendi!",
+            "button": "Önbelleği Temizle"
         }
     }
 }

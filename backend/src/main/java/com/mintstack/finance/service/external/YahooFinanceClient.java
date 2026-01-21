@@ -28,8 +28,12 @@ public class YahooFinanceClient {
     private final InstrumentRepository instrumentRepository;
     private final ObjectMapper objectMapper;
 
+    // Direct Yahoo Finance URL (no API key needed)
+    private static final String DIRECT_YAHOO_URL = "https://query1.finance.yahoo.com/v8";
+    
     /**
      * Fetch stock quote for BIST stocks (symbol.IS format)
+     * Supports both RapidAPI (with key) and direct Yahoo Finance (no key)
      */
     public BigDecimal fetchStockPrice(String symbol, String apiKey, String baseUrl) {
         try {
@@ -41,13 +45,45 @@ public class YahooFinanceClient {
             
             log.debug("Fetching Yahoo Finance quote: {}", yahooSymbol);
             
-            WebClient client = getClient(apiKey, baseUrl);
+            // Try with provided config first, then fallback to direct Yahoo
+            String response = null;
+            Exception lastError = null;
             
-            String response = client.get()
-                .uri(url)
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
+            // Try RapidAPI if key provided
+            if (apiKey != null && !apiKey.isEmpty()) {
+                try {
+                    WebClient client = getClient(apiKey, baseUrl);
+                    response = client.get()
+                        .uri(url)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .block();
+                } catch (Exception e) {
+                    log.warn("RapidAPI fetch failed for {}, trying direct Yahoo...", symbol);
+                    lastError = e;
+                }
+            }
+            
+            // Fallback to direct Yahoo Finance (no API key needed)
+            if (response == null) {
+                try {
+                    WebClient directClient = WebClient.builder()
+                        .baseUrl(DIRECT_YAHOO_URL)
+                        .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                        .build();
+                    
+                    response = directClient.get()
+                        .uri(url)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .block();
+                    
+                    log.debug("Direct Yahoo Finance fetch successful for {}", symbol);
+                } catch (Exception e) {
+                    log.error("Direct Yahoo Finance also failed for {}", symbol, e);
+                    throw lastError != null ? lastError : e;
+                }
+            }
             
             if (response == null) {
                 throw new ExternalApiException("Yahoo Finance", "Boş yanıt");

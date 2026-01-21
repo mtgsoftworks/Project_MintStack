@@ -1,7 +1,6 @@
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import {
-  Menu,
   Bell,
   Search,
   User,
@@ -9,6 +8,7 @@ import {
   LogOut,
   ChevronDown,
 } from 'lucide-react'
+import { HamburgerIcon } from '@/components/ui/hamburger'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -84,15 +84,14 @@ export function Header() {
     >
       {/* Left side */}
       <div className="flex items-center gap-4">
-        {/* Mobile menu button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="lg:hidden"
-          onClick={() => dispatch(setMobileSidebarOpen(true))}
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
+        {/* Mobile menu button with animation */}
+        <div className="lg:hidden">
+          <HamburgerIcon
+            isOpen={false}
+            onClick={() => dispatch(setMobileSidebarOpen(true))}
+            className="text-foreground hover:text-primary transition-colors"
+          />
+        </div>
 
         {/* Search */}
         <div className="hidden md:flex relative">

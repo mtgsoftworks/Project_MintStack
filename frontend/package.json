@@ -9,7 +9,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext .js,.jsx --report-unused-disable-directives --max-warnings 100",
-    "test": "vitest"
+    "test": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
@@ -53,6 +56,8 @@
     "yup": "^1.7.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@sentry/react": "^7.91.0",
     "@testing-library/jest-dom": "^6.2.0",
     "@testing-library/react": "^14.1.2",
     "@testing-library/user-event": "^14.5.2",
