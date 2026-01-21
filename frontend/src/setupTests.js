@@ -60,25 +60,61 @@ vi.mock('keycloak-js', () => {
   }
 })
 
-// Mock react-i18next
+// Mock react-i18next with comprehensive translations
+const translations = {
+  'nav.home': 'Dashboard',
+  'nav.portfolio': 'Portföyler',
+  'dashboard.subtitle': 'Dashboard Subtitle',
+  'dashboard.widgets.bist100.title': 'BIST 100',
+  'dashboard.widgets.bist100.noProvider': '-',
+  'dashboard.widgets.bist100.error': 'Error',
+  'dashboard.widgets.currencies.title': 'Döviz Kurları',
+  'dashboard.widgets.news.title': 'Son Haberler',
+  'dashboard.widgets.news.viewAll': 'Tümünü Gör',
+  'dashboard.widgets.portfolio.title': 'Portföy Değeri',
+  'dashboard.widgets.portfolio.totalPL': 'Toplam K/Z',
+  'portfolioPage.title': 'Portföyler',
+  'portfolioPage.subtitle': 'Portföylerinizi yönetin',
+  'portfolioPage.newPortfolio': 'Yeni Portföy',
+  'portfolioPage.summary.totalValue': 'Toplam Değer',
+  'portfolioPage.summary.totalPL': 'Toplam K/Z',
+  'portfolioPage.summary.portfolioCount': 'Portföy Sayısı',
+  'portfolioPage.card.items': '1 varlık',
+  'portfolioPage.dialog.title': 'Yeni Portföy',
+  'portfolioPage.dialog.description': 'Portföy bilgilerini girin',
+  'portfolioPage.dialog.nameLabel': 'Portföy Adı',
+  'portfolioPage.dialog.namePlaceholder': 'Portföy adı girin',
+  'portfolioPage.dialog.descriptionLabel': 'Açıklama',
+  'portfolioPage.dialog.descriptionPlaceholder': 'Açıklama girin',
+  'portfolioPage.dialog.create': 'Oluştur',
+  'portfolioPage.dialog.cancel': 'İptal',
+  'portfolioPage.empty.title': 'Portföy Yok',
+  'portfolioPage.empty.description': 'Henüz portföyünüz yok',
+  'common.loading': 'Yükleniyor...',
+  'common.error': 'Hata',
+  'common.save': 'Kaydet',
+  'common.cancel': 'İptal',
+  'common.delete': 'Sil',
+  'common.edit': 'Düzenle',
+}
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key) => {
-      if (key === 'nav.home') return 'Dashboard'
-      if (key === 'dashboard.subtitle') return 'Dashboard Subtitle'
-      if (key === 'dashboard.widgets.bist100.title') return 'BIST 100'
-      if (key === 'dashboard.widgets.bist100.noProvider') return '-'
-      if (key === 'dashboard.widgets.bist100.error') return 'Error'
+    t: (key, options) => {
+      if (translations[key]) return translations[key]
+      if (options?.returnObjects) return []
       return key
     },
     i18n: {
       changeLanguage: () => new Promise(() => { }),
+      language: 'tr',
     },
   }),
   initReactI18next: {
     type: '3rdParty',
     init: () => { },
   },
+  Trans: ({ children }) => children,
 }))
 
 // Start MSW server before all tests
