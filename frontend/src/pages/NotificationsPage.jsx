@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -14,101 +14,92 @@ import {
     AlertCircle,
     Newspaper,
     DollarSign,
-    RefreshCw,
-    Trash2
+    Trash2,
+    Loader2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { 
+    useGetNotificationsQuery, 
+    useMarkNotificationReadMutation,
+    useMarkAllNotificationsReadMutation 
+} from '@/store/api/userApi'
 
-// Mock notification data - will be replaced with API call
-const mockNotifications = [
-    {
-        id: 1,
-        type: 'price_alert',
-        titleKey: 'notificationsPage.mockNotifications.priceAlert.title',
-        messageKey: 'notificationsPage.mockNotifications.priceAlert.message',
-        messageValues: { symbol: 'THYAO', price: '₺185.00' },
-        timestampKey: 'notificationsPage.mockNotifications.priceAlert.timestamp',
-        icon: TrendingUp,
-        iconColor: 'text-success',
-        read: false,
-    },
-    {
-        id: 2,
-        type: 'portfolio',
-        titleKey: 'notificationsPage.mockNotifications.portfolio.title',
-        messageKey: 'notificationsPage.mockNotifications.portfolio.message',
-        messageValues: { symbol: 'GARAN', change: '2.5' },
-        timestampKey: 'notificationsPage.mockNotifications.portfolio.timestamp',
-        icon: DollarSign,
-        iconColor: 'text-primary',
-        read: false,
-    },
-    {
-        id: 3,
-        type: 'news',
-        titleKey: 'notificationsPage.mockNotifications.news.title',
-        messageKey: 'notificationsPage.mockNotifications.news.message',
-        timestampKey: 'notificationsPage.mockNotifications.news.timestamp',
-        icon: Newspaper,
-        iconColor: 'text-warning',
-        read: false,
-    },
-    {
-        id: 4,
-        type: 'price_alert',
-        titleKey: 'notificationsPage.mockNotifications.priceDrop.title',
-        messageKey: 'notificationsPage.mockNotifications.priceDrop.message',
-        messageValues: { pair: 'EUR/TRY' },
-        timestampKey: 'notificationsPage.mockNotifications.priceDrop.timestamp',
-        icon: TrendingDown,
-        iconColor: 'text-danger',
-        read: true,
-    },
-    {
-        id: 5,
-        type: 'system',
-        titleKey: 'notificationsPage.mockNotifications.system.title',
-        messageKey: 'notificationsPage.mockNotifications.system.message',
-        timestampKey: 'notificationsPage.mockNotifications.system.timestamp',
-        icon: AlertCircle,
-        iconColor: 'text-muted-foreground',
-        read: true,
+const getNotificationIcon = (type) => {
+    switch (type?.toLowerCase()) {
+        case 'alert':
+        case 'price_alert':
+            return { icon: TrendingUp, color: 'text-success' }
+        case 'portfolio':
+            return { icon: DollarSign, color: 'text-primary' }
+        case 'news':
+            return { icon: Newspaper, color: 'text-warning' }
+        case 'system':
+        default:
+            return { icon: AlertCircle, color: 'text-muted-foreground' }
     }
-]
+}
+
+const formatTimeAgo = (dateString) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now - date
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+    
+    if (diffMins < 1) return 'Az önce'
+    if (diffMins < 60) return `${diffMins} dk önce`
+    if (diffHours < 24) return `${diffHours} saat önce`
+    return `${diffDays} gün önce`
+}
 
 export default function NotificationsPage() {
     const { t } = useTranslation()
-    const [notifications, setNotifications] = useState(mockNotifications)
     const [activeTab, setActiveTab] = useState('all')
+    
+    const { data: notificationsData, isLoading, refetch } = useGetNotificationsQuery({ page: 0, size: 50 })
+    const [markAsRead] = useMarkNotificationReadMutation()
+    const [markAllAsRead] = useMarkAllNotificationsReadMutation()
+    
+    const notifications = useMemo(() => {
+        return notificationsData?.data || []
+    }, [notificationsData])
 
-    const unreadCount = notifications.filter(n => !n.read).length
+    const unreadCount = notifications.filter(n => !n.isRead).length
 
     const filteredNotifications = notifications.filter(n => {
         if (activeTab === 'all') return true
-        if (activeTab === 'unread') return !n.read
-        if (activeTab === 'alerts') return n.type === 'price_alert'
-        if (activeTab === 'news') return n.type === 'news'
+        if (activeTab === 'unread') return !n.isRead
+        if (activeTab === 'alerts') return n.type === 'ALERT' || n.type === 'price_alert'
+        if (activeTab === 'news') return n.type === 'NEWS' || n.type === 'news'
         return true
     })
 
-    const handleMarkAsRead = (id) => {
-        setNotifications(prev =>
-            prev.map(n => n.id === id ? { ...n, read: true } : n)
-        )
-    }
-
-    const handleMarkAllAsRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-    }
-
-    const handleDelete = (id) => {
-        setNotifications(prev => prev.filter(n => n.id !== id))
-    }
-
-    const handleClearAll = () => {
-        if (confirm(t('notificationsPage.confirmClearAll'))) {
-            setNotifications([])
+    const handleMarkAsRead = async (id) => {
+        try {
+            await markAsRead(id).unwrap()
+            refetch()
+        } catch (error) {
+            console.error('Failed to mark notification as read:', error)
         }
+    }
+
+    const handleMarkAllAsRead = async () => {
+        try {
+            await markAllAsRead().unwrap()
+            refetch()
+        } catch (error) {
+            console.error('Failed to mark all notifications as read:', error)
+        }
+    }
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        )
     }
 
     return (
@@ -136,12 +127,11 @@ export default function NotificationsPage() {
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleClearAll}
-                        disabled={notifications.length === 0}
-                        className="text-destructive hover:text-destructive"
+                        onClick={() => refetch()}
+                        disabled={isLoading}
                     >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        {t('notificationsPage.actions.clearAll')}
+                        <Loader2 className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+                        {t('common.refresh')}
                     </Button>
                 </div>
             </div>
@@ -186,41 +176,41 @@ export default function NotificationsPage() {
                             ) : (
                                 <div className="space-y-2">
                                     {filteredNotifications.map((notification) => {
-                                        const IconComponent = notification.icon
+                                        const { icon: IconComponent, color: iconColor } = getNotificationIcon(notification.type)
                                         return (
                                             <div
                                                 key={notification.id}
                                                 className={cn(
                                                     "flex items-start gap-4 p-4 rounded-lg border transition-colors",
-                                                    !notification.read && "bg-primary/5 border-primary/20",
-                                                    notification.read && "bg-muted/30"
+                                                    !notification.isRead && "bg-primary/5 border-primary/20",
+                                                    notification.isRead && "bg-muted/30"
                                                 )}
                                             >
                                                 <div className={cn(
                                                     "flex-shrink-0 p-2 rounded-full",
-                                                    !notification.read ? "bg-primary/10" : "bg-muted"
+                                                    !notification.isRead ? "bg-primary/10" : "bg-muted"
                                                 )}>
-                                                    <IconComponent className={cn("h-5 w-5", notification.iconColor)} />
+                                                    <IconComponent className={cn("h-5 w-5", iconColor)} />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-start justify-between gap-2">
                                                         <div>
                                                             <p className={cn(
                                                                 "font-medium",
-                                                                !notification.read && "text-foreground",
-                                                                notification.read && "text-muted-foreground"
+                                                                !notification.isRead && "text-foreground",
+                                                                notification.isRead && "text-muted-foreground"
                                                             )}>
-                                                                {t(notification.titleKey)}
+                                                                {notification.title}
                                                             </p>
                                                             <p className="text-sm text-muted-foreground mt-1">
-                                                                {t(notification.messageKey, notification.messageValues)}
+                                                                {notification.message}
                                                             </p>
                                                             <p className="text-xs text-muted-foreground mt-2">
-                                                                {t(notification.timestampKey)}
+                                                                {formatTimeAgo(notification.createdAt)}
                                                             </p>
                                                         </div>
                                                         <div className="flex items-center gap-1">
-                                                            {!notification.read && (
+                                                            {!notification.isRead && (
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
@@ -231,15 +221,6 @@ export default function NotificationsPage() {
                                                                     <Check className="h-4 w-4" />
                                                                 </Button>
                                                             )}
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8 text-destructive hover:text-destructive"
-                                                                onClick={() => handleDelete(notification.id)}
-                                                                title={t('notificationsPage.actions.delete')}
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
                                                         </div>
                                                     </div>
                                                 </div>

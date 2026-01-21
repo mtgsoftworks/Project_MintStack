@@ -86,6 +86,15 @@ public class NewsService {
         }
     }
 
+    @Transactional
+    public void incrementViewCount(UUID newsId) {
+        newsRepository.findById(newsId).ifPresent(news -> {
+            news.setViewCount(news.getViewCount() + 1);
+            newsRepository.save(news);
+            log.debug("Incremented view count for news: {}", newsId);
+        });
+    }
+
     private NewsResponse mapToResponse(News news) {
         NewsCategory category = news.getCategory();
         

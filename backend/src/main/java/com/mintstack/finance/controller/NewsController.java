@@ -97,4 +97,11 @@ public class NewsController {
         List<NewsCategory> categories = newsService.getCategories();
         return ResponseEntity.ok(ApiResponse.success(categories));
     }
+
+    @PostMapping("/{id}/view")
+    @Operation(summary = "Haber görüntülenme sayısını artır")
+    public ResponseEntity<ApiResponse<Void>> incrementViewCount(@PathVariable UUID id) {
+        newsService.incrementViewCount(id);
+        return ResponseEntity.ok(ApiResponse.success(null, "Görüntülenme sayısı artırıldı"));
+    }
 }

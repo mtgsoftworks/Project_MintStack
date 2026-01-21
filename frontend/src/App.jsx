@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import Keycloak from 'keycloak-js'
 import { setAuth, setInitialized } from '@/store/slices/authSlice'
-import { Layout, ProtectedRoute, LoadingPage } from '@/components/layout'
+import { Layout, ProtectedRoute } from '@/components/layout'
 import websocketService from '@/services/websocketService'
 
 // Pages

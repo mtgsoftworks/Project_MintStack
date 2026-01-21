@@ -8,6 +8,8 @@ import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.UserApiConfigRepository;
 import com.mintstack.finance.service.MarketDataService;
+import com.mintstack.finance.service.PriceUpdateService;
+import com.mintstack.finance.service.event.EventPublisher;
 import com.mintstack.finance.service.external.AlphaVantageClient;
 import com.mintstack.finance.service.external.TcmbApiClient;
 import com.mintstack.finance.service.external.YahooFinanceClient;
@@ -34,8 +36,10 @@ public class MarketDataScheduler {
     private final YahooFinanceClient yahooFinanceClient;
     private final AlphaVantageClient alphaVantageClient;
     private final MarketDataService marketDataService;
+    private final PriceUpdateService priceUpdateService;
     private final InstrumentRepository instrumentRepository;
     private final UserApiConfigRepository userApiConfigRepository;
+    private final EventPublisher eventPublisher;
 
     private static final List<String> INITIAL_BIST_STOCKS = Arrays.asList(
             "THYAO", "GARAN", "AKBNK", "EREGL", "SISE",
@@ -52,6 +56,27 @@ public class MarketDataScheduler {
         try {
             List<CurrencyRate> rates = tcmbApiClient.fetchTodayRates();
             marketDataService.saveCurrencyRates(rates);
+            
+            // Broadcast currency updates via WebSocket and publish to Kafka
+            for (CurrencyRate rate : rates) {
+                priceUpdateService.broadcastCurrencyUpdate(
+                    rate.getCurrencyCode(),
+                    rate.getBuyingRate(),
+                    rate.getSellingRate()
+                );
+                
+                // Publish market data event to Kafka
+                eventPublisher.publishMarketDataEvent(
+                    rate.getCurrencyCode(),
+                    "CURRENCY_RATE",
+                    java.util.Map.of(
+                        "buyingRate", rate.getBuyingRate(),
+                        "sellingRate", rate.getSellingRate(),
+                        "date", rate.getRateDate().toString()
+                    )
+                );
+            }
+            
             log.info("TCMB rates fetch completed: {} rates saved", rates.size());
         } catch (Exception e) {
             log.error("TCMB rates fetch failed", e);
@@ -199,10 +224,25 @@ public class MarketDataScheduler {
             try {
                 BigDecimal price = fetchInstrumentPrice(instrument, yahooConfig, alphaConfig);
                 if (price != null) {
-                    instrument.setPreviousClose(instrument.getCurrentPrice());
+                    BigDecimal previousClose = instrument.getCurrentPrice();
+                    instrument.setPreviousClose(previousClose);
                     instrument.setCurrentPrice(price);
                     instrumentRepository.save(instrument);
                     saveDailyPriceHistory(instrument, price);
+                    
+                    // Broadcast price update via WebSocket
+                    BigDecimal change = previousClose != null ? price.subtract(previousClose) : BigDecimal.ZERO;
+                    BigDecimal changePercent = previousClose != null && previousClose.compareTo(BigDecimal.ZERO) != 0
+                        ? change.divide(previousClose, 4, java.math.RoundingMode.HALF_UP).multiply(new BigDecimal("100"))
+                        : BigDecimal.ZERO;
+                    
+                    priceUpdateService.broadcastStockUpdate(
+                        instrument.getSymbol(),
+                        price,
+                        previousClose,
+                        change,
+                        changePercent
+                    );
                 }
             } catch (Exception e) {
                 log.error("Failed to update price for {} ({}): {}", instrument.getSymbol(), type, e.getMessage());

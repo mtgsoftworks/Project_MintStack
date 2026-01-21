@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -30,6 +31,7 @@ import {
 import { selectUser, selectIsAuthenticated } from '@/store/slices/authSlice'
 import { getInitials } from '@/lib/utils'
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher'
+import { useGetNotificationsQuery } from '@/store/api/userApi'
 
 export function Header() {
   const dispatch = useDispatch()
@@ -39,32 +41,18 @@ export function Header() {
   const isAuthenticated = useSelector(selectIsAuthenticated)
   const { t } = useTranslation()
 
-  const notifications = [
-    {
-      id: 'portfolio',
-      title: t('header.notifications.items.portfolioUpdated.title'),
-      description: t('header.notifications.items.portfolioUpdated.description', {
-        symbol: 'THYAO',
-        change: '2.5',
-      }),
-      time: t('header.notifications.items.portfolioUpdated.time'),
-    },
-    {
-      id: 'currency',
-      title: t('header.notifications.items.currencyAlert.title'),
-      description: t('header.notifications.items.currencyAlert.description', {
-        pair: 'USD/TRY',
-      }),
-      time: t('header.notifications.items.currencyAlert.time'),
-    },
-    {
-      id: 'news',
-      title: t('header.notifications.items.news.title'),
-      description: t('header.notifications.items.news.description'),
-      time: t('header.notifications.items.news.time'),
-    },
-  ]
-  const notificationCount = notifications.length
+  const { data: notificationsData } = useGetNotificationsQuery(
+    { page: 0, size: 10 },
+    { skip: !isAuthenticated }
+  )
+  
+  const notifications = useMemo(() => {
+    return notificationsData?.data || []
+  }, [notificationsData])
+  
+  const notificationCount = useMemo(() => {
+    return notifications.filter(n => !n.isRead).length
+  }, [notifications])
 
   const handleLogout = () => {
     // Keycloak logout
@@ -121,30 +109,39 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
-              <Badge
-                variant="danger-solid"
-                className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]"
-              >
-                {notificationCount}
-              </Badge>
+              {notificationCount > 0 && (
+                <Badge
+                  variant="danger-solid"
+                  className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]"
+                >
+                  {notificationCount}
+                </Badge>
+              )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80">
             <DropdownMenuLabel className="flex items-center justify-between">
               <span>{t('header.notifications.title')}</span>
-              <Badge variant="secondary">
-                {t('header.notifications.new', { count: notificationCount })}
-              </Badge>
+              {notificationCount > 0 && (
+                <Badge variant="secondary">
+                  {t('header.notifications.new', { count: notificationCount })}
+                </Badge>
+              )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <div className="max-h-64 overflow-y-auto">
-              {notifications.map((item) => (
-                <DropdownMenuItem key={item.id} className="flex flex-col items-start gap-1 py-3 cursor-pointer">
-                  <span className="font-medium">{item.title}</span>
-                  <span className="text-xs text-muted-foreground">{item.description}</span>
-                  <span className="text-xs text-muted-foreground">{item.time}</span>
-                </DropdownMenuItem>
-              ))}
+              {notifications.length === 0 ? (
+                <div className="py-4 text-center text-muted-foreground text-sm">
+                  {t('notificationsPage.emptyCategory')}
+                </div>
+              ) : (
+                notifications.slice(0, 5).map((item) => (
+                  <DropdownMenuItem key={item.id} className="flex flex-col items-start gap-1 py-3 cursor-pointer">
+                    <span className="font-medium">{item.title}</span>
+                    <span className="text-xs text-muted-foreground">{item.message}</span>
+                  </DropdownMenuItem>
+                ))
+              )}
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem

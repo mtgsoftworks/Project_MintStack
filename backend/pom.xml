@@ -190,6 +190,13 @@
             <artifactId>jackson-dataformat-xml</artifactId>
         </dependency>
         
+        <!-- OpenSearch Client -->
+        <dependency>
+            <groupId>org.opensearch.client</groupId>
+            <artifactId>opensearch-rest-high-level-client</artifactId>
+            <version>2.11.0</version>
+        </dependency>
+        
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

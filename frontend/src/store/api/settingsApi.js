@@ -28,6 +28,12 @@ export const settingsApi = baseApi.injectEndpoints({
             }),
             invalidatesTags: ['Settings'],
         }),
+        clearCache: builder.mutation({
+            query: () => ({
+                url: '/settings/cache',
+                method: 'DELETE',
+            }),
+        }),
     }),
 })
 
@@ -36,5 +42,6 @@ export const {
     useTestApiKeyMutation,
     useAddApiConfigMutation,
     useDeleteApiConfigMutation,
+    useClearCacheMutation,
 } = settingsApi
 

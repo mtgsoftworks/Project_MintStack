@@ -104,6 +104,11 @@ public class UserService {
             .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı", "id", id));
     }
 
+    @Transactional
+    public User saveUser(User user) {
+        return userRepository.save(user);
+    }
+
     private UserResponse mapToResponse(User user) {
         return UserResponse.builder()
             .id(user.getId())

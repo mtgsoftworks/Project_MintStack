@@ -13,6 +13,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -25,12 +27,14 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/settings")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Settings", description = "Uygulama ayarları ve API yapılandırması")
 @SecurityRequirement(name = "bearer")
 public class SettingsController {
 
     private final SettingsService settingsService;
     private final UserService userService;
+    private final CacheManager cacheManager;
 
     @GetMapping("/api-keys")
     @Operation(summary = "Kullanıcının API anahtarlarını listele")
@@ -106,6 +110,33 @@ public class SettingsController {
         settingsService.deleteApiConfig(user.getId(), id);
         
         return ResponseEntity.ok(ApiResponse.success(null, "API ayarı silindi"));
+    }
+
+    @DeleteMapping("/cache")
+    @Operation(summary = "Tüm uygulama önbelleğini temizle (Redis cache)")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> clearCache(
+            @AuthenticationPrincipal Jwt jwt) {
+        
+        int clearedCaches = 0;
+        var cacheNames = cacheManager.getCacheNames();
+        
+        for (String cacheName : cacheNames) {
+            var cache = cacheManager.getCache(cacheName);
+            if (cache != null) {
+                cache.clear();
+                clearedCaches++;
+                log.info("Cache cleared: {}", cacheName);
+            }
+        }
+        
+        log.info("Total caches cleared: {} by user: {}", clearedCaches, jwt.getSubject());
+        
+        Map<String, Object> result = Map.of(
+                "clearedCaches", clearedCaches,
+                "cacheNames", cacheNames
+        );
+        
+        return ResponseEntity.ok(ApiResponse.success(result, "Önbellek temizlendi ✓"));
     }
 }
 

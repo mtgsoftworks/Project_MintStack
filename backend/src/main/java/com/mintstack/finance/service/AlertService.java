@@ -11,6 +11,7 @@ import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PriceAlertRepository;
 import com.mintstack.finance.repository.UserRepository;
+import com.mintstack.finance.service.event.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -31,6 +33,7 @@ public class AlertService {
     private final InstrumentRepository instrumentRepository;
     private final EmailService emailService;
     private final PriceUpdateService priceUpdateService;
+    private final EventPublisher eventPublisher;
 
     private static final int MAX_ACTIVE_ALERTS_PER_USER = 20;
 
@@ -128,6 +131,23 @@ public class AlertService {
 
         log.info("Alert triggered: {} {} at {} (target: {})", 
                 alert.getAlertType(), instrument.getSymbol(), currentPrice, alert.getTargetValue());
+
+        // Publish notification event to Kafka
+        eventPublisher.publishNotificationEvent(
+                user.getKeycloakId(),
+                "PRICE_ALERT",
+                "Fiyat Alarmı: " + instrument.getSymbol(),
+                String.format("%s için %s alarmı tetiklendi. Hedef: %s, Mevcut: %s",
+                        instrument.getSymbol(), getAlertTypeLabel(alert.getAlertType()),
+                        alert.getTargetValue(), currentPrice),
+                Map.of(
+                        "symbol", instrument.getSymbol(),
+                        "alertType", alert.getAlertType().name(),
+                        "targetValue", alert.getTargetValue().toString(),
+                        "currentPrice", currentPrice.toString(),
+                        "alertId", alert.getId().toString()
+                )
+        );
 
         // Send email notification
         emailService.sendPriceAlertEmail(

@@ -44,7 +44,8 @@ import {
     useGetApiConfigsQuery,
     useAddApiConfigMutation,
     useDeleteApiConfigMutation,
-    useTestApiKeyMutation
+    useTestApiKeyMutation,
+    useClearCacheMutation
 } from '@/store/api/settingsApi'
 import { toast } from 'sonner'
 import { portfolioService } from '@/services/portfolioService'
@@ -58,18 +59,18 @@ export default function SettingsPage() {
     const { t, i18n } = useTranslation()
     const dispatch = useDispatch()
     const theme = useSelector(selectTheme)
-    
+
     // Profile & Notification Settings
     const { data: profile } = useGetProfileQuery()
     const [updateProfile] = useUpdateProfileMutation()
-    
+
     const [notificationSettings, setNotificationSettings] = useState({
         priceAlerts: true,
         portfolioUpdates: true,
         emailNotifications: true,
         pushNotifications: false
     })
-    
+
     // Sync notification settings from profile
     useEffect(() => {
         if (profile) {
@@ -81,7 +82,7 @@ export default function SettingsPage() {
             })
         }
     }, [profile])
-    
+
     // Handle notification toggle
     const handleNotificationToggle = async (key, value) => {
         const newSettings = { ...notificationSettings, [key]: value }
@@ -95,11 +96,12 @@ export default function SettingsPage() {
             toast.error(t('common.error'))
         }
     }
-    
+
     const { data: configsData, isLoading, refetch } = useGetApiConfigsQuery()
     const [addConfig, { isLoading: isAdding }] = useAddApiConfigMutation()
     const [deleteConfig, { isLoading: isDeleting }] = useDeleteApiConfigMutation()
     const [testApiKey, { isLoading: isTesting }] = useTestApiKeyMutation()
+    const [clearCache, { isLoading: isClearingCache }] = useClearCacheMutation()
 
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingConfig, setEditingConfig] = useState(null) // null = new, object = editing
@@ -274,8 +276,8 @@ export default function SettingsPage() {
                                         <Label>{t('settings.theme')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.appearance.themeDescription')}</p>
                                     </div>
-                                    <Select 
-                                        value={theme} 
+                                    <Select
+                                        value={theme}
                                         onValueChange={(val) => {
                                             dispatch(setTheme(val))
                                             // Apply theme to document
@@ -397,8 +399,8 @@ export default function SettingsPage() {
                                         <Label>{t('settingsPage.notifications.priceAlerts.label')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.notifications.priceAlerts.description')}</p>
                                     </div>
-                                    <Switch 
-                                        checked={notificationSettings.priceAlerts} 
+                                    <Switch
+                                        checked={notificationSettings.priceAlerts}
                                         onCheckedChange={(val) => handleNotificationToggle('priceAlerts', val)}
                                     />
                                 </div>
@@ -407,8 +409,8 @@ export default function SettingsPage() {
                                         <Label>{t('settingsPage.notifications.portfolioUpdates.label')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.notifications.portfolioUpdates.description')}</p>
                                     </div>
-                                    <Switch 
-                                        checked={notificationSettings.portfolioUpdates} 
+                                    <Switch
+                                        checked={notificationSettings.portfolioUpdates}
                                         onCheckedChange={(val) => handleNotificationToggle('portfolioUpdates', val)}
                                     />
                                 </div>
@@ -417,8 +419,8 @@ export default function SettingsPage() {
                                         <Label>{t('settingsPage.notifications.news.label')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.notifications.news.description')}</p>
                                     </div>
-                                    <Switch 
-                                        checked={notificationSettings.emailNotifications} 
+                                    <Switch
+                                        checked={notificationSettings.emailNotifications}
                                         onCheckedChange={(val) => handleNotificationToggle('emailNotifications', val)}
                                     />
                                 </div>
@@ -427,8 +429,8 @@ export default function SettingsPage() {
                                         <Label>{t('settingsPage.notifications.sound.label')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.notifications.sound.description')}</p>
                                     </div>
-                                    <Switch 
-                                        checked={notificationSettings.pushNotifications} 
+                                    <Switch
+                                        checked={notificationSettings.pushNotifications}
                                         onCheckedChange={(val) => handleNotificationToggle('pushNotifications', val)}
                                     />
                                 </div>
@@ -493,43 +495,49 @@ export default function SettingsPage() {
                                             <Button
                                                 variant="destructive"
                                                 onClick={async () => {
-                                                    try {
-                                                        toast.loading(t('settingsPage.dangerZone.reset.toast.loading'))
+                                                    toast.loading(t('settingsPage.dangerZone.reset.toast.loading'))
+                                                    
+                                                    let hasError = false
 
-                                                        // 1. Tüm portföyleri sil
+                                                    // 1. Tüm portföyleri sil
+                                                    try {
                                                         const portfolios = await portfolioService.getPortfolios()
                                                         for (const portfolio of portfolios) {
                                                             await portfolioService.deletePortfolio(portfolio.id)
                                                         }
+                                                    } catch (e) {
+                                                        console.warn('Portfolio reset skipped:', e.message)
+                                                    }
 
-                                                        // 2. Tüm izleme listelerini sil
+                                                    // 2. Tüm izleme listelerini sil
+                                                    try {
                                                         const watchlistsRes = await watchlistService.getAll()
                                                         const watchlists = watchlistsRes?.data || []
                                                         for (const wl of watchlists) {
                                                             await watchlistService.delete(wl.id)
                                                         }
+                                                    } catch (e) {
+                                                        console.warn('Watchlist reset skipped:', e.message)
+                                                    }
 
-                                                        // 3. Tüm alarmları sil
+                                                    // 3. Tüm alarmları sil
+                                                    try {
                                                         const alertsRes = await alertService.getAll()
                                                         const alerts = alertsRes?.data || []
                                                         for (const alert of alerts) {
                                                             await alertService.delete(alert.id)
                                                         }
-
-                                                        // 4. Local storage temizle
-                                                        localStorage.clear()
-                                                        sessionStorage.clear()
-
-                                                        toast.dismiss()
-                                                        toast.success(t('settingsPage.dangerZone.reset.toast.success'))
-                                                        setTimeout(() => window.location.reload(), 1500)
-                                                    } catch (error) {
-                                                        console.error('Reset failed:', error)
-                                                        toast.dismiss()
-                                                        toast.error(t('settingsPage.dangerZone.reset.toast.error', {
-                                                            message: error.message || t('settingsPage.dangerZone.reset.toast.unknownError')
-                                                        }))
+                                                    } catch (e) {
+                                                        console.warn('Alerts reset skipped:', e.message)
                                                     }
+
+                                                    // 4. Local storage temizle
+                                                    localStorage.clear()
+                                                    sessionStorage.clear()
+
+                                                    toast.dismiss()
+                                                    toast.success(t('settingsPage.dangerZone.reset.toast.success'))
+                                                    setTimeout(() => window.location.reload(), 1500)
                                                 }}
                                             >
                                                 <Trash2 className="h-4 w-4 mr-2" />
@@ -550,17 +558,40 @@ export default function SettingsPage() {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => {
-                                        // Clear cache
-                                        if ('caches' in window) {
-                                            caches.keys().then(names => {
-                                                names.forEach(name => caches.delete(name))
-                                            })
+                                    disabled={isClearingCache}
+                                    onClick={async () => {
+                                        try {
+                                            // 1. Clear backend Redis cache
+                                            const result = await clearCache().unwrap()
+
+                                            // 2. Clear browser cache (Service Worker, PWA)
+                                            if ('caches' in window) {
+                                                const cacheNames = await caches.keys()
+                                                await Promise.all(cacheNames.map(name => caches.delete(name)))
+                                            }
+
+                                            const backendCaches = result.data?.clearedCaches || 0
+                                            toast.success(t('settingsPage.cache.toastSuccessDetailed', {
+                                                count: backendCaches,
+                                                defaultValue: `${backendCaches} önbellek temizlendi ✓`
+                                            }))
+                                        } catch (error) {
+                                            console.error('Cache clear failed:', error)
+                                            // Fallback: at least clear browser cache
+                                            if ('caches' in window) {
+                                                caches.keys().then(names => {
+                                                    names.forEach(name => caches.delete(name))
+                                                })
+                                            }
+                                            toast.success(t('settingsPage.cache.toastSuccess'))
                                         }
-                                        toast.success(t('settingsPage.cache.toastSuccess'))
                                     }}
                                 >
-                                    <RefreshCw className="h-4 w-4 mr-2" />
+                                    {isClearingCache ? (
+                                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                    ) : (
+                                        <RefreshCw className="h-4 w-4 mr-2" />
+                                    )}
                                     {t('settingsPage.cache.button')}
                                 </Button>
                             </div>

@@ -149,6 +149,13 @@
             "editDescription": "Mevcut API anahtarını güncelleyin. Yeni anahtar girin ve test edin.",
             "provider": "Sağlayıcı",
             "providerOther": "Diğer",
+            "providers": {
+                "alphaVantage": "Alpha Vantage",
+                "yahooFinance": "Yahoo Finance",
+                "finnhub": "Finnhub",
+                "tcmb": "TCMB (Merkez Bankası)",
+                "other": "Diğer"
+            },
             "apiKey": "API Anahtarı",
             "secretKey": "Gizli Anahtar (Opsiyonel)",
             "baseUrl": "Base URL (Opsiyonel)",

@@ -325,16 +325,6 @@ npm run build
 
 ---
 
-## 🤝 Katkıda Bulunma
-
-1. Fork yapın
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Commit'leyin (`git commit -m 'feat: Add amazing feature'`)
-4. Push'layın (`git push origin feature/amazing-feature`)
-5. Pull Request açın
-
----
-
 ## 📄 Lisans
 
 Bu proje [MIT Lisansı](LICENSE) altında lisanslanmıştır.
@@ -345,6 +335,6 @@ Bu proje [MIT Lisansı](LICENSE) altında lisanslanmıştır.
 
 **[⬆ Başa Dön](#-mintstack-finance-portal)**
 
-Made with ❤️ in Turkey
+© 2026 MTG Softworks. All rights reserved.
 
 </div>
