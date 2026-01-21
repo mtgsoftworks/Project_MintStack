@@ -212,54 +212,56 @@ export default function SettingsPage() {
 
             <Tabs defaultValue="api-keys" className="space-y-4">
                 <TabsList>
-                    <TabsTrigger value="general">Genel</TabsTrigger>
+                    <TabsTrigger value="general">{t('settingsPage.tabs.general')}</TabsTrigger>
                     <TabsTrigger value="api-keys">{t('settings.apiKeys.title')}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="general">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Genel Ayarlar</CardTitle>
-                            <CardDescription>Uygulama genel davranışlarını özelleştirin.</CardDescription>
+                            <CardTitle>{t('settingsPage.general.title')}</CardTitle>
+                            <CardDescription>{t('settingsPage.general.description')}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             {/* Theme Settings */}
                             <div className="space-y-4">
-                                <h3 className="text-sm font-medium">Görünüm</h3>
+                                <h3 className="text-sm font-medium">{t('settingsPage.sections.appearance')}</h3>
                                 <div className="flex items-center justify-between py-2 border-b">
                                     <div className="space-y-0.5">
-                                        <Label>Tema</Label>
-                                        <p className="text-sm text-muted-foreground">Uygulama temasını seçin</p>
+                                        <Label>{t('settings.theme')}</Label>
+                                        <p className="text-sm text-muted-foreground">{t('settingsPage.appearance.themeDescription')}</p>
                                     </div>
                                     <Select defaultValue="dark">
                                         <SelectTrigger className="w-40">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="light">Açık</SelectItem>
-                                            <SelectItem value="dark">Koyu</SelectItem>
-                                            <SelectItem value="system">Sistem</SelectItem>
+                                            <SelectItem value="light">{t('settingsPage.appearance.themeOptions.light')}</SelectItem>
+                                            <SelectItem value="dark">{t('settingsPage.appearance.themeOptions.dark')}</SelectItem>
+                                            <SelectItem value="system">{t('settingsPage.appearance.themeOptions.system')}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="flex items-center justify-between py-2 border-b">
                                     <div className="space-y-0.5">
-                                        <Label>Dil</Label>
-                                        <p className="text-sm text-muted-foreground">Arayüz dilini seçin</p>
+                                        <Label>{t('settings.language')}</Label>
+                                        <p className="text-sm text-muted-foreground">{t('settingsPage.appearance.languageDescription')}</p>
                                     </div>
                                     <Select
                                         value={i18n.language?.split('-')[0] || 'tr'}
                                         onValueChange={(val) => {
                                             i18n.changeLanguage(val)
-                                            toast.success(val === 'tr' ? 'Dil Türkçe olarak değiştirildi' : 'Language changed to English')
+                                            toast.success(t('settingsPage.appearance.languageChanged', {
+                                                language: t(`settingsPage.appearance.languageOptions.${val}`)
+                                            }))
                                         }}
                                     >
                                         <SelectTrigger className="w-40">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="tr">🇹🇷 Türkçe</SelectItem>
-                                            <SelectItem value="en">🇬🇧 English</SelectItem>
+                                            <SelectItem value="tr">{t('settingsPage.appearance.languageOptions.tr')}</SelectItem>
+                                            <SelectItem value="en">{t('settingsPage.appearance.languageOptions.en')}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -267,62 +269,62 @@ export default function SettingsPage() {
 
                             {/* Data Settings */}
                             <div className="space-y-4">
-                                <h3 className="text-sm font-medium">Veri Ayarları</h3>
+                                <h3 className="text-sm font-medium">{t('settingsPage.sections.data')}</h3>
                                 <div className="flex items-center justify-between py-2 border-b">
                                     <div className="space-y-0.5">
-                                        <Label>Varsayılan Para Birimi</Label>
-                                        <p className="text-sm text-muted-foreground">Portföy ve analizlerde kullanılacak para birimi</p>
+                                        <Label>{t('settingsPage.data.currency.label')}</Label>
+                                        <p className="text-sm text-muted-foreground">{t('settingsPage.data.currency.description')}</p>
                                     </div>
                                     <Select defaultValue="TRY">
                                         <SelectTrigger className="w-40">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="TRY">₺ Türk Lirası</SelectItem>
-                                            <SelectItem value="USD">$ Amerikan Doları</SelectItem>
-                                            <SelectItem value="EUR">€ Euro</SelectItem>
-                                            <SelectItem value="GBP">£ İngiliz Sterlini</SelectItem>
+                                            <SelectItem value="TRY">{t('settingsPage.data.currency.options.try')}</SelectItem>
+                                            <SelectItem value="USD">{t('settingsPage.data.currency.options.usd')}</SelectItem>
+                                            <SelectItem value="EUR">{t('settingsPage.data.currency.options.eur')}</SelectItem>
+                                            <SelectItem value="GBP">{t('settingsPage.data.currency.options.gbp')}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="flex items-center justify-between py-2 border-b">
                                     <div className="space-y-0.5">
-                                        <Label>Zaman Dilimi</Label>
-                                        <p className="text-sm text-muted-foreground">Verilerin görüntüleneceği zaman dilimi</p>
+                                        <Label>{t('settingsPage.data.timezone.label')}</Label>
+                                        <p className="text-sm text-muted-foreground">{t('settingsPage.data.timezone.description')}</p>
                                     </div>
                                     <Select defaultValue="Europe/Istanbul">
                                         <SelectTrigger className="w-40">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Europe/Istanbul">İstanbul (UTC+3)</SelectItem>
-                                            <SelectItem value="Europe/London">Londra (UTC+0)</SelectItem>
-                                            <SelectItem value="America/New_York">New York (UTC-5)</SelectItem>
+                                            <SelectItem value="Europe/Istanbul">{t('settingsPage.data.timezone.options.istanbul')}</SelectItem>
+                                            <SelectItem value="Europe/London">{t('settingsPage.data.timezone.options.london')}</SelectItem>
+                                            <SelectItem value="America/New_York">{t('settingsPage.data.timezone.options.newYork')}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
 
                                 <div className="flex items-center justify-between py-2 border-b">
                                     <div className="space-y-0.5">
-                                        <Label>Otomatik Veri Güncelleme</Label>
-                                        <p className="text-sm text-muted-foreground">Piyasa verilerini arka planda otomatik güncelle</p>
+                                        <Label>{t('settingsPage.data.autoUpdate.label')}</Label>
+                                        <p className="text-sm text-muted-foreground">{t('settingsPage.data.autoUpdate.description')}</p>
                                     </div>
                                     <Switch defaultChecked />
                                 </div>
                                 <div className="flex items-center justify-between py-2 border-b">
                                     <div className="space-y-0.5">
-                                        <Label>Güncelleme Sıklığı</Label>
-                                        <p className="text-sm text-muted-foreground">Veri yenileme aralığı</p>
+                                        <Label>{t('settingsPage.data.refreshRate.label')}</Label>
+                                        <p className="text-sm text-muted-foreground">{t('settingsPage.data.refreshRate.description')}</p>
                                     </div>
                                     <Select defaultValue="60">
                                         <SelectTrigger className="w-40">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="30">30 saniye</SelectItem>
-                                            <SelectItem value="60">1 dakika</SelectItem>
-                                            <SelectItem value="300">5 dakika</SelectItem>
-                                            <SelectItem value="900">15 dakika</SelectItem>
+                                            <SelectItem value="30">{t('settingsPage.data.refreshRate.options.30')}</SelectItem>
+                                            <SelectItem value="60">{t('settingsPage.data.refreshRate.options.60')}</SelectItem>
+                                            <SelectItem value="300">{t('settingsPage.data.refreshRate.options.300')}</SelectItem>
+                                            <SelectItem value="900">{t('settingsPage.data.refreshRate.options.900')}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -330,39 +332,39 @@ export default function SettingsPage() {
 
                             {/* Notification Settings */}
                             <div className="space-y-4">
-                                <h3 className="text-sm font-medium">Bildirim Ayarları</h3>
+                                <h3 className="text-sm font-medium">{t('settingsPage.sections.notifications')}</h3>
                                 <div className="flex items-center justify-between py-2 border-b">
                                     <div className="space-y-0.5">
-                                        <Label>Fiyat Alarmları</Label>
-                                        <p className="text-sm text-muted-foreground">Hedef fiyata ulaşınca bildir</p>
+                                        <Label>{t('settingsPage.notifications.priceAlerts.label')}</Label>
+                                        <p className="text-sm text-muted-foreground">{t('settingsPage.notifications.priceAlerts.description')}</p>
                                     </div>
                                     <Switch defaultChecked />
                                 </div>
                                 <div className="flex items-center justify-between py-2 border-b">
                                     <div className="space-y-0.5">
-                                        <Label>Portföy Güncellemeleri</Label>
-                                        <p className="text-sm text-muted-foreground">Önemli değer değişikliklerinde bildir</p>
+                                        <Label>{t('settingsPage.notifications.portfolioUpdates.label')}</Label>
+                                        <p className="text-sm text-muted-foreground">{t('settingsPage.notifications.portfolioUpdates.description')}</p>
                                     </div>
                                     <Switch defaultChecked />
                                 </div>
                                 <div className="flex items-center justify-between py-2 border-b">
                                     <div className="space-y-0.5">
-                                        <Label>Haber Bildirimleri</Label>
-                                        <p className="text-sm text-muted-foreground">İlgilendiğiniz konularda haber çıkınca bildir</p>
+                                        <Label>{t('settingsPage.notifications.news.label')}</Label>
+                                        <p className="text-sm text-muted-foreground">{t('settingsPage.notifications.news.description')}</p>
                                     </div>
                                     <Switch defaultChecked />
                                 </div>
                                 <div className="flex items-center justify-between py-2 border-b">
                                     <div className="space-y-0.5">
-                                        <Label>Sesli Bildirimler</Label>
-                                        <p className="text-sm text-muted-foreground">Bildirimler için ses çal</p>
+                                        <Label>{t('settingsPage.notifications.sound.label')}</Label>
+                                        <p className="text-sm text-muted-foreground">{t('settingsPage.notifications.sound.description')}</p>
                                     </div>
                                     <Switch />
                                 </div>
                             </div>
 
                             <Button className="w-full mt-4" onClick={() => toast.success(t('success.saved'))}>
-                                {t('settings.apiKeys.save')}
+                                {t('common.save')}
                             </Button>
                         </CardContent>
                     </Card>
@@ -370,61 +372,58 @@ export default function SettingsPage() {
                     {/* Danger Zone */}
                     <Card className="border-destructive/50 mt-6">
                         <CardHeader>
-                            <CardTitle className="text-destructive">Tehlikeli Bölge</CardTitle>
-                            <CardDescription>Bu işlemler geri alınamaz. Dikkatli olun.</CardDescription>
+                            <CardTitle className="text-destructive">{t('settingsPage.dangerZone.title')}</CardTitle>
+                            <CardDescription>{t('settingsPage.dangerZone.description')}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between py-2">
                                 <div className="space-y-0.5">
-                                    <Label className="text-destructive font-medium">Tüm Verileri Sıfırla</Label>
+                                    <Label className="text-destructive font-medium">{t('settingsPage.dangerZone.reset.title')}</Label>
                                     <p className="text-sm text-muted-foreground">
-                                        Portföyler, izleme listeleri, alarmlar ve tüm kullanıcı verileriniz silinecek.
+                                        {t('settingsPage.dangerZone.reset.description')}
                                     </p>
                                 </div>
                                 <Dialog>
                                     <DialogTrigger asChild>
                                         <Button variant="destructive" size="sm">
                                             <Trash2 className="h-4 w-4 mr-2" />
-                                            Verileri Sıfırla
+                                            {t('settingsPage.dangerZone.reset.button')}
                                         </Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                         <DialogHeader>
                                             <DialogTitle className="text-destructive flex items-center gap-2">
                                                 <AlertCircle className="h-5 w-5" />
-                                                Tüm Verileri Sil
+                                                {t('settingsPage.dangerZone.reset.dialog.title')}
                                             </DialogTitle>
                                             <DialogDescription>
-                                                Bu işlem geri alınamaz! Tüm portföyleriniz, izleme listeleriniz,
-                                                alarmlarınız ve kişisel ayarlarınız kalıcı olarak silinecektir.
+                                                {t('settingsPage.dangerZone.reset.dialog.description')}
                                             </DialogDescription>
                                         </DialogHeader>
                                         <div className="py-4">
                                             <p className="text-sm text-muted-foreground mb-4">
-                                                Devam etmek için aşağıdaki butona tıklayın:
+                                                {t('settingsPage.dangerZone.reset.dialog.continue')}
                                             </p>
                                             <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
                                                 <p className="text-sm font-medium text-destructive">
-                                                    ⚠️ Bu işlem şunları silecek:
+                                                    {t('settingsPage.dangerZone.reset.dialog.warningTitle')}
                                                 </p>
                                                 <ul className="text-sm text-muted-foreground mt-2 space-y-1 list-disc list-inside">
-                                                    <li>Tüm portföyler ve pozisyonlar</li>
-                                                    <li>İzleme listeleri</li>
-                                                    <li>Fiyat alarmları</li>
-                                                    <li>Bildirim tercihleri</li>
-                                                    <li>Önbelleğe alınmış veriler</li>
+                                                    {t('settingsPage.dangerZone.reset.dialog.items', { returnObjects: true }).map((item) => (
+                                                        <li key={item}>{item}</li>
+                                                    ))}
                                                 </ul>
                                             </div>
                                         </div>
                                         <DialogFooter className="gap-2">
                                             <Button variant="outline" onClick={() => { }}>
-                                                İptal
+                                                {t('common.cancel')}
                                             </Button>
                                             <Button
                                                 variant="destructive"
                                                 onClick={async () => {
                                                     try {
-                                                        toast.loading('Veriler siliniyor...')
+                                                        toast.loading(t('settingsPage.dangerZone.reset.toast.loading'))
 
                                                         // 1. Tüm portföyleri sil
                                                         const portfolios = await portfolioService.getPortfolios()
@@ -451,17 +450,19 @@ export default function SettingsPage() {
                                                         sessionStorage.clear()
 
                                                         toast.dismiss()
-                                                        toast.success('Tüm veriler başarıyla sıfırlandı!')
+                                                        toast.success(t('settingsPage.dangerZone.reset.toast.success'))
                                                         setTimeout(() => window.location.reload(), 1500)
                                                     } catch (error) {
                                                         console.error('Reset failed:', error)
                                                         toast.dismiss()
-                                                        toast.error('Veriler silinirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'))
+                                                        toast.error(t('settingsPage.dangerZone.reset.toast.error', {
+                                                            message: error.message || t('settingsPage.dangerZone.reset.toast.unknownError')
+                                                        }))
                                                     }
                                                 }}
                                             >
                                                 <Trash2 className="h-4 w-4 mr-2" />
-                                                Evet, Tüm Verileri Sil
+                                                {t('settingsPage.dangerZone.reset.confirmButton')}
                                             </Button>
                                         </DialogFooter>
                                     </DialogContent>
@@ -470,9 +471,9 @@ export default function SettingsPage() {
 
                             <div className="flex items-center justify-between py-2 border-t">
                                 <div className="space-y-0.5">
-                                    <Label className="font-medium">Önbelleği Temizle</Label>
+                                    <Label className="font-medium">{t('settingsPage.cache.title')}</Label>
                                     <p className="text-sm text-muted-foreground">
-                                        Önbelleğe alınmış piyasa verilerini ve geçici dosyaları temizle.
+                                        {t('settingsPage.cache.description')}
                                     </p>
                                 </div>
                                 <Button
@@ -485,11 +486,11 @@ export default function SettingsPage() {
                                                 names.forEach(name => caches.delete(name))
                                             })
                                         }
-                                        toast.success('Önbellek temizlendi!')
+                                        toast.success(t('settingsPage.cache.toastSuccess'))
                                     }}
                                 >
                                     <RefreshCw className="h-4 w-4 mr-2" />
-                                    Önbelleği Temizle
+                                    {t('settingsPage.cache.button')}
                                 </Button>
                             </div>
                         </CardContent>
@@ -541,9 +542,9 @@ export default function SettingsPage() {
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="ALPHA_VANTAGE">Alpha Vantage</SelectItem>
-                                                    <SelectItem value="YAHOO_FINANCE">Yahoo Finance</SelectItem>
-                                                    <SelectItem value="FINNHUB">Finnhub</SelectItem>
+                                                    <SelectItem value="ALPHA_VANTAGE">{t('settings.apiKeys.providers.alphaVantage')}</SelectItem>
+                                                    <SelectItem value="YAHOO_FINANCE">{t('settings.apiKeys.providers.yahooFinance')}</SelectItem>
+                                                    <SelectItem value="FINNHUB">{t('settings.apiKeys.providers.finnhub')}</SelectItem>
                                                     <SelectItem value="TCMB">{t('settings.providers.info.TCMB.title')}</SelectItem>
                                                     <SelectItem value="OTHER">{t('settings.apiKeys.providerOther')}</SelectItem>
                                                 </SelectContent>
@@ -714,7 +715,7 @@ export default function SettingsPage() {
                                                             size="icon"
                                                             className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                                             onClick={() => handleDelete(config.id)}
-                                                            title="Sil"
+                                                            title={t('common.delete')}
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>

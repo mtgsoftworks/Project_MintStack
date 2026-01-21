@@ -28,45 +28,7 @@ import {
   setMobileSidebarOpen
 } from '@/store/slices/uiSlice'
 import { useState } from 'react'
-
-const navigation = [
-  {
-    name: 'Dashboard',
-    href: '/',
-    icon: LayoutDashboard
-  },
-  {
-    name: 'Haberler',
-    href: '/news',
-    icon: Newspaper
-  },
-  {
-    name: 'Piyasalar',
-    icon: TrendingUp,
-    children: [
-      { name: 'Döviz', href: '/market/currencies', icon: DollarSign },
-      { name: 'Hisseler', href: '/market/stocks', icon: BarChart3 },
-      { name: 'Tahvil/Bono', href: '/market/bonds', icon: Building },
-      { name: 'Fonlar', href: '/market/funds', icon: Wallet },
-      { name: 'VIOP', href: '/market/viop', icon: LineChart },
-    ],
-  },
-  {
-    name: 'Portföy',
-    href: '/portfolio',
-    icon: PieChart
-  },
-  {
-    name: 'Analiz',
-    href: '/analysis',
-    icon: BarChart3
-  },
-  {
-    name: 'Ayarlar',
-    href: '/settings',
-    icon: Settings
-  },
-]
+import { useTranslation } from 'react-i18next'
 
 function NavItem({ item, collapsed }) {
   const location = useLocation()
@@ -161,6 +123,46 @@ export function Sidebar() {
   const dispatch = useDispatch()
   const collapsed = useSelector(selectSidebarCollapsed)
   const mobileOpen = useSelector(selectSidebarMobileOpen)
+  const { t } = useTranslation()
+
+  const navigation = [
+    {
+      name: t('nav.home'),
+      href: '/',
+      icon: LayoutDashboard
+    },
+    {
+      name: t('nav.news'),
+      href: '/news',
+      icon: Newspaper
+    },
+    {
+      name: t('nav.market'),
+      icon: TrendingUp,
+      children: [
+        { name: t('market.currencies'), href: '/market/currencies', icon: DollarSign },
+        { name: t('market.stocks'), href: '/market/stocks', icon: BarChart3 },
+        { name: t('market.bonds'), href: '/market/bonds', icon: Building },
+        { name: t('market.funds'), href: '/market/funds', icon: Wallet },
+        { name: t('market.viop'), href: '/market/viop', icon: LineChart },
+      ],
+    },
+    {
+      name: t('nav.portfolio'),
+      href: '/portfolio',
+      icon: PieChart
+    },
+    {
+      name: t('nav.analysis'),
+      href: '/analysis',
+      icon: BarChart3
+    },
+    {
+      name: t('nav.settings'),
+      href: '/settings',
+      icon: Settings
+    },
+  ]
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -197,7 +199,7 @@ export function Sidebar() {
             {!collapsed && (
               <div>
                 <h1 className="text-lg font-bold text-white">MintStack</h1>
-                <p className="text-xs text-slate-400">Finance Portal</p>
+                <p className="text-xs text-slate-400">{t('app.tagline')}</p>
               </div>
             )}
           </div>
@@ -236,7 +238,7 @@ export function Sidebar() {
           </button>
           {!collapsed && (
             <p className="text-center text-xs text-slate-500 mt-4 mb-2">
-              © 2026 MintStack Finance
+              {t('footer.copyright', { year: 2026 })}
             </p>
           )}
         </div>

@@ -1,6 +1,10 @@
 {
     "common": {
         "loading": "Loading...",
+        "loadingPage": "Loading page...",
+        "loadingData": "Loading data...",
+        "sessionCheck": "Checking session...",
+        "redirecting": "Redirecting to login...",
         "error": "An error occurred",
         "save": "Save",
         "cancel": "Cancel",
@@ -9,12 +13,16 @@
         "add": "Add",
         "search": "Search",
         "filter": "Filter",
+        "viewAll": "View All",
         "refresh": "Refresh",
+        "refreshPage": "Refresh Page",
         "close": "Close",
         "confirm": "Confirm",
+        "confirmAction": "Are you sure you want to proceed?",
         "yes": "Yes",
         "no": "No",
         "back": "Back",
+        "previous": "Previous",
         "next": "Next",
         "submit": "Submit",
         "noData": "No data found"
@@ -37,6 +45,37 @@
         "settings": "Settings",
         "profile": "Profile",
         "admin": "Admin"
+    },
+    "app": {
+        "tagline": "Finance Portal"
+    },
+    "header": {
+        "searchPlaceholder": "Search...",
+        "notifications": {
+            "title": "Notifications",
+            "new": "{{count}} New",
+            "viewAll": "View all notifications",
+            "items": {
+                "portfolioUpdated": {
+                    "title": "Portfolio Updated",
+                    "description": "{{symbol}} stock increased by {{change}}%",
+                    "time": "5 min ago"
+                },
+                "currencyAlert": {
+                    "title": "Currency Alert",
+                    "description": "{{pair}} reached target price",
+                    "time": "1 hour ago"
+                },
+                "news": {
+                    "title": "New Article",
+                    "description": "Central Bank interest rate decision announced",
+                    "time": "2 hours ago"
+                }
+            }
+        }
+    },
+    "footer": {
+        "copyright": " {{year}} MintStack Finance"
     },
     "market": {
         "currencies": "Currency Rates",
@@ -111,6 +150,11 @@
             "editDescription": "Update existing API key. Enter new key and test.",
             "provider": "Provider",
             "providerOther": "Other",
+            "providers": {
+                "alphaVantage": "Alpha Vantage",
+                "yahooFinance": "Yahoo Finance",
+                "finnhub": "Finnhub"
+            },
             "apiKey": "API Key",
             "secretKey": "Secret Key (Optional)",
             "baseUrl": "Base URL (Optional)",
@@ -204,7 +248,15 @@
     },
     "dashboard": {
         "subtitle": "Overview of market summary and your portfolio status",
+        "stats": {
+            "usdTry": "USD/TRY",
+            "portfolioValue": "Portfolio Value",
+            "totalProfitLoss": "Total P/L"
+        },
         "widgets": {
+            "stocks": {
+                "title": "Popular Stocks"
+            },
             "bist100": {
                 "title": "BIST 100",
                 "noProvider": "Not Configured",
@@ -220,17 +272,415 @@
         "totalUsers": "Total Users",
         "activeUsers": "Active Users",
         "activate": "Activate",
-        "deactivate": "Deactivate"
+        "deactivate": "Deactivate",
+        "stats": {
+            "portfolios": "Portfolios",
+            "activeAlerts": "Active Alerts",
+            "instruments": "Instruments",
+            "watchlists": "Watchlists"
+        },
+        "table": {
+            "user": "User",
+            "email": "Email",
+            "portfolios": "Portfolios",
+            "status": "Status",
+            "registered": "Registered"
+        },
+        "status": {
+            "active": "Active",
+            "inactive": "Inactive"
+        }
     },
     "errors": {
         "networkError": "Network error",
         "unauthorized": "You are not authorized",
         "notFound": "Page not found",
-        "serverError": "Server error"
+        "serverError": "Server error",
+        "boundaryTitle": "Something went wrong",
+        "boundaryDescription": "An unexpected error occurred. Please refresh the page and try again."
     },
     "success": {
         "saved": "Successfully saved",
         "deleted": "Successfully deleted",
         "updated": "Successfully updated"
+    },
+    "portfolioPage": {
+        "title": "Portfolios",
+        "subtitle": "Manage your investment portfolios",
+        "new": "New Portfolio",
+        "summary": {
+            "totalValue": "Total Value",
+            "totalCost": "Total Cost",
+            "totalProfitLoss": "Total P/L",
+            "portfolioCount": "Portfolio Count"
+        },
+        "empty": {
+            "title": "You don't have a portfolio yet",
+            "description": "Create your first portfolio to track your investments.",
+            "cta": "Create Portfolio"
+        },
+        "actions": {
+            "edit": "Edit",
+            "delete": "Delete"
+        },
+        "card": {
+            "items_one": "{{count}} item",
+            "items_other": "{{count}} items"
+        },
+        "dialog": {
+            "title": "New Portfolio",
+            "description": "Create a new portfolio and track your assets.",
+            "nameLabel": "Portfolio Name",
+            "namePlaceholder": "Main Portfolio",
+            "descriptionLabel": "Description (Optional)",
+            "descriptionPlaceholder": "Long-term investments",
+            "create": "Create",
+            "creating": "Creating..."
+        },
+        "toast": {
+            "createSuccess": "Portfolio created",
+            "createError": "Portfolio could not be created",
+            "deleteConfirm": "Are you sure you want to delete this portfolio?",
+            "deleteSuccess": "Portfolio deleted",
+            "deleteError": "Portfolio could not be deleted"
+        }
+    },
+    "currencyPage": {
+        "title": "Currency Rates",
+        "subtitle": "CBRT latest exchange rates",
+        "searchPlaceholder": "Search currency...",
+        "empty": "No results found",
+        "table": {
+            "title": "All Currency Rates",
+            "description": "Last update: {{date}}",
+            "headers": {
+                "currency": "Currency",
+                "buying": "Buying",
+                "selling": "Selling",
+                "effectiveBuying": "Effective Buying",
+                "effectiveSelling": "Effective Selling",
+                "change": "Change"
+            }
+        }
+    },
+    "bondsPage": {
+        "title": "Bonds & Treasury",
+        "subtitle": "Government bonds and treasury bills",
+        "searchPlaceholder": "Search bonds...",
+        "listTitle": "Bonds & Treasury List",
+        "listDescription": "{{count}} bonds listed",
+        "empty": "No results found",
+        "headers": {
+            "symbol": "Symbol",
+            "name": "Name",
+            "price": "Price",
+            "yield": "Yield",
+            "change": "Change",
+            "maturity": "Maturity"
+        }
+    },
+    "fundsPage": {
+        "title": "Investment Funds",
+        "subtitle": "Mutual funds and exchange-traded funds",
+        "searchPlaceholder": "Search funds...",
+        "listTitle": "Funds List",
+        "listDescription": "{{count}} funds listed",
+        "empty": "No results found",
+        "headers": {
+            "code": "Code",
+            "name": "Fund Name",
+            "price": "Price",
+            "change": "Change",
+            "totalValue": "Total Value"
+        }
+    },
+    "viopPage": {
+        "title": "VIOP",
+        "subtitle": "Futures and options market",
+        "searchPlaceholder": "Search contracts...",
+        "listTitle": "Futures Contracts",
+        "listDescription": "{{count}} contracts listed",
+        "empty": "No results found",
+        "headers": {
+            "contract": "Contract",
+            "underlying": "Underlying",
+            "price": "Price",
+            "change": "Change",
+            "volume": "Volume",
+            "maturity": "Maturity"
+        }
+    },
+    "stocksPage": {
+        "title": "Stocks",
+        "subtitle": "BIST listed stocks",
+        "searchPlaceholder": "Search stocks...",
+        "listTitle": "Stock List",
+        "listDescription": "{{count}} stocks listed",
+        "empty": "No results found",
+        "pagination": "Page {{current}} / {{total}}",
+        "headers": {
+            "symbol": "Symbol",
+            "company": "Company",
+            "price": "Price",
+            "change": "Change",
+            "previousClose": "Previous Close",
+            "volume": "Volume"
+        }
+    },
+    "notificationsPage": {
+        "title": "Notifications",
+        "subtitle": "Manage your alerts and system notifications",
+        "confirmClearAll": "Are you sure you want to delete all notifications?",
+        "emptyCategory": "No notifications in this category",
+        "actions": {
+            "markAllRead": "Mark all as read",
+            "clearAll": "Clear all",
+            "markRead": "Mark as read",
+            "delete": "Delete"
+        },
+        "tabs": {
+            "all": "All",
+            "unread": "Unread",
+            "alerts": "Alerts",
+            "news": "News"
+        },
+        "cardTitles": {
+            "all": "All Notifications",
+            "unread": "Unread Notifications",
+            "alerts": "Price Alerts",
+            "news": "News Alerts"
+        },
+        "cardDescription": {
+            "empty": "No notifications yet",
+            "count": "{{count}} notifications"
+        },
+        "mockNotifications": {
+            "priceAlert": {
+                "title": "Price alert triggered",
+                "message": "{{symbol}} reached target price {{price}}",
+                "timestamp": "5 minutes ago"
+            },
+            "portfolio": {
+                "title": "Portfolio updated",
+                "message": "{{symbol}} gained {{change}}% today",
+                "timestamp": "1 hour ago"
+            },
+            "news": {
+                "title": "Important news",
+                "message": "Central Bank announced interest rate decision",
+                "timestamp": "2 hours ago"
+            },
+            "priceDrop": {
+                "title": "Price drop alert",
+                "message": "{{pair}} is approaching your lower limit",
+                "timestamp": "5 hours ago"
+            },
+            "system": {
+                "title": "System notification",
+                "message": "Your API key was verified and saved",
+                "timestamp": "Yesterday"
+            }
+        }
+    },
+    "alertsPage": {
+        "table": {
+            "type": "Type",
+            "status": "Status"
+        },
+        "actions": {
+            "deactivate": "Deactivate"
+        },
+        "form": {
+            "alertType": "Alert Type",
+            "notes": "Notes (Optional)"
+        },
+        "placeholders": {
+            "symbol": "THYAO",
+            "targetValue": "300"
+        }
+    },
+    "portfolioDetailPage": {
+        "addItem": "Add Asset",
+        "confirmDelete": "Are you sure you want to delete this asset?",
+        "notFound": "Portfolio not found.",
+        "backToPortfolios": "Back to Portfolios",
+        "toast": {
+            "addSuccess": "Asset added",
+            "addError": "Asset could not be added",
+            "deleteSuccess": "Asset deleted",
+            "deleteError": "Asset could not be deleted"
+        },
+        "addItemDialog": {
+            "title": "Add Asset",
+            "description": "Add a new asset to your portfolio.",
+            "symbolLabel": "Symbol",
+            "symbolPlaceholder": "THYAO",
+            "quantityLabel": "Quantity",
+            "quantityPlaceholder": "100",
+            "purchasePriceLabel": "Purchase Price (TRY)",
+            "purchasePricePlaceholder": "150.00",
+            "purchaseDateLabel": "Purchase Date",
+            "submit": "Add",
+            "submitting": "Adding..."
+        },
+        "chart": {
+            "title": "Portfolio Allocation",
+            "empty": "No assets yet"
+        },
+        "summary": {
+            "title": "Summary",
+            "totalValue": "Total Value",
+            "totalCost": "Total Cost",
+            "profitLoss": "Profit/Loss",
+            "profitLossRatio": "P/L Ratio"
+        },
+        "items": {
+            "title": "Assets",
+            "count": "{{count}} assets",
+            "empty": "No assets in this portfolio yet.",
+            "headers": {
+                "symbol": "Symbol",
+                "quantity": "Quantity",
+                "purchasePrice": "Purchase Price",
+                "currentPrice": "Current Price",
+                "value": "Value",
+                "profitLoss": "P/L"
+            }
+        },
+        "transactions": {
+            "title": "Transaction History",
+            "count": "{{count}} transactions recorded",
+            "empty": "No transactions yet.",
+            "pagination": "Page {{current}} / {{total}}",
+            "headers": {
+                "date": "Date",
+                "type": "Type",
+                "symbol": "Symbol",
+                "quantity": "Quantity",
+                "price": "Price",
+                "total": "Total",
+                "note": "Note"
+            },
+            "types": {
+                "buy": "Buy",
+                "sell": "Sell"
+            }
+        }
+    },
+    "settingsPage": {
+        "tabs": {
+            "general": "General"
+        },
+        "general": {
+            "title": "General Settings",
+            "description": "Customize overall application behavior."
+        },
+        "sections": {
+            "appearance": "Appearance",
+            "data": "Data Settings",
+            "notifications": "Notification Settings"
+        },
+        "appearance": {
+            "themeDescription": "Choose the application theme",
+            "languageDescription": "Select the interface language",
+            "languageChanged": "Language changed to {{language}}",
+            "themeOptions": {
+                "light": "Light",
+                "dark": "Dark",
+                "system": "System"
+            },
+            "languageOptions": {
+                "tr": " Turkish",
+                "en": " English"
+            }
+        },
+        "data": {
+            "currency": {
+                "label": "Default Currency",
+                "description": "Currency used in portfolio and analysis",
+                "options": {
+                    "try": " Turkish Lira",
+                    "usd": "$ US Dollar",
+                    "eur": " Euro",
+                    "gbp": " British Pound"
+                }
+            },
+            "timezone": {
+                "label": "Time Zone",
+                "description": "Time zone used to display data",
+                "options": {
+                    "istanbul": "Istanbul (UTC+3)",
+                    "london": "London (UTC+0)",
+                    "newYork": "New York (UTC-5)"
+                }
+            },
+            "autoUpdate": {
+                "label": "Automatic Data Updates",
+                "description": "Automatically refresh market data in the background"
+            },
+            "refreshRate": {
+                "label": "Refresh Rate",
+                "description": "Data refresh interval",
+                "options": {
+                    "30": "30 seconds",
+                    "60": "1 minute",
+                    "300": "5 minutes",
+                    "900": "15 minutes"
+                }
+            }
+        },
+        "notifications": {
+            "priceAlerts": {
+                "label": "Price Alerts",
+                "description": "Notify when target price is reached"
+            },
+            "portfolioUpdates": {
+                "label": "Portfolio Updates",
+                "description": "Notify on significant value changes"
+            },
+            "news": {
+                "label": "News Alerts",
+                "description": "Notify when relevant news is published"
+            },
+            "sound": {
+                "label": "Sound Notifications",
+                "description": "Play sounds for notifications"
+            }
+        },
+        "dangerZone": {
+            "title": "Danger Zone",
+            "description": "These actions cannot be undone. Proceed carefully.",
+            "reset": {
+                "title": "Reset All Data",
+                "description": "Portfolios, watchlists, alerts, and all your user data will be deleted.",
+                "button": "Reset Data",
+                "confirmButton": "Yes, delete all data",
+                "dialog": {
+                    "title": "Delete All Data",
+                    "description": "This action cannot be undone. Your portfolios, watchlists, alerts, and personal settings will be permanently deleted.",
+                    "continue": "Click the button below to continue:",
+                    "warningTitle": "",
+                    "items": [
+                        "All portfolios and positions",
+                        "Watchlists",
+                        "Price alerts",
+                        "Notification preferences",
+                        "Cached data"
+                    ]
+                },
+                "toast": {
+                    "loading": "Deleting data...",
+                    "success": "All data has been reset successfully!",
+                    "error": "Error while deleting data: {{message}}",
+                    "unknownError": "Unknown error"
+                }
+            }
+        },
+        "cache": {
+            "title": "Clear Cache",
+            "description": "Clear cached market data and temporary files.",
+            "toastSuccess": "Cache cleared!",
+            "button": "Clear Cache"
+        }
     }
 }

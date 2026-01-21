@@ -128,9 +128,9 @@ export default function AlertsPage() {
                     <thead className="bg-gray-50">
                         <tr>
                             <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('portfolio.symbol')}</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Tip</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('alertsPage.table.type')}</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('alerts.targetPrice')}</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Durum</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('alertsPage.table.status')}</th>
                             <th className="px-4 py-3 text-right text-sm font-medium text-gray-600"></th>
                         </tr>
                     </thead>
@@ -177,7 +177,7 @@ export default function AlertsPage() {
                                             <button
                                                 onClick={() => handleDeactivate(alert.id)}
                                                 className="text-gray-400 hover:text-orange-500"
-                                                title="Devre dışı bırak"
+                                                title={t('alertsPage.actions.deactivate')}
                                             >
                                                 <BellOff className="w-4 h-4" />
                                             </button>
@@ -218,14 +218,14 @@ export default function AlertsPage() {
                                     type="text"
                                     value={newAlert.symbol}
                                     onChange={(e) => setNewAlert({ ...newAlert, symbol: e.target.value })}
-                                    placeholder="THYAO"
+                                    placeholder={t('alertsPage.placeholders.symbol')}
                                     className="w-full px-4 py-2 border rounded-lg"
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Alarm Tipi
+                                    {t('alertsPage.form.alertType')}
                                 </label>
                                 <select
                                     value={newAlert.alertType}
@@ -248,14 +248,14 @@ export default function AlertsPage() {
                                     type="number"
                                     value={newAlert.targetValue}
                                     onChange={(e) => setNewAlert({ ...newAlert, targetValue: e.target.value })}
-                                    placeholder="300"
+                                    placeholder={t('alertsPage.placeholders.targetValue')}
                                     className="w-full px-4 py-2 border rounded-lg"
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Not (Opsiyonel)
+                                    {t('alertsPage.form.notes')}
                                 </label>
                                 <input
                                     type="text"

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Search, RefreshCw, TrendingUp, TrendingDown, LineChart } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,7 @@ function ViopTableSkeleton() {
 }
 
 export default function ViopPage() {
+  const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const { data, isLoading, isFetching, refetch } = useGetViopQuery({})
 
@@ -42,16 +44,16 @@ export default function ViopPage() {
       {/* Page Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">VIOP</h1>
+          <h1 className="text-2xl font-bold">{t('viopPage.title')}</h1>
           <p className="text-muted-foreground">
-            Vadeli İşlem ve Opsiyon Piyasası
+            {t('viopPage.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Kontrat ara..."
+              placeholder={t('viopPage.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 w-64"
@@ -71,9 +73,9 @@ export default function ViopPage() {
       {/* VIOP Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Vadeli İşlem Kontratları</CardTitle>
+          <CardTitle>{t('viopPage.listTitle')}</CardTitle>
           <CardDescription>
-            {viop.length} adet kontrat listeleniyor
+            {t('viopPage.listDescription', { count: viop.length })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -83,19 +85,19 @@ export default function ViopPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Kontrat</TableHead>
-                  <TableHead>Dayanak Varlık</TableHead>
-                  <TableHead className="text-right">Fiyat</TableHead>
-                  <TableHead className="text-right">Değişim</TableHead>
-                  <TableHead className="text-right">Hacim</TableHead>
-                  <TableHead className="text-right">Vade</TableHead>
+                  <TableHead>{t('viopPage.headers.contract')}</TableHead>
+                  <TableHead>{t('viopPage.headers.underlying')}</TableHead>
+                  <TableHead className="text-right">{t('viopPage.headers.price')}</TableHead>
+                  <TableHead className="text-right">{t('viopPage.headers.change')}</TableHead>
+                  <TableHead className="text-right">{t('viopPage.headers.volume')}</TableHead>
+                  <TableHead className="text-right">{t('viopPage.headers.maturity')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredViop.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      Sonuç bulunamadı
+                      {t('viopPage.empty')}
                     </TableCell>
                   </TableRow>
                 ) : (

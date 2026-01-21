@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Search, RefreshCw, TrendingUp, TrendingDown, ArrowUpDown } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,6 +29,7 @@ function StockTableSkeleton() {
 }
 
 export default function StocksPage() {
+  const { t } = useTranslation()
   const [page, setPage] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('symbol')
@@ -61,16 +63,16 @@ export default function StocksPage() {
       {/* Page Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Hisse Senetleri</h1>
+          <h1 className="text-2xl font-bold">{t('stocksPage.title')}</h1>
           <p className="text-muted-foreground">
-            BIST hisse senetleri listesi
+            {t('stocksPage.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Hisse ara..."
+              placeholder={t('stocksPage.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 w-64"
@@ -90,9 +92,9 @@ export default function StocksPage() {
       {/* Stocks Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Hisse Listesi</CardTitle>
+          <CardTitle>{t('stocksPage.listTitle')}</CardTitle>
           <CardDescription>
-            {data?.pagination?.totalElements || 0} hisse senedi listeleniyor
+            {t('stocksPage.listDescription', { count: data?.pagination?.totalElements || 0 })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -110,11 +112,11 @@ export default function StocksPage() {
                         className="-ml-3 h-8"
                         onClick={() => handleSort('symbol')}
                       >
-                        Sembol
+                        {t('stocksPage.headers.symbol')}
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </Button>
                     </TableHead>
-                    <TableHead>Şirket</TableHead>
+                    <TableHead>{t('stocksPage.headers.company')}</TableHead>
                     <TableHead className="text-right">
                       <Button
                         variant="ghost"
@@ -122,7 +124,7 @@ export default function StocksPage() {
                         className="-mr-3 h-8"
                         onClick={() => handleSort('currentPrice')}
                       >
-                        Fiyat
+                        {t('stocksPage.headers.price')}
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </Button>
                     </TableHead>
@@ -133,19 +135,19 @@ export default function StocksPage() {
                         className="-mr-3 h-8"
                         onClick={() => handleSort('changePercent')}
                       >
-                        Değişim
+                        {t('stocksPage.headers.change')}
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </Button>
                     </TableHead>
-                    <TableHead className="text-right">Önceki Kapanış</TableHead>
-                    <TableHead className="text-right">Hacim</TableHead>
+                    <TableHead className="text-right">{t('stocksPage.headers.previousClose')}</TableHead>
+                    <TableHead className="text-right">{t('stocksPage.headers.volume')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredStocks.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        Sonuç bulunamadı
+                        {t('stocksPage.empty')}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -202,17 +204,17 @@ export default function StocksPage() {
                     onClick={() => setPage((p) => Math.max(0, p - 1))}
                     disabled={page === 0 || isFetching}
                   >
-                    Önceki
+                    {t('common.previous')}
                   </Button>
                   <span className="text-sm text-muted-foreground px-4">
-                    Sayfa {page + 1} / {totalPages}
+                    {t('stocksPage.pagination', { current: page + 1, total: totalPages })}
                   </span>
                   <Button
                     variant="outline"
                     onClick={() => setPage((p) => p + 1)}
                     disabled={page >= totalPages - 1 || isFetching}
                   >
-                    Sonraki
+                    {t('common.next')}
                   </Button>
                 </div>
               )}

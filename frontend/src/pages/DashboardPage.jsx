@@ -69,6 +69,7 @@ function StatCard({ title, value, change, icon: Icon, trend, loading }) {
 }
 
 function CurrencyWidget() {
+  const { t } = useTranslation()
   const { data: currencies, isLoading } = useGetCurrenciesQuery()
 
   const mainCurrencies = currencies?.filter(c =>
@@ -79,9 +80,9 @@ function CurrencyWidget() {
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold">Döviz Kurları</CardTitle>
+          <CardTitle className="text-base font-semibold">{t('market.currencies')}</CardTitle>
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/market/currencies">Tümünü Gör</Link>
+            <Link to="/market/currencies">{t('common.viewAll')}</Link>
           </Button>
         </div>
       </CardHeader>
@@ -129,6 +130,7 @@ function CurrencyWidget() {
 }
 
 function NewsWidget() {
+  const { t } = useTranslation()
   const { data, isLoading } = useGetNewsQuery({ page: 0, size: 5 })
   const news = data?.data || []
 
@@ -136,9 +138,9 @@ function NewsWidget() {
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold">Son Haberler</CardTitle>
+          <CardTitle className="text-base font-semibold">{t('news.latest')}</CardTitle>
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/news">Tümünü Gör</Link>
+            <Link to="/news">{t('common.viewAll')}</Link>
           </Button>
         </div>
       </CardHeader>
@@ -180,6 +182,7 @@ function NewsWidget() {
 }
 
 function StocksWidget() {
+  const { t } = useTranslation()
   const { data, isLoading } = useGetStocksQuery({ size: 5 })
   const stocks = data?.data || []
 
@@ -187,9 +190,9 @@ function StocksWidget() {
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold">Popüler Hisseler</CardTitle>
+          <CardTitle className="text-base font-semibold">{t('dashboard.widgets.stocks.title')}</CardTitle>
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/market/stocks">Tümünü Gör</Link>
+            <Link to="/market/stocks">{t('common.viewAll')}</Link>
           </Button>
         </div>
       </CardHeader>
@@ -291,7 +294,7 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="USD/TRY"
+          title={t('dashboard.stats.usdTry')}
           value={usdRate ? formatCurrency(usdRate.sellingRate, 'TRY') : '-'}
           change={usdRate?.changePercent}
           icon={DollarSign}
@@ -309,7 +312,7 @@ export default function DashboardPage() {
         {isAuthenticated && (
           <>
             <StatCard
-              title="Portföy Değeri"
+              title={t('dashboard.stats.portfolioValue')}
               value={portfolioSummary ? formatCurrency(portfolioSummary.totalValue, 'TRY') : '-'}
               change={portfolioProfitLossPercent}
               icon={Wallet}
@@ -317,7 +320,7 @@ export default function DashboardPage() {
               loading={portfolioLoading}
             />
             <StatCard
-              title="Toplam K/Z"
+              title={t('dashboard.stats.totalProfitLoss')}
               value={portfolioSummary ? formatCurrency(portfolioSummary.totalProfitLoss, 'TRY') : '-'}
               change={portfolioProfitLossPercent}
               icon={portfolioSummary?.totalProfitLoss >= 0 ? TrendingUp : TrendingDown}

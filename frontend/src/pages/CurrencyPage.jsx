@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { DollarSign, TrendingUp, TrendingDown, Search, RefreshCw } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,7 @@ function CurrencyTableSkeleton() {
 }
 
 export default function CurrencyPage() {
+  const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const { data: currencies, isLoading, isFetching, refetch } = useGetCurrenciesQuery()
 
@@ -41,16 +43,16 @@ export default function CurrencyPage() {
       {/* Page Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Döviz Kurları</h1>
+          <h1 className="text-2xl font-bold">{t('currencyPage.title')}</h1>
           <p className="text-muted-foreground">
-            TCMB güncel döviz kurları
+            {t('currencyPage.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Döviz ara..."
+              placeholder={t('currencyPage.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 w-64"
@@ -110,9 +112,11 @@ export default function CurrencyPage() {
       {/* Currency Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Tüm Döviz Kurları</CardTitle>
+          <CardTitle>{t('currencyPage.table.title')}</CardTitle>
           <CardDescription>
-            Son güncelleme: {currencies?.[0]?.rateDate ? formatDateTime(currencies[0].rateDate) : '-'}
+            {t('currencyPage.table.description', {
+              date: currencies?.[0]?.rateDate ? formatDateTime(currencies[0].rateDate) : '-',
+            })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -122,19 +126,19 @@ export default function CurrencyPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Döviz</TableHead>
-                  <TableHead className="text-right">Döviz Alış</TableHead>
-                  <TableHead className="text-right">Döviz Satış</TableHead>
-                  <TableHead className="text-right">Efektif Alış</TableHead>
-                  <TableHead className="text-right">Efektif Satış</TableHead>
-                  <TableHead className="text-right">Değişim</TableHead>
+                  <TableHead>{t('currencyPage.table.headers.currency')}</TableHead>
+                  <TableHead className="text-right">{t('currencyPage.table.headers.buying')}</TableHead>
+                  <TableHead className="text-right">{t('currencyPage.table.headers.selling')}</TableHead>
+                  <TableHead className="text-right">{t('currencyPage.table.headers.effectiveBuying')}</TableHead>
+                  <TableHead className="text-right">{t('currencyPage.table.headers.effectiveSelling')}</TableHead>
+                  <TableHead className="text-right">{t('currencyPage.table.headers.change')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCurrencies.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      Sonuç bulunamadı
+                      {t('currencyPage.empty')}
                     </TableCell>
                   </TableRow>
                 ) : (

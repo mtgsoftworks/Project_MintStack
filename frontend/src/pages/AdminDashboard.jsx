@@ -68,10 +68,10 @@ export default function AdminDashboard() {
     const stats = [
         { label: t('admin.totalUsers'), value: dashboard?.totalUsers || 0, icon: Users, color: 'bg-blue-500' },
         { label: t('admin.activeUsers'), value: dashboard?.activeUsers || 0, icon: UserCheck, color: 'bg-emerald-500' },
-        { label: 'Portföyler', value: dashboard?.totalPortfolios || 0, icon: Wallet, color: 'bg-purple-500' },
-        { label: 'Aktif Alarmlar', value: dashboard?.activeAlerts || 0, icon: Bell, color: 'bg-orange-500' },
-        { label: 'Enstrümanlar', value: dashboard?.totalInstruments || 0, icon: BarChart3, color: 'bg-cyan-500' },
-        { label: 'Watchlistler', value: dashboard?.totalWatchlists || 0, icon: RefreshCw, color: 'bg-pink-500' },
+        { label: t('admin.stats.portfolios'), value: dashboard?.totalPortfolios || 0, icon: Wallet, color: 'bg-purple-500' },
+        { label: t('admin.stats.activeAlerts'), value: dashboard?.activeAlerts || 0, icon: Bell, color: 'bg-orange-500' },
+        { label: t('admin.stats.instruments'), value: dashboard?.totalInstruments || 0, icon: BarChart3, color: 'bg-cyan-500' },
+        { label: t('admin.stats.watchlists'), value: dashboard?.totalWatchlists || 0, icon: RefreshCw, color: 'bg-pink-500' },
     ]
 
     return (
@@ -129,11 +129,11 @@ export default function AdminDashboard() {
                     <table className="w-full">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Kullanıcı</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Email</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Portföy</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Durum</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Kayıt</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('admin.table.user')}</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('admin.table.email')}</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('admin.table.portfolios')}</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('admin.table.status')}</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('admin.table.registered')}</th>
                                 <th className="px-4 py-3 text-right text-sm font-medium text-gray-600"></th>
                             </tr>
                         </thead>
@@ -154,12 +154,12 @@ export default function AdminDashboard() {
                                         {user.isActive ? (
                                             <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-sm">
                                                 <UserCheck className="w-3 h-3" />
-                                                Aktif
+                                                {t('admin.status.active')}
                                             </span>
                                         ) : (
                                             <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-sm">
                                                 <UserX className="w-3 h-3" />
-                                                Pasif
+                                                {t('admin.status.inactive')}
                                             </span>
                                         )}
                                     </td>

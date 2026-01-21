@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -23,56 +24,60 @@ const mockNotifications = [
     {
         id: 1,
         type: 'price_alert',
-        title: 'Fiyat Alarmı Tetiklendi',
-        message: 'THYAO hissesi hedef fiyat olan ₺185.00\'a ulaştı',
+        titleKey: 'notificationsPage.mockNotifications.priceAlert.title',
+        messageKey: 'notificationsPage.mockNotifications.priceAlert.message',
+        messageValues: { symbol: 'THYAO', price: '₺185.00' },
+        timestampKey: 'notificationsPage.mockNotifications.priceAlert.timestamp',
         icon: TrendingUp,
         iconColor: 'text-success',
         read: false,
-        timestamp: '5 dakika önce'
     },
     {
         id: 2,
         type: 'portfolio',
-        title: 'Portföy Güncellendi',
-        message: 'Portföyünüzdeki GARAN hissesi bugün %2.5 değer kazandı',
+        titleKey: 'notificationsPage.mockNotifications.portfolio.title',
+        messageKey: 'notificationsPage.mockNotifications.portfolio.message',
+        messageValues: { symbol: 'GARAN', change: '2.5' },
+        timestampKey: 'notificationsPage.mockNotifications.portfolio.timestamp',
         icon: DollarSign,
         iconColor: 'text-primary',
         read: false,
-        timestamp: '1 saat önce'
     },
     {
         id: 3,
         type: 'news',
-        title: 'Önemli Haber',
-        message: 'Merkez Bankası faiz kararını açıkladı',
+        titleKey: 'notificationsPage.mockNotifications.news.title',
+        messageKey: 'notificationsPage.mockNotifications.news.message',
+        timestampKey: 'notificationsPage.mockNotifications.news.timestamp',
         icon: Newspaper,
         iconColor: 'text-warning',
         read: false,
-        timestamp: '2 saat önce'
     },
     {
         id: 4,
         type: 'price_alert',
-        title: 'Düşüş Alarmı',
-        message: 'EUR/TRY kuru belirlediğiniz alt limite yaklaştı',
+        titleKey: 'notificationsPage.mockNotifications.priceDrop.title',
+        messageKey: 'notificationsPage.mockNotifications.priceDrop.message',
+        messageValues: { pair: 'EUR/TRY' },
+        timestampKey: 'notificationsPage.mockNotifications.priceDrop.timestamp',
         icon: TrendingDown,
         iconColor: 'text-danger',
         read: true,
-        timestamp: '5 saat önce'
     },
     {
         id: 5,
         type: 'system',
-        title: 'Sistem Bildirimi',
-        message: 'API anahtarınız başarıyla doğrulandı ve kaydedildi',
+        titleKey: 'notificationsPage.mockNotifications.system.title',
+        messageKey: 'notificationsPage.mockNotifications.system.message',
+        timestampKey: 'notificationsPage.mockNotifications.system.timestamp',
         icon: AlertCircle,
         iconColor: 'text-muted-foreground',
         read: true,
-        timestamp: 'Dün'
     }
 ]
 
 export default function NotificationsPage() {
+    const { t } = useTranslation()
     const [notifications, setNotifications] = useState(mockNotifications)
     const [activeTab, setActiveTab] = useState('all')
 
@@ -101,7 +106,7 @@ export default function NotificationsPage() {
     }
 
     const handleClearAll = () => {
-        if (confirm('Tüm bildirimleri silmek istediğinize emin misiniz?')) {
+        if (confirm(t('notificationsPage.confirmClearAll'))) {
             setNotifications([])
         }
     }
@@ -112,10 +117,10 @@ export default function NotificationsPage() {
                 <div>
                     <h1 className="text-2xl font-bold flex items-center gap-2">
                         <Bell className="h-6 w-6" />
-                        Bildirimler
+                        {t('notificationsPage.title')}
                     </h1>
                     <p className="text-muted-foreground">
-                        Alarm ve sistem bildirimlerinizi yönetin
+                        {t('notificationsPage.subtitle')}
                     </p>
                 </div>
                 <div className="flex gap-2">
@@ -126,7 +131,7 @@ export default function NotificationsPage() {
                         disabled={unreadCount === 0}
                     >
                         <CheckCheck className="h-4 w-4 mr-2" />
-                        Tümünü Okundu İşaretle
+                        {t('notificationsPage.actions.markAllRead')}
                     </Button>
                     <Button
                         variant="outline"
@@ -136,7 +141,7 @@ export default function NotificationsPage() {
                         className="text-destructive hover:text-destructive"
                     >
                         <Trash2 className="h-4 w-4 mr-2" />
-                        Tümünü Sil
+                        {t('notificationsPage.actions.clearAll')}
                     </Button>
                 </div>
             </div>
@@ -144,34 +149,31 @@ export default function NotificationsPage() {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
                 <TabsList>
                     <TabsTrigger value="all" className="flex gap-2">
-                        Tümü
+                        {t('notificationsPage.tabs.all')}
                         {notifications.length > 0 && (
                             <Badge variant="secondary" className="ml-1">{notifications.length}</Badge>
                         )}
                     </TabsTrigger>
                     <TabsTrigger value="unread" className="flex gap-2">
-                        Okunmamış
+                        {t('notificationsPage.tabs.unread')}
                         {unreadCount > 0 && (
                             <Badge variant="danger-solid" className="ml-1">{unreadCount}</Badge>
                         )}
                     </TabsTrigger>
-                    <TabsTrigger value="alerts">Alarmlar</TabsTrigger>
-                    <TabsTrigger value="news">Haberler</TabsTrigger>
+                    <TabsTrigger value="alerts">{t('notificationsPage.tabs.alerts')}</TabsTrigger>
+                    <TabsTrigger value="news">{t('notificationsPage.tabs.news')}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value={activeTab}>
                     <Card>
                         <CardHeader>
                             <CardTitle>
-                                {activeTab === 'all' && 'Tüm Bildirimler'}
-                                {activeTab === 'unread' && 'Okunmamış Bildirimler'}
-                                {activeTab === 'alerts' && 'Fiyat Alarmları'}
-                                {activeTab === 'news' && 'Haber Bildirimleri'}
+                                {t(`notificationsPage.cardTitles.${activeTab}`)}
                             </CardTitle>
                             <CardDescription>
                                 {filteredNotifications.length === 0
-                                    ? 'Henüz bildirim yok'
-                                    : `${filteredNotifications.length} bildirim`
+                                    ? t('notificationsPage.cardDescription.empty')
+                                    : t('notificationsPage.cardDescription.count', { count: filteredNotifications.length })
                                 }
                             </CardDescription>
                         </CardHeader>
@@ -179,7 +181,7 @@ export default function NotificationsPage() {
                             {filteredNotifications.length === 0 ? (
                                 <div className="text-center py-12 text-muted-foreground">
                                     <BellOff className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                    <p>Bu kategoride bildirim bulunmuyor</p>
+                                    <p>{t('notificationsPage.emptyCategory')}</p>
                                 </div>
                             ) : (
                                 <div className="space-y-2">
@@ -208,13 +210,13 @@ export default function NotificationsPage() {
                                                                 !notification.read && "text-foreground",
                                                                 notification.read && "text-muted-foreground"
                                                             )}>
-                                                                {notification.title}
+                                                                {t(notification.titleKey)}
                                                             </p>
                                                             <p className="text-sm text-muted-foreground mt-1">
-                                                                {notification.message}
+                                                                {t(notification.messageKey, notification.messageValues)}
                                                             </p>
                                                             <p className="text-xs text-muted-foreground mt-2">
-                                                                {notification.timestamp}
+                                                                {t(notification.timestampKey)}
                                                             </p>
                                                         </div>
                                                         <div className="flex items-center gap-1">
@@ -224,7 +226,7 @@ export default function NotificationsPage() {
                                                                     size="icon"
                                                                     className="h-8 w-8"
                                                                     onClick={() => handleMarkAsRead(notification.id)}
-                                                                    title="Okundu işaretle"
+                                                                    title={t('notificationsPage.actions.markRead')}
                                                                 >
                                                                     <Check className="h-4 w-4" />
                                                                 </Button>
@@ -234,7 +236,7 @@ export default function NotificationsPage() {
                                                                 size="icon"
                                                                 className="h-8 w-8 text-destructive hover:text-destructive"
                                                                 onClick={() => handleDelete(notification.id)}
-                                                                title="Sil"
+                                                                title={t('notificationsPage.actions.delete')}
                                                             >
                                                                 <Trash2 className="h-4 w-4" />
                                                             </Button>

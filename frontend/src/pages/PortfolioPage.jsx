@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn, formatCurrency, formatPercent } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
 import {
   useGetPortfoliosQuery,
   useGetPortfolioSummaryQuery,
@@ -48,6 +49,7 @@ function PortfolioCardSkeleton() {
 }
 
 function CreatePortfolioDialog({ open, onOpenChange }) {
+  const { t } = useTranslation()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [createPortfolio, { isLoading }] = useCreatePortfolioMutation()
@@ -56,12 +58,12 @@ function CreatePortfolioDialog({ open, onOpenChange }) {
     e.preventDefault()
     try {
       await createPortfolio({ name, description }).unwrap()
-      toast.success('Portföy oluşturuldu')
+      toast.success(t('portfolioPage.toast.createSuccess'))
       onOpenChange(false)
       setName('')
       setDescription('')
     } catch (error) {
-      toast.error('Portföy oluşturulamadı')
+      toast.error(t('portfolioPage.toast.createError'))
     }
   }
 
@@ -69,39 +71,39 @@ function CreatePortfolioDialog({ open, onOpenChange }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Yeni Portföy</DialogTitle>
+          <DialogTitle>{t('portfolioPage.dialog.title')}</DialogTitle>
           <DialogDescription>
-            Yeni bir portföy oluşturun ve varlıklarınızı takip edin.
+            {t('portfolioPage.dialog.description')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Portföy Adı</Label>
+              <Label htmlFor="name">{t('portfolioPage.dialog.nameLabel')}</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ana Portföy"
+                placeholder={t('portfolioPage.dialog.namePlaceholder')}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description">Açıklama (Opsiyonel)</Label>
+              <Label htmlFor="description">{t('portfolioPage.dialog.descriptionLabel')}</Label>
               <Input
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Uzun vadeli yatırımlar"
+                placeholder={t('portfolioPage.dialog.descriptionPlaceholder')}
               />
             </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              İptal
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={isLoading || !name}>
-              {isLoading ? 'Oluşturuluyor...' : 'Oluştur'}
+              {isLoading ? t('portfolioPage.dialog.creating') : t('portfolioPage.dialog.create')}
             </Button>
           </DialogFooter>
         </form>
@@ -111,18 +113,19 @@ function CreatePortfolioDialog({ open, onOpenChange }) {
 }
 
 export default function PortfolioPage() {
+  const { t } = useTranslation()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const { data: portfolios, isLoading } = useGetPortfoliosQuery()
   const { data: summary } = useGetPortfolioSummaryQuery()
   const [deletePortfolio] = useDeletePortfolioMutation()
 
   const handleDelete = async (id) => {
-    if (window.confirm('Bu portföyü silmek istediğinizden emin misiniz?')) {
+    if (window.confirm(t('portfolioPage.toast.deleteConfirm'))) {
       try {
         await deletePortfolio(id).unwrap()
-        toast.success('Portföy silindi')
+        toast.success(t('portfolioPage.toast.deleteSuccess'))
       } catch (error) {
-        toast.error('Portföy silinemedi')
+        toast.error(t('portfolioPage.toast.deleteError'))
       }
     }
   }
@@ -132,14 +135,14 @@ export default function PortfolioPage() {
       {/* Page Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Portföyler</h1>
+          <h1 className="text-2xl font-bold">{t('portfolioPage.title')}</h1>
           <p className="text-muted-foreground">
-            Yatırım portföylerinizi yönetin
+            {t('portfolioPage.subtitle')}
           </p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Yeni Portföy
+          {t('portfolioPage.new')}
         </Button>
       </div>
 
@@ -149,7 +152,7 @@ export default function PortfolioPage() {
           <Card className="card-hover">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-medium text-muted-foreground">Toplam Değer</span>
+                <span className="text-sm font-medium text-muted-foreground">{t('portfolioPage.summary.totalValue')}</span>
                 <div className="p-2 rounded-lg bg-primary/10">
                   <Wallet className="h-5 w-5 text-primary" />
                 </div>
@@ -160,7 +163,7 @@ export default function PortfolioPage() {
           <Card className="card-hover">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-medium text-muted-foreground">Toplam Maliyet</span>
+                <span className="text-sm font-medium text-muted-foreground">{t('portfolioPage.summary.totalCost')}</span>
                 <div className="p-2 rounded-lg bg-muted">
                   <Wallet className="h-5 w-5 text-muted-foreground" />
                 </div>
@@ -171,7 +174,7 @@ export default function PortfolioPage() {
           <Card className="card-hover">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-medium text-muted-foreground">Toplam K/Z</span>
+                <span className="text-sm font-medium text-muted-foreground">{t('portfolioPage.summary.totalProfitLoss')}</span>
                 <div className={cn(
                   "p-2 rounded-lg",
                   summary.totalProfitLoss >= 0 ? "bg-success/10" : "bg-danger/10"
@@ -197,7 +200,7 @@ export default function PortfolioPage() {
           <Card className="card-hover">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-medium text-muted-foreground">Portföy Sayısı</span>
+                <span className="text-sm font-medium text-muted-foreground">{t('portfolioPage.summary.portfolioCount')}</span>
                 <div className="p-2 rounded-lg bg-info/10">
                   <Wallet className="h-5 w-5 text-info" />
                 </div>
@@ -219,13 +222,13 @@ export default function PortfolioPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Wallet className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">Henüz portföyünüz yok</h3>
+            <h3 className="text-lg font-medium mb-2">{t('portfolioPage.empty.title')}</h3>
             <p className="text-muted-foreground text-center mb-4">
-              Yatırımlarınızı takip etmek için ilk portföyünüzü oluşturun.
+              {t('portfolioPage.empty.description')}
             </p>
             <Button onClick={() => setCreateDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Portföy Oluştur
+              {t('portfolioPage.empty.cta')}
             </Button>
           </CardContent>
         </Card>
@@ -251,7 +254,7 @@ export default function PortfolioPage() {
                       <DropdownMenuItem asChild>
                         <Link to={`/portfolio/${portfolio.id}`}>
                           <Edit className="mr-2 h-4 w-4" />
-                          Düzenle
+                          {t('portfolioPage.actions.edit')}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem
@@ -259,7 +262,7 @@ export default function PortfolioPage() {
                         onClick={() => handleDelete(portfolio.id)}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Sil
+                        {t('portfolioPage.actions.delete')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -282,7 +285,7 @@ export default function PortfolioPage() {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {portfolio.itemCount || 0} varlık
+                    {t('portfolioPage.card.items', { count: portfolio.itemCount || 0 })}
                   </p>
                 </Link>
               </CardContent>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Search, RefreshCw, TrendingUp, TrendingDown, Wallet } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,7 @@ function FundTableSkeleton() {
 }
 
 export default function FundsPage() {
+  const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const { data, isLoading, isFetching, refetch } = useGetFundsQuery({})
 
@@ -42,16 +44,16 @@ export default function FundsPage() {
       {/* Page Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Yatırım Fonları</h1>
+          <h1 className="text-2xl font-bold">{t('fundsPage.title')}</h1>
           <p className="text-muted-foreground">
-            Yatırım fonları ve borsa yatırım fonları
+            {t('fundsPage.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Fon ara..."
+              placeholder={t('fundsPage.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 w-64"
@@ -71,9 +73,9 @@ export default function FundsPage() {
       {/* Funds Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Fon Listesi</CardTitle>
+          <CardTitle>{t('fundsPage.listTitle')}</CardTitle>
           <CardDescription>
-            {funds.length} adet yatırım fonu listeleniyor
+            {t('fundsPage.listDescription', { count: funds.length })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -83,18 +85,18 @@ export default function FundsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Kod</TableHead>
-                  <TableHead>Fon Adı</TableHead>
-                  <TableHead className="text-right">Fiyat</TableHead>
-                  <TableHead className="text-right">Değişim</TableHead>
-                  <TableHead className="text-right">Toplam Değer</TableHead>
+                  <TableHead>{t('fundsPage.headers.code')}</TableHead>
+                  <TableHead>{t('fundsPage.headers.name')}</TableHead>
+                  <TableHead className="text-right">{t('fundsPage.headers.price')}</TableHead>
+                  <TableHead className="text-right">{t('fundsPage.headers.change')}</TableHead>
+                  <TableHead className="text-right">{t('fundsPage.headers.totalValue')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredFunds.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      Sonuç bulunamadı
+                      {t('fundsPage.empty')}
                     </TableCell>
                   </TableRow>
                 ) : (

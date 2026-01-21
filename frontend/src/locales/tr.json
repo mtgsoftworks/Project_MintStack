@@ -1,6 +1,10 @@
 {
     "common": {
         "loading": "Yükleniyor...",
+        "loadingPage": "Sayfa yükleniyor...",
+        "loadingData": "Veriler yükleniyor...",
+        "sessionCheck": "Oturum kontrol ediliyor...",
+        "redirecting": "Giriş sayfasına yönlendiriliyorsunuz...",
         "error": "Bir hata oluştu",
         "save": "Kaydet",
         "cancel": "İptal",
@@ -9,9 +13,12 @@
         "add": "Ekle",
         "search": "Ara",
         "filter": "Filtrele",
+        "viewAll": "Tümünü Gör",
         "refresh": "Yenile",
         "close": "Kapat",
         "confirm": "Onayla",
+        "confirmAction": "Devam etmek istediğinize emin misiniz?",
+        "refreshPage": "Sayfayı Yenile",
         "yes": "Evet",
         "no": "Hayır",
         "back": "Geri",
@@ -37,6 +44,37 @@
         "settings": "Ayarlar",
         "profile": "Profil",
         "admin": "Yönetim"
+    },
+    "app": {
+        "tagline": "Finans Portalı"
+    },
+    "header": {
+        "searchPlaceholder": "Ara...",
+        "notifications": {
+            "title": "Bildirimler",
+            "new": "{{count}} Yeni",
+            "viewAll": "Tüm bildirimleri gör",
+            "items": {
+                "portfolioUpdated": {
+                    "title": "Portföy Güncellendi",
+                    "description": "{{symbol}} hissesi %{{change}} arttı",
+                    "time": "5 dk önce"
+                },
+                "currencyAlert": {
+                    "title": "Döviz Alarmı",
+                    "description": "{{pair}} hedef fiyata ulaştı",
+                    "time": "1 saat önce"
+                },
+                "news": {
+                    "title": "Yeni Haber",
+                    "description": "Merkez Bankası faiz kararı açıklandı",
+                    "time": "2 saat önce"
+                }
+            }
+        }
+    },
+    "footer": {
+        "copyright": "© {{year}} MintStack Finance"
     },
     "market": {
         "currencies": "Döviz Kurları",
@@ -204,7 +242,15 @@
     },
     "dashboard": {
         "subtitle": "Piyasa özetine ve portföy durumunuza genel bakış",
+        "stats": {
+            "usdTry": "USD/TRY",
+            "portfolioValue": "Portföy Değeri",
+            "totalProfitLoss": "Toplam K/Z"
+        },
         "widgets": {
+            "stocks": {
+                "title": "Popüler Hisseler"
+            },
             "bist100": {
                 "title": "BIST 100",
                 "noProvider": "Yapılandırılmadı",
@@ -226,11 +272,102 @@
         "networkError": "Bağlantı hatası",
         "unauthorized": "Bu işlem için yetkiniz yok",
         "notFound": "Sayfa bulunamadı",
-        "serverError": "Sunucu hatası"
+        "serverError": "Sunucu hatası",
+        "boundaryTitle": "Bir hata oluştu",
+        "boundaryDescription": "Beklenmeyen bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyin."
     },
     "success": {
         "saved": "Başarıyla kaydedildi",
         "deleted": "Başarıyla silindi",
         "updated": "Başarıyla güncellendi"
+    },
+    "portfolioPage": {
+        "title": "Portföyler",
+        "subtitle": "Yatırım portföylerinizi yönetin",
+        "new": "Yeni Portföy",
+        "summary": {
+            "totalValue": "Toplam Değer",
+            "totalCost": "Toplam Maliyet",
+            "totalProfitLoss": "Toplam K/Z",
+            "portfolioCount": "Portföy Sayısı"
+        },
+        "empty": {
+            "title": "Henüz portföyünüz yok",
+            "description": "Yatırımlarınızı takip etmek için ilk portföyünüzü oluşturun.",
+            "cta": "Portföy Oluştur"
+        },
+        "actions": {
+            "edit": "Düzenle",
+            "delete": "Sil"
+        },
+        "card": {
+            "items": "{{count}} varlık"
+        },
+        "dialog": {
+            "title": "Yeni Portföy",
+            "description": "Yeni bir portföy oluşturun ve varlıklarınızı takip edin.",
+            "nameLabel": "Portföy Adı",
+            "namePlaceholder": "Ana Portföy",
+            "descriptionLabel": "Açıklama (Opsiyonel)",
+            "descriptionPlaceholder": "Uzun vadeli yatırımlar",
+            "create": "Oluştur",
+            "creating": "Oluşturuluyor..."
+        },
+        "toast": {
+            "createSuccess": "Portföy oluşturuldu",
+            "createError": "Portföy oluşturulamadı",
+            "deleteConfirm": "Bu portföyü silmek istediğinizden emin misiniz?",
+            "deleteSuccess": "Portföy silindi",
+            "deleteError": "Portföy silinemedi"
+        }
+    },
+    "currencyPage": {
+        "title": "Döviz Kurları",
+        "subtitle": "TCMB güncel döviz kurları",
+        "searchPlaceholder": "Döviz ara...",
+        "empty": "Sonuç bulunamadı",
+        "table": {
+            "title": "Tüm Döviz Kurları",
+            "description": "Son güncelleme: {{date}}",
+            "headers": {
+                "currency": "Döviz",
+                "buying": "Döviz Alış",
+                "selling": "Döviz Satış",
+                "effectiveBuying": "Efektif Alış",
+                "effectiveSelling": "Efektif Satış",
+                "change": "Değişim"
+            }
+        }
+    },
+    "bondsPage": {
+        "title": "Tahvil & Bono",
+        "subtitle": "Devlet tahvilleri ve hazine bonoları",
+        "searchPlaceholder": "Tahvil/Bono ara...",
+        "listTitle": "Tahvil & Bono Listesi",
+        "listDescription": "{{count}} adet tahvil/bono listeleniyor",
+        "empty": "Sonuç bulunamadı",
+        "headers": {
+            "symbol": "Sembol",
+            "name": "İsim",
+            "price": "Fiyat",
+            "yield": "Getiri",
+            "change": "Değişim",
+            "maturity": "Vade"
+        }
+    },
+    "fundsPage": {
+        "title": "Yatırım Fonları",
+        "subtitle": "Yatırım fonları ve borsa yatırım fonları",
+        "searchPlaceholder": "Fon ara...",
+        "listTitle": "Fon Listesi",
+        "listDescription": "{{count}} adet yatırım fonu listeleniyor",
+        "empty": "Sonuç bulunamadı",
+        "headers": {
+            "code": "Kod",
+            "name": "Fon Adı",
+            "price": "Fiyat",
+            "change": "Değişim",
+            "totalValue": "Toplam Değer"
+        }
     }
 }

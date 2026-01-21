@@ -22,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useTranslation } from 'react-i18next'
 import {
   selectSidebarCollapsed,
   setMobileSidebarOpen,
@@ -36,6 +37,34 @@ export function Header() {
   const collapsed = useSelector(selectSidebarCollapsed)
   const user = useSelector(selectUser)
   const isAuthenticated = useSelector(selectIsAuthenticated)
+  const { t } = useTranslation()
+
+  const notifications = [
+    {
+      id: 'portfolio',
+      title: t('header.notifications.items.portfolioUpdated.title'),
+      description: t('header.notifications.items.portfolioUpdated.description', {
+        symbol: 'THYAO',
+        change: '2.5',
+      }),
+      time: t('header.notifications.items.portfolioUpdated.time'),
+    },
+    {
+      id: 'currency',
+      title: t('header.notifications.items.currencyAlert.title'),
+      description: t('header.notifications.items.currencyAlert.description', {
+        pair: 'USD/TRY',
+      }),
+      time: t('header.notifications.items.currencyAlert.time'),
+    },
+    {
+      id: 'news',
+      title: t('header.notifications.items.news.title'),
+      description: t('header.notifications.items.news.description'),
+      time: t('header.notifications.items.news.time'),
+    },
+  ]
+  const notificationCount = notifications.length
 
   const handleLogout = () => {
     // Keycloak logout
@@ -70,7 +99,7 @@ export function Header() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Ara..."
+            placeholder={t('header.searchPlaceholder')}
             className="w-64 pl-9 bg-muted/50"
           />
         </div>
@@ -97,45 +126,33 @@ export function Header() {
                 variant="danger-solid"
                 className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]"
               >
-                3
+                {notificationCount}
               </Badge>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80">
             <DropdownMenuLabel className="flex items-center justify-between">
-              <span>Bildirimler</span>
-              <Badge variant="secondary">3 Yeni</Badge>
+              <span>{t('header.notifications.title')}</span>
+              <Badge variant="secondary">
+                {t('header.notifications.new', { count: notificationCount })}
+              </Badge>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <div className="max-h-64 overflow-y-auto">
-              <DropdownMenuItem className="flex flex-col items-start gap-1 py-3 cursor-pointer">
-                <span className="font-medium">Portföy Güncellendi</span>
-                <span className="text-xs text-muted-foreground">
-                  THYAO hissesi %2.5 arttı
-                </span>
-                <span className="text-xs text-muted-foreground">5 dk önce</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex flex-col items-start gap-1 py-3 cursor-pointer">
-                <span className="font-medium">Döviz Alarmı</span>
-                <span className="text-xs text-muted-foreground">
-                  USD/TRY hedef fiyata ulaştı
-                </span>
-                <span className="text-xs text-muted-foreground">1 saat önce</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex flex-col items-start gap-1 py-3 cursor-pointer">
-                <span className="font-medium">Yeni Haber</span>
-                <span className="text-xs text-muted-foreground">
-                  Merkez Bankası faiz kararı açıklandı
-                </span>
-                <span className="text-xs text-muted-foreground">2 saat önce</span>
-              </DropdownMenuItem>
+              {notifications.map((item) => (
+                <DropdownMenuItem key={item.id} className="flex flex-col items-start gap-1 py-3 cursor-pointer">
+                  <span className="font-medium">{item.title}</span>
+                  <span className="text-xs text-muted-foreground">{item.description}</span>
+                  <span className="text-xs text-muted-foreground">{item.time}</span>
+                </DropdownMenuItem>
+              ))}
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="justify-center text-primary cursor-pointer"
               onClick={() => navigate('/notifications')}
             >
-              Tüm bildirimleri gör
+              {t('header.notifications.viewAll')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -174,22 +191,22 @@ export function Header() {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
                 <User className="mr-2 h-4 w-4" />
-                Profil
+                {t('nav.profile')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />
-                Ayarlar
+                {t('nav.settings')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-danger">
                 <LogOut className="mr-2 h-4 w-4" />
-                Çıkış Yap
+                {t('auth.logout')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
           <Button onClick={() => navigate('/login')}>
-            Giriş Yap
+            {t('auth.login')}
           </Button>
         )}
       </div>
