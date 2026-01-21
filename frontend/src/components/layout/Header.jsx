@@ -28,6 +28,7 @@ import {
 } from '@/store/slices/uiSlice'
 import { selectUser, selectIsAuthenticated } from '@/store/slices/authSlice'
 import { getInitials } from '@/lib/utils'
+import { LanguageSwitcher } from '@/components/common/LanguageSwitcher'
 
 export function Header() {
   const dispatch = useDispatch()
@@ -81,6 +82,11 @@ export function Header() {
         <Button variant="ghost" size="icon" className="md:hidden">
           <Search className="h-5 w-5" />
         </Button>
+
+        {/* Language Switcher */}
+        <div className="hidden sm:block">
+          <LanguageSwitcher />
+        </div>
 
         {/* Notifications */}
         <DropdownMenu>

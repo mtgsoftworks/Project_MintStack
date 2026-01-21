@@ -15,6 +15,7 @@ i18n
     .use(initReactI18next)
     .init({
         resources,
+        lng: localStorage.getItem('mintstack_language') || 'tr', // Varsayılan Türkçe
         fallbackLng: 'tr',
         debug: import.meta.env.DEV,
 
@@ -23,7 +24,7 @@ i18n
         },
 
         detection: {
-            order: ['localStorage', 'navigator', 'htmlTag'],
+            order: ['localStorage'], // Sadece localStorage'dan oku, tarayıcı dilini takip etme
             lookupLocalStorage: 'mintstack_language',
             caches: ['localStorage'],
         },

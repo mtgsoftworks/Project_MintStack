@@ -104,22 +104,39 @@
         "apiKeys": {
             "title": "API Anahtarları",
             "manage": "API Bağlantılarını Yönet",
+            "description": "Piyasa verilerini çekmek için kullandığınız API anahtarlarını yönetin.",
             "add": "Yeni Ekle",
             "edit": "Düzenle",
+            "addDescription": "Yeni bir API anahtarı ekleyin. Kaydetmeden önce test etmeniz gerekir.",
+            "editDescription": "Mevcut API anahtarını güncelleyin. Yeni anahtar girin ve test edin.",
             "provider": "Sağlayıcı",
+            "providerOther": "Diğer",
             "apiKey": "API Anahtarı",
             "secretKey": "Gizli Anahtar (Opsiyonel)",
             "baseUrl": "Base URL (Opsiyonel)",
             "active": "Aktif",
+            "inactive": "Pasif",
             "test": "Test Et",
             "valid": "Geçerli",
             "invalid": "Geçersiz",
             "save": "Kaydet",
             "update": "Güncelle",
+            "delete": "API anahtarı silindi",
             "deleteConfirm": "Bu API anahtarını silmek istediğinize emin misiniz?",
+            "noKeys": "Henüz API anahtarı eklenmemiş",
+            "addFirstKey": "İlk API anahtarınızı ekleyin",
+            "table": {
+                "provider": "Sağlayıcı",
+                "key": "Anahtar",
+                "status": "Durum",
+                "createdAt": "Oluşturulma Tarihi",
+                "actions": "İşlemler"
+            },
             "placeholder": {
                 "key": "Anahtarınızı buraya yapıştırın",
-                "tcmb": "TCMB için gerekmez (boş bırakabilirsiniz)"
+                "tcmb": "TCMB için gerekmez (boş bırakabilirsiniz)",
+                "secretKey": "Gizli anahtarınızı girin",
+                "baseUrl": "https://api.example.com"
             },
             "validation": {
                 "required": "Lütfen API anahtarı girin",

@@ -104,22 +104,39 @@
         "apiKeys": {
             "title": "API Keys",
             "manage": "Manage API Connections",
+            "description": "Manage the API keys you use to fetch market data.",
             "add": "Add New",
             "edit": "Edit",
+            "addDescription": "Add a new API key. You must test before saving.",
+            "editDescription": "Update existing API key. Enter new key and test.",
             "provider": "Provider",
+            "providerOther": "Other",
             "apiKey": "API Key",
             "secretKey": "Secret Key (Optional)",
             "baseUrl": "Base URL (Optional)",
             "active": "Active",
+            "inactive": "Inactive",
             "test": "Test",
             "valid": "Valid",
             "invalid": "Invalid",
             "save": "Save",
             "update": "Update",
+            "delete": "API key deleted",
             "deleteConfirm": "Are you sure you want to delete this API key?",
+            "noKeys": "No API keys added yet",
+            "addFirstKey": "Add your first API key",
+            "table": {
+                "provider": "Provider",
+                "key": "Key",
+                "status": "Status",
+                "createdAt": "Created At",
+                "actions": "Actions"
+            },
             "placeholder": {
                 "key": "Paste your key here",
-                "tcmb": "Not required for TCMB (can leave empty)"
+                "tcmb": "Not required for TCMB (can leave empty)",
+                "secretKey": "Enter your secret key",
+                "baseUrl": "https://api.example.com"
             },
             "validation": {
                 "required": "Please enter an API key",

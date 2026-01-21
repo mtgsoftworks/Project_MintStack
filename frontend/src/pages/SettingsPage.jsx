@@ -44,12 +44,15 @@ import {
     useTestApiKeyMutation
 } from '@/store/api/settingsApi'
 import { toast } from 'sonner'
+import { portfolioService } from '@/services/portfolioService'
+import watchlistService from '@/services/watchlistService'
+import alertService from '@/services/alertService'
 
 // Provider Capabilities Info
 import { useTranslation } from 'react-i18next'
 
 export default function SettingsPage() {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { data: configsData, isLoading, refetch } = useGetApiConfigsQuery()
     const [addConfig, { isLoading: isAdding }] = useAddApiConfigMutation()
     const [deleteConfig, { isLoading: isDeleting }] = useDeleteApiConfigMutation()
@@ -244,13 +247,19 @@ export default function SettingsPage() {
                                         <Label>Dil</Label>
                                         <p className="text-sm text-muted-foreground">Arayüz dilini seçin</p>
                                     </div>
-                                    <Select defaultValue="tr">
+                                    <Select
+                                        value={i18n.language?.split('-')[0] || 'tr'}
+                                        onValueChange={(val) => {
+                                            i18n.changeLanguage(val)
+                                            toast.success(val === 'tr' ? 'Dil Türkçe olarak değiştirildi' : 'Language changed to English')
+                                        }}
+                                    >
                                         <SelectTrigger className="w-40">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="tr">Türkçe</SelectItem>
-                                            <SelectItem value="en">English</SelectItem>
+                                            <SelectItem value="tr">🇹🇷 Türkçe</SelectItem>
+                                            <SelectItem value="en">🇬🇧 English</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -355,6 +364,134 @@ export default function SettingsPage() {
                             <Button className="w-full mt-4" onClick={() => toast.success(t('success.saved'))}>
                                 {t('settings.apiKeys.save')}
                             </Button>
+                        </CardContent>
+                    </Card>
+
+                    {/* Danger Zone */}
+                    <Card className="border-destructive/50 mt-6">
+                        <CardHeader>
+                            <CardTitle className="text-destructive">Tehlikeli Bölge</CardTitle>
+                            <CardDescription>Bu işlemler geri alınamaz. Dikkatli olun.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center justify-between py-2">
+                                <div className="space-y-0.5">
+                                    <Label className="text-destructive font-medium">Tüm Verileri Sıfırla</Label>
+                                    <p className="text-sm text-muted-foreground">
+                                        Portföyler, izleme listeleri, alarmlar ve tüm kullanıcı verileriniz silinecek.
+                                    </p>
+                                </div>
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button variant="destructive" size="sm">
+                                            <Trash2 className="h-4 w-4 mr-2" />
+                                            Verileri Sıfırla
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle className="text-destructive flex items-center gap-2">
+                                                <AlertCircle className="h-5 w-5" />
+                                                Tüm Verileri Sil
+                                            </DialogTitle>
+                                            <DialogDescription>
+                                                Bu işlem geri alınamaz! Tüm portföyleriniz, izleme listeleriniz,
+                                                alarmlarınız ve kişisel ayarlarınız kalıcı olarak silinecektir.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="py-4">
+                                            <p className="text-sm text-muted-foreground mb-4">
+                                                Devam etmek için aşağıdaki butona tıklayın:
+                                            </p>
+                                            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                                                <p className="text-sm font-medium text-destructive">
+                                                    ⚠️ Bu işlem şunları silecek:
+                                                </p>
+                                                <ul className="text-sm text-muted-foreground mt-2 space-y-1 list-disc list-inside">
+                                                    <li>Tüm portföyler ve pozisyonlar</li>
+                                                    <li>İzleme listeleri</li>
+                                                    <li>Fiyat alarmları</li>
+                                                    <li>Bildirim tercihleri</li>
+                                                    <li>Önbelleğe alınmış veriler</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <DialogFooter className="gap-2">
+                                            <Button variant="outline" onClick={() => { }}>
+                                                İptal
+                                            </Button>
+                                            <Button
+                                                variant="destructive"
+                                                onClick={async () => {
+                                                    try {
+                                                        toast.loading('Veriler siliniyor...')
+
+                                                        // 1. Tüm portföyleri sil
+                                                        const portfolios = await portfolioService.getPortfolios()
+                                                        for (const portfolio of portfolios) {
+                                                            await portfolioService.deletePortfolio(portfolio.id)
+                                                        }
+
+                                                        // 2. Tüm izleme listelerini sil
+                                                        const watchlistsRes = await watchlistService.getAll()
+                                                        const watchlists = watchlistsRes?.data || []
+                                                        for (const wl of watchlists) {
+                                                            await watchlistService.delete(wl.id)
+                                                        }
+
+                                                        // 3. Tüm alarmları sil
+                                                        const alertsRes = await alertService.getAll()
+                                                        const alerts = alertsRes?.data || []
+                                                        for (const alert of alerts) {
+                                                            await alertService.delete(alert.id)
+                                                        }
+
+                                                        // 4. Local storage temizle
+                                                        localStorage.clear()
+                                                        sessionStorage.clear()
+
+                                                        toast.dismiss()
+                                                        toast.success('Tüm veriler başarıyla sıfırlandı!')
+                                                        setTimeout(() => window.location.reload(), 1500)
+                                                    } catch (error) {
+                                                        console.error('Reset failed:', error)
+                                                        toast.dismiss()
+                                                        toast.error('Veriler silinirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'))
+                                                    }
+                                                }}
+                                            >
+                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                Evet, Tüm Verileri Sil
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+
+                            <div className="flex items-center justify-between py-2 border-t">
+                                <div className="space-y-0.5">
+                                    <Label className="font-medium">Önbelleği Temizle</Label>
+                                    <p className="text-sm text-muted-foreground">
+                                        Önbelleğe alınmış piyasa verilerini ve geçici dosyaları temizle.
+                                    </p>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        // Clear cache
+                                        if ('caches' in window) {
+                                            caches.keys().then(names => {
+                                                names.forEach(name => caches.delete(name))
+                                            })
+                                        }
+                                        toast.success('Önbellek temizlendi!')
+                                    }}
+                                >
+                                    <RefreshCw className="h-4 w-4 mr-2" />
+                                    Önbelleği Temizle
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
