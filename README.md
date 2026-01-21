@@ -23,10 +23,14 @@
 
 ### 📊 Piyasa Verileri
 - **Döviz Kurları**: TCMB'den anlık ve geçmiş döviz kurları (USD, EUR, GBP, CHF, vb.)
-- **Hisse Senetleri**: BIST hisseleri takibi
+- **Hisse Senetleri**: BIST hisseleri takibi (Yahoo Finance öncelikli, Alpha Vantage fallback)
 - **Tahvil & Bono**: Devlet tahvili ve bono verileri
 - **Fonlar**: Yatırım fonları bilgileri
 - **VIOP**: Vadeli işlem ve opsiyon verileri
+
+### ⚡ Gerçek Zamanlı Güncellemeler
+- **WebSocket fiyat akışı**: /ws endpoint'i ile gerçek zamanlı fiyatlar
+- **Abonelik kanalları**: /topic/prices, /topic/prices/stocks/{symbol}, /topic/prices/currency
 
 ### 📰 Haber Modülü
 - Kategorize edilmiş finans haberleri
@@ -48,15 +52,33 @@
 ### 🔐 Güvenlik & Kimlik Yönetimi
 - **OAuth2/OpenID Connect** (Keycloak)
 - **LDAP entegrasyonu** (OpenLDAP)
-- İki faktörlü kimlik doğrulama (2FA)
-- "Beni Hatırla" özelliği
+- İki faktörlü kimlik doğrulama (2FA) *(Keycloak üzerinden etkinleştirilir)*
+- "Beni Hatırla" özelliği *(Keycloak session ayarlarıyla)*
 - Rol tabanlı yetkilendirme (RBAC)
+
+> 🔧 2FA/Remember Me kurulumu için: **docs/KEYCLOAK_2FA_SETUP.md**
 
 ### 📡 Observability
 - **OpenTelemetry** ile dağıtık izleme
 - **OpenSearch** ile log aggregation
 - **Prometheus** metrikleri
 - Gerçek zamanlı dashboard'lar
+- **Sentry** (opsiyonel frontend hata izleme)
+
+### 📱 PWA & Offline
+- **PWA manifest** ve Service Worker desteği
+- Offline cache (statik içerik)
+- Push notification altyapısı (opsiyonel)
+
+### ✅ UI/UX İyileştirmeleri
+- Skeleton loader bileşenleri
+- Responsive tablo kaydırma
+- Empty state görselleri
+- Mobil hamburger animasyonu
+
+### 🧪 Test & Kalite
+- Playwright E2E test altyapısı
+- Yup tabanlı form validasyon şemaları
 
 ---
 
@@ -133,11 +155,11 @@ docker-compose ps
 
 | Servis | URL | Açıklama |
 |--------|-----|----------|
-| 🌐 Frontend | http://localhost:3000 | React Web Uygulaması |
-| 🔌 Backend API | http://localhost:8080/api/v1 | REST API |
-| 📚 Swagger UI | http://localhost:8080/swagger-ui.html | API Dokümantasyonu |
+| 🌐 Frontend | http://localhost:3001 | React Web Uygulaması |
+| 🔌 Backend API | http://localhost:18080/api/v1 | REST API |
+| 📚 Swagger UI | http://localhost:18080/swagger-ui.html | API Dokümantasyonu |
 | 🔐 Keycloak | http://localhost:8180 | Identity Management |
-| 📊 OpenSearch Dashboards | http://localhost:5601 | Log & Metrics Dashboard |
+| 📊 OpenSearch Dashboards | http://localhost:15601 | Log & Metrics Dashboard |
 
 ### Varsayılan Kullanıcılar
 
@@ -147,6 +169,18 @@ docker-compose ps
 | `testuser` | `Test123!` | User | Standart kullanıcı |
 
 **Keycloak Admin Konsolu**: `admin` / `KeycloakAdmin2026!`
+
+> ⚠️ Production'da bu şifreleri mutlaka değiştirin. Örnek dosyalar: **frontend/.env.production.example** ve **backend/.env.production.example**
+
+### Production Environment Templates
+
+```bash
+# Frontend
+frontend/.env.production.example
+
+# Backend
+backend/.env.production.example
+```
 
 ---
 
@@ -248,6 +282,10 @@ npm run dev
 
 # Testleri çalıştır
 npm test
+
+# E2E testleri (Playwright)
+npx playwright install
+npm run test:e2e
 
 # Production build
 npm run build

@@ -10,11 +10,23 @@ This document describes how to securely manage secrets for MintStack Finance Por
 
 ### Development (Local)
 
-For local development, copy `.env.example` to `.env`:
+For local development, copy `env.local` to `.env`:
 
 ```bash
 cp env.local .env
 # Edit .env and replace placeholder values
+```
+
+### Production Templates
+
+Use the production templates as a base for secure deployments:
+
+```bash
+# Frontend
+frontend/.env.production.example
+
+# Backend
+backend/.env.production.example
 ```
 
 > [!WARNING]
@@ -51,6 +63,9 @@ docker-compose -f docker-compose.prod.yml up -d
 | `redis_password.txt` | Redis authentication password | redis, backend |
 | `keycloak_admin_password.txt` | Keycloak admin console password | keycloak |
 | `alpha_vantage_key.txt` | Alpha Vantage API key | backend |
+
+> Optional frontend secrets are configured via environment variables (not files),
+> such as `VITE_SENTRY_DSN` and `VITE_VAPID_PUBLIC_KEY`.
 
 ---
 
@@ -123,6 +138,7 @@ cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1
 - [ ] No secrets in application logs
 - [ ] Secrets are encrypted at rest
 - [ ] Access to secrets is audited
+- [ ] Production values are taken from `.env.production.example` templates
 
 ### What NOT to Do
 

@@ -1,8 +1,15 @@
 # MintStack Finance Portal - API Documentation
 
 ## Base URL
+
+Local (Spring Boot dev):
 ```
 http://localhost:8080/api/v1
+```
+
+Docker Compose:
+```
+http://localhost:18080/api/v1
 ```
 
 ## Authentication
@@ -86,6 +93,27 @@ GET /market/search?query=turk
 ```
 
 ---
+
+## WebSocket (Real-time Prices)
+
+WebSocket endpoint (SockJS):
+```
+ws://localhost:18080/ws
+```
+
+Topics:
+```
+/topic/prices
+/topic/prices/stocks
+/topic/prices/stocks/{symbol}
+/topic/prices/currency
+/topic/prices/currency/{code}
+```
+
+Notes:
+- STOMP protocol is required
+- SockJS fallback is enabled
+- For direct WebSocket: `/ws-native`
 
 ### Haberler
 
@@ -239,17 +267,26 @@ Content-Type: application/json
 
 #### Profil Bilgisi
 ```http
+GET /users/me
+```
+
+Alternatif:
+```http
 GET /users/profile
 ```
 
 #### Profil Güncelle
 ```http
-PUT /users/profile
+PUT /users/me
 Content-Type: application/json
 
 {
   "firstName": "Ad",
-  "lastName": "Soyad"
+  "lastName": "Soyad",
+  "emailNotifications": true,
+  "pushNotifications": false,
+  "priceAlerts": true,
+  "portfolioUpdates": true
 }
 ```
 
