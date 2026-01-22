@@ -13,6 +13,7 @@ import com.mintstack.finance.repository.UserRepository;
 import com.mintstack.finance.scheduler.MarketDataScheduler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -143,6 +144,7 @@ public class DataSourceService {
      * Trigger immediate data fetch when API key is activated
      */
     @Transactional
+    @CacheEvict(value = {"currencyRates", "instruments", "stockPrices"}, allEntries = true)
     public Map<String, Object> triggerDataFetch(String keycloakId, UUID apiConfigId) {
         User user = userRepository.findByKeycloakId(keycloakId)
             .orElseThrow(() -> new RuntimeException("User not found"));

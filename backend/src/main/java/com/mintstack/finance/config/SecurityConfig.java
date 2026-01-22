@@ -66,6 +66,33 @@ public class SecurityConfig {
                 .jwt(jwt -> jwt
                     .jwtAuthenticationConverter(jwtAuthenticationConverter())
                 )
+            )
+            // Security Headers
+            .headers(headers -> headers
+                // X-Content-Type-Options: nosniff
+                .contentTypeOptions(contentTypeOptions -> {})
+                // X-Frame-Options: DENY (stricter than SAMEORIGIN)
+                .frameOptions(frameOptions -> frameOptions.deny())
+                // X-XSS-Protection: 1; mode=block
+                .xssProtection(xss -> xss.headerValue(org.springframework.security.web.header.writers.XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
+                // Referrer-Policy
+                .referrerPolicy(referrer -> referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                // Permissions-Policy (Feature-Policy replacement)
+                .permissionsPolicy(permissions -> permissions.policy("accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"))
+                // HSTS - Enable in production with HTTPS
+                // .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000).preload(true))
+                // Content-Security-Policy
+                .contentSecurityPolicy(csp -> csp.policyDirectives(
+                    "default-src 'self'; " +
+                    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+                    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                    "font-src 'self' https://fonts.gstatic.com data:; " +
+                    "img-src 'self' data: https: blob:; " +
+                    "connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:* http://127.0.0.1:* ws://127.0.0.1:*; " +
+                    "frame-ancestors 'self'; " +
+                    "form-action 'self'; " +
+                    "base-uri 'self';"
+                ))
             );
         
         return http.build();

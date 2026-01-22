@@ -6,6 +6,7 @@ import com.mintstack.finance.dto.response.ApiResponse;
 import com.mintstack.finance.entity.User;
 import com.mintstack.finance.entity.UserApiConfig;
 import com.mintstack.finance.service.ApiKeyValidationService;
+import com.mintstack.finance.service.MarketDataService;
 import com.mintstack.finance.service.SettingsService;
 import com.mintstack.finance.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,6 +36,7 @@ public class SettingsController {
     private final SettingsService settingsService;
     private final UserService userService;
     private final CacheManager cacheManager;
+    private final MarketDataService marketDataService;
 
     @GetMapping("/api-keys")
     @Operation(summary = "Kullanıcının API anahtarlarını listele")
@@ -136,7 +138,28 @@ public class SettingsController {
                 "cacheNames", cacheNames
         );
         
-        return ResponseEntity.ok(ApiResponse.success(result, "Önbellek temizlendi ✓"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Önbellek temizlendi"));
+    }
+
+    @DeleteMapping("/market-data")
+    @Operation(summary = "Tüm piyasa verilerini sil (döviz kurları, fiyat geçmişi)")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> deleteMarketData(
+            @AuthenticationPrincipal Jwt jwt) {
+        
+        log.info("User {} requested to delete all market data", jwt.getSubject());
+        
+        Map<String, Object> result = marketDataService.deleteAllMarketData();
+        
+        // Also clear cache
+        var cacheNames = cacheManager.getCacheNames();
+        for (String cacheName : cacheNames) {
+            var cache = cacheManager.getCache(cacheName);
+            if (cache != null) {
+                cache.clear();
+            }
+        }
+        
+        return ResponseEntity.ok(ApiResponse.success(result, "Tüm piyasa verileri silindi"));
     }
 }
 

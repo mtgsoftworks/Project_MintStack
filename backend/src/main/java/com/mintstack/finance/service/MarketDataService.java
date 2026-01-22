@@ -17,6 +17,7 @@ import com.mintstack.finance.entity.UserApiConfig;
 import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,8 +25,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -182,9 +186,10 @@ public class MarketDataService {
 
     // Save methods
     @Transactional
+    @CacheEvict(value = "currencyRates", allEntries = true)
     public void saveCurrencyRates(List<CurrencyRate> rates) {
         currencyRateRepository.saveAll(rates);
-        log.info("Saved {} currency rates", rates.size());
+        log.info("Saved {} currency rates - cache invalidated", rates.size());
     }
 
     @Transactional
@@ -207,8 +212,27 @@ public class MarketDataService {
         }
     }
 
+    @Transactional
+    public Map<String, Object> deleteAllMarketData() {
+        long currencyCount = currencyRateRepository.count();
+        long priceHistoryCount = priceHistoryRepository.count();
+        
+        currencyRateRepository.deleteAll();
+        priceHistoryRepository.deleteAll();
+        
+        log.info("Deleted all market data: {} currency rates, {} price history records", 
+            currencyCount, priceHistoryCount);
+        
+        return Map.of(
+            "deletedCurrencyRates", currencyCount,
+            "deletedPriceHistory", priceHistoryCount
+        );
+    }
+
     // Mapping methods
     private CurrencyRateResponse mapToRateResponse(CurrencyRate rate) {
+        BigDecimal changePercent = calculateChangePercent(rate);
+        
         return CurrencyRateResponse.builder()
             .id(rate.getId())
             .currencyCode(rate.getCurrencyCode())
@@ -218,10 +242,33 @@ public class MarketDataService {
             .effectiveBuyingRate(rate.getEffectiveBuyingRate())
             .effectiveSellingRate(rate.getEffectiveSellingRate())
             .averageRate(rate.getAverageRate())
+            .changePercent(changePercent)
             .source(rate.getSource().name())
             .fetchedAt(rate.getFetchedAt())
             .rateDate(rate.getRateDate())
             .build();
+    }
+    
+    private BigDecimal calculateChangePercent(CurrencyRate currentRate) {
+        try {
+            return currencyRateRepository.findPreviousRate(
+                currentRate.getCurrencyCode(), 
+                currentRate.getFetchedAt()
+            ).map(previousRate -> {
+                BigDecimal current = currentRate.getSellingRate();
+                BigDecimal previous = previousRate.getSellingRate();
+                if (previous.compareTo(BigDecimal.ZERO) == 0) {
+                    return BigDecimal.ZERO;
+                }
+                return current.subtract(previous)
+                    .divide(previous, 6, RoundingMode.HALF_UP)
+                    .multiply(new BigDecimal("100"));
+            }).orElse(BigDecimal.ZERO);
+        } catch (Exception e) {
+            log.warn("Error calculating change percent for {}: {}", 
+                currentRate.getCurrencyCode(), e.getMessage());
+            return BigDecimal.ZERO;
+        }
     }
 
     private InstrumentResponse mapToInstrumentResponse(Instrument instrument) {

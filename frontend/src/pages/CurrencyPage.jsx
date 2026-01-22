@@ -32,6 +32,17 @@ export default function CurrencyPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const { data: currencies, isLoading, isFetching, refetch } = useGetCurrenciesQuery()
 
+  // Get data source from first currency (all should have same source)
+  const dataSource = currencies?.[0]?.source || null
+  const getSourceLabel = (source) => {
+    const labels = {
+      'TCMB': 'TCMB',
+      'ALPHA_VANTAGE': 'Alpha Vantage',
+      'YAHOO_FINANCE': 'Yahoo Finance',
+      'FINNHUB': 'Finnhub'
+    }
+    return labels[source] || source
+  }
 
   const filteredCurrencies = currencies?.filter((currency) =>
     currency.currencyCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -45,7 +56,9 @@ export default function CurrencyPage() {
         <div>
           <h1 className="text-2xl font-bold">{t('currencyPage.title')}</h1>
           <p className="text-muted-foreground">
-            {t('currencyPage.subtitle')}
+            {dataSource 
+              ? t('currencyPage.subtitleWithSource', { source: getSourceLabel(dataSource), defaultValue: `${getSourceLabel(dataSource)} güncel döviz kurları` })
+              : t('currencyPage.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">

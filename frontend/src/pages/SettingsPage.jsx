@@ -52,6 +52,7 @@ import {
     useDeleteApiConfigMutation,
     useTestApiKeyMutation,
     useClearCacheMutation,
+    useDeleteMarketDataMutation,
     useGetDataSourceCapabilitiesQuery,
     useGetDataPreferencesQuery,
     useSetDataPreferenceMutation,
@@ -116,6 +117,7 @@ export default function SettingsPage() {
     const [deleteConfig, { isLoading: isDeleting }] = useDeleteApiConfigMutation()
     const [testApiKey, { isLoading: isTesting }] = useTestApiKeyMutation()
     const [clearCache, { isLoading: isClearingCache }] = useClearCacheMutation()
+    const [deleteMarketData] = useDeleteMarketDataMutation()
     const [triggerDataFetch] = useTriggerDataFetchMutation()
     
     // Data Source preferences
@@ -604,7 +606,14 @@ export default function SettingsPage() {
                                                         console.warn('Alerts reset skipped:', e.message)
                                                     }
 
-                                                    // 4. Local storage temizle
+                                                    // 4. Piyasa verilerini sil (döviz kurları, fiyat geçmişi)
+                                                    try {
+                                                        await deleteMarketData().unwrap()
+                                                    } catch (e) {
+                                                        console.warn('Market data reset skipped:', e.message)
+                                                    }
+
+                                                    // 5. Local storage temizle
                                                     localStorage.clear()
                                                     sessionStorage.clear()
 
@@ -764,8 +773,8 @@ export default function SettingsPage() {
                                                         setFormData({ ...formData, apiKey: e.target.value })
                                                         setIsValidated(false)
                                                     }}
-                                                    placeholder={formData.provider === 'TCMB' ? t('settings.apiKeys.placeholder.tcmb') : t('settings.apiKeys.placeholder.key')}
-                                                    required={formData.provider !== 'TCMB'}
+                                                    placeholder={editingConfig ? t('settings.apiKeys.placeholder.unchanged') : (formData.provider === 'TCMB' ? t('settings.apiKeys.placeholder.tcmb') : t('settings.apiKeys.placeholder.key'))}
+                                                    required={!editingConfig && formData.provider !== 'TCMB'}
                                                     className={isValidated ? 'border-green-500' : ''}
                                                 />
                                                 <Button
@@ -783,7 +792,7 @@ export default function SettingsPage() {
                                                     )}
                                                 </Button>
                                             </div>
-                                            {!isValidated && (
+                                            {!isValidated && !editingConfig && (
                                                 <p className="text-xs text-muted-foreground">
                                                     {formData.provider === 'TCMB'
                                                         ? t('settings.apiKeys.validation.tcmbInfo')
@@ -822,8 +831,8 @@ export default function SettingsPage() {
                                         <DialogFooter>
                                             <Button
                                                 type="submit"
-                                                disabled={isAdding || (!isValidated && formData.provider !== 'TCMB')}
-                                                className={(!isValidated && formData.provider !== 'TCMB') ? 'opacity-50' : ''}
+                                                disabled={isAdding || (!isValidated && !editingConfig && formData.provider !== 'TCMB')}
+                                                className={(!isValidated && !editingConfig && formData.provider !== 'TCMB') ? 'opacity-50' : ''}
                                             >
                                                 {isAdding ? t('common.loading') : (editingConfig ? t('settings.apiKeys.update') : t('settings.apiKeys.save'))}
                                             </Button>

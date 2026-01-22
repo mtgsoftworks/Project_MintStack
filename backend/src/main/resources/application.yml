@@ -177,11 +177,18 @@ app:
     portfolio-ttl: 120
 
   # Scheduler Configuration
+  # API Limits: Finnhub 60/min, Alpha Vantage 5/min
+  # TCMB updates 2-3 times/day (no need for frequent polling)
   scheduler:
     enabled: true
-    tcmb-rates-cron: "0 0 9,12,15 * * MON-FRI"
-    stock-prices-cron: "0 */15 9-18 * * MON-FRI"
-    news-fetch-cron: "0 */30 * * * *"
+    # TCMB: Only fetch twice daily (10:30, 16:30) - official rates
+    tcmb-rates-cron: "0 30 10,16 * * MON-FRI"
+    # Stocks/Crypto: Every 15 seconds during market hours (9-18)
+    # Uses 4/5 of Alpha Vantage limit (4 requests/min, limit is 5/min)
+    stock-prices-cron: "0/15 * 9-18 * * MON-FRI"
+    # News: Every 15 minutes
+    news-fetch-cron: "0 */15 * * * *"
+    # Cleanup old data at 2 AM
     cleanup-cron: "0 0 2 * * *"
 
   # Rate Limiting Configuration

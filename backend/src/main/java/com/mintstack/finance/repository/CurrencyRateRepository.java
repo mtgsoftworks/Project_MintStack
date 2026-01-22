@@ -36,4 +36,13 @@ public interface CurrencyRateRepository extends JpaRepository<CurrencyRate, UUID
             @Param("endDate") LocalDateTime endDate);
 
     void deleteByFetchedAtBefore(LocalDateTime date);
+
+    @Query("SELECT c FROM CurrencyRate c WHERE c.currencyCode = :code " +
+           "AND c.fetchedAt < :beforeDate " +
+           "ORDER BY c.fetchedAt DESC LIMIT 1")
+    Optional<CurrencyRate> findPreviousRate(
+            @Param("code") String currencyCode,
+            @Param("beforeDate") LocalDateTime beforeDate);
+
+    void deleteAll();
 }

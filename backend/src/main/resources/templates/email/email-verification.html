@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-posta Doğrulama - MintStack Finance</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo h1 {
+            color: #10b981;
+            margin: 0;
+            font-size: 28px;
+        }
+        .content {
+            text-align: center;
+        }
+        h2 {
+            color: #0f172a;
+            margin-bottom: 20px;
+        }
+        p {
+            color: #64748b;
+            margin-bottom: 20px;
+        }
+        .verify-button {
+            display: inline-block;
+            background-color: #10b981;
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 14px 40px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 20px 0;
+        }
+        .verify-button:hover {
+            background-color: #059669;
+        }
+        .code-box {
+            background-color: #f1f5f9;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 24px;
+            letter-spacing: 4px;
+            color: #0f172a;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+        .warning {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            margin: 20px 0;
+            text-align: left;
+            font-size: 14px;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>MintStack Finance</h1>
+        </div>
+        
+        <div class="content">
+            <h2>E-posta Adresinizi Doğrulayın</h2>
+            
+            <p>Merhaba <strong th:text="${userName}">Kullanıcı</strong>,</p>
+            
+            <p>MintStack Finance hesabınızı oluşturduğunuz için teşekkür ederiz. 
+               Hesabınızı aktifleştirmek için lütfen aşağıdaki butona tıklayın:</p>
+            
+            <a th:href="${verificationUrl}" class="verify-button">E-postamı Doğrula</a>
+            
+            <p>Veya aşağıdaki doğrulama kodunu kullanın:</p>
+            
+            <div class="code-box" th:text="${verificationCode}">123456</div>
+            
+            <div class="warning">
+                <strong>Önemli:</strong> Bu bağlantı 24 saat içinde geçerliliğini yitirecektir.
+                Eğer bu hesabı siz oluşturmadıysanız, bu e-postayı görmezden gelebilirsiniz.
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Bu e-posta MintStack Finance tarafından otomatik olarak gönderilmiştir.</p>
+            <p>&copy; 2026 MintStack Finance. Tüm hakları saklıdır.</p>
+            <p>
+                <a href="#" style="color: #64748b;">Gizlilik Politikası</a> | 
+                <a href="#" style="color: #64748b;">Kullanım Koşulları</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

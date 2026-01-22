@@ -34,6 +34,13 @@ export const settingsApi = baseApi.injectEndpoints({
                 method: 'DELETE',
             }),
         }),
+        deleteMarketData: builder.mutation({
+            query: () => ({
+                url: '/settings/market-data',
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['Market', 'Currency'],
+        }),
         // Data Source endpoints
         getDataSourceCapabilities: builder.query({
             query: () => '/data-sources/capabilities',
@@ -67,6 +74,7 @@ export const {
     useAddApiConfigMutation,
     useDeleteApiConfigMutation,
     useClearCacheMutation,
+    useDeleteMarketDataMutation,
     useGetDataSourceCapabilitiesQuery,
     useGetDataPreferencesQuery,
     useSetDataPreferenceMutation,
