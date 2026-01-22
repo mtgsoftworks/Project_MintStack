@@ -11,6 +11,8 @@ import java.util.List;
 @Table(name = "instruments", indexes = {
     @Index(name = "idx_instruments_symbol", columnList = "symbol"),
     @Index(name = "idx_instruments_type", columnList = "type")
+}, uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"symbol", "is_simulated"})
 })
 @Getter
 @Setter
@@ -19,7 +21,7 @@ import java.util.List;
 @Builder
 public class Instrument extends BaseEntity {
 
-    @Column(name = "symbol", unique = true, nullable = false, length = 20)
+    @Column(name = "symbol", nullable = false, length = 20)
     private String symbol;
 
     @Column(name = "name", nullable = false)
@@ -45,6 +47,10 @@ public class Instrument extends BaseEntity {
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;
+
+    @Column(name = "is_simulated")
+    @Builder.Default
+    private Boolean isSimulated = false;
 
     @OneToMany(mappedBy = "instrument", cascade = CascadeType.ALL)
     @Builder.Default

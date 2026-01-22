@@ -10,7 +10,7 @@ import com.mintstack.finance.entity.PriceHistory;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PortfolioRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -29,7 +30,6 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class MonteCarloService {
 
     private final InstrumentRepository instrumentRepository;
@@ -43,6 +43,35 @@ public class MonteCarloService {
     private final ExecutorService executor = Executors.newFixedThreadPool(
             Runtime.getRuntime().availableProcessors()
     );
+
+    public MonteCarloService(InstrumentRepository instrumentRepository,
+                             PriceHistoryRepository priceHistoryRepository,
+                             PortfolioRepository portfolioRepository) {
+        this.instrumentRepository = instrumentRepository;
+        this.priceHistoryRepository = priceHistoryRepository;
+        this.portfolioRepository = portfolioRepository;
+    }
+
+    /**
+     * FIX: Properly shutdown ExecutorService on application shutdown
+     */
+    @PreDestroy
+    public void shutdown() {
+        log.info("Shutting down MonteCarloService ExecutorService...");
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+                if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                    log.error("ExecutorService did not terminate");
+                }
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+        log.info("MonteCarloService ExecutorService shutdown complete");
+    }
 
     /**
      * Monte Carlo simülasyonu çalıştır

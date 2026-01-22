@@ -10,7 +10,6 @@ import com.mintstack.finance.exception.BusinessException;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PriceAlertRepository;
-import com.mintstack.finance.repository.UserRepository;
 import com.mintstack.finance.service.event.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,17 +28,16 @@ import java.util.stream.Collectors;
 public class AlertService {
 
     private final PriceAlertRepository alertRepository;
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final InstrumentRepository instrumentRepository;
     private final EmailService emailService;
-    private final PriceUpdateService priceUpdateService;
     private final EventPublisher eventPublisher;
 
     private static final int MAX_ACTIVE_ALERTS_PER_USER = 20;
 
     @Transactional(readOnly = true)
     public List<AlertResponse> getUserAlerts(String keycloakId) {
-        User user = findUserByKeycloakId(keycloakId);
+        User user = userService.getUserByKeycloakId(keycloakId);
         return alertRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
                 .stream()
                 .map(this::mapToResponse)
@@ -48,7 +46,7 @@ public class AlertService {
 
     @Transactional(readOnly = true)
     public List<AlertResponse> getActiveAlerts(String keycloakId) {
-        User user = findUserByKeycloakId(keycloakId);
+        User user = userService.getUserByKeycloakId(keycloakId);
         return alertRepository.findByUserIdAndIsActiveTrue(user.getId())
                 .stream()
                 .map(this::mapToResponse)
@@ -57,7 +55,7 @@ public class AlertService {
 
     @Transactional
     public AlertResponse createAlert(String keycloakId, CreateAlertRequest request) {
-        User user = findUserByKeycloakId(keycloakId);
+        User user = userService.getUserByKeycloakId(keycloakId);
 
         // Check max alerts limit
         long activeCount = alertRepository.countByUserIdAndIsActiveTrue(user.getId());
@@ -86,7 +84,7 @@ public class AlertService {
 
     @Transactional
     public void deleteAlert(String keycloakId, UUID alertId) {
-        User user = findUserByKeycloakId(keycloakId);
+        User user = userService.getUserByKeycloakId(keycloakId);
         PriceAlert alert = alertRepository.findByIdAndUserId(alertId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Alarm", "id", alertId));
 
@@ -96,7 +94,7 @@ public class AlertService {
 
     @Transactional
     public void deactivateAlert(String keycloakId, UUID alertId) {
-        User user = findUserByKeycloakId(keycloakId);
+        User user = userService.getUserByKeycloakId(keycloakId);
         PriceAlert alert = alertRepository.findByIdAndUserId(alertId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Alarm", "id", alertId));
 
@@ -174,10 +172,7 @@ public class AlertService {
         };
     }
 
-    private User findUserByKeycloakId(String keycloakId) {
-        return userRepository.findByKeycloakId(keycloakId)
-                .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı", "keycloakId", keycloakId));
-    }
+
 
     private AlertResponse mapToResponse(PriceAlert alert) {
         Instrument inst = alert.getInstrument();

@@ -59,7 +59,7 @@ public class AnalysisService {
 
             if ("EMA".equals(maType)) {
                 if (emaValue == null) {
-                    emaValue = calculateSMA(closePrices, i, period);
+                    emaValue = calculateMA(closePrices, i, period);
                 } else {
                     BigDecimal price = closePrices.get(i);
                     emaValue = price.subtract(emaValue)
@@ -70,7 +70,7 @@ public class AnalysisService {
             } else if ("WMA".equals(maType)) {
                 ma = calculateWMA(closePrices, i, period);
             } else {
-                ma = calculateSMA(closePrices, i, period);
+                ma = calculateMA(closePrices, i, period);
             }
             
             Map<String, Object> point = new HashMap<>();
@@ -291,10 +291,6 @@ public class AnalysisService {
             sum = sum.add(prices.get(i));
         }
         return sum.divide(BigDecimal.valueOf(period), 6, RoundingMode.HALF_UP);
-    }
-
-    private BigDecimal calculateSMA(List<BigDecimal> prices, int currentIndex, int period) {
-        return calculateMA(prices, currentIndex, period);
     }
 
     private BigDecimal calculateWMA(List<BigDecimal> prices, int currentIndex, int period) {

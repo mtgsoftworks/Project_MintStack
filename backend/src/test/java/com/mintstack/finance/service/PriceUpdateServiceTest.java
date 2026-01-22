@@ -23,6 +23,9 @@ class PriceUpdateServiceTest {
     @Mock
     private SimpMessagingTemplate messagingTemplate;
 
+    @Mock
+    private AlertService alertService;
+
     @InjectMocks
     private PriceUpdateService priceUpdateService;
 
@@ -39,6 +42,7 @@ class PriceUpdateServiceTest {
         // Then
         verify(messagingTemplate).convertAndSend(eq("/topic/prices/currency"), any(PriceUpdateMessage.class));
         verify(messagingTemplate).convertAndSend(eq("/topic/prices/currency/USD"), any(PriceUpdateMessage.class));
+        verify(alertService).checkAlertsForSymbol(eq("USD"), eq(buyingRate));
     }
 
     @Test
@@ -77,6 +81,7 @@ class PriceUpdateServiceTest {
         // Then
         verify(messagingTemplate).convertAndSend(eq("/topic/prices/stocks"), any(PriceUpdateMessage.class));
         verify(messagingTemplate).convertAndSend(eq("/topic/prices/stocks/THYAO"), any(PriceUpdateMessage.class));
+        verify(alertService).checkAlertsForSymbol(eq("THYAO"), eq(currentPrice));
     }
 
     @Test

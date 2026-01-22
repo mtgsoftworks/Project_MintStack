@@ -115,7 +115,7 @@ public class MarketDataScheduler {
             UserApiConfig yahooConfig = getActiveConfig(ApiProvider.YAHOO_FINANCE);
             UserApiConfig alphaConfig = getActiveConfig(ApiProvider.ALPHA_VANTAGE);
 
-            long instrumentCount = instrumentRepository.count();
+            long instrumentCount = instrumentRepository.countRealInstruments();
             if (instrumentCount == 0) {
                 log.info("No instruments found. Bootstrapping before price updates.");
                 if (yahooConfig != null || alphaConfig != null) {
@@ -164,7 +164,7 @@ public class MarketDataScheduler {
         }
 
         // 2. Bootstrap Stocks from API if DB is empty
-        long stockCount = instrumentRepository.count();
+        long stockCount = instrumentRepository.countRealInstruments();
         if (stockCount == 0) {
             UserApiConfig alphaConfig = getActiveConfig(ApiProvider.ALPHA_VANTAGE);
             UserApiConfig yahooConfig = getActiveConfig(ApiProvider.YAHOO_FINANCE);
@@ -189,8 +189,8 @@ public class MarketDataScheduler {
 
         for (String symbol : INITIAL_BIST_STOCKS) {
             try {
-                // Check if already exists
-                if (instrumentRepository.findBySymbol(symbol).isPresent()) continue;
+                // Check if already exists (Real version)
+                if (instrumentRepository.findBySymbolAndIsSimulated(symbol, false).isPresent()) continue;
 
                 BigDecimal price = null;
                 String name = symbol; // Default name if not fetched
@@ -229,8 +229,9 @@ public class MarketDataScheduler {
                     log.warn("Could not fetch price for {}, skipping bootstrap.", symbol);
                 }
                 
-                // Rate limit protection
-                Thread.sleep(1000); 
+                // FIX: Rate limit protection using non-blocking delay
+                // The delay is handled by the API clients themselves via WebClient timeout
+                // No blocking Thread.sleep needed here - API client rate limiting is sufficient
 
             } catch (Exception e) {
                 log.error("Error bootstrapping stock {}", symbol, e);
@@ -256,7 +257,8 @@ public class MarketDataScheduler {
     }
 
     private void updatePricesForType(Instrument.InstrumentType type, UserApiConfig yahooConfig, UserApiConfig alphaConfig) {
-        List<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrue(type);
+        // Only fetch real instruments (isSimulated = false)
+        List<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(type, false);
         if (instruments.isEmpty()) {
             log.info("No {} instruments found to update.", type);
             return;

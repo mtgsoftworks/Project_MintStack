@@ -325,9 +325,19 @@ public class TechnicalIndicatorService {
                 .findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
                         instrumentOpt.get().getId(), startDate, endDate);
 
+        // CRITICAL FIX: Get the LAST N prices (most recent), not FIRST N (oldest)
+        // Technical indicators need the most recent data
+        int size = history.size();
+        if (size <= limit) {
+            return history.stream()
+                    .map(PriceHistory::getClosePrice)
+                    .toList();
+        }
+        
+        // Skip older records, take last 'limit' records (already in ASC order)
         return history.stream()
+                .skip(size - limit)
                 .map(PriceHistory::getClosePrice)
-                .limit(limit)
                 .toList();
     }
 
@@ -340,11 +350,18 @@ public class TechnicalIndicatorService {
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(limit * 2);
 
-        return priceHistoryRepository
+        List<PriceHistory> fullHistory = priceHistoryRepository
                 .findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
-                        instrumentOpt.get().getId(), startDate, endDate)
-                .stream()
-                .limit(limit)
+                        instrumentOpt.get().getId(), startDate, endDate);
+
+        // CRITICAL FIX: Get the LAST N records (most recent), not FIRST N
+        int size = fullHistory.size();
+        if (size <= limit) {
+            return fullHistory;
+        }
+        
+        return fullHistory.stream()
+                .skip(size - limit)
                 .toList();
     }
 

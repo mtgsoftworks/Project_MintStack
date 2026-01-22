@@ -20,7 +20,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Tag(name = "Observability", description = "Sistem gözlemleme API'leri (Admin only)")
 @SecurityRequirement(name = "bearer")
-@PreAuthorize("hasRole('admin')")
+@PreAuthorize("hasRole('ADMIN')") // FIXED: Was 'admin', must match SecurityConfig ROLE_ADMIN
 public class ObservabilityController {
 
     private final OpenSearchService openSearchService;

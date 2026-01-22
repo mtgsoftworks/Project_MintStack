@@ -16,16 +16,22 @@ import java.util.UUID;
 @Repository
 public interface InstrumentRepository extends JpaRepository<Instrument, UUID> {
 
-    Optional<Instrument> findBySymbol(String symbol);
+    Optional<Instrument> findBySymbolAndIsSimulated(String symbol, Boolean isSimulated);
 
-    List<Instrument> findByType(InstrumentType type);
+    // Default lookup for real data (backward compatibility)
+    @Query("SELECT i FROM Instrument i WHERE i.symbol = :symbol AND (i.isSimulated IS NULL OR i.isSimulated = false)")
+    Optional<Instrument> findBySymbol(@Param("symbol") String symbol);
 
-    Page<Instrument> findByType(InstrumentType type, Pageable pageable);
+    List<Instrument> findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType type, Boolean isSimulated);
 
-    List<Instrument> findByTypeAndIsActiveTrue(InstrumentType type);
+    // Default lookup for real instruments only (excludes simulated data)
+    @Query("SELECT i FROM Instrument i WHERE i.type = :type AND i.isActive = true AND (i.isSimulated IS NULL OR i.isSimulated = false)")
+    List<Instrument> findByTypeAndIsActiveTrue(@Param("type") InstrumentType type);
 
-    Page<Instrument> findByTypeAndIsActiveTrue(InstrumentType type, Pageable pageable);
+    @Query("SELECT i FROM Instrument i WHERE i.type = :type AND i.isActive = true AND (i.isSimulated IS NULL OR i.isSimulated = false)")
+    Page<Instrument> findByTypeAndIsActiveTrue(@Param("type") InstrumentType type, Pageable pageable);
 
+    @Query("SELECT i FROM Instrument i WHERE i.isActive = true AND (i.isSimulated IS NULL OR i.isSimulated = false)")
     List<Instrument> findByIsActiveTrue();
 
     @Query("SELECT i FROM Instrument i WHERE i.isActive = true AND " +
@@ -45,4 +51,7 @@ public interface InstrumentRepository extends JpaRepository<Instrument, UUID> {
     boolean existsBySymbol(String symbol);
 
     long countByIsActiveTrue();
+
+    @Query("SELECT COUNT(i) FROM Instrument i WHERE i.isSimulated IS NULL OR i.isSimulated = false")
+    long countRealInstruments();
 }

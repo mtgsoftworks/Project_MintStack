@@ -44,6 +44,7 @@ public class PortfolioService {
     private final PortfolioTransactionRepository portfolioTransactionRepository;
     private final UserService userService;
 
+    @Cacheable(value = "userPortfolios", key = "#keycloakId")
     @Transactional(readOnly = true)
     public List<PortfolioResponse> getUserPortfolios(String keycloakId) {
         User user = userService.getUserByKeycloakId(keycloakId);
@@ -64,6 +65,7 @@ public class PortfolioService {
         return mapToResponse(portfolio);
     }
 
+    @CacheEvict(value = "userPortfolios", key = "#keycloakId")
     @Transactional
     public PortfolioResponse createPortfolio(String keycloakId, CreatePortfolioRequest request) {
         User user = userService.getUserByKeycloakId(keycloakId);
@@ -122,7 +124,10 @@ public class PortfolioService {
         return mapToResponse(savedPortfolio);
     }
 
-    @CacheEvict(value = "portfolios", key = "#portfolioId")
+    @org.springframework.cache.annotation.Caching(evict = {
+        @CacheEvict(value = "portfolios", key = "#portfolioId"),
+        @CacheEvict(value = "userPortfolios", key = "#keycloakId")
+    })
     @Transactional
     public void deletePortfolio(String keycloakId, UUID portfolioId) {
         User user = userService.getUserByKeycloakId(keycloakId);

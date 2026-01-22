@@ -9,7 +9,6 @@ import com.mintstack.finance.entity.WatchlistItem;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.exception.BusinessException;
 import com.mintstack.finance.repository.InstrumentRepository;
-import com.mintstack.finance.repository.UserRepository;
 import com.mintstack.finance.repository.WatchlistRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +25,7 @@ import java.util.stream.Collectors;
 public class WatchlistService {
 
     private final WatchlistRepository watchlistRepository;
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final InstrumentRepository instrumentRepository;
 
     private static final int MAX_WATCHLISTS_PER_USER = 10;
@@ -34,7 +33,7 @@ public class WatchlistService {
 
     @Transactional(readOnly = true)
     public List<WatchlistResponse> getUserWatchlists(String keycloakId) {
-        User user = findUserByKeycloakId(keycloakId);
+        User user = userService.getUserByKeycloakId(keycloakId);
         return watchlistRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
                 .stream()
                 .map(this::mapToResponse)
@@ -43,7 +42,7 @@ public class WatchlistService {
 
     @Transactional(readOnly = true)
     public WatchlistResponse getWatchlist(String keycloakId, UUID watchlistId) {
-        User user = findUserByKeycloakId(keycloakId);
+        User user = userService.getUserByKeycloakId(keycloakId);
         Watchlist watchlist = watchlistRepository.findByIdAndUserIdWithItems(watchlistId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Watchlist", "id", watchlistId));
         return mapToResponse(watchlist);
@@ -51,7 +50,7 @@ public class WatchlistService {
 
     @Transactional
     public WatchlistResponse createWatchlist(String keycloakId, CreateWatchlistRequest request) {
-        User user = findUserByKeycloakId(keycloakId);
+        User user = userService.getUserByKeycloakId(keycloakId);
 
         // Check max watchlist limit
         long count = watchlistRepository.countByUserId(user.getId());
@@ -78,7 +77,7 @@ public class WatchlistService {
 
     @Transactional
     public WatchlistResponse updateWatchlist(String keycloakId, UUID watchlistId, CreateWatchlistRequest request) {
-        User user = findUserByKeycloakId(keycloakId);
+        User user = userService.getUserByKeycloakId(keycloakId);
         Watchlist watchlist = watchlistRepository.findByIdAndUserId(watchlistId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Watchlist", "id", watchlistId));
 
@@ -91,7 +90,7 @@ public class WatchlistService {
 
     @Transactional
     public void deleteWatchlist(String keycloakId, UUID watchlistId) {
-        User user = findUserByKeycloakId(keycloakId);
+        User user = userService.getUserByKeycloakId(keycloakId);
         Watchlist watchlist = watchlistRepository.findByIdAndUserId(watchlistId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Watchlist", "id", watchlistId));
 
@@ -101,7 +100,7 @@ public class WatchlistService {
 
     @Transactional
     public WatchlistResponse addInstrument(String keycloakId, UUID watchlistId, String symbol) {
-        User user = findUserByKeycloakId(keycloakId);
+        User user = userService.getUserByKeycloakId(keycloakId);
         Watchlist watchlist = watchlistRepository.findByIdAndUserIdWithItems(watchlistId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Watchlist", "id", watchlistId));
 
@@ -129,7 +128,7 @@ public class WatchlistService {
 
     @Transactional
     public WatchlistResponse removeInstrument(String keycloakId, UUID watchlistId, String symbol) {
-        User user = findUserByKeycloakId(keycloakId);
+        User user = userService.getUserByKeycloakId(keycloakId);
         Watchlist watchlist = watchlistRepository.findByIdAndUserIdWithItems(watchlistId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Watchlist", "id", watchlistId));
 
@@ -143,10 +142,7 @@ public class WatchlistService {
         return mapToResponse(watchlist);
     }
 
-    private User findUserByKeycloakId(String keycloakId) {
-        return userRepository.findByKeycloakId(keycloakId)
-                .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı", "keycloakId", keycloakId));
-    }
+
 
     private WatchlistResponse mapToResponse(Watchlist watchlist) {
         return WatchlistResponse.builder()

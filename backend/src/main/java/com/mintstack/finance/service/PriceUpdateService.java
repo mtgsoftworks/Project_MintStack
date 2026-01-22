@@ -3,6 +3,7 @@ package com.mintstack.finance.service;
 import com.mintstack.finance.dto.response.PriceUpdateMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PriceUpdateService {
 
     private final SimpMessagingTemplate messagingTemplate;
+    
+    // Lazy to break circular dependency: AlertService -> PriceUpdateService -> AlertService
+    @Lazy
+    private final AlertService alertService;
 
     /**
      * Cache for tracking last broadcast prices to avoid duplicate updates
@@ -48,6 +53,13 @@ public class PriceUpdateService {
         sendMessage("/topic/prices/currency/" + currencyCode, message);
         
         log.debug("Broadcast currency update: {} = {}", currencyCode, buyingRate);
+        
+        // Check and trigger price alerts for currency updates
+        try {
+            alertService.checkAlertsForSymbol(currencyCode, buyingRate);
+        } catch (Exception e) {
+            log.warn("Error checking alerts for currency {}: {}", currencyCode, e.getMessage());
+        }
     }
 
     /**
@@ -74,6 +86,13 @@ public class PriceUpdateService {
         sendMessage("/topic/prices/stocks/" + symbol, message);
         
         log.debug("Broadcast stock update: {} = {}", symbol, currentPrice);
+        
+        // ADDED: Check and trigger price alerts after each stock update
+        try {
+            alertService.checkAlertsForSymbol(symbol, currentPrice);
+        } catch (Exception e) {
+            log.warn("Error checking alerts for {}: {}", symbol, e.getMessage());
+        }
     }
 
     /**

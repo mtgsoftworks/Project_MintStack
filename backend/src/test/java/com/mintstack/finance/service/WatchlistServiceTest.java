@@ -8,7 +8,6 @@ import com.mintstack.finance.entity.Watchlist;
 import com.mintstack.finance.exception.BusinessException;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.InstrumentRepository;
-import com.mintstack.finance.repository.UserRepository;
 import com.mintstack.finance.repository.WatchlistRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,7 +33,7 @@ class WatchlistServiceTest {
     private WatchlistRepository watchlistRepository;
 
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Mock
     private InstrumentRepository instrumentRepository;
@@ -77,7 +76,7 @@ class WatchlistServiceTest {
         User user = createTestUser();
         Watchlist watchlist = createTestWatchlist(user);
 
-        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
         when(watchlistRepository.findByUserIdOrderByCreatedAtDesc(user.getId())).thenReturn(List.of(watchlist));
 
         // When
@@ -94,7 +93,7 @@ class WatchlistServiceTest {
         User user = createTestUser();
         Watchlist watchlist = createTestWatchlist(user);
 
-        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
         when(watchlistRepository.findByIdAndUserIdWithItems(watchlist.getId(), user.getId()))
             .thenReturn(Optional.of(watchlist));
 
@@ -114,7 +113,7 @@ class WatchlistServiceTest {
         request.setName("New Watchlist");
         request.setDescription("Description");
 
-        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
         when(watchlistRepository.countByUserId(user.getId())).thenReturn(0L);
         when(watchlistRepository.existsByUserIdAndName(user.getId(), "New Watchlist")).thenReturn(false);
         when(watchlistRepository.save(any(Watchlist.class))).thenAnswer(i -> {
@@ -140,7 +139,7 @@ class WatchlistServiceTest {
         CreateWatchlistRequest request = new CreateWatchlistRequest();
         request.setName("New Watchlist");
 
-        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
         when(watchlistRepository.countByUserId(user.getId())).thenReturn(10L);
 
         // When & Then
@@ -156,7 +155,7 @@ class WatchlistServiceTest {
         CreateWatchlistRequest request = new CreateWatchlistRequest();
         request.setName("Existing Watchlist");
 
-        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
         when(watchlistRepository.countByUserId(user.getId())).thenReturn(1L);
         when(watchlistRepository.existsByUserIdAndName(user.getId(), "Existing Watchlist")).thenReturn(true);
 
@@ -175,7 +174,7 @@ class WatchlistServiceTest {
         request.setName("Updated Name");
         request.setDescription("Updated Description");
 
-        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
         when(watchlistRepository.findByIdAndUserId(watchlist.getId(), user.getId()))
             .thenReturn(Optional.of(watchlist));
         when(watchlistRepository.save(any(Watchlist.class))).thenReturn(watchlist);
@@ -194,7 +193,7 @@ class WatchlistServiceTest {
         User user = createTestUser();
         Watchlist watchlist = createTestWatchlist(user);
 
-        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
         when(watchlistRepository.findByIdAndUserId(watchlist.getId(), user.getId()))
             .thenReturn(Optional.of(watchlist));
 
@@ -212,7 +211,7 @@ class WatchlistServiceTest {
         Watchlist watchlist = createTestWatchlist(user);
         Instrument instrument = createTestInstrument();
 
-        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
         when(watchlistRepository.findByIdAndUserIdWithItems(watchlist.getId(), user.getId()))
             .thenReturn(Optional.of(watchlist));
         when(instrumentRepository.findBySymbol("THYAO")).thenReturn(Optional.of(instrument));
@@ -231,7 +230,7 @@ class WatchlistServiceTest {
         User user = createTestUser();
         Watchlist watchlist = createTestWatchlist(user);
 
-        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
         when(watchlistRepository.findByIdAndUserIdWithItems(watchlist.getId(), user.getId()))
             .thenReturn(Optional.of(watchlist));
         when(instrumentRepository.findBySymbol("UNKNOWN")).thenReturn(Optional.empty());
@@ -248,7 +247,7 @@ class WatchlistServiceTest {
         Watchlist watchlist = createTestWatchlist(user);
         Instrument instrument = createTestInstrument();
 
-        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
         when(watchlistRepository.findByIdAndUserIdWithItems(watchlist.getId(), user.getId()))
             .thenReturn(Optional.of(watchlist));
         when(instrumentRepository.findBySymbol("THYAO")).thenReturn(Optional.of(instrument));
@@ -264,7 +263,7 @@ class WatchlistServiceTest {
     @Test
     void getUserWatchlists_ShouldThrowWhenUserNotFound() {
         // Given
-        when(userRepository.findByKeycloakId("unknown")).thenReturn(Optional.empty());
+        when(userService.getUserByKeycloakId("unknown")).thenThrow(new ResourceNotFoundException("Kullanıcı", "keycloakId", "unknown"));
 
         // When & Then
         assertThatThrownBy(() -> watchlistService.getUserWatchlists("unknown"))

@@ -77,7 +77,7 @@ class PriceSimulationEngineTest {
         // Given
         String symbol = "TREND_TEST";
         BigDecimal currentPrice = BigDecimal.valueOf(100.0);
-        int iterations = 500;
+        int iterations = 2000;
         
         double sumBullish = 0;
         double sumBearish = 0;
@@ -86,11 +86,11 @@ class PriceSimulationEngineTest {
         for (int i = 0; i < iterations; i++) {
             BigDecimal bullishPrice = priceEngine.simulateGBM(
                     symbol + "_bull_" + i, currentPrice, 0.01,
-                    VolatilityLevel.LOW, MarketTrend.BULLISH, 60);
+                    VolatilityLevel.LOW, MarketTrend.BULLISH, 3600);
             
             BigDecimal bearishPrice = priceEngine.simulateGBM(
                     symbol + "_bear_" + i, currentPrice, 0.01,
-                    VolatilityLevel.LOW, MarketTrend.BEARISH, 60);
+                    VolatilityLevel.LOW, MarketTrend.BEARISH, 3600);
 
             sumBullish += bullishPrice.doubleValue();
             sumBearish += bearishPrice.doubleValue();

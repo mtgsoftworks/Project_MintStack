@@ -10,6 +10,7 @@ import com.mintstack.finance.repository.CurrencyRateRepository;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
 import com.mintstack.finance.repository.SimulationConfigRepository;
+import com.mintstack.finance.repository.UserApiConfigRepository;
 import com.mintstack.finance.service.PriceUpdateService;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
@@ -34,6 +35,7 @@ public class SimulationDataService {
     private final InstrumentRepository instrumentRepository;
     private final CurrencyRateRepository currencyRateRepository;
     private final PriceHistoryRepository priceHistoryRepository;
+    private final UserApiConfigRepository userApiConfigRepository; // New dependency
     private final PriceUpdateService priceUpdateService;
     private final PriceSimulationEngine priceEngine;
 
@@ -305,6 +307,18 @@ public class SimulationDataService {
     public SimulationConfig updateConfig(Boolean enabled, VolatilityLevel volatility,
                                           Integer updateInterval, MarketTrend trend,
                                           Boolean enableRandomEvents) {
+        
+        // API Key Check Logic
+        if (Boolean.TRUE.equals(enabled)) {
+            // Check if any API provider is active
+            boolean hasActiveApi = !userApiConfigRepository.findByProviderAndIsActiveTrue(com.mintstack.finance.entity.UserApiConfig.ApiProvider.ALPHA_VANTAGE).isEmpty() ||
+                                   !userApiConfigRepository.findByProviderAndIsActiveTrue(com.mintstack.finance.entity.UserApiConfig.ApiProvider.YAHOO_FINANCE).isEmpty();
+            
+            if (hasActiveApi) {
+                throw new IllegalStateException("Cannot enable simulation while active API configurations exist. Please disable API integrations first.");
+            }
+        }
+
         SimulationConfig config = configRepository.getOrCreateDefault();
 
         if (enabled != null) config.setIsEnabled(enabled);
@@ -327,7 +341,7 @@ public class SimulationDataService {
     /**
      * Tüm piyasa verilerini simüle et ve güncelle
      */
-    @Transactional
+    // @Transactional removed to allow partial updates and prevent long locking
     public void simulateAllPrices() {
         SimulationConfig config = getConfig();
         if (!config.getIsEnabled()) return;
@@ -525,10 +539,11 @@ public class SimulationDataService {
         }
     }
 
+    @Transactional
     private void saveAndBroadcastStock(String symbol, SimulatedStock stock,
                                         BigDecimal previousClose, BigDecimal newPrice) {
-        // Veritabanında varsa güncelle, yoksa oluştur
-        Optional<Instrument> existing = instrumentRepository.findBySymbol(symbol);
+        // Veritabanında varsa güncelle, yoksa oluştur (SİMÜLASYON VERİSİ)
+        Optional<Instrument> existing = instrumentRepository.findBySymbolAndIsSimulated(symbol, true);
         Instrument instrument;
 
         if (existing.isPresent()) {
@@ -545,6 +560,7 @@ public class SimulationDataService {
                     .currentPrice(newPrice)
                     .previousClose(previousClose)
                     .isActive(true)
+                    .isSimulated(true) // Set simulated flag
                     .build();
         }
         instrumentRepository.save(instrument);
@@ -570,7 +586,7 @@ public class SimulationDataService {
 
     private void saveDailyPriceHistory(String symbol, SimulatedStock stock) {
         try {
-            Instrument instrument = instrumentRepository.findBySymbol(symbol).orElse(null);
+            Instrument instrument = instrumentRepository.findBySymbolAndIsSimulated(symbol, true).orElse(null);
             if (instrument == null) return;
 
             LocalDate today = LocalDate.now();

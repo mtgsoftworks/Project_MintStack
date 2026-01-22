@@ -9,6 +9,7 @@ import com.mintstack.finance.dto.response.ApiConfigResponse;
 import com.mintstack.finance.entity.User;
 import com.mintstack.finance.service.SettingsService;
 import com.mintstack.finance.service.UserService;
+import com.mintstack.finance.service.MarketDataService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.AutoConfigureDataJpa;
@@ -48,6 +49,9 @@ class SettingsControllerTest {
 
     @MockBean
     private RateLimitConfig rateLimitConfig;
+
+    @MockBean
+    private MarketDataService marketDataService;
 
     private static final String TEST_KEYCLOAK_ID = "test-keycloak-id-123";
     private static final UUID TEST_USER_ID = UUID.randomUUID();

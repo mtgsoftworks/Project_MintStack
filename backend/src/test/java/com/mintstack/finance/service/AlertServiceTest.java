@@ -10,7 +10,6 @@ import com.mintstack.finance.exception.BusinessException;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PriceAlertRepository;
-import com.mintstack.finance.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,7 +33,7 @@ class AlertServiceTest {
     private PriceAlertRepository alertRepository;
 
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Mock
     private InstrumentRepository instrumentRepository;
@@ -43,7 +42,7 @@ class AlertServiceTest {
     private EmailService emailService;
 
     @Mock
-    private PriceUpdateService priceUpdateService;
+    private com.mintstack.finance.service.event.EventPublisher eventPublisher;
 
     @InjectMocks
     private AlertService alertService;
@@ -87,7 +86,7 @@ class AlertServiceTest {
         Instrument instrument = createTestInstrument();
         PriceAlert alert = createTestAlert(user, instrument);
 
-        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
         when(alertRepository.findByUserIdOrderByCreatedAtDesc(user.getId())).thenReturn(List.of(alert));
 
         // When
@@ -105,7 +104,7 @@ class AlertServiceTest {
         Instrument instrument = createTestInstrument();
         PriceAlert alert = createTestAlert(user, instrument);
 
-        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
         when(alertRepository.findByUserIdAndIsActiveTrue(user.getId())).thenReturn(List.of(alert));
 
         // When
@@ -126,7 +125,7 @@ class AlertServiceTest {
         request.setAlertType(AlertType.PRICE_ABOVE);
         request.setTargetValue(BigDecimal.valueOf(35.00));
 
-        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
         when(alertRepository.countByUserIdAndIsActiveTrue(user.getId())).thenReturn(5L);
         when(instrumentRepository.findBySymbol("USD/TRY")).thenReturn(Optional.of(instrument));
         when(alertRepository.save(any(PriceAlert.class))).thenAnswer(i -> {
@@ -153,7 +152,7 @@ class AlertServiceTest {
         request.setAlertType(AlertType.PRICE_ABOVE);
         request.setTargetValue(BigDecimal.valueOf(35.00));
 
-        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
         when(alertRepository.countByUserIdAndIsActiveTrue(user.getId())).thenReturn(20L);
 
         // When & Then
@@ -169,7 +168,7 @@ class AlertServiceTest {
         Instrument instrument = createTestInstrument();
         PriceAlert alert = createTestAlert(user, instrument);
 
-        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
         when(alertRepository.findByIdAndUserId(alert.getId(), user.getId())).thenReturn(Optional.of(alert));
 
         // When
@@ -186,7 +185,7 @@ class AlertServiceTest {
         Instrument instrument = createTestInstrument();
         PriceAlert alert = createTestAlert(user, instrument);
 
-        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
         when(alertRepository.findByIdAndUserId(alert.getId(), user.getId())).thenReturn(Optional.of(alert));
         when(alertRepository.save(any(PriceAlert.class))).thenReturn(alert);
 
@@ -201,7 +200,7 @@ class AlertServiceTest {
     @Test
     void getUserAlerts_ShouldThrowWhenUserNotFound() {
         // Given
-        when(userRepository.findByKeycloakId("unknown")).thenReturn(Optional.empty());
+        when(userService.getUserByKeycloakId("unknown")).thenThrow(new ResourceNotFoundException("Kullanıcı", "keycloakId", "unknown"));
 
         // When & Then
         assertThatThrownBy(() -> alertService.getUserAlerts("unknown"))

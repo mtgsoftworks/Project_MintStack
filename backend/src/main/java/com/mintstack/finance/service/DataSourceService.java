@@ -14,11 +14,13 @@ import com.mintstack.finance.scheduler.MarketDataScheduler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -142,6 +144,7 @@ public class DataSourceService {
 
     /**
      * Trigger immediate data fetch when API key is activated
+     * FIX: Now runs async to prevent HTTP response blocking
      */
     @Transactional
     @CacheEvict(value = {"currencyRates", "instruments", "stockPrices"}, allEntries = true)
@@ -153,7 +156,7 @@ public class DataSourceService {
             .orElseThrow(() -> new RuntimeException("API config not found"));
 
         if (!config.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Access denied");
+            throw new org.springframework.security.access.AccessDeniedException("Bu API yapılandırmasına erişim yetkiniz yok");
         }
 
         // Update last triggered timestamp
@@ -181,33 +184,35 @@ public class DataSourceService {
             }
         }
 
-        // Trigger immediate data fetch
-        int fetchedCount = 0;
-        try {
-            switch (config.getProvider()) {
-                case TCMB:
-                    marketDataScheduler.fetchTcmbRates();
-                    fetchedCount++;
-                    break;
-                case YAHOO_FINANCE:
-                case ALPHA_VANTAGE:
-                    marketDataScheduler.fetchStockPrices();
-                    fetchedCount++;
-                    break;
-                default:
-                    log.info("No immediate fetch handler for provider: {}", config.getProvider());
+        // FIX: Trigger data fetch ASYNCHRONOUSLY to prevent HTTP blocking
+        ApiProvider provider = config.getProvider();
+        CompletableFuture.runAsync(() -> {
+            try {
+                log.info("Starting async data fetch for provider: {}", provider);
+                switch (provider) {
+                    case TCMB:
+                        marketDataScheduler.fetchTcmbRates();
+                        break;
+                    case YAHOO_FINANCE:
+                    case ALPHA_VANTAGE:
+                        marketDataScheduler.fetchStockPrices();
+                        break;
+                    default:
+                        log.info("No immediate fetch handler for provider: {}", provider);
+                }
+                log.info("Async data fetch completed for provider: {}", provider);
+            } catch (Exception e) {
+                log.error("Error during async data fetch for {}: {}", provider, e.getMessage());
             }
-        } catch (Exception e) {
-            log.error("Error during immediate data fetch: {}", e.getMessage());
-        }
+        });
 
         Map<String, Object> result = new HashMap<>();
         result.put("triggered", true);
         result.put("provider", config.getProvider().name());
         result.put("providerLabel", PROVIDER_LABELS.getOrDefault(config.getProvider(), config.getProvider().name()));
         result.put("autoCreatedPreferences", createdPreferences);
-        result.put("fetchTriggered", fetchedCount > 0);
-        result.put("message", "Veri çekme işlemi başlatıldı");
+        result.put("fetchTriggered", true);  // Always true now since we trigger async
+        result.put("message", "Veri çekme işlemi arka planda başlatıldı");
         
         return result;
     }

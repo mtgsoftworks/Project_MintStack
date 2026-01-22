@@ -129,16 +129,7 @@
             <artifactId>log4j-layout-template-json</artifactId>
         </dependency>
         
-        <!-- Observability - Micrometer Tracing with OTLP -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-otel</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp</artifactId>
-        </dependency>
+
         
         <!-- HTTP Client for External APIs -->
         <dependency>

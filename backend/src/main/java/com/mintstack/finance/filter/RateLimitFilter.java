@@ -139,7 +139,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 || path.startsWith("/swagger-ui")
                 || path.startsWith("/api-docs")
                 || path.equals("/ws")
-                || path.startsWith("/ws/");
+                || path.startsWith("/ws/")
+                || path.equals("/ws-native")       // ADDED: WebSocket native endpoint
+                || path.startsWith("/ws-native/"); // ADDED: WebSocket native sub-paths
     }
 
     /**

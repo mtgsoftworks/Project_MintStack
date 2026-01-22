@@ -7,6 +7,7 @@ import com.mintstack.finance.repository.CurrencyRateRepository;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
 import com.mintstack.finance.repository.SimulationConfigRepository;
+import com.mintstack.finance.repository.UserApiConfigRepository;
 import com.mintstack.finance.service.PriceUpdateService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,9 @@ class SimulationDataServiceTest {
     private PriceHistoryRepository priceHistoryRepository;
 
     @Mock
+    private UserApiConfigRepository userApiConfigRepository;
+
+    @Mock
     private PriceUpdateService priceUpdateService;
 
     private PriceSimulationEngine priceEngine;
@@ -53,6 +57,7 @@ class SimulationDataServiceTest {
                 instrumentRepository,
                 currencyRateRepository,
                 priceHistoryRepository,
+                userApiConfigRepository,
                 priceUpdateService,
                 priceEngine
         );
