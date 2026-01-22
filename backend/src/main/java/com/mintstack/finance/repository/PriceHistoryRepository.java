@@ -35,6 +35,8 @@ public interface PriceHistoryRepository extends JpaRepository<PriceHistory, UUID
            "ORDER BY ph.priceDate DESC")
     List<PriceHistory> findLatestBySymbol(@Param("symbol") String symbol, Pageable pageable);
 
+    Optional<PriceHistory> findByInstrumentIdAndPriceDate(UUID instrumentId, LocalDate priceDate);
+
     boolean existsByInstrumentIdAndPriceDate(UUID instrumentId, LocalDate priceDate);
 
     void deleteByPriceDateBefore(LocalDate date);

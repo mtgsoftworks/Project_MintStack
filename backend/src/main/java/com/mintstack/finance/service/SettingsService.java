@@ -53,17 +53,20 @@ public class SettingsService {
 
     @Transactional
     public ApiConfigResponse addApiConfig(UUID userId, ApiConfigRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        User user = null;
+        if (userId != null) {
+            user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        }
 
         // Check if this is an update (existing config)
-        UserApiConfig existingConfig = userApiConfigRepository
-                .findByUserIdAndProvider(userId, request.getProvider())
-                .orElse(null);
-        
+        UserApiConfig existingConfig = userId != null
+                ? userApiConfigRepository.findByUserIdAndProvider(userId, request.getProvider()).orElse(null)
+                : userApiConfigRepository.findByProviderAndIsActiveTrue(request.getProvider()).stream().findFirst().orElse(null);
+
         boolean isUpdate = existingConfig != null;
         boolean apiKeyChanged = request.getApiKey() != null && !request.getApiKey().isEmpty();
-        
+
         // 1. Validate API key only if it's new or changed
         if (!isUpdate || apiKeyChanged) {
             ApiKeyValidationService.ValidationResult validation = apiKeyValidationService.validateApiKey(
@@ -80,8 +83,8 @@ public class SettingsService {
         // 2. Apply default URL if not provided
         String effectiveUrl = request.getBaseUrl();
         if (effectiveUrl == null || effectiveUrl.isEmpty()) {
-            effectiveUrl = isUpdate && existingConfig.getBaseUrl() != null 
-                    ? existingConfig.getBaseUrl() 
+            effectiveUrl = isUpdate && existingConfig.getBaseUrl() != null
+                    ? existingConfig.getBaseUrl()
                     : apiKeyValidationService.getDefaultUrl(request.getProvider());
         }
 
@@ -95,18 +98,18 @@ public class SettingsService {
         if (apiKeyChanged) {
             config.setApiKey(request.getApiKey());
         }
-        
+
         // Update secret key only if provided
         if (request.getSecretKey() != null && !request.getSecretKey().isEmpty()) {
             config.setSecretKey(request.getSecretKey());
         }
-        
+
         config.setBaseUrl(effectiveUrl);
         config.setIsActive(request.getIsActive());
 
         UserApiConfig saved = userApiConfigRepository.save(config);
-        log.info("{} API config for user {} provider {}", isUpdate ? "Updated" : "Created", userId, request.getProvider());
-        
+        log.info("{} API config for user {} provider {}", isUpdate ? "Updated" : "Created", userId != null ? userId : "system", request.getProvider());
+
         return mapToResponse(saved);
     }
 

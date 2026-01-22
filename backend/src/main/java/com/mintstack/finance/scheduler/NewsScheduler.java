@@ -3,6 +3,7 @@ package com.mintstack.finance.scheduler;
 import com.mintstack.finance.entity.News;
 import com.mintstack.finance.repository.NewsRepository;
 import com.mintstack.finance.service.external.RssNewsClient;
+import com.mintstack.finance.service.simulation.SimulationDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -19,12 +20,19 @@ public class NewsScheduler {
 
     private final RssNewsClient rssNewsClient;
     private final NewsRepository newsRepository;
+    private final SimulationDataService simulationDataService;
 
     /**
      * Fetch news from RSS feeds every 30 minutes
      */
     @Scheduled(cron = "${app.scheduler.news-fetch-cron}")
     public void fetchNews() {
+        // Simülasyon modu aktifse gerçek API çağrısı yapma
+        if (simulationDataService.isSimulationEnabled()) {
+            log.debug("Simulation mode active. Skipping news fetch.");
+            return;
+        }
+        
         log.info("Starting news fetch job");
         try {
             List<News> newsList = rssNewsClient.fetchAllNews();
@@ -50,6 +58,12 @@ public class NewsScheduler {
      */
     @Scheduled(initialDelay = 15000, fixedDelay = Long.MAX_VALUE)
     public void initialNewsLoad() {
+        // Simülasyon modu aktifse gerçek API çağrısı yapma
+        if (simulationDataService.isSimulationEnabled()) {
+            log.debug("Simulation mode active. Skipping initial news load.");
+            return;
+        }
+        
         log.info("Starting initial news load");
         try {
             List<News> newsList = rssNewsClient.fetchAllNews();

@@ -56,6 +56,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/news/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/news").permitAll()
                 
+                // Simulation endpoints (public for demo mode)
+                .requestMatchers("/api/v1/simulation/**").permitAll()
+                
                 // Admin endpoints
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 
@@ -94,7 +97,7 @@ public class SecurityConfig {
                     "base-uri 'self';"
                 ));
             });
-        
+
         return http.build();
     }
 

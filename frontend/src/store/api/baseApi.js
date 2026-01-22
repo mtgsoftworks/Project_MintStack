@@ -59,6 +59,7 @@ export const baseApi = createApi({
     'PortfolioTransactions',
     'User',
     'Settings',
+    'Simulation',
   ],
   endpoints: () => ({}),
 })

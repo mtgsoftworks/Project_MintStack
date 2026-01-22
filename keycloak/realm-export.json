@@ -75,7 +75,7 @@
     }
   ],
   "defaultGroups": ["/Users"],
-  "requiredCredentials": ["password", "otp"],
+  "requiredCredentials": ["password"],
   "otpPolicyType": "totp",
   "otpPolicyAlgorithm": "HmacSHA1",
   "otpPolicyInitialCounter": 0,

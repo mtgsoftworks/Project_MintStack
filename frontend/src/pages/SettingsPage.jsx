@@ -45,7 +45,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Trash2, Plus, Key, RefreshCw, AlertCircle, Pencil, CheckCircle, Database, Zap } from 'lucide-react'
+import { Trash2, Plus, Key, RefreshCw, AlertCircle, Pencil, CheckCircle, Database, Zap, Gamepad2, TrendingUp, TrendingDown, Minus, RotateCcw } from 'lucide-react'
 import {
     useGetApiConfigsQuery,
     useAddApiConfigMutation,
@@ -58,6 +58,13 @@ import {
     useSetDataPreferenceMutation,
     useTriggerDataFetchMutation
 } from '@/store/api/settingsApi'
+import {
+    useGetSimulationConfigQuery,
+    useUpdateSimulationConfigMutation,
+    useToggleSimulationMutation,
+    useResetSimulationMutation,
+    useGetSimulationStatusQuery
+} from '@/store/api/simulationApi'
 import { toast } from 'sonner'
 import { portfolioService } from '@/services/portfolioService'
 import watchlistService from '@/services/watchlistService'
@@ -124,6 +131,15 @@ export default function SettingsPage() {
     const { data: capabilitiesData } = useGetDataSourceCapabilitiesQuery()
     const { data: preferencesData, refetch: refetchPreferences } = useGetDataPreferencesQuery()
     const [setDataPreference] = useSetDataPreferenceMutation()
+
+    // Simulation
+    const { data: simConfigData, refetch: refetchSimConfig } = useGetSimulationConfigQuery()
+    const { data: simStatusData } = useGetSimulationStatusQuery(undefined, { pollingInterval: 5000 })
+    const [updateSimConfig] = useUpdateSimulationConfigMutation()
+    const [toggleSimulation] = useToggleSimulationMutation()
+    const [resetSimulation] = useResetSimulationMutation()
+    const simConfig = simConfigData?.data
+    const simStatus = simStatusData?.data
 
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingConfig, setEditingConfig] = useState(null) // null = new, object = editing
@@ -323,6 +339,10 @@ export default function SettingsPage() {
                     <TabsTrigger value="data-sources">
                         <Database className="h-4 w-4 mr-2" />
                         {t('settings.dataSources.title', { defaultValue: 'Veri Kaynakları' })}
+                    </TabsTrigger>
+                    <TabsTrigger value="simulation">
+                        <Gamepad2 className="h-4 w-4 mr-2" />
+                        {t('settings.simulation.title', { defaultValue: 'Simülasyon' })}
                     </TabsTrigger>
                 </TabsList>
 
@@ -1076,6 +1096,256 @@ export default function SettingsPage() {
                                     </div>
                                 </div>
                             )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Simulation Tab */}
+                <TabsContent value="simulation">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Gamepad2 className="h-5 w-5" />
+                                {t('settings.simulation.title', { defaultValue: 'Simülasyon Modu' })}
+                            </CardTitle>
+                            <CardDescription>
+                                {t('settings.simulation.description', { defaultValue: 'Gerçek API olmadan gerçekçi piyasa verileri ile test edin' })}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {/* Main Toggle */}
+                            <div className="flex items-center justify-between p-4 border rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20">
+                                <div className="space-y-1">
+                                    <Label className="text-base font-semibold flex items-center gap-2">
+                                        <Gamepad2 className="h-4 w-4" />
+                                        {t('settings.simulation.enable', { defaultValue: 'Simülasyon Modunu Aktif Et' })}
+                                    </Label>
+                                    <p className="text-sm text-muted-foreground">
+                                        {t('settings.simulation.enableDesc', { defaultValue: 'Aktif edildiğinde gerçek API\'ler yerine simüle edilmiş veriler kullanılır' })}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    {simConfig?.enabled && (
+                                        <Badge variant="default" className="bg-green-500">
+                                            {t('settings.simulation.active', { defaultValue: 'Aktif' })}
+                                        </Badge>
+                                    )}
+                                    <Switch
+                                        checked={simConfig?.enabled || false}
+                                        onCheckedChange={async () => {
+                                            try {
+                                                await toggleSimulation().unwrap()
+                                                refetchSimConfig()
+                                                toast.success(simConfig?.enabled 
+                                                    ? t('settings.simulation.disabled', { defaultValue: 'Simülasyon kapatıldı' })
+                                                    : t('settings.simulation.enabled', { defaultValue: '🎮 Simülasyon aktif!' }))
+                                            } catch (e) {
+                                                toast.error(t('common.error'))
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Status Display */}
+                            {simConfig?.enabled && simStatus && (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="p-3 border rounded-lg text-center">
+                                        <p className="text-2xl font-bold text-blue-600">{simStatus.stockCount || 0}</p>
+                                        <p className="text-xs text-muted-foreground">{t('settings.simulation.stocks', { defaultValue: 'Hisse Senedi' })}</p>
+                                    </div>
+                                    <div className="p-3 border rounded-lg text-center">
+                                        <p className="text-2xl font-bold text-green-600">{simStatus.currencyCount || 0}</p>
+                                        <p className="text-xs text-muted-foreground">{t('settings.simulation.currencies', { defaultValue: 'Döviz Kuru' })}</p>
+                                    </div>
+                                    <div className="p-3 border rounded-lg text-center">
+                                        <p className="text-2xl font-bold text-purple-600">{simStatus.indexCount || 0}</p>
+                                        <p className="text-xs text-muted-foreground">{t('settings.simulation.indices', { defaultValue: 'Endeks' })}</p>
+                                    </div>
+                                    <div className="p-3 border rounded-lg text-center">
+                                        <p className="text-2xl font-bold text-orange-600">{simStatus.tickCount || 0}</p>
+                                        <p className="text-xs text-muted-foreground">{t('settings.simulation.ticks', { defaultValue: 'Güncelleme' })}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Configuration Options */}
+                            {simConfig?.enabled && (
+                                <div className="space-y-4 p-4 border rounded-lg">
+                                    <h4 className="font-medium">{t('settings.simulation.config', { defaultValue: 'Simülasyon Ayarları' })}</h4>
+                                    
+                                    {/* Volatility Level */}
+                                    <div className="space-y-2">
+                                        <Label>{t('settings.simulation.volatility', { defaultValue: 'Volatilite Seviyesi' })}</Label>
+                                        <Select 
+                                            value={simConfig?.volatilityLevel || 'MEDIUM'}
+                                            onValueChange={async (val) => {
+                                                try {
+                                                    await updateSimConfig({ volatilityLevel: val }).unwrap()
+                                                    refetchSimConfig()
+                                                    toast.success(t('settings.simulation.volatilityUpdated', { defaultValue: 'Volatilite güncellendi' }))
+                                                } catch (e) {
+                                                    toast.error(t('common.error'))
+                                                }
+                                            }}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="LOW">
+                                                    <span className="flex items-center gap-2">
+                                                        <Minus className="h-4 w-4 text-green-500" />
+                                                        {t('settings.simulation.volatility.low', { defaultValue: 'Düşük (Sakin Piyasa)' })}
+                                                    </span>
+                                                </SelectItem>
+                                                <SelectItem value="MEDIUM">
+                                                    <span className="flex items-center gap-2">
+                                                        <TrendingUp className="h-4 w-4 text-blue-500" />
+                                                        {t('settings.simulation.volatility.medium', { defaultValue: 'Orta (Normal)' })}
+                                                    </span>
+                                                </SelectItem>
+                                                <SelectItem value="HIGH">
+                                                    <span className="flex items-center gap-2">
+                                                        <TrendingUp className="h-4 w-4 text-orange-500" />
+                                                        {t('settings.simulation.volatility.high', { defaultValue: 'Yüksek (Hareketli)' })}
+                                                    </span>
+                                                </SelectItem>
+                                                <SelectItem value="EXTREME">
+                                                    <span className="flex items-center gap-2">
+                                                        <AlertCircle className="h-4 w-4 text-red-500" />
+                                                        {t('settings.simulation.volatility.extreme', { defaultValue: 'Ekstrem (Kriz Modu)' })}
+                                                    </span>
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    {/* Market Trend */}
+                                    <div className="space-y-2">
+                                        <Label>{t('settings.simulation.trend', { defaultValue: 'Piyasa Trendi' })}</Label>
+                                        <Select 
+                                            value={simConfig?.marketTrend || 'NEUTRAL'}
+                                            onValueChange={async (val) => {
+                                                try {
+                                                    await updateSimConfig({ marketTrend: val }).unwrap()
+                                                    refetchSimConfig()
+                                                    toast.success(t('settings.simulation.trendUpdated', { defaultValue: 'Trend güncellendi' }))
+                                                } catch (e) {
+                                                    toast.error(t('common.error'))
+                                                }
+                                            }}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="BULLISH">
+                                                    <span className="flex items-center gap-2">
+                                                        <TrendingUp className="h-4 w-4 text-green-500" />
+                                                        {t('settings.simulation.trend.bullish', { defaultValue: 'Boğa (Yükseliş)' })}
+                                                    </span>
+                                                </SelectItem>
+                                                <SelectItem value="NEUTRAL">
+                                                    <span className="flex items-center gap-2">
+                                                        <Minus className="h-4 w-4 text-gray-500" />
+                                                        {t('settings.simulation.trend.neutral', { defaultValue: 'Nötr' })}
+                                                    </span>
+                                                </SelectItem>
+                                                <SelectItem value="BEARISH">
+                                                    <span className="flex items-center gap-2">
+                                                        <TrendingDown className="h-4 w-4 text-red-500" />
+                                                        {t('settings.simulation.trend.bearish', { defaultValue: 'Ayı (Düşüş)' })}
+                                                    </span>
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    {/* Update Interval */}
+                                    <div className="space-y-2">
+                                        <Label>{t('settings.simulation.interval', { defaultValue: 'Güncelleme Aralığı' })}</Label>
+                                        <Select 
+                                            value={String(simConfig?.updateIntervalSeconds || 5)}
+                                            onValueChange={async (val) => {
+                                                try {
+                                                    await updateSimConfig({ updateIntervalSeconds: parseInt(val) }).unwrap()
+                                                    refetchSimConfig()
+                                                    toast.success(t('settings.simulation.intervalUpdated', { defaultValue: 'Güncelleme aralığı değiştirildi' }))
+                                                } catch (e) {
+                                                    toast.error(t('common.error'))
+                                                }
+                                            }}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="1">1 {t('settings.simulation.seconds', { defaultValue: 'saniye' })}</SelectItem>
+                                                <SelectItem value="3">3 {t('settings.simulation.seconds', { defaultValue: 'saniye' })}</SelectItem>
+                                                <SelectItem value="5">5 {t('settings.simulation.seconds', { defaultValue: 'saniye' })}</SelectItem>
+                                                <SelectItem value="10">10 {t('settings.simulation.seconds', { defaultValue: 'saniye' })}</SelectItem>
+                                                <SelectItem value="30">30 {t('settings.simulation.seconds', { defaultValue: 'saniye' })}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    {/* Random Events Toggle */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <Label>{t('settings.simulation.randomEvents', { defaultValue: 'Rastgele Piyasa Olayları' })}</Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                {t('settings.simulation.randomEventsDesc', { defaultValue: 'Beklenmedik fiyat hareketleri simüle et' })}
+                                            </p>
+                                        </div>
+                                        <Switch
+                                            checked={simConfig?.enableRandomEvents || false}
+                                            onCheckedChange={async (val) => {
+                                                try {
+                                                    await updateSimConfig({ enableRandomEvents: val }).unwrap()
+                                                    refetchSimConfig()
+                                                } catch (e) {
+                                                    toast.error(t('common.error'))
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Reset Button */}
+                            {simConfig?.enabled && (
+                                <div className="flex justify-end">
+                                    <Button
+                                        variant="outline"
+                                        onClick={async () => {
+                                            try {
+                                                await resetSimulation().unwrap()
+                                                refetchSimConfig()
+                                                toast.success(t('settings.simulation.reset', { defaultValue: '🔄 Simülasyon sıfırlandı' }))
+                                            } catch (e) {
+                                                toast.error(t('common.error'))
+                                            }
+                                        }}
+                                    >
+                                        <RotateCcw className="h-4 w-4 mr-2" />
+                                        {t('settings.simulation.resetButton', { defaultValue: 'Simülasyonu Sıfırla' })}
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Info Box */}
+                            <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+                                    {t('settings.simulation.infoTitle', { defaultValue: 'ℹ️ Simülasyon Hakkında' })}
+                                </h4>
+                                <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
+                                    <li>{t('settings.simulation.info1', { defaultValue: 'BIST 30 hisseleri için gerçekçi fiyat hareketleri' })}</li>
+                                    <li>{t('settings.simulation.info2', { defaultValue: 'TCMB döviz kurları simülasyonu' })}</li>
+                                    <li>{t('settings.simulation.info3', { defaultValue: 'Geometric Brownian Motion ve Mean Reversion algoritmaları' })}</li>
+                                    <li>{t('settings.simulation.info4', { defaultValue: 'WebSocket üzerinden gerçek zamanlı güncellemeler' })}</li>
+                                </ul>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>

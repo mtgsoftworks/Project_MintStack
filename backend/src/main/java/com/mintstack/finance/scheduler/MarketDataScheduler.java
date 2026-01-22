@@ -13,6 +13,7 @@ import com.mintstack.finance.service.event.EventPublisher;
 import com.mintstack.finance.service.external.AlphaVantageClient;
 import com.mintstack.finance.service.external.TcmbApiClient;
 import com.mintstack.finance.service.external.YahooFinanceClient;
+import com.mintstack.finance.service.simulation.SimulationDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -40,6 +41,7 @@ public class MarketDataScheduler {
     private final InstrumentRepository instrumentRepository;
     private final UserApiConfigRepository userApiConfigRepository;
     private final EventPublisher eventPublisher;
+    private final SimulationDataService simulationDataService;
 
     private static final List<String> INITIAL_BIST_STOCKS = Arrays.asList(
             "THYAO", "GARAN", "AKBNK", "EREGL", "SISE",
@@ -53,6 +55,12 @@ public class MarketDataScheduler {
      */
     @Scheduled(cron = "${app.scheduler.tcmb-rates-cron}")
     public void fetchTcmbRates() {
+        // Simülasyon modu aktifse gerçek API çağrısı yapma
+        if (simulationDataService.isSimulationEnabled()) {
+            log.debug("Simulation mode active. Skipping TCMB rates fetch.");
+            return;
+        }
+        
         UserApiConfig tcmbConfig = getActiveConfig(ApiProvider.TCMB);
         if (tcmbConfig == null) {
             log.debug("TCMB API not configured. Skipping currency rates fetch.");
@@ -95,6 +103,12 @@ public class MarketDataScheduler {
      */
     @Scheduled(cron = "${app.scheduler.stock-prices-cron}")
     public void fetchStockPrices() {
+        // Simülasyon modu aktifse gerçek API çağrısı yapma
+        if (simulationDataService.isSimulationEnabled()) {
+            log.debug("Simulation mode active. Skipping stock prices fetch.");
+            return;
+        }
+        
         log.info("Starting market prices fetch job");
         try {
             // Check Provider Configs
@@ -129,6 +143,12 @@ public class MarketDataScheduler {
      */
     @Scheduled(initialDelay = 5000, fixedDelay = 60000)
     public void initialDataLoad() {
+        // Simülasyon modu aktifse gerçek API çağrısı yapma
+        if (simulationDataService.isSimulationEnabled()) {
+            log.debug("Simulation mode active. Skipping initial data load from external APIs.");
+            return;
+        }
+        
         // 1. Load TCMB Rates (only if configured)
         UserApiConfig tcmbConfig = getActiveConfig(ApiProvider.TCMB);
         if (tcmbConfig != null) {

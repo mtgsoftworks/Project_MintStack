@@ -162,4 +162,3 @@ public class SettingsController {
         return ResponseEntity.ok(ApiResponse.success(result, "Tüm piyasa verileri silindi"));
     }
 }
-
