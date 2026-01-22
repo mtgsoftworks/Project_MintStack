@@ -27,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -146,42 +145,44 @@ public class MarketDataService {
             return mapToInstrumentResponse(instrument);
         }
 
-        // Facebook from Yahoo Finance requires active configuration
+        // Try to fetch from Yahoo Finance if configured
         UserApiConfig config = getActiveYahooConfig();
-        if (config == null) {
-            throw new ResourceNotFoundException("Provider", "type", "Yahoo Finance (Aktif)");
+        if (config != null) {
+            try {
+                String apiKey = config.getApiKey();
+                String baseUrl = config.getBaseUrl();
+                
+                BigDecimal price = yahooFinanceClient.fetchStockPrice(symbol, apiKey, baseUrl);
+                
+                // Create temporary instrument response if not in DB
+                InstrumentResponse.InstrumentResponseBuilder builder = InstrumentResponse.builder()
+                    .symbol(symbol)
+                    .name(symbol) // We don't have name if not in DB
+                    .currentPrice(price)
+                    .type(InstrumentType.STOCK) // Treat as stock for now
+                    .currency("TRY");
+                    
+                if (instrument != null) {
+                    builder.id(instrument.getId())
+                           .name(instrument.getName())
+                           .previousClose(instrument.getPreviousClose());
+                }
+                
+                return builder.build();
+                
+            } catch (Exception e) {
+                log.warn("Failed to fetch market index {} from Yahoo: {}", symbol, e.getMessage());
+            }
         }
 
-        try {
-            String apiKey = config.getApiKey();
-            String baseUrl = config.getBaseUrl();
-            
-            BigDecimal price = yahooFinanceClient.fetchStockPrice(symbol, apiKey, baseUrl);
-            
-            // Create temporary instrument response if not in DB
-            InstrumentResponse.InstrumentResponseBuilder builder = InstrumentResponse.builder()
-                .symbol(symbol)
-                .name(symbol) // We don't have name if not in DB
-                .currentPrice(price)
-                .type(InstrumentType.STOCK) // Treat as stock for now
-                .currency("TRY");
-                
-            if (instrument != null) {
-                builder.id(instrument.getId())
-                       .name(instrument.getName())
-                       .previousClose(instrument.getPreviousClose());
-                
-                // Update instrument price in DB async or sync? Let's just return for now.
-                // ideally call updateInstrumentPrice(symbol, price) but that requires transaction
-            }
-            
-            return builder.build();
-            
-        } catch (Exception e) {
-            log.error("Failed to fetch market index {}: {}", symbol, e.getMessage());
-            // Fallback to empty/error response
-            return InstrumentResponse.builder().symbol(symbol).build();
+        // Return existing instrument data (even if price is null)
+        if (instrument != null) {
+            return mapToInstrumentResponse(instrument);
         }
+        
+        // No data available - return null (no mock data)
+        log.info("No market index data available for {}", symbol);
+        return null;
     }
 
     // Save methods

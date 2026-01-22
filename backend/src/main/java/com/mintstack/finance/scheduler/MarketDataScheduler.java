@@ -101,6 +101,17 @@ public class MarketDataScheduler {
             UserApiConfig yahooConfig = getActiveConfig(ApiProvider.YAHOO_FINANCE);
             UserApiConfig alphaConfig = getActiveConfig(ApiProvider.ALPHA_VANTAGE);
 
+            long instrumentCount = instrumentRepository.count();
+            if (instrumentCount == 0) {
+                log.info("No instruments found. Bootstrapping before price updates.");
+                if (yahooConfig != null || alphaConfig != null) {
+                    bootstrapStocksFromApi();
+                } else {
+                    log.info("No Yahoo/Alpha config found. Skipping bootstrap.");
+                }
+                return;
+            }
+
             updatePricesForType(Instrument.InstrumentType.STOCK, yahooConfig, alphaConfig);
             updatePricesForType(Instrument.InstrumentType.BOND, yahooConfig, alphaConfig);
             updatePricesForType(Instrument.InstrumentType.FUND, yahooConfig, alphaConfig);

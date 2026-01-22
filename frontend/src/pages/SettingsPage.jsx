@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { 
+import {
     selectTheme, setTheme,
     selectCurrency, setCurrency,
     selectTimezone, setTimezone,
@@ -119,7 +119,7 @@ export default function SettingsPage() {
     const [clearCache, { isLoading: isClearingCache }] = useClearCacheMutation()
     const [deleteMarketData] = useDeleteMarketDataMutation()
     const [triggerDataFetch] = useTriggerDataFetchMutation()
-    
+
     // Data Source preferences
     const { data: capabilitiesData } = useGetDataSourceCapabilitiesQuery()
     const { data: preferencesData, refetch: refetchPreferences } = useGetDataPreferencesQuery()
@@ -254,17 +254,31 @@ export default function SettingsPage() {
             toast.success(editingConfig ? t('settings.apiKeys.update') : t('settings.apiKeys.save'))
             setIsDialogOpen(false)
             resetForm()
-            
+
             // Trigger immediate data fetch for new API key
             if (result.data?.id && dataToSubmit.isActive) {
+                const loadingToastId = toast(
+                    <div className="flex items-center gap-3">
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
+                        <div>
+                            <p className="font-medium">{t('settings.apiKeys.fetchingData', { defaultValue: 'Veriler çekiliyor...' })}</p>
+                            <p className="text-xs text-muted-foreground">API bağlantısı test ediliyor</p>
+                        </div>
+                    </div>,
+                    { duration: Infinity }
+                )
                 try {
-                    toast.loading(t('settings.apiKeys.fetchingData', { defaultValue: 'Veriler çekiliyor...' }))
                     const triggerResult = await triggerDataFetch(result.data.id).unwrap()
-                    toast.dismiss()
-                    toast.success(triggerResult.message || t('settings.apiKeys.dataFetched', { defaultValue: 'Veriler başarıyla çekildi!' }))
+                    toast.dismiss(loadingToastId)
+                    toast.success(
+                        <div className="flex items-center gap-2">
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                            <span>{triggerResult.message || t('settings.apiKeys.dataFetched', { defaultValue: 'Veriler başarıyla çekildi!' })}</span>
+                        </div>
+                    )
                     refetchPreferences()
                 } catch (triggerError) {
-                    toast.dismiss()
+                    toast.dismiss(loadingToastId)
                     console.warn('Trigger fetch failed:', triggerError)
                 }
             }
@@ -387,8 +401,8 @@ export default function SettingsPage() {
                                         <Label>{t('settingsPage.data.currency.label')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.data.currency.description')}</p>
                                     </div>
-                                    <Select 
-                                        value={currency} 
+                                    <Select
+                                        value={currency}
                                         onValueChange={(val) => {
                                             dispatch(setCurrency(val))
                                             toast.success(t('success.saved'))
@@ -410,7 +424,7 @@ export default function SettingsPage() {
                                         <Label>{t('settingsPage.data.timezone.label')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.data.timezone.description')}</p>
                                     </div>
-                                    <Select 
+                                    <Select
                                         value={timezone}
                                         onValueChange={(val) => {
                                             dispatch(setTimezone(val))
@@ -433,7 +447,7 @@ export default function SettingsPage() {
                                         <Label>{t('settingsPage.data.autoUpdate.label')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.data.autoUpdate.description')}</p>
                                     </div>
-                                    <Switch 
+                                    <Switch
                                         checked={autoUpdate}
                                         onCheckedChange={(val) => {
                                             dispatch(setAutoUpdate(val))
@@ -446,7 +460,7 @@ export default function SettingsPage() {
                                         <Label>{t('settingsPage.data.refreshRate.label')}</Label>
                                         <p className="text-sm text-muted-foreground">{t('settingsPage.data.refreshRate.description')}</p>
                                     </div>
-                                    <Select 
+                                    <Select
                                         value={refreshRate.toString()}
                                         onValueChange={(val) => {
                                             dispatch(setRefreshRate(parseInt(val)))
@@ -570,8 +584,17 @@ export default function SettingsPage() {
                                             <Button
                                                 variant="destructive"
                                                 onClick={async () => {
-                                                    toast.loading(t('settingsPage.dangerZone.reset.toast.loading'))
-                                                    
+                                                    const loadingToastId = toast(
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-red-500 border-t-transparent" />
+                                                            <div>
+                                                                <p className="font-medium">{t('settingsPage.dangerZone.reset.toast.loading')}</p>
+                                                                <p className="text-xs text-muted-foreground">Tüm veriler siliniyor...</p>
+                                                            </div>
+                                                        </div>,
+                                                        { duration: Infinity }
+                                                    )
+
                                                     let hasError = false
 
                                                     // 1. Tüm portföyleri sil
@@ -617,7 +640,7 @@ export default function SettingsPage() {
                                                     localStorage.clear()
                                                     sessionStorage.clear()
 
-                                                    toast.dismiss()
+                                                    toast.dismiss(loadingToastId)
                                                     toast.success(t('settingsPage.dangerZone.reset.toast.success'))
                                                     setTimeout(() => window.location.reload(), 1500)
                                                 }}
@@ -950,17 +973,17 @@ export default function SettingsPage() {
                                         { type: 'NEWS', label: 'Haberler', providers: ['YAHOO_FINANCE', 'ALPHA_VANTAGE', 'FINNHUB'] },
                                     ].map((dataType) => {
                                         const currentPref = preferencesData?.data?.find(p => p.dataType === dataType.type)
-                                        const availableProviders = apiConfigs.filter(c => 
+                                        const availableProviders = apiConfigs.filter(c =>
                                             c.isActive && dataType.providers.includes(c.provider)
                                         )
-                                        
+
                                         return (
                                             <div key={dataType.type} className="flex items-center justify-between py-4 border-b last:border-0">
                                                 <div className="flex items-center gap-3">
                                                     <div>
                                                         <Label className="text-base font-medium">{dataType.label}</Label>
                                                         <p className="text-sm text-muted-foreground">
-                                                            {availableProviders.length > 0 
+                                                            {availableProviders.length > 0
                                                                 ? `${availableProviders.length} kaynak mevcut`
                                                                 : 'Kaynak yok - API anahtarı ekleyin'}
                                                         </p>
@@ -1010,7 +1033,7 @@ export default function SettingsPage() {
                                             </div>
                                         )
                                     })}
-                                    
+
                                     {/* Manual Refresh Button */}
                                     <div className="pt-4 border-t">
                                         <Button
@@ -1018,20 +1041,36 @@ export default function SettingsPage() {
                                             onClick={async () => {
                                                 const activeConfig = apiConfigs.find(c => c.isActive)
                                                 if (activeConfig) {
+                                                    // Show loading toast with custom styling
+                                                    const loadingToastId = toast(
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
+                                                            <div>
+                                                                <p className="font-medium">Veriler güncelleniyor...</p>
+                                                                <p className="text-xs text-muted-foreground">Lütfen bekleyin, bu birkaç saniye sürebilir</p>
+                                                            </div>
+                                                        </div>,
+                                                        { duration: Infinity }
+                                                    )
                                                     try {
-                                                        toast.loading('Veriler çekiliyor...')
                                                         await triggerDataFetch(activeConfig.id).unwrap()
-                                                        toast.dismiss()
-                                                        toast.success('Veriler güncellendi!')
+                                                        toast.dismiss(loadingToastId)
+                                                        toast.success(
+                                                            <div className="flex items-center gap-2">
+                                                                <CheckCircle className="h-5 w-5 text-green-500" />
+                                                                <span>Veriler başarıyla güncellendi!</span>
+                                                            </div>
+                                                        )
                                                     } catch (err) {
-                                                        toast.dismiss()
-                                                        toast.error('Veri çekme başarısız')
+                                                        toast.dismiss(loadingToastId)
+                                                        toast.error('Veri çekme başarısız oldu. Lütfen tekrar deneyin.')
                                                     }
                                                 }
                                             }}
                                             disabled={!apiConfigs.some(c => c.isActive)}
+                                            className="group"
                                         >
-                                            <RefreshCw className="h-4 w-4 mr-2" />
+                                            <RefreshCw className="h-4 w-4 mr-2 group-hover:animate-spin transition-transform" />
                                             {t('settings.dataSources.refreshNow', { defaultValue: 'Verileri Şimdi Güncelle' })}
                                         </Button>
                                     </div>

@@ -178,10 +178,30 @@ class WebSocketService {
     }
 
     /**
-     * Check if connected
+     * Check if connected (method version for compatibility)
      */
     getConnectionState() {
         return this.isConnected
+    }
+
+    /**
+     * Request price update from server
+     * Sends a message to trigger data refresh
+     */
+    requestPriceUpdate(symbols = []) {
+        if (!this.client || !this.isConnected) {
+            console.warn('[WebSocket] Not connected. Cannot request price update.')
+            return false
+        }
+
+        try {
+            this.send('/app/prices.refresh', { symbols })
+            console.log('[WebSocket] Price update requested')
+            return true
+        } catch (error) {
+            console.error('[WebSocket] Error requesting price update:', error)
+            return false
+        }
     }
 }
 

@@ -31,6 +31,7 @@ public class TcmbApiClient {
 
     /**
      * Fetch today's currency rates from TCMB
+     * Falls back to previous business day if today's rates not available
      */
     public List<CurrencyRate> fetchTodayRates() {
         return fetchRates(LocalDate.now());
@@ -38,29 +39,46 @@ public class TcmbApiClient {
 
     /**
      * Fetch currency rates for a specific date from TCMB
+     * If 404, tries previous days (TCMB doesn't publish on weekends/holidays)
      */
     public List<CurrencyRate> fetchRates(LocalDate date) {
-        try {
-            String url = buildUrl(date);
-            log.info("Fetching TCMB rates from: {}", url);
+        int maxRetries = 5; // Try up to 5 previous days
+        LocalDate currentDate = date;
+        
+        for (int attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                String url = buildUrl(currentDate);
+                log.info("Fetching TCMB rates from: {} (attempt {})", url, attempt + 1);
 
-            String xmlResponse = tcmbWebClient.get()
-                .uri(url)
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
+                String xmlResponse = tcmbWebClient.get()
+                    .uri(url)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
 
-            if (xmlResponse == null || xmlResponse.isEmpty()) {
-                throw new ExternalApiException("TCMB", "Boş yanıt alındı");
+                if (xmlResponse == null || xmlResponse.isEmpty()) {
+                    throw new ExternalApiException("TCMB", "Boş yanıt alındı");
+                }
+
+                return parseXmlResponse(xmlResponse, currentDate);
+            } catch (Exception e) {
+                // Check if it's a 404 error (weekend/holiday - no rates published)
+                if (e.getMessage() != null && e.getMessage().contains("404")) {
+                    log.debug("TCMB rates not available for {}, trying previous day", currentDate);
+                    currentDate = currentDate.minusDays(1);
+                    continue;
+                }
+                
+                // For other errors, throw immediately
+                if (e instanceof ExternalApiException) {
+                    throw (ExternalApiException) e;
+                }
+                log.error("Error fetching TCMB rates", e);
+                throw new ExternalApiException("TCMB", "Kur bilgisi alınamadı", e);
             }
-
-            return parseXmlResponse(xmlResponse, date);
-        } catch (ExternalApiException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Error fetching TCMB rates", e);
-            throw new ExternalApiException("TCMB", "Kur bilgisi alınamadı", e);
         }
+        
+        throw new ExternalApiException("TCMB", "Son " + maxRetries + " gün için kur bilgisi bulunamadı");
     }
 
     private String buildUrl(LocalDate date) {

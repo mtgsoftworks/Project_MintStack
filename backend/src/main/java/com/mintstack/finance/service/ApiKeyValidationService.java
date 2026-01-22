@@ -128,7 +128,7 @@ public class ApiKeyValidationService {
                                 return clientResponse.createException();
                             })
                     .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(15))
+                    .timeout(Duration.ofSeconds(30))
                     .block();
 
             if (response == null || response.trim().isEmpty()) {

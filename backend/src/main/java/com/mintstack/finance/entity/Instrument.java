@@ -65,6 +65,7 @@ public class Instrument extends BaseEntity {
         BOND,
         FUND,
         VIOP,
-        COMMODITY
+        COMMODITY,
+        INDEX
     }
 }

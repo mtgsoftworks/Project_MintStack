@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import Keycloak from 'keycloak-js'
 import { setAuth, setInitialized } from '@/store/slices/authSlice'
+import { selectAutoUpdate, selectRefreshRate } from '@/store/slices/uiSlice'
 import { Layout, ProtectedRoute } from '@/components/layout'
 import websocketService from '@/services/websocketService'
 
@@ -40,6 +41,43 @@ window.keycloak = keycloak
 
 function App() {
   const dispatch = useDispatch()
+  const autoUpdate = useSelector(selectAutoUpdate)
+  const refreshRate = useSelector(selectRefreshRate)
+  const dataRefreshIntervalRef = useRef(null)
+  const tokenRefreshIntervalRef = useRef(null)
+
+  // Function to trigger data refresh via WebSocket
+  const triggerDataRefresh = useCallback(() => {
+    if (websocketService.isConnected) {
+      websocketService.requestPriceUpdate()
+    }
+  }, [])
+
+  // Setup data refresh interval based on user settings
+  useEffect(() => {
+    // Clear existing interval
+    if (dataRefreshIntervalRef.current) {
+      clearInterval(dataRefreshIntervalRef.current)
+      dataRefreshIntervalRef.current = null
+    }
+
+    // Only set up interval if auto-update is enabled
+    if (autoUpdate && refreshRate > 0) {
+      console.log(`[App] Auto-update enabled with ${refreshRate}s refresh rate`)
+      dataRefreshIntervalRef.current = setInterval(() => {
+        console.log('[App] Triggering scheduled data refresh')
+        triggerDataRefresh()
+      }, refreshRate * 1000)
+    } else {
+      console.log('[App] Auto-update disabled')
+    }
+
+    return () => {
+      if (dataRefreshIntervalRef.current) {
+        clearInterval(dataRefreshIntervalRef.current)
+      }
+    }
+  }, [autoUpdate, refreshRate, triggerDataRefresh])
 
   useEffect(() => {
     // Initialize Keycloak
@@ -74,7 +112,7 @@ function App() {
           }
 
           // Set up token refresh
-          setInterval(() => {
+          tokenRefreshIntervalRef.current = setInterval(() => {
             keycloak
               .updateToken(30)
               .then((refreshed) => {
@@ -98,6 +136,13 @@ function App() {
         console.error('Keycloak init failed:', error)
         dispatch(setInitialized(true))
       })
+
+    // Cleanup on unmount
+    return () => {
+      if (tokenRefreshIntervalRef.current) {
+        clearInterval(tokenRefreshIntervalRef.current)
+      }
+    }
   }, [dispatch])
 
   return (
