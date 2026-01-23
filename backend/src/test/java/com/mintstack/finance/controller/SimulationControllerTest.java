@@ -16,16 +16,20 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(SimulationController.class)
 @DisplayName("SimulationController Tests")
@@ -88,7 +92,7 @@ class SimulationControllerTest {
                 .enableMarketHours(true)
                 .build();
         
-        when(simulationDataService.updateConfig(any(), any(), any(), any(), any()))
+        when(simulationDataService.updateConfig(any(), any(), any(), any(), any(), any()))
                 .thenReturn(updatedConfig);
 
         Map<String, Object> request = new HashMap<>();
@@ -109,7 +113,7 @@ class SimulationControllerTest {
                 .andExpect(jsonPath("$.data.marketTrend").value("BULLISH"));
 
         verify(simulationDataService).updateConfig(
-                eq(true), eq(VolatilityLevel.HIGH), eq(10), eq(MarketTrend.BULLISH), eq(false));
+                eq(true), eq(VolatilityLevel.HIGH), eq(10), eq(MarketTrend.BULLISH), eq(false), eq(true));
     }
 
     @Test
@@ -128,7 +132,7 @@ class SimulationControllerTest {
                 .enableMarketHours(false)
                 .build();
         
-        when(simulationDataService.updateConfig(eq(false), any(), any(), any(), any()))
+        when(simulationDataService.updateConfig(eq(false), any(), any(), any(), any(), any()))
                 .thenReturn(toggledConfig);
 
         // When & Then

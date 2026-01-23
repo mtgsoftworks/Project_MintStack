@@ -41,7 +41,8 @@ public class SimulationController {
                 request.volatilityLevel() != null ? VolatilityLevel.valueOf(request.volatilityLevel()) : null,
                 request.updateIntervalSeconds(),
                 request.marketTrend() != null ? MarketTrend.valueOf(request.marketTrend()) : null,
-                request.enableRandomEvents()
+                request.enableRandomEvents(),
+                request.enableMarketHours()
         );
         
         return ResponseEntity.ok(ApiResponse.success(mapToResponse(config), 
@@ -53,7 +54,7 @@ public class SimulationController {
     public ResponseEntity<ApiResponse<SimulationConfigResponse>> toggle() {
         SimulationConfig current = simulationDataService.getConfig();
         SimulationConfig config = simulationDataService.updateConfig(
-                !current.getIsEnabled(), null, null, null, null);
+                !current.getIsEnabled(), null, null, null, null, null);
         
         String message = config.getIsEnabled() 
                 ? "🎮 Simülasyon modu aktif edildi" 

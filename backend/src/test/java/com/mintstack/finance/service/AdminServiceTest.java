@@ -4,7 +4,13 @@ import com.mintstack.finance.dto.response.AdminDashboardResponse;
 import com.mintstack.finance.dto.response.UserAdminResponse;
 import com.mintstack.finance.entity.User;
 import com.mintstack.finance.exception.ResourceNotFoundException;
-import com.mintstack.finance.repository.*;
+import com.mintstack.finance.repository.CurrencyRateRepository;
+import com.mintstack.finance.repository.InstrumentRepository;
+import com.mintstack.finance.repository.NewsRepository;
+import com.mintstack.finance.repository.PortfolioRepository;
+import com.mintstack.finance.repository.PriceAlertRepository;
+import com.mintstack.finance.repository.UserRepository;
+import com.mintstack.finance.repository.WatchlistRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,7 +29,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AdminServiceTest {

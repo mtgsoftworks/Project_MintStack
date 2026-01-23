@@ -17,6 +17,8 @@ public interface UserDataPreferenceRepository extends JpaRepository<UserDataPref
     Optional<UserDataPreference> findByUserIdAndDataType(UUID userId, DataType dataType);
     
     List<UserDataPreference> findByUserIdAndIsEnabledTrue(UUID userId);
+
+    Optional<UserDataPreference> findFirstByDataTypeAndIsEnabledTrueOrderByUpdatedAtDesc(DataType dataType);
     
     void deleteByUserId(UUID userId);
 }

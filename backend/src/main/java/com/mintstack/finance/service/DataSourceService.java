@@ -195,7 +195,10 @@ public class DataSourceService {
                         break;
                     case YAHOO_FINANCE:
                     case ALPHA_VANTAGE:
+                    case FINNHUB:
                         marketDataScheduler.fetchStockPrices();
+                        marketDataScheduler.fetchNonTcmbForexRates();
+                        marketDataScheduler.fetchCryptoPrices();
                         break;
                     default:
                         log.info("No immediate fetch handler for provider: {}", provider);

@@ -4,15 +4,18 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mintstack.finance.entity.CurrencyRate;
 import com.mintstack.finance.entity.CurrencyRate.RateSource;
+import com.mintstack.finance.entity.UserApiConfig;
+import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
 import com.mintstack.finance.exception.ExternalApiException;
+import com.mintstack.finance.repository.UserApiConfigRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -21,21 +24,25 @@ public class AlphaVantageClient {
 
     private final WebClient alphaVantageWebClient;
     private final ObjectMapper objectMapper;
-
-    @Value("${app.external-api.alpha-vantage.api-key}")
-    private String apiKey;
+    private final UserApiConfigRepository userApiConfigRepository;
 
     /**
      * Fetch currency exchange rate
      */
-    /**
-     * Fetch currency exchange rate
-     */
-    public CurrencyRate fetchExchangeRate(String fromCurrency, String toCurrency, String apiKey) {
-        String effectiveKey = (apiKey != null && !apiKey.isEmpty()) ? apiKey : this.apiKey;
+    public CurrencyRate fetchExchangeRate(String fromCurrency, String toCurrency) {
+        List<UserApiConfig> configs = userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.ALPHA_VANTAGE);
+        if (configs.isEmpty()) {
+            throw new ExternalApiException("Alpha Vantage", "Alpha Vantage API yapılandırması bulunamadı");
+        }
+        
+        String apiKey = configs.get(0).getApiKey();
+        if (apiKey == null || apiKey.isEmpty()) {
+            throw new ExternalApiException("Alpha Vantage", "API key gerekli");
+        }
+        
         try {
             String url = "?function=CURRENCY_EXCHANGE_RATE&from_currency=" + fromCurrency 
-                + "&to_currency=" + toCurrency + "&apikey=" + effectiveKey;
+                + "&to_currency=" + toCurrency + "&apikey=" + apiKey;
             
             log.debug("Fetching Alpha Vantage rate: {}/{}", fromCurrency, toCurrency);
             
@@ -89,17 +96,22 @@ public class AlphaVantageClient {
         }
     }
 
-    public CurrencyRate fetchExchangeRate(String fromCurrency, String toCurrency) {
-        return fetchExchangeRate(fromCurrency, toCurrency, null);
-    }
-
     /**
      * Fetch global quote for a stock
      */
-    public BigDecimal fetchGlobalQuote(String symbol, String apiKey) {
-        String effectiveKey = (apiKey != null && !apiKey.isEmpty()) ? apiKey : this.apiKey;
+    public BigDecimal fetchGlobalQuote(String symbol) {
+        List<UserApiConfig> configs = userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.ALPHA_VANTAGE);
+        if (configs.isEmpty()) {
+            throw new ExternalApiException("Alpha Vantage", "Alpha Vantage API yapılandırması bulunamadı");
+        }
+        
+        String apiKey = configs.get(0).getApiKey();
+        if (apiKey == null || apiKey.isEmpty()) {
+            throw new ExternalApiException("Alpha Vantage", "API key gerekli");
+        }
+        
         try {
-            String url = "?function=GLOBAL_QUOTE&symbol=" + symbol + "&apikey=" + effectiveKey;
+            String url = "?function=GLOBAL_QUOTE&symbol=" + symbol + "&apikey=" + apiKey;
             
             log.debug("Fetching Alpha Vantage quote: {}", symbol);
             
@@ -135,9 +147,5 @@ public class AlphaVantageClient {
             log.error("Error fetching Alpha Vantage quote for {}", symbol, e);
             throw new ExternalApiException("Alpha Vantage", "Fiyat bilgisi alınamadı: " + symbol, e);
         }
-    }
-
-    public BigDecimal fetchGlobalQuote(String symbol) {
-        return fetchGlobalQuote(symbol, null);
     }
 }

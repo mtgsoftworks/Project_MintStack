@@ -45,7 +45,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Trash2, Plus, Key, RefreshCw, AlertCircle, Pencil, CheckCircle, Database, Zap, Gamepad2, TrendingUp, TrendingDown, Minus, RotateCcw } from 'lucide-react'
+import { Trash2, Plus, Key, RefreshCw, AlertCircle, Pencil, CheckCircle, Database, Zap, FlaskConical, TrendingUp, TrendingDown, Minus, RotateCcw } from 'lucide-react'
 import {
     useGetApiConfigsQuery,
     useAddApiConfigMutation,
@@ -341,7 +341,7 @@ export default function SettingsPage() {
                         {t('settings.dataSources.title', { defaultValue: 'Veri Kaynakları' })}
                     </TabsTrigger>
                     <TabsTrigger value="simulation">
-                        <Gamepad2 className="h-4 w-4 mr-2" />
+                        <FlaskConical className="h-4 w-4 mr-2" />
                         {t('settings.simulation.title', { defaultValue: 'Simülasyon' })}
                     </TabsTrigger>
                 </TabsList>
@@ -1105,7 +1105,7 @@ export default function SettingsPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <Gamepad2 className="h-5 w-5" />
+                                <FlaskConical className="h-5 w-5" />
                                 {t('settings.simulation.title', { defaultValue: 'Simülasyon Modu' })}
                             </CardTitle>
                             <CardDescription>
@@ -1117,7 +1117,7 @@ export default function SettingsPage() {
                             <div className="flex items-center justify-between p-4 border rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20">
                                 <div className="space-y-1">
                                     <Label className="text-base font-semibold flex items-center gap-2">
-                                        <Gamepad2 className="h-4 w-4" />
+                                        <FlaskConical className="h-4 w-4" />
                                         {t('settings.simulation.enable', { defaultValue: 'Simülasyon Modunu Aktif Et' })}
                                     </Label>
                                     <p className="text-sm text-muted-foreground">
@@ -1136,7 +1136,7 @@ export default function SettingsPage() {
                                             try {
                                                 await toggleSimulation().unwrap()
                                                 refetchSimConfig()
-                                                toast.success(simConfig?.enabled 
+                                                toast.success(simConfig?.enabled
                                                     ? t('settings.simulation.disabled', { defaultValue: 'Simülasyon kapatıldı' })
                                                     : t('settings.simulation.enabled', { defaultValue: '🎮 Simülasyon aktif!' }))
                                             } catch (e) {
@@ -1173,11 +1173,11 @@ export default function SettingsPage() {
                             {simConfig?.enabled && (
                                 <div className="space-y-4 p-4 border rounded-lg">
                                     <h4 className="font-medium">{t('settings.simulation.config', { defaultValue: 'Simülasyon Ayarları' })}</h4>
-                                    
+
                                     {/* Volatility Level */}
                                     <div className="space-y-2">
                                         <Label>{t('settings.simulation.volatility', { defaultValue: 'Volatilite Seviyesi' })}</Label>
-                                        <Select 
+                                        <Select
                                             value={simConfig?.volatilityLevel || 'MEDIUM'}
                                             onValueChange={async (val) => {
                                                 try {
@@ -1224,7 +1224,7 @@ export default function SettingsPage() {
                                     {/* Market Trend */}
                                     <div className="space-y-2">
                                         <Label>{t('settings.simulation.trend', { defaultValue: 'Piyasa Trendi' })}</Label>
-                                        <Select 
+                                        <Select
                                             value={simConfig?.marketTrend || 'NEUTRAL'}
                                             onValueChange={async (val) => {
                                                 try {
@@ -1265,7 +1265,7 @@ export default function SettingsPage() {
                                     {/* Update Interval */}
                                     <div className="space-y-2">
                                         <Label>{t('settings.simulation.interval', { defaultValue: 'Güncelleme Aralığı' })}</Label>
-                                        <Select 
+                                        <Select
                                             value={String(simConfig?.updateIntervalSeconds || 5)}
                                             onValueChange={async (val) => {
                                                 try {
@@ -1303,6 +1303,27 @@ export default function SettingsPage() {
                                             onCheckedChange={async (val) => {
                                                 try {
                                                     await updateSimConfig({ enableRandomEvents: val }).unwrap()
+                                                    refetchSimConfig()
+                                                } catch (e) {
+                                                    toast.error(t('common.error'))
+                                                }
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* Market Hours Toggle */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <Label>{t('settings.simulation.marketHours', { defaultValue: 'Piyasa Saatlerini Kullan (10:00-18:00)' })}</Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                {t('settings.simulation.marketHoursDesc', { defaultValue: 'Kapalıyken 7/24 çalışır' })}
+                                            </p>
+                                        </div>
+                                        <Switch
+                                            checked={simConfig?.enableMarketHours || false}
+                                            onCheckedChange={async (val) => {
+                                                try {
+                                                    await updateSimConfig({ enableMarketHours: val }).unwrap()
                                                     refetchSimConfig()
                                                 } catch (e) {
                                                     toast.error(t('common.error'))

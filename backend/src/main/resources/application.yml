@@ -173,6 +173,10 @@ app:
       base-url: https://www.alphavantage.co/query
       api-key: ${ALPHA_VANTAGE_API_KEY:demo}
       timeout: 15000
+    finnhub:
+      base-url: https://finnhub.io/api/v1
+      api-key: ${FINNHUB_API_KEY:}
+      timeout: 15000
 
   # Cache TTL Configuration (in seconds)
   cache:
@@ -188,9 +192,13 @@ app:
     enabled: true
     # TCMB: Only fetch twice daily (10:30, 16:30) - official rates
     tcmb-rates-cron: "0 30 10,16 * * MON-FRI"
-    # Stocks/Crypto: Every 15 seconds during market hours (9-18)
-    # Uses 4/5 of Alpha Vantage limit (4 requests/min, limit is 5/min)
-    stock-prices-cron: "0/15 * 9-18 * * MON-FRI"
+    # Stocks/Crypto: Every 30 seconds (to respect API limits)
+    # Changed from 15 seconds to 30 seconds to avoid rate limiting
+    stock-prices-cron: "0/30 * 9-18 * * MON-FRI"
+    # Non-TCMB Forex: Every 5 minutes (API rate limits apply)
+    forex-rates-cron: "0 */5 * * * MON-FRI"
+    # Crypto: Every minute (24/7 markets)
+    crypto-prices-cron: "0 * * * * *"
     # News: Every 15 minutes
     news-fetch-cron: "0 */15 * * * *"
     # Cleanup old data at 2 AM

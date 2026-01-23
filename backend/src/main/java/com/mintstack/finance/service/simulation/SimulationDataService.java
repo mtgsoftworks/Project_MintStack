@@ -306,7 +306,7 @@ public class SimulationDataService {
     @Transactional
     public SimulationConfig updateConfig(Boolean enabled, VolatilityLevel volatility,
                                           Integer updateInterval, MarketTrend trend,
-                                          Boolean enableRandomEvents) {
+                                          Boolean enableRandomEvents, Boolean enableMarketHours) {
         
         // API Key Check Logic
         if (Boolean.TRUE.equals(enabled)) {
@@ -315,7 +315,7 @@ public class SimulationDataService {
                                    !userApiConfigRepository.findByProviderAndIsActiveTrue(com.mintstack.finance.entity.UserApiConfig.ApiProvider.YAHOO_FINANCE).isEmpty();
             
             if (hasActiveApi) {
-                throw new IllegalStateException("Cannot enable simulation while active API configurations exist. Please disable API integrations first.");
+                throw new IllegalStateException("Simülasyon modunu açmak için önce diğer API bağlantılarını kapatmalısınız (Ayarlar -> Veri Kaynakları).");
             }
         }
 
@@ -326,11 +326,13 @@ public class SimulationDataService {
         if (updateInterval != null) config.setUpdateIntervalSeconds(updateInterval);
         if (trend != null) config.setMarketTrend(trend);
         if (enableRandomEvents != null) config.setEnableRandomEvents(enableRandomEvents);
+        if (enableMarketHours != null) config.setEnableMarketHours(enableMarketHours);
 
         SimulationConfig saved = configRepository.save(config);
         
         if (Boolean.TRUE.equals(enabled)) {
-            log.info("🎮 Simülasyon modu AKTİF - Volatilite: {}, Trend: {}", volatility, trend);
+            log.info("🎮 Simülasyon modu AKTİF - Volatilite: {}, Trend: {}, Market Saatleri: {}", 
+                    volatility, trend, config.getEnableMarketHours());
         } else if (Boolean.FALSE.equals(enabled)) {
             log.info("🎮 Simülasyon modu KAPALI");
         }
@@ -633,12 +635,42 @@ public class SimulationDataService {
     }
 
     /**
-     * Simülasyonu sıfırla - tüm fiyatları başlangıç değerlerine döndür
+     * Simülasyonu sıfırla - tüm fiyatları başlangıç değerlerine döndür VE database'den sil
      */
+    @Transactional
     public void resetSimulation() {
+        // 1. Database'den simülasyon verilerini sil
+        deleteSimulationData();
+        
+        // 2. Memory cache'i temizle ve yeniden başlat
         priceEngine.clearState();
         initializeMarketData();
-        log.info("🔄 Simülasyon sıfırlandı - tüm fiyatlar başlangıç değerlerine döndü");
+        
+        log.info("🔄 Simülasyon tamamen sıfırlandı - database ve cache temizlendi");
+    }
+
+    /**
+     * Database'den tüm simülasyon verilerini sil
+     */
+    @Transactional
+    public Map<String, Object> deleteSimulationData() {
+        // Simüle edilmiş enstrümanları sil (cascade ile price_history de silinir)
+        List<Instrument> simulatedInstruments = instrumentRepository.findByIsSimulated(true);
+        long instrumentCount = simulatedInstruments.size();
+        instrumentRepository.deleteAll(simulatedInstruments);
+        
+        // Simülasyon currency rates'leri sil (source = MANUAL olanlar)
+        List<CurrencyRate> simulatedRates = currencyRateRepository.findBySource(CurrencyRate.RateSource.MANUAL);
+        long currencyCount = simulatedRates.size();
+        currencyRateRepository.deleteAll(simulatedRates);
+        
+        log.info("🗑️ Simülasyon verileri silindi: {} instrument, {} currency rate", 
+                instrumentCount, currencyCount);
+        
+        return Map.of(
+            "deletedInstruments", instrumentCount,
+            "deletedCurrencyRates", currencyCount
+        );
     }
 
     // ==================== VERİ ERİŞİMİ ====================

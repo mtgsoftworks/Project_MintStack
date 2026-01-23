@@ -35,6 +35,12 @@ public class WebClientConfig {
     @Value("${app.external-api.alpha-vantage.timeout}")
     private int alphaVantageTimeout;
 
+    @Value("${app.external-api.finnhub.base-url}")
+    private String finnhubBaseUrl;
+
+    @Value("${app.external-api.finnhub.timeout}")
+    private int finnhubTimeout;
+
     @Bean
     public WebClient tcmbWebClient() {
         return createWebClient(tcmbBaseUrl, tcmbTimeout);
@@ -48,6 +54,11 @@ public class WebClientConfig {
     @Bean
     public WebClient alphaVantageWebClient() {
         return createWebClient(alphaVantageBaseUrl, alphaVantageTimeout);
+    }
+
+    @Bean
+    public WebClient finnhubWebClient() {
+        return createWebClient(finnhubBaseUrl, finnhubTimeout);
     }
 
     private WebClient createWebClient(String baseUrl, int timeoutMs) {

@@ -24,12 +24,16 @@ public interface InstrumentRepository extends JpaRepository<Instrument, UUID> {
 
     List<Instrument> findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType type, Boolean isSimulated);
 
+    List<Instrument> findByIsSimulated(Boolean isSimulated);
+
     // Default lookup for real instruments only (excludes simulated data)
     @Query("SELECT i FROM Instrument i WHERE i.type = :type AND i.isActive = true AND (i.isSimulated IS NULL OR i.isSimulated = false)")
     List<Instrument> findByTypeAndIsActiveTrue(@Param("type") InstrumentType type);
 
     @Query("SELECT i FROM Instrument i WHERE i.type = :type AND i.isActive = true AND (i.isSimulated IS NULL OR i.isSimulated = false)")
     Page<Instrument> findByTypeAndIsActiveTrue(@Param("type") InstrumentType type, Pageable pageable);
+
+    Page<Instrument> findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType type, Boolean isSimulated, Pageable pageable);
 
     @Query("SELECT i FROM Instrument i WHERE i.isActive = true AND (i.isSimulated IS NULL OR i.isSimulated = false)")
     List<Instrument> findByIsActiveTrue();
@@ -51,6 +55,8 @@ public interface InstrumentRepository extends JpaRepository<Instrument, UUID> {
     boolean existsBySymbol(String symbol);
 
     long countByIsActiveTrue();
+
+    long countByTypeAndIsSimulated(InstrumentType type, Boolean isSimulated);
 
     @Query("SELECT COUNT(i) FROM Instrument i WHERE i.isSimulated IS NULL OR i.isSimulated = false")
     long countRealInstruments();

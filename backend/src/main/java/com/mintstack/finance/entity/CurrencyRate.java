@@ -55,6 +55,7 @@ public class CurrencyRate extends BaseEntity {
         TCMB,
         YAHOO_FINANCE,
         ALPHA_VANTAGE,
+        FINNHUB,
         BANK_API,
         MANUAL
     }

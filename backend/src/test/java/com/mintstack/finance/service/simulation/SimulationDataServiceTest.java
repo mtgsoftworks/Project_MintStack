@@ -22,7 +22,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SimulationDataService Tests")
@@ -187,7 +187,7 @@ class SimulationDataServiceTest {
 
         // When
         SimulationConfig result = simulationDataService.updateConfig(
-                true, VolatilityLevel.HIGH, 15, MarketTrend.BULLISH, true);
+                true, VolatilityLevel.HIGH, 15, MarketTrend.BULLISH, true, true);
 
         // Then
         assertThat(result.getIsEnabled()).isTrue();
@@ -195,6 +195,7 @@ class SimulationDataServiceTest {
         assertThat(result.getMarketTrend()).isEqualTo(MarketTrend.BULLISH);
         assertThat(result.getUpdateIntervalSeconds()).isEqualTo(15);
         assertThat(result.getEnableRandomEvents()).isTrue();
+        assertThat(result.getEnableMarketHours()).isTrue();
     }
 
     @Test
@@ -214,7 +215,7 @@ class SimulationDataServiceTest {
 
         // When - Sadece enabled güncelle
         SimulationConfig result = simulationDataService.updateConfig(
-                true, null, null, null, null);
+                true, null, null, null, null, null);
 
         // Then
         assertThat(result.getIsEnabled()).isTrue();

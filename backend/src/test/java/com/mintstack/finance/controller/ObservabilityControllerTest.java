@@ -17,25 +17,9 @@ class ObservabilityControllerTest {
     }
 
     @Test
-    void getDetailedHealth_ShouldHaveAdminRoleAuthorization() throws NoSuchMethodException {
-        Method method = ObservabilityController.class.getMethod("getDetailedHealth");
+    void class_ShouldHaveAdminRoleAuthorization() {
+        PreAuthorize preAuthorize = ObservabilityController.class.getAnnotation(PreAuthorize.class);
         
-        assertThat(method).isNotNull();
-        assertThat(method.isAnnotationPresent(GetMapping.class)).isTrue();
-        
-        PreAuthorize preAuthorize = method.getAnnotation(PreAuthorize.class);
-        assertThat(preAuthorize).isNotNull();
-        assertThat(preAuthorize.value()).contains("hasRole('ADMIN')");
-    }
-
-    @Test
-    void getMetrics_ShouldHaveAdminRoleAuthorization() throws NoSuchMethodException {
-        Method method = ObservabilityController.class.getMethod("getMetrics");
-        
-        assertThat(method).isNotNull();
-        assertThat(method.isAnnotationPresent(GetMapping.class)).isTrue();
-        
-        PreAuthorize preAuthorize = method.getAnnotation(PreAuthorize.class);
         assertThat(preAuthorize).isNotNull();
         assertThat(preAuthorize.value()).contains("hasRole('ADMIN')");
     }

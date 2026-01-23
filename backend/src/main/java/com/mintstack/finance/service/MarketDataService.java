@@ -42,12 +42,15 @@ public class MarketDataService {
     private final PriceHistoryRepository priceHistoryRepository;
     private final UserApiConfigRepository userApiConfigRepository;
     private final com.mintstack.finance.service.external.YahooFinanceClient yahooFinanceClient;
+    private final com.mintstack.finance.service.simulation.SimulationDataService simulationDataService;
 
     // Currency Rates
-    @Cacheable(value = "currencyRates", key = "'tcmb-latest'")
+    @Cacheable(value = "currencyRates", key = "'latest-' + @simulationDataService.isSimulationEnabled()")
     @Transactional(readOnly = true)
     public List<CurrencyRateResponse> getLatestCurrencyRates() {
-        List<CurrencyRate> rates = currencyRateRepository.findLatestBySource(RateSource.TCMB);
+        boolean isSimulation = simulationDataService.isSimulationEnabled();
+        RateSource source = isSimulation ? RateSource.MANUAL : RateSource.TCMB;
+        List<CurrencyRate> rates = currencyRateRepository.findLatestBySource(source);
         return rates.stream()
             .map(this::mapToRateResponse)
             .collect(Collectors.toList());
@@ -55,8 +58,11 @@ public class MarketDataService {
 
     @Transactional(readOnly = true)
     public CurrencyRateResponse getCurrencyRate(String currencyCode) {
+        boolean isSimulation = simulationDataService.isSimulationEnabled();
+        RateSource source = isSimulation ? RateSource.MANUAL : RateSource.TCMB;
+        
         CurrencyRate rate = currencyRateRepository
-            .findTopByCurrencyCodeOrderByFetchedAtDesc(currencyCode)
+            .findTopByCurrencyCodeAndSourceOrderByFetchedAtDesc(currencyCode, source)
             .orElseThrow(() -> new ResourceNotFoundException("Kur", "kod", currencyCode));
         return mapToRateResponse(rate);
     }
@@ -76,10 +82,11 @@ public class MarketDataService {
     }
 
     // Instruments
-    @Cacheable(value = "instruments", key = "#type.name()")
+    @Cacheable(value = "instruments", key = "#type.name() + '-' + @simulationDataService.isSimulationEnabled()")
     @Transactional(readOnly = true)
     public List<InstrumentResponse> getInstrumentsByType(InstrumentType type) {
-        List<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrue(type);
+        boolean isSimulation = simulationDataService.isSimulationEnabled();
+        List<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(type, isSimulation);
         return instruments.stream()
             .map(this::mapToInstrumentResponse)
             .collect(Collectors.toList());
@@ -87,14 +94,17 @@ public class MarketDataService {
 
     @Transactional(readOnly = true)
     public Page<InstrumentResponse> getInstrumentsByType(InstrumentType type, Pageable pageable) {
-        Page<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrue(type, pageable);
+        boolean isSimulation = simulationDataService.isSimulationEnabled();
+        Page<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(type, isSimulation, pageable);
         return instruments.map(this::mapToInstrumentResponse);
     }
 
     @Transactional(readOnly = true)
     public InstrumentResponse getInstrument(String symbol) {
-        Instrument instrument = instrumentRepository.findBySymbol(symbol)
-            .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "sembol", symbol));
+        boolean isSimulation = simulationDataService.isSimulationEnabled();
+        Instrument instrument = instrumentRepository.findBySymbolAndIsSimulated(symbol, isSimulation)
+            .orElseGet(() -> instrumentRepository.findBySymbol(symbol)
+                .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "sembol", symbol)));
         return mapToInstrumentResponse(instrument);
     }
 
