@@ -16,6 +16,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@io.micrometer.observation.annotation.Observed(name = "user.service", contextualName = "user-operations")
 public class UserService {
 
     private final UserRepository userRepository;

@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@io.micrometer.observation.annotation.Observed(name = "watchlist.service", contextualName = "watchlist-operations")
 public class WatchlistService {
 
     private final WatchlistRepository watchlistRepository;

@@ -14,7 +14,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:9090',
+        target: 'http://localhost:18080',
         changeOrigin: true,
       },
     },
@@ -54,6 +54,12 @@ export default defineConfig({
         'src/mocks/**',
         'e2e/**',
       ],
+      thresholds: {
+        lines: 50,
+        branches: 40,
+        functions: 45,
+        statements: 50,
+      },
     },
   },
 })

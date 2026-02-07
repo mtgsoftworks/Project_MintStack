@@ -2,7 +2,7 @@ package com.mintstack.finance.config;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
@@ -68,8 +68,14 @@ public class RedisConfig implements CachingConfigurer {
         // Use JSON serializer for values
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
+        BasicPolymorphicTypeValidator typeValidator = BasicPolymorphicTypeValidator.builder()
+            .allowIfBaseType(Object.class)
+            .allowIfSubType("com.mintstack.")
+            .allowIfSubType("java.")
+            .allowIfSubType("org.springframework.")
+            .build();
         objectMapper.activateDefaultTyping(
-            LaissezFaireSubTypeValidator.instance,
+            typeValidator,
             ObjectMapper.DefaultTyping.NON_FINAL,
             JsonTypeInfo.As.PROPERTY
         );

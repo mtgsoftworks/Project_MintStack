@@ -50,7 +50,11 @@ public class ApiKeyValidationService {
      * @return ValidationResult with success status and message
      */
     public ValidationResult validateApiKey(ApiProvider provider, String apiKey, String baseUrl) {
+        // Check for empty key (allowed for Yahoo Finance as it has a direct fallback)
         if (apiKey == null || apiKey.trim().isEmpty()) {
+            if (provider == ApiProvider.YAHOO_FINANCE) {
+                return new ValidationResult(true, "Yahoo Finance (Direct) - API anahtarı olmadan kullanım aktif ✓");
+            }
             return new ValidationResult(false, "API anahtarı boş olamaz");
         }
 

@@ -23,6 +23,8 @@ public interface InstrumentRepository extends JpaRepository<Instrument, UUID> {
     Optional<Instrument> findBySymbol(@Param("symbol") String symbol);
 
     List<Instrument> findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType type, Boolean isSimulated);
+    
+    List<Instrument> findByTypeAndIsActiveTrueAndIsSimulatedOrderBySymbolAsc(InstrumentType type, Boolean isSimulated);
 
     List<Instrument> findByIsSimulated(Boolean isSimulated);
 

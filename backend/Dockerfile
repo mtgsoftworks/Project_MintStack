@@ -21,8 +21,10 @@ RUN apk add --no-cache curl
 RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 
-# Copy the built jar
+# Copy the built jar and entrypoint
 COPY --from=build /app/target/*.jar app.jar
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Set ownership
 RUN chown -R appuser:appgroup /app
@@ -39,5 +41,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # JVM options for containerized environment
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC"
 
-# Run the application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# Run the application (entrypoint loads Docker secrets)
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+CMD ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@io.micrometer.observation.annotation.Observed(name = "market.data.service", contextualName = "market-data-operations")
 public class MarketDataService {
 
     private final InstrumentRepository instrumentRepository;

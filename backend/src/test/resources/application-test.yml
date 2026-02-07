@@ -81,6 +81,8 @@ app:
     enabled: false
     tcmb-rates-cron: "0 0 9,12,15 * * MON-FRI"
     stock-prices-cron: "0 */15 9-18 * * MON-FRI"
+    forex-rates-cron: "0 */5 * * * MON-FRI"
+    crypto-prices-cron: "0 * * * * *"
     news-fetch-cron: "0 */30 * * * *"
     cleanup-cron: "0 0 2 * * *"
   external-api:
@@ -94,3 +96,18 @@ app:
       base-url: https://www.alphavantage.co/query
       api-key: test-api-key
       timeout: 15000
+    finnhub:
+      base-url: https://finnhub.io/api/v1
+      api-key: test-finnhub-key
+      timeout: 15000
+  email:
+    enabled: false
+    host: localhost
+    port: 1025
+    username: test
+    password: test
+    from-address: test@mintstack.com
+    from-name: MintStack Test
+    tls-enabled: false
+    ssl-enabled: false
+    debug: false

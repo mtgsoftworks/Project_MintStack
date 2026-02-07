@@ -201,6 +201,27 @@ services:
     networks:
       - mintstack-network
 
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.91.0
+    container_name: mintstack-otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./docker/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+      - "8889:8889"    # Prometheus metrics
+      - "13133:13133"  # Health check
+    depends_on:
+      - opensearch
+    networks:
+      - mintstack-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
   # ===========================================
   # APPLICATION LAYER
   # ===========================================
@@ -220,6 +241,7 @@ services:
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/mintstack-finance/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/mintstack-finance
 
       ALPHA_VANTAGE_API_KEY: ${ALPHA_VANTAGE_API_KEY}
       OPENSEARCH_HOST: opensearch

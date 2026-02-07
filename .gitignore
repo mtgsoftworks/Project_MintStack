@@ -23,6 +23,13 @@ secrets/*.key
 secrets/*.pem
 !secrets/README.md
 
+# SSL Certificates (NEVER commit these!)
+nginx/ssl/*.pem
+nginx/ssl/*.key
+nginx/ssl/*.crt
+nginx/ssl/*.csr
+!nginx/ssl/README.md
+
 # Logs
 *.log
 logs/

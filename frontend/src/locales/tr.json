@@ -181,13 +181,15 @@
             "placeholder": {
                 "key": "Anahtarınızı buraya yapıştırın",
                 "tcmb": "TCMB için gerekmez (boş bırakabilirsiniz)",
+                "optional": "Gerekli değil (boş bırakabilirsiniz)",
                 "secretKey": "Gizli anahtarınızı girin",
                 "baseUrl": "https://api.example.com"
             },
             "validation": {
                 "required": "Lütfen API anahtarı girin",
                 "testRequired": "Kaydetmeden önce test etmelisiniz",
-                "tcmbInfo": "TCMB ücretsizdir, test ederek doğrulayabilirsiniz."
+                "tcmbInfo": "TCMB ücretsizdir, test ederek doğrulayabilirsiniz.",
+                "optionalInfo": "API anahtarı opsiyoneldir, boş bırakabilirsiniz."
             }
         },
         "providers": {

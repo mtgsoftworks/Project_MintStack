@@ -11,6 +11,10 @@ import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
 import com.mintstack.finance.repository.SimulationConfigRepository;
 import com.mintstack.finance.repository.UserApiConfigRepository;
+import com.mintstack.finance.repository.NewsRepository;
+import com.mintstack.finance.repository.NewsCategoryRepository;
+import com.mintstack.finance.entity.News;
+import com.mintstack.finance.entity.NewsCategory;
 import com.mintstack.finance.service.PriceUpdateService;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
@@ -35,6 +39,8 @@ public class SimulationDataService {
     private final InstrumentRepository instrumentRepository;
     private final CurrencyRateRepository currencyRateRepository;
     private final PriceHistoryRepository priceHistoryRepository;
+    private final NewsRepository newsRepository;
+    private final NewsCategoryRepository newsCategoryRepository;
     private final UserApiConfigRepository userApiConfigRepository; // New dependency
     private final PriceUpdateService priceUpdateService;
     private final PriceSimulationEngine priceEngine;
@@ -387,9 +393,45 @@ public class SimulationDataService {
             
             log.info("📰 {} sektörü {} haber: {}%", sector, positive ? "POZİTİF" : "NEGATİF", String.format("%.2f", impact * 100));
             
+            // Haberi veritabanına kaydet
+            String sentiment = positive ? "olumlu" : "olumsuz";
+            String title = String.format("%s Sektöründe %s Gelişme", sector, positive ? "Pozitif" : "Negatif");
+            String content = String.format("%s sektöründe yaşanan %s gelişmeler piyasa tarafından fiyatlanıyor. Sektör hisselerinde %%%.2f oranında değişim bekleniyor.", 
+                    sector, sentiment, impact * 100);
+            
+            saveSimulationNews(title, content, sector);
+
             return positive ? sector : "-" + sector;
         }
         return null;
+    }
+
+    private void saveSimulationNews(String title, String content, String sector) {
+        try {
+            // İlk kategoriyi veya varsa 'Piyasa' kategorisini bul
+            List<NewsCategory> categories = newsCategoryRepository.findAll();
+            if (categories.isEmpty()) return;
+            
+            NewsCategory category = categories.stream()
+                .filter(c -> c.getName().contains("Piyasa") || c.getName().contains("Ekonomi"))
+                .findFirst()
+                .orElse(categories.get(0));
+
+            News news = News.builder()
+                .title(title)
+                .content(content)
+                .summary(content)
+                .sourceName("Simülasyon")
+                .category(category)
+                .publishedAt(LocalDateTime.now())
+                .isPublished(true)
+                .viewCount(0L)
+                .build();
+            
+            newsRepository.save(news);
+        } catch (Exception e) {
+            log.warn("Simülasyon haberi kaydedilemedi: {}", e.getMessage());
+        }
     }
 
     /**
@@ -527,17 +569,50 @@ public class SimulationDataService {
 
             index.updateValue(newValue);
 
-            // WebSocket'e yayınla
-            BigDecimal change = newValue.subtract(index.getPreviousClose());
-            BigDecimal changePercent = index.getChangePercent();
+            // Veritabanına kaydet ve WebSocket'e yayınla
+            saveAndBroadcastIndex(symbol, index, newValue);
+        }
+    }
 
+    private void saveAndBroadcastIndex(String symbol, SimulatedIndex index, BigDecimal newPrice) {
+         try {
+            // Update DB
+            Instrument instrument = instrumentRepository.findBySymbolAndIsSimulated(symbol, true)
+                .orElseGet(() -> Instrument.builder()
+                    .symbol(symbol)
+                    .name(index.getName())
+                    .type(Instrument.InstrumentType.INDEX)
+                    .exchange("BIST")
+                    .currency("TRY")
+                    .currentPrice(newPrice)
+                    .previousClose(index.getPreviousClose())
+                    .isActive(true)
+                    .isSimulated(true)
+                    .build());
+            
+            // Eğer yeni oluşturulduysa kaydet
+            if (instrument.getId() == null) {
+                instrumentRepository.save(instrument);
+            }
+            
+            // Fiyat güncelle
+            instrument.setPreviousClose(index.getPreviousClose());
+            instrument.setCurrentPrice(newPrice);
+            instrumentRepository.save(instrument);
+
+            // Broadcast
+            BigDecimal change = newPrice.subtract(index.getPreviousClose());
+            BigDecimal changePercent = index.getChangePercent();
+            
             priceUpdateService.broadcastStockUpdate(
                     symbol,
-                    newValue,
+                    newPrice,
                     index.getPreviousClose(),
                     change,
                     changePercent
             );
+        } catch (Exception e) {
+            log.error("Index kaydedilemedi {}: {}", symbol, e.getMessage());
         }
     }
 
@@ -664,6 +739,13 @@ public class SimulationDataService {
         long currencyCount = simulatedRates.size();
         currencyRateRepository.deleteAll(simulatedRates);
         
+        // Simülasyon haberlerini sil
+        try {
+            newsRepository.deleteBySourceName("Simülasyon");
+        } catch (Exception e) {
+            log.warn("Simülasyon haberleri silinemedi: {}", e.getMessage());
+        }
+
         log.info("🗑️ Simülasyon verileri silindi: {} instrument, {} currency rate", 
                 instrumentCount, currencyCount);
         

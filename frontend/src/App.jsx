@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import Keycloak from 'keycloak-js'
@@ -7,26 +7,33 @@ import { selectAutoUpdate, selectRefreshRate } from '@/store/slices/uiSlice'
 import { Layout, ProtectedRoute } from '@/components/layout'
 import websocketService from '@/services/websocketService'
 
-// Pages
-import DashboardPage from '@/pages/DashboardPage'
-import NewsPage from '@/pages/NewsPage'
-import NewsDetailPage from '@/pages/NewsDetailPage'
-import CurrencyPage from '@/pages/CurrencyPage'
-import StocksPage from '@/pages/StocksPage'
-import StockDetailPage from '@/pages/StockDetailPage'
-import BondsPage from '@/pages/BondsPage'
-import FundsPage from '@/pages/FundsPage'
-import ViopPage from '@/pages/ViopPage'
-import PortfolioPage from '@/pages/PortfolioPage'
-import PortfolioDetailPage from '@/pages/PortfolioDetailPage'
-import AnalysisPage from '@/pages/AnalysisPage'
-import ProfilePage from '@/pages/ProfilePage'
-import SettingsPage from '@/pages/SettingsPage'
-import WatchlistPage from '@/pages/WatchlistPage'
-import AlertsPage from '@/pages/AlertsPage'
-import AdminDashboard from '@/pages/AdminDashboard'
-import NotificationsPage from '@/pages/NotificationsPage'
-import LoginPage from '@/pages/LoginPage'
+// Lazy-loaded Pages (code splitting)
+const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
+const NewsPage = lazy(() => import('@/pages/NewsPage'))
+const NewsDetailPage = lazy(() => import('@/pages/NewsDetailPage'))
+const CurrencyPage = lazy(() => import('@/pages/CurrencyPage'))
+const StocksPage = lazy(() => import('@/pages/StocksPage'))
+const StockDetailPage = lazy(() => import('@/pages/StockDetailPage'))
+const BondsPage = lazy(() => import('@/pages/BondsPage'))
+const FundsPage = lazy(() => import('@/pages/FundsPage'))
+const ViopPage = lazy(() => import('@/pages/ViopPage'))
+const PortfolioPage = lazy(() => import('@/pages/PortfolioPage'))
+const PortfolioDetailPage = lazy(() => import('@/pages/PortfolioDetailPage'))
+const AnalysisPage = lazy(() => import('@/pages/AnalysisPage'))
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
+const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
+const WatchlistPage = lazy(() => import('@/pages/WatchlistPage'))
+const AlertsPage = lazy(() => import('@/pages/AlertsPage'))
+const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'))
+const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'))
+const LoginPage = lazy(() => import('@/pages/LoginPage'))
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[60vh]">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  </div>
+)
 
 // Keycloak configuration
 const keycloakConfig = {
@@ -35,9 +42,8 @@ const keycloakConfig = {
   clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'finance-frontend',
 }
 
-// Initialize Keycloak
+// Initialize Keycloak (module-scoped, not exposed on window)
 const keycloak = new Keycloak(keycloakConfig)
-window.keycloak = keycloak
 
 function App() {
   const dispatch = useDispatch()
@@ -146,149 +152,151 @@ function App() {
   }, [dispatch])
 
   return (
-    <Routes>
-      {/* Public route */}
-      <Route path="/login" element={<LoginPage />} />
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        {/* Public route */}
+        <Route path="/login" element={<LoginPage />} />
 
-      {/* Protected routes with Layout */}
-      <Route element={<Layout />}>
-        {/* Dashboard */}
-        <Route path="/" element={
-          <ProtectedRoute>
-            <DashboardPage />
-          </ProtectedRoute>
-        } />
+        {/* Protected routes with Layout */}
+        <Route element={<Layout />}>
+          {/* Dashboard */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          } />
 
-        {/* News */}
-        <Route path="/news" element={
-          <ProtectedRoute>
-            <NewsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/news/:id" element={
-          <ProtectedRoute>
-            <NewsDetailPage />
-          </ProtectedRoute>
-        } />
+          {/* News */}
+          <Route path="/news" element={
+            <ProtectedRoute>
+              <NewsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/news/:id" element={
+            <ProtectedRoute>
+              <NewsDetailPage />
+            </ProtectedRoute>
+          } />
 
-        {/* Market Data */}
-        <Route path="/market/currencies" element={
-          <ProtectedRoute>
-            <CurrencyPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/market/stocks" element={
-          <ProtectedRoute>
-            <StocksPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/market/stocks/:symbol" element={
-          <ProtectedRoute>
-            <StockDetailPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/market/bonds" element={
-          <ProtectedRoute>
-            <BondsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/market/funds" element={
-          <ProtectedRoute>
-            <FundsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/market/viop" element={
-          <ProtectedRoute>
-            <ViopPage />
-          </ProtectedRoute>
-        } />
+          {/* Market Data */}
+          <Route path="/market/currencies" element={
+            <ProtectedRoute>
+              <CurrencyPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/market/stocks" element={
+            <ProtectedRoute>
+              <StocksPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/market/stocks/:symbol" element={
+            <ProtectedRoute>
+              <StockDetailPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/market/bonds" element={
+            <ProtectedRoute>
+              <BondsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/market/funds" element={
+            <ProtectedRoute>
+              <FundsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/market/viop" element={
+            <ProtectedRoute>
+              <ViopPage />
+            </ProtectedRoute>
+          } />
 
-        {/* Protected routes */}
-        <Route
-          path="/portfolio"
-          element={
-            <ProtectedRoute>
-              <PortfolioPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/portfolio/:id"
-          element={
-            <ProtectedRoute>
-              <PortfolioDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/analysis"
-          element={
-            <ProtectedRoute>
-              <AnalysisPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <ProfilePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <SettingsPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* Protected routes */}
+          <Route
+            path="/portfolio"
+            element={
+              <ProtectedRoute>
+                <PortfolioPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/portfolio/:id"
+            element={
+              <ProtectedRoute>
+                <PortfolioDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analysis"
+            element={
+              <ProtectedRoute>
+                <AnalysisPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Watchlist */}
-        <Route
-          path="/watchlist"
-          element={
-            <ProtectedRoute>
-              <WatchlistPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* Watchlist */}
+          <Route
+            path="/watchlist"
+            element={
+              <ProtectedRoute>
+                <WatchlistPage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Alerts */}
-        <Route
-          path="/alerts"
-          element={
-            <ProtectedRoute>
-              <AlertsPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* Alerts */}
+          <Route
+            path="/alerts"
+            element={
+              <ProtectedRoute>
+                <AlertsPage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Notifications */}
-        <Route
-          path="/notifications"
-          element={
-            <ProtectedRoute>
-              <NotificationsPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* Notifications */}
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Admin (role check is done in component) */}
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
-      </Route>
+          {/* Admin (role check is done in component) */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
 
-      {/* Catch all */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Catch all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   )
 }
 

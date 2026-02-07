@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@io.micrometer.observation.annotation.Observed(name = "portfolio.service", contextualName = "portfolio-operations")
 public class PortfolioService {
 
     private final PortfolioRepository portfolioRepository;

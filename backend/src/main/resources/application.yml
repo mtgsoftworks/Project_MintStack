@@ -75,7 +75,7 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: "*"
+        spring.json.trusted.packages: "com.mintstack.finance.*"
 
   # Security - OAuth2 Resource Server
   security:
@@ -194,7 +194,7 @@ app:
     tcmb-rates-cron: "0 30 10,16 * * MON-FRI"
     # Stocks/Crypto: Every 30 seconds (to respect API limits)
     # Changed from 15 seconds to 30 seconds to avoid rate limiting
-    stock-prices-cron: "0/30 * 9-18 * * MON-FRI"
+    stock-prices-cron: "0 * * * * *"
     # Non-TCMB Forex: Every 5 minutes (API rate limits apply)
     forex-rates-cron: "0 */5 * * * MON-FRI"
     # Crypto: Every minute (24/7 markets)
@@ -268,6 +268,10 @@ spring:
       on-profile: prod
   jpa:
     show-sql: false
+  flyway:
+    validate-on-migrate: true
+    out-of-order: false
+    repair-on-migrate: false
 
 logging:
   level:

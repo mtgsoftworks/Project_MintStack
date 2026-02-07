@@ -5,6 +5,8 @@ import com.mintstack.finance.entity.SimulationConfig.MarketTrend;
 import com.mintstack.finance.entity.SimulationConfig.VolatilityLevel;
 import com.mintstack.finance.repository.CurrencyRateRepository;
 import com.mintstack.finance.repository.InstrumentRepository;
+import com.mintstack.finance.repository.NewsCategoryRepository;
+import com.mintstack.finance.repository.NewsRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
 import com.mintstack.finance.repository.SimulationConfigRepository;
 import com.mintstack.finance.repository.UserApiConfigRepository;
@@ -41,6 +43,12 @@ class SimulationDataServiceTest {
     private PriceHistoryRepository priceHistoryRepository;
 
     @Mock
+    private NewsRepository newsRepository;
+
+    @Mock
+    private NewsCategoryRepository newsCategoryRepository;
+
+    @Mock
     private UserApiConfigRepository userApiConfigRepository;
 
     @Mock
@@ -57,6 +65,8 @@ class SimulationDataServiceTest {
                 instrumentRepository,
                 currencyRateRepository,
                 priceHistoryRepository,
+                newsRepository,
+                newsCategoryRepository,
                 userApiConfigRepository,
                 priceUpdateService,
                 priceEngine

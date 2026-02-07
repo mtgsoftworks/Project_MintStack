@@ -218,8 +218,8 @@ export default function SettingsPage() {
     }
 
     const handleTestKey = async () => {
-        // TCMB validation doesn't need a key
-        if (formData.provider !== 'TCMB' && !formData.apiKey.trim()) {
+        // TCMB and Yahoo Finance validation doesn't need a key
+        if (formData.provider !== 'TCMB' && formData.provider !== 'YAHOO_FINANCE' && !formData.apiKey.trim()) {
             toast.error(t('settings.apiKeys.validation.required'))
             return
         }
@@ -227,7 +227,7 @@ export default function SettingsPage() {
         // Ensure TCMB uses a placeholder if empty
         const dataToTest = {
             ...formData,
-            apiKey: (formData.provider === 'TCMB' && !formData.apiKey.trim()) ? 'TCMB_PUBLIC' : formData.apiKey
+            apiKey: ((formData.provider === 'TCMB' || formData.provider === 'YAHOO_FINANCE') && !formData.apiKey.trim()) ? (formData.provider === 'TCMB' ? 'TCMB_PUBLIC' : 'YAHOO_DIRECT') : formData.apiKey
         }
 
         try {
@@ -249,20 +249,20 @@ export default function SettingsPage() {
     const handleAddSubmit = async (e) => {
         e.preventDefault()
 
-        // TCMB doesn't require validation - auto validate it
-        if (formData.provider === 'TCMB') {
+        // TCMB and Yahoo Finance don't require validation - auto validate it if empty
+        if (formData.provider === 'TCMB' || (formData.provider === 'YAHOO_FINANCE' && !formData.apiKey.trim())) {
             setIsValidated(true)
         }
 
-        if (!isValidated && formData.provider !== 'TCMB') {
+        if (!isValidated && formData.provider !== 'TCMB' && !(formData.provider === 'YAHOO_FINANCE' && !formData.apiKey.trim())) {
             toast.error(t('settings.apiKeys.validation.testRequired'))
             return
         }
 
-        // Prepare data with TCMB placeholder if needed
+        // Prepare data with placeholder if needed
         const dataToSubmit = {
             ...formData,
-            apiKey: (formData.provider === 'TCMB' && !formData.apiKey.trim()) ? 'TCMB_PUBLIC' : formData.apiKey
+            apiKey: ((formData.provider === 'TCMB' || formData.provider === 'YAHOO_FINANCE') && !formData.apiKey.trim()) ? (formData.provider === 'TCMB' ? 'TCMB_PUBLIC' : 'YAHOO_DIRECT') : formData.apiKey
         }
 
         try {
@@ -816,15 +816,15 @@ export default function SettingsPage() {
                                                         setFormData({ ...formData, apiKey: e.target.value })
                                                         setIsValidated(false)
                                                     }}
-                                                    placeholder={editingConfig ? t('settings.apiKeys.placeholder.unchanged') : (formData.provider === 'TCMB' ? t('settings.apiKeys.placeholder.tcmb') : t('settings.apiKeys.placeholder.key'))}
-                                                    required={!editingConfig && formData.provider !== 'TCMB'}
+                                                    placeholder={editingConfig ? t('settings.apiKeys.placeholder.unchanged') : (formData.provider === 'TCMB' || formData.provider === 'YAHOO_FINANCE' ? t('settings.apiKeys.placeholder.optional') : t('settings.apiKeys.placeholder.key'))}
+                                                    required={!editingConfig && formData.provider !== 'TCMB' && formData.provider !== 'YAHOO_FINANCE'}
                                                     className={isValidated ? 'border-green-500' : ''}
                                                 />
                                                 <Button
                                                     type="button"
                                                     variant={isValidated ? 'success' : 'outline'}
                                                     onClick={handleTestKey}
-                                                    disabled={isTesting || (formData.provider !== 'TCMB' && !formData.apiKey.trim())}
+                                                    disabled={isTesting || (formData.provider !== 'TCMB' && formData.provider !== 'YAHOO_FINANCE' && !formData.apiKey.trim())}
                                                 >
                                                     {isTesting ? (
                                                         <RefreshCw className="h-4 w-4 animate-spin" />
@@ -837,8 +837,8 @@ export default function SettingsPage() {
                                             </div>
                                             {!isValidated && !editingConfig && (
                                                 <p className="text-xs text-muted-foreground">
-                                                    {formData.provider === 'TCMB'
-                                                        ? t('settings.apiKeys.validation.tcmbInfo')
+                                                    {formData.provider === 'TCMB' || formData.provider === 'YAHOO_FINANCE'
+                                                        ? t('settings.apiKeys.validation.optionalInfo')
                                                         : t('settings.apiKeys.validation.testRequired')}
                                                 </p>
                                             )}
@@ -874,8 +874,8 @@ export default function SettingsPage() {
                                         <DialogFooter>
                                             <Button
                                                 type="submit"
-                                                disabled={isAdding || (!isValidated && !editingConfig && formData.provider !== 'TCMB')}
-                                                className={(!isValidated && !editingConfig && formData.provider !== 'TCMB') ? 'opacity-50' : ''}
+                                                disabled={isAdding || (!isValidated && !editingConfig && formData.provider !== 'TCMB' && !(formData.provider === 'YAHOO_FINANCE' && !formData.apiKey.trim()))}
+                                                className={(!isValidated && !editingConfig && formData.provider !== 'TCMB' && !(formData.provider === 'YAHOO_FINANCE' && !formData.apiKey.trim())) ? 'opacity-50' : ''}
                                             >
                                                 {isAdding ? t('common.loading') : (editingConfig ? t('settings.apiKeys.update') : t('settings.apiKeys.save'))}
                                             </Button>

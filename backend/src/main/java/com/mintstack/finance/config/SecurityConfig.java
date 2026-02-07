@@ -82,12 +82,15 @@ public class SecurityConfig {
                 headers.referrerPolicy(referrer -> referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN));
                 // Permissions-Policy (Feature-Policy replacement)
                 headers.permissionsPolicy(permissions -> permissions.policy("accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"));
-                // HSTS - Enable in production with HTTPS
-                // headers.httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000).preload(true));
+                // HSTS - Strict Transport Security
+                headers.httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31536000)
+                    .preload(true));
                 // Content-Security-Policy
                 headers.contentSecurityPolicy(csp -> csp.policyDirectives(
                     "default-src 'self'; " +
-                    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+                    "script-src 'self' 'unsafe-inline'; " +
                     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
                     "font-src 'self' https://fonts.gstatic.com data:; " +
                     "img-src 'self' data: https: blob:; " +

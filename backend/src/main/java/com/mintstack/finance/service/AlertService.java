@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@io.micrometer.observation.annotation.Observed(name = "alert.service", contextualName = "alert-operations")
 public class AlertService {
 
     private final PriceAlertRepository alertRepository;

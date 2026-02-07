@@ -179,13 +179,15 @@
             "placeholder": {
                 "key": "Paste your key here",
                 "tcmb": "Not required for TCMB (can leave empty)",
+                "optional": "Not required (can leave empty)",
                 "secretKey": "Enter your secret key",
                 "baseUrl": "https://api.example.com"
             },
             "validation": {
                 "required": "Please enter an API key",
                 "testRequired": "You must test before saving",
-                "tcmbInfo": "TCMB is free, test to verify."
+                "tcmbInfo": "TCMB is free, test to verify.",
+                "optionalInfo": "API key is optional, you can leave it empty."
             }
         },
         "providers": {
