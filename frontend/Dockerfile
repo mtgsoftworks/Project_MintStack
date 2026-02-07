@@ -6,6 +6,20 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
+# Declare build arguments for Vite (embedded at build time)
+ARG VITE_API_URL=/api/v1
+ARG VITE_KEYCLOAK_URL
+ARG VITE_KEYCLOAK_REALM=mintstack-finance
+ARG VITE_KEYCLOAK_CLIENT_ID=finance-frontend
+ARG VITE_WS_URL
+
+# Make build args available as env vars for Vite
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL
+ENV VITE_KEYCLOAK_REALM=$VITE_KEYCLOAK_REALM
+ENV VITE_KEYCLOAK_CLIENT_ID=$VITE_KEYCLOAK_CLIENT_ID
+ENV VITE_WS_URL=$VITE_WS_URL
+
 # Copy source and build
 COPY . .
 RUN npm run build

@@ -105,7 +105,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: mintstack-backend-prod
+    # Note: container_name omitted intentionally — replicas: 2 is used
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}

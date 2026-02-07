@@ -4,6 +4,8 @@ import com.mintstack.finance.dto.request.CreateWatchlistRequest;
 import com.mintstack.finance.dto.response.WatchlistResponse;
 import com.mintstack.finance.entity.Watchlist;
 import com.mintstack.finance.entity.WatchlistItem;
+import org.mapstruct.BeanMapping;
+import org.mapstruct.Builder;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -32,17 +34,23 @@ public interface WatchlistMapper {
 
     List<WatchlistResponse> toResponseList(List<Watchlist> watchlists);
 
+    @BeanMapping(builder = @Builder(disableBuilder = true))
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "user", ignore = true)
     @Mapping(target = "items", ignore = true)
+    @Mapping(target = "isDefault", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "version", ignore = true)
     Watchlist toEntity(CreateWatchlistRequest request);
 
+    @BeanMapping(builder = @Builder(disableBuilder = true))
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "user", ignore = true)
     @Mapping(target = "items", ignore = true)
+    @Mapping(target = "isDefault", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "version", ignore = true)
     void updateFromRequest(CreateWatchlistRequest request, @MappingTarget Watchlist watchlist);
 }
