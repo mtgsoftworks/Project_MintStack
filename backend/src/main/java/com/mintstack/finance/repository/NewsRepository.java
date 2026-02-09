@@ -1,6 +1,7 @@
 package com.mintstack.finance.repository;
 
 import com.mintstack.finance.entity.News;
+import com.mintstack.finance.entity.NewsCategory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,6 +17,10 @@ import java.util.UUID;
 public interface NewsRepository extends JpaRepository<News, UUID> {
 
     Page<News> findAllByOrderByPublishedAtDesc(Pageable pageable);
+
+    Page<News> findByIsPublishedTrueOrderByPublishedAtDesc(Pageable pageable);
+
+    Page<News> findByCategoryAndIsPublishedTrueOrderByPublishedAtDesc(NewsCategory category, Pageable pageable);
 
     Page<News> findByCategoryIdOrderByPublishedAtDesc(UUID categoryId, Pageable pageable);
 

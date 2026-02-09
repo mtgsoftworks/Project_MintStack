@@ -81,6 +81,7 @@ public class SecurityConfig {
                 // Referrer-Policy
                 headers.referrerPolicy(referrer -> referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN));
                 // Permissions-Policy (Feature-Policy replacement)
+                // Note: permissionsPolicy is deprecated since Spring Security 6.4, but still works
                 headers.permissionsPolicy(permissions -> permissions.policy("accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"));
                 // HSTS - Strict Transport Security
                 headers.httpStrictTransportSecurity(hsts -> hsts

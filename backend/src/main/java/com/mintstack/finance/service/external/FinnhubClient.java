@@ -4,10 +4,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mintstack.finance.entity.CurrencyRate;
 import com.mintstack.finance.entity.CurrencyRate.RateSource;
+import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.UserApiConfig;
 import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
 import com.mintstack.finance.exception.ExternalApiException;
+import com.mintstack.finance.repository.CurrencyRateRepository;
+import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.UserApiConfigRepository;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,10 +30,14 @@ public class FinnhubClient {
     private final WebClient finnhubWebClient;
     private final ObjectMapper objectMapper;
     private final UserApiConfigRepository userApiConfigRepository;
+    private final InstrumentRepository instrumentRepository;
+    private final CurrencyRateRepository currencyRateRepository;
 
     /**
      * Fetch stock quote for a symbol
      */
+    @CircuitBreaker(name = "finnhubApi", fallbackMethod = "fetchStockQuoteFallback")
+    @Retry(name = "externalApi")
     public BigDecimal fetchStockQuote(String symbol) {
         List<UserApiConfig> configs = userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.FINNHUB);
         if (configs.isEmpty()) {
@@ -82,8 +91,20 @@ public class FinnhubClient {
     }
 
     /**
+     * Fallback for fetchStockQuote - returns last known price from DB
+     */
+    public BigDecimal fetchStockQuoteFallback(String symbol, Exception e) {
+        log.warn("Finnhub stock quote fallback for {}: {}", symbol, e.getMessage());
+        return instrumentRepository.findBySymbol(symbol)
+            .map(Instrument::getCurrentPrice)
+            .orElse(BigDecimal.ZERO);
+    }
+
+    /**
      * Fetch forex rate
      */
+    @CircuitBreaker(name = "finnhubApi", fallbackMethod = "fetchForexRateFallback")
+    @Retry(name = "externalApi")
     public CurrencyRate fetchForexRate(String fromCurrency, String toCurrency) {
         List<UserApiConfig> configs = userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.FINNHUB);
         if (configs.isEmpty()) {
@@ -144,8 +165,26 @@ public class FinnhubClient {
     }
 
     /**
+     * Fallback for fetchForexRate - returns last known rate from DB
+     */
+    public CurrencyRate fetchForexRateFallback(String fromCurrency, String toCurrency, Exception e) {
+        log.warn("Finnhub forex rate fallback for {}/{}: {}", fromCurrency, toCurrency, e.getMessage());
+        return currencyRateRepository.findByCurrencyCodeAndSource(fromCurrency, RateSource.FINNHUB)
+            .orElse(CurrencyRate.builder()
+                .currencyCode(fromCurrency)
+                .currencyName(fromCurrency + "/" + toCurrency)
+                .buyingRate(BigDecimal.ZERO)
+                .sellingRate(BigDecimal.ZERO)
+                .source(RateSource.FINNHUB)
+                .fetchedAt(LocalDateTime.now())
+                .build());
+    }
+
+    /**
      * Fetch crypto price
      */
+    @CircuitBreaker(name = "finnhubApi", fallbackMethod = "fetchCryptoPriceFallback")
+    @Retry(name = "externalApi")
     public BigDecimal fetchCryptoPrice(String symbol) {
         List<UserApiConfig> configs = userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.FINNHUB);
         if (configs.isEmpty()) {
@@ -193,5 +232,15 @@ public class FinnhubClient {
             log.error("Error fetching Finnhub crypto price for {}", symbol, e);
             throw new ExternalApiException("Finnhub", "Kripto fiyatı alınamadı: " + symbol, e);
         }
+    }
+
+    /**
+     * Fallback for fetchCryptoPrice - returns last known price from DB
+     */
+    public BigDecimal fetchCryptoPriceFallback(String symbol, Exception e) {
+        log.warn("Finnhub crypto price fallback for {}: {}", symbol, e.getMessage());
+        return instrumentRepository.findBySymbol(symbol)
+            .map(Instrument::getCurrentPrice)
+            .orElse(BigDecimal.ZERO);
     }
 }

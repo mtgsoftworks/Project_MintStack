@@ -236,10 +236,6 @@ class SimulationDataServiceTest {
     @Test
     @DisplayName("resetSimulation verileri sıfırlamalı")
     void testResetSimulation_ClearsAllState() {
-        // Given - Önce bazı fiyatları değiştir
-        SimulationDataService.SimulatedStock stock = simulationDataService.getStock("THYAO");
-        BigDecimal originalPrice = stock.getCurrentPrice();
-
         // When
         simulationDataService.resetSimulation();
         SimulationDataService.SimulatedStock resetStock = simulationDataService.getStock("THYAO");

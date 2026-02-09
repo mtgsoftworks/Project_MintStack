@@ -1,4 +1,80 @@
-import { baseApi } from './baseApi'
+import { baseApi, API_BASE_URL } from './baseApi'
+
+/**
+ * Export portfolio to Excel format.
+ * This function makes a direct fetch call to handle binary file download.
+ */
+export async function exportPortfolioToExcel(portfolioId, token) {
+  const response = await fetch(`${API_BASE_URL}/portfolios/${portfolioId}/export/excel`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  })
+  
+  if (!response.ok) {
+    throw new Error('Export failed')
+  }
+  
+  const blob = await response.blob()
+  const contentDisposition = response.headers.get('Content-Disposition')
+  let filename = `portfolio_${portfolioId}.xlsx`
+  
+  if (contentDisposition) {
+    const filenameMatch = contentDisposition.match(/filename\*?=['"]?(?:UTF-8'')?([^;\r\n"']*)['"]?/i)
+    if (filenameMatch && filenameMatch[1]) {
+      filename = decodeURIComponent(filenameMatch[1])
+    }
+  }
+  
+  // Trigger download
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(url)
+}
+
+/**
+ * Export portfolio to PDF format.
+ * This function makes a direct fetch call to handle binary file download.
+ */
+export async function exportPortfolioToPdf(portfolioId, token) {
+  const response = await fetch(`${API_BASE_URL}/portfolios/${portfolioId}/export/pdf`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  })
+  
+  if (!response.ok) {
+    throw new Error('Export failed')
+  }
+  
+  const blob = await response.blob()
+  const contentDisposition = response.headers.get('Content-Disposition')
+  let filename = `portfolio_${portfolioId}.pdf`
+  
+  if (contentDisposition) {
+    const filenameMatch = contentDisposition.match(/filename\*?=['"]?(?:UTF-8'')?([^;\r\n"']*)['"]?/i)
+    if (filenameMatch && filenameMatch[1]) {
+      filename = decodeURIComponent(filenameMatch[1])
+    }
+  }
+  
+  // Trigger download
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(url)
+}
 
 export const portfolioApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({

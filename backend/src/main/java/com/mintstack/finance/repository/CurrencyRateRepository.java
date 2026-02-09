@@ -24,6 +24,10 @@ public interface CurrencyRateRepository extends JpaRepository<CurrencyRate, UUID
 
     List<CurrencyRate> findBySource(RateSource source);
 
+    List<CurrencyRate> findBySourceOrderByFetchedAtDesc(RateSource source);
+
+    Optional<CurrencyRate> findByCurrencyCodeAndSource(String currencyCode, RateSource source);
+
     @Query("SELECT c FROM CurrencyRate c WHERE c.source = :source AND " +
            "c.fetchedAt = (SELECT MAX(c2.fetchedAt) FROM CurrencyRate c2 " +
            "WHERE c2.currencyCode = c.currencyCode AND c2.source = :source)")

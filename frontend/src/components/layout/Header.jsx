@@ -8,6 +8,8 @@ import {
   Settings,
   LogOut,
   ChevronDown,
+  Sun,
+  Moon,
 } from 'lucide-react'
 import { HamburgerIcon } from '@/components/ui/hamburger'
 import { cn } from '@/lib/utils'
@@ -27,6 +29,8 @@ import { useTranslation } from 'react-i18next'
 import {
   selectSidebarCollapsed,
   setMobileSidebarOpen,
+  selectTheme,
+  toggleTheme,
 } from '@/store/slices/uiSlice'
 import { selectUser, selectIsAuthenticated } from '@/store/slices/authSlice'
 import { getInitials } from '@/lib/utils'
@@ -39,6 +43,7 @@ export function Header() {
   const collapsed = useSelector(selectSidebarCollapsed)
   const user = useSelector(selectUser)
   const isAuthenticated = useSelector(selectIsAuthenticated)
+  const theme = useSelector(selectTheme)
   const { t } = useTranslation()
 
   const { data: notificationsData } = useGetNotificationsQuery(
@@ -97,6 +102,21 @@ export function Header() {
         {/* Mobile search */}
         <Button variant="ghost" size="icon" className="md:hidden">
           <Search className="h-5 w-5" />
+        </Button>
+
+        {/* Theme Toggle */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => dispatch(toggleTheme())}
+          aria-label={theme === 'dark' ? t('settings.appearance.lightMode') : t('settings.appearance.darkMode')}
+          title={theme === 'dark' ? t('settings.appearance.lightMode') : t('settings.appearance.darkMode')}
+        >
+          {theme === 'dark' ? (
+            <Sun className="h-5 w-5 text-yellow-500" />
+          ) : (
+            <Moon className="h-5 w-5 text-slate-700" />
+          )}
         </Button>
 
         {/* Language Switcher */}

@@ -1,11 +1,9 @@
 package com.mintstack.finance.service;
 
 import com.mintstack.finance.dto.request.DataPreferenceRequest;
-import com.mintstack.finance.dto.response.DataPreferenceResponse;
 import com.mintstack.finance.entity.User;
 import com.mintstack.finance.entity.UserApiConfig;
 import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
-import com.mintstack.finance.entity.UserDataPreference;
 import com.mintstack.finance.entity.UserDataPreference.DataType;
 import com.mintstack.finance.repository.UserApiConfigRepository;
 import com.mintstack.finance.repository.UserDataPreferenceRepository;
@@ -18,14 +16,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;

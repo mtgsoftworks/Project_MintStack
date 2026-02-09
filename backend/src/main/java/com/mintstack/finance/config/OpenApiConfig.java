@@ -27,7 +27,7 @@ public class OpenApiConfig {
         return new OpenAPI()
             .info(new Info()
                 .title("MintStack Finance Portal API")
-                .version("1.0.0")
+                .version(ApiVersioningConfig.CURRENT_API_VERSION)
                 .description("""
                     RESTful API for MintStack Finance Portal.
                     
@@ -40,6 +40,25 @@ public class OpenApiConfig {
                     ## Authentication
                     This API uses OAuth2/OpenID Connect via Keycloak.
                     Use the 'Authorize' button to authenticate.
+                    
+                    ## API Versioning
+                    
+                    ### URL-Based Versioning
+                    All API endpoints are versioned using URL path prefixes:
+                    - **v1**: `/api/v1/*` (Current stable version)
+                    
+                    ### Response Headers
+                    All API responses include the following headers:
+                    - `X-API-Version`: Current API version (e.g., "1.0.0")
+                    - `X-API-Min-Version`: Minimum supported API version
+                    - `X-API-Deprecated`: Present if version is deprecated
+                    - `X-API-Sunset`: Date when deprecated version will be removed
+                    
+                    ### Deprecation Policy
+                    - Deprecated versions are supported for 6 months after deprecation notice
+                    - Breaking changes only occur in major version increments
+                    - Minor versions add backwards-compatible features
+                    - Patch versions include bug fixes only
                     """)
                 .contact(new Contact()
                     .name("MintStack Team")

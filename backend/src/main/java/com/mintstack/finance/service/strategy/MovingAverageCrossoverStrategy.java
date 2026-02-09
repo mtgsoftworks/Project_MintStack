@@ -3,7 +3,6 @@ package com.mintstack.finance.service.strategy;
 import com.mintstack.finance.entity.PriceHistory;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 /**

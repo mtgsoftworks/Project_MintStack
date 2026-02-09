@@ -133,13 +133,11 @@ public class BacktestingService {
         double previousValue = cash;
 
         // Her gün için stratejiyi çalıştır
-        int historyStartIndex = 0;
         for (int i = 0; i < allHistory.size(); i++) {
             PriceHistory current = allHistory.get(i);
             
             // Başlangıç tarihinden önce sadece geçmiş biriktir
             if (current.getPriceDate().isBefore(startDate)) {
-                historyStartIndex = i;
                 continue;
             }
 

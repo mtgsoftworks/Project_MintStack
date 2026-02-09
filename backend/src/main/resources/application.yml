@@ -25,10 +25,10 @@ spring:
     show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        "[format_sql]": true
         dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
-          time_zone: UTC
+          "[time_zone]": UTC
     open-in-view: false
 
   # Flyway Configuration
@@ -38,7 +38,6 @@ spring:
     baseline-on-migrate: true
     validate-on-migrate: false
     out-of-order: true
-    repair-on-migrate: true
 
   # Redis Configuration
   data:
@@ -75,7 +74,7 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: "com.mintstack.finance.*"
+        "[spring.json.trusted.packages]": "com.mintstack.finance.*"
 
   # Security - OAuth2 Resource Server
   security:
@@ -105,22 +104,77 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus,circuitbreakers,circuitbreakerevents
       base-path: /actuator
   endpoint:
     health:
       show-details: when_authorized
       probes:
         enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
   metrics:
-    export:
-      prometheus:
-        enabled: true
     tags:
       application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
   tracing:
     sampling:
       probability: 1.0
+
+# Resilience4j Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 60s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slowCallDurationThreshold: 10s
+        slowCallRateThreshold: 100
+    instances:
+      tcmbApi:
+        baseConfig: default
+        waitDurationInOpenState: 120s
+      finnhubApi:
+        baseConfig: default
+        failureRateThreshold: 60
+      alphaVantageApi:
+        baseConfig: default
+        failureRateThreshold: 60
+      yahooFinanceApi:
+        baseConfig: default
+      rssNewsApi:
+        baseConfig: default
+        failureRateThreshold: 70
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - org.springframework.web.reactive.function.client.WebClientRequestException
+    instances:
+      externalApi:
+        baseConfig: default
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 15s
+        cancelRunningFuture: true
+    instances:
+      externalApi:
+        baseConfig: default
 
 # OpenSearch Configuration
 opensearch:
@@ -228,10 +282,10 @@ app:
 logging:
   level:
     root: INFO
-    com.mintstack.finance: DEBUG
-    org.springframework.security: INFO
-    org.hibernate.SQL: INFO
-    org.hibernate.type.descriptor.sql.BasicBinder: INFO
+    "[com.mintstack.finance]": DEBUG
+    "[org.springframework.security]": INFO
+    "[org.hibernate.SQL]": INFO
+    "[org.hibernate.type.descriptor.sql.BasicBinder]": INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId}] %-5level %logger{36} - %msg%n"
 
@@ -258,7 +312,7 @@ spring:
 
 logging:
   level:
-    com.mintstack.finance: DEBUG
+    "[com.mintstack.finance]": DEBUG
 
 ---
 # Production Profile
@@ -271,11 +325,10 @@ spring:
   flyway:
     validate-on-migrate: true
     out-of-order: false
-    repair-on-migrate: false
 
 logging:
   level:
     root: WARN
-    com.mintstack.finance: INFO
-    org.hibernate.SQL: WARN
-    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    "[com.mintstack.finance]": INFO
+    "[org.hibernate.SQL]": WARN
+    "[org.hibernate.type.descriptor.sql.BasicBinder]": WARN

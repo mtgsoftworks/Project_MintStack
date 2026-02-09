@@ -4,10 +4,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mintstack.finance.entity.CurrencyRate;
 import com.mintstack.finance.entity.CurrencyRate.RateSource;
+import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.UserApiConfig;
 import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
 import com.mintstack.finance.exception.ExternalApiException;
+import com.mintstack.finance.repository.CurrencyRateRepository;
+import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.UserApiConfigRepository;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,10 +30,14 @@ public class AlphaVantageClient {
     private final WebClient alphaVantageWebClient;
     private final ObjectMapper objectMapper;
     private final UserApiConfigRepository userApiConfigRepository;
+    private final CurrencyRateRepository currencyRateRepository;
+    private final InstrumentRepository instrumentRepository;
 
     /**
      * Fetch currency exchange rate
      */
+    @CircuitBreaker(name = "alphaVantageApi", fallbackMethod = "fetchExchangeRateFallback")
+    @Retry(name = "externalApi")
     public CurrencyRate fetchExchangeRate(String fromCurrency, String toCurrency) {
         List<UserApiConfig> configs = userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.ALPHA_VANTAGE);
         if (configs.isEmpty()) {
@@ -97,8 +106,26 @@ public class AlphaVantageClient {
     }
 
     /**
+     * Fallback for fetchExchangeRate - returns last known rate from DB
+     */
+    public CurrencyRate fetchExchangeRateFallback(String fromCurrency, String toCurrency, Exception e) {
+        log.warn("Alpha Vantage exchange rate fallback for {}/{}: {}", fromCurrency, toCurrency, e.getMessage());
+        return currencyRateRepository.findByCurrencyCodeAndSource(fromCurrency, RateSource.ALPHA_VANTAGE)
+            .orElse(CurrencyRate.builder()
+                .currencyCode(fromCurrency)
+                .currencyName(fromCurrency)
+                .buyingRate(BigDecimal.ZERO)
+                .sellingRate(BigDecimal.ZERO)
+                .source(RateSource.ALPHA_VANTAGE)
+                .fetchedAt(LocalDateTime.now())
+                .build());
+    }
+
+    /**
      * Fetch global quote for a stock
      */
+    @CircuitBreaker(name = "alphaVantageApi", fallbackMethod = "fetchGlobalQuoteFallback")
+    @Retry(name = "externalApi")
     public BigDecimal fetchGlobalQuote(String symbol) {
         List<UserApiConfig> configs = userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.ALPHA_VANTAGE);
         if (configs.isEmpty()) {
@@ -147,5 +174,15 @@ public class AlphaVantageClient {
             log.error("Error fetching Alpha Vantage quote for {}", symbol, e);
             throw new ExternalApiException("Alpha Vantage", "Fiyat bilgisi alınamadı: " + symbol, e);
         }
+    }
+
+    /**
+     * Fallback for fetchGlobalQuote - returns last known price from DB
+     */
+    public BigDecimal fetchGlobalQuoteFallback(String symbol, Exception e) {
+        log.warn("Alpha Vantage global quote fallback for {}: {}", symbol, e.getMessage());
+        return instrumentRepository.findBySymbol(symbol)
+            .map(Instrument::getCurrentPrice)
+            .orElse(BigDecimal.ZERO);
     }
 }

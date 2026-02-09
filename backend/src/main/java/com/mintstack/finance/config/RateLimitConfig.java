@@ -2,11 +2,9 @@ package com.mintstack.finance.config;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Refill;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
@@ -78,10 +76,10 @@ public class RateLimitConfig {
      * Create a new bucket with specified requests per minute
      */
     private Bucket createBucket(int requestsPerMinute) {
-        Bandwidth limit = Bandwidth.classic(
-            requestsPerMinute,
-            Refill.greedy(requestsPerMinute, Duration.ofMinutes(1))
-        );
+        Bandwidth limit = Bandwidth.builder()
+            .capacity(requestsPerMinute)
+            .refillGreedy(requestsPerMinute, Duration.ofMinutes(1))
+            .build();
         return Bucket.builder()
             .addLimit(limit)
             .build();

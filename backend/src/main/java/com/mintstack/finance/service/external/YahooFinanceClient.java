@@ -6,6 +6,8 @@ import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.PriceHistory;
 import com.mintstack.finance.exception.ExternalApiException;
 import com.mintstack.finance.repository.InstrumentRepository;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -35,6 +38,8 @@ public class YahooFinanceClient {
      * Fetch stock quote for BIST stocks (symbol.IS format)
      * Supports both RapidAPI (with key) and direct Yahoo Finance (no key)
      */
+    @CircuitBreaker(name = "yahooFinanceApi", fallbackMethod = "fetchStockPriceFallback")
+    @Retry(name = "externalApi")
     public BigDecimal fetchStockPrice(String symbol, String apiKey, String baseUrl) {
         try {
             String yahooSymbol = symbol;
@@ -104,8 +109,19 @@ public class YahooFinanceClient {
     }
 
     /**
+     * Fallback for fetchStockPrice - returns last known price from DB
+     */
+    public BigDecimal fetchStockPriceFallback(String symbol, String apiKey, String baseUrl, Exception e) {
+        log.warn("Yahoo Finance stock price fallback for {}: {}", symbol, e.getMessage());
+        return instrumentRepository.findBySymbol(symbol)
+            .map(Instrument::getCurrentPrice)
+            .orElse(BigDecimal.ZERO);
+    }
+
+    /**
      * Fetch historical data for a stock
      */
+    @CircuitBreaker(name = "yahooFinanceApi", fallbackMethod = "fetchHistoricalDataFallback")
     public List<PriceHistory> fetchHistoricalData(String symbol, LocalDate startDate, LocalDate endDate, String apiKey, String baseUrl) {
         List<PriceHistory> history = new ArrayList<>();
         
@@ -179,6 +195,14 @@ public class YahooFinanceClient {
             log.error("Error fetching Yahoo Finance historical data for {}", symbol, e);
             throw new ExternalApiException("Yahoo Finance", "Geçmiş veri alınamadı: " + symbol, e);
         }
+    }
+
+    /**
+     * Fallback for fetchHistoricalData - returns empty list
+     */
+    public List<PriceHistory> fetchHistoricalDataFallback(String symbol, LocalDate startDate, LocalDate endDate, String apiKey, String baseUrl, Exception e) {
+        log.warn("Yahoo Finance historical data fallback for {}: {}", symbol, e.getMessage());
+        return Collections.emptyList();
     }
 
     /**

@@ -3,8 +3,12 @@ package com.mintstack.finance.service.external;
 import com.mintstack.finance.entity.News;
 import com.mintstack.finance.entity.NewsCategory;
 import com.mintstack.finance.repository.NewsCategoryRepository;
+import com.mintstack.finance.repository.NewsRepository;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -25,6 +29,7 @@ import java.util.*;
 public class RssNewsClient {
 
     private final NewsCategoryRepository categoryRepository;
+    private final NewsRepository newsRepository;
 
     // RSS Feed URLs for Turkish financial news
     private static final Map<String, String> RSS_FEEDS = Map.of(
@@ -43,6 +48,7 @@ public class RssNewsClient {
     /**
      * Fetch news from all RSS feeds
      */
+    @CircuitBreaker(name = "rssNewsApi", fallbackMethod = "fetchAllNewsFallback")
     public List<News> fetchAllNews() {
         List<News> allNews = new ArrayList<>();
         
@@ -71,8 +77,19 @@ public class RssNewsClient {
     }
 
     /**
+     * Fallback for fetchAllNews - returns cached news from DB
+     */
+    public List<News> fetchAllNewsFallback(Exception e) {
+        log.warn("RSS News fallback triggered: {}", e.getMessage());
+        return newsRepository.findByIsPublishedTrueOrderByPublishedAtDesc(PageRequest.of(0, 50))
+            .getContent();
+    }
+
+    /**
      * Fetch news from a specific RSS feed
      */
+    @CircuitBreaker(name = "rssNewsApi", fallbackMethod = "fetchNewsFromRssFallback")
+    @Retry(name = "externalApi")
     public List<News> fetchNewsFromRss(String rssUrl, String categorySlug) {
         List<News> newsList = new ArrayList<>();
         
@@ -200,5 +217,16 @@ public class RssNewsClient {
                 return LocalDateTime.now();
             }
         }
+    }
+
+    /**
+     * Fallback for fetchNewsFromRss - returns cached news from DB for the category
+     */
+    public List<News> fetchNewsFromRssFallback(String rssUrl, String categorySlug, Exception e) {
+        log.warn("RSS News fallback for category {}: {}", categorySlug, e.getMessage());
+        return categoryRepository.findBySlug(categorySlug)
+            .map(category -> newsRepository.findByCategoryAndIsPublishedTrueOrderByPublishedAtDesc(
+                category, PageRequest.of(0, 10)).getContent())
+            .orElse(Collections.emptyList());
     }
 }

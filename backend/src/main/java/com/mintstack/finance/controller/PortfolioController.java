@@ -7,13 +7,17 @@ import com.mintstack.finance.dto.response.PortfolioResponse;
 import com.mintstack.finance.dto.response.PortfolioSummaryResponse;
 import com.mintstack.finance.dto.response.PortfolioTransactionResponse;
 import com.mintstack.finance.dto.response.PaginationInfo;
+import com.mintstack.finance.service.ExportService;
 import com.mintstack.finance.service.PortfolioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -22,6 +26,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,6 +40,7 @@ import java.util.UUID;
 public class PortfolioController {
 
     private final PortfolioService portfolioService;
+    private final ExportService exportService;
     private final com.mintstack.finance.service.UserService userService;
 
     @GetMapping
@@ -131,5 +139,52 @@ public class PortfolioController {
             @PathVariable UUID id) {
         PortfolioResponse summary = portfolioService.getPortfolioSummary(jwt.getSubject(), id);
         return ResponseEntity.ok(ApiResponse.success(summary));
+    }
+
+    @GetMapping("/{id}/export/excel")
+    @Operation(summary = "Portföyü Excel formatında dışa aktar")
+    public ResponseEntity<byte[]> exportToExcel(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id) {
+        PortfolioResponse portfolio = portfolioService.getPortfolio(jwt.getSubject(), id);
+        byte[] excelBytes = exportService.exportPortfolioToExcel(portfolio);
+        
+        String filename = generateFilename(portfolio.getName(), "xlsx");
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename(filename, StandardCharsets.UTF_8)
+                .build());
+        headers.setContentLength(excelBytes.length);
+        
+        return new ResponseEntity<>(excelBytes, headers, HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}/export/pdf")
+    @Operation(summary = "Portföyü PDF formatında dışa aktar")
+    public ResponseEntity<byte[]> exportToPdf(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id) {
+        PortfolioResponse portfolio = portfolioService.getPortfolio(jwt.getSubject(), id);
+        byte[] pdfBytes = exportService.exportPortfolioToPdf(portfolio);
+        
+        String filename = generateFilename(portfolio.getName(), "pdf");
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename(filename, StandardCharsets.UTF_8)
+                .build());
+        headers.setContentLength(pdfBytes.length);
+        
+        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+    }
+
+    private String generateFilename(String portfolioName, String extension) {
+        String sanitizedName = portfolioName.replaceAll("[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ\\s-]", "")
+                .replaceAll("\\s+", "_");
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        return String.format("portfoy_%s_%s.%s", sanitizedName, timestamp, extension);
     }
 }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Plus, Trash2, Edit, TrendingUp, TrendingDown } from 'lucide-react'
+import { useSelector } from 'react-redux'
+import { ArrowLeft, Plus, Trash2, Edit, TrendingUp, TrendingDown, FileSpreadsheet, FileText, Download } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,13 +25,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn, formatCurrency, formatPercent, formatNumber, formatDate } from '@/lib/utils'
 import { 
   useGetPortfolioQuery,
   useAddPortfolioItemMutation,
   useRemovePortfolioItemMutation,
   useGetPortfolioTransactionsQuery,
+  exportPortfolioToExcel,
+  exportPortfolioToPdf,
 } from '@/store/api/portfolioApi'
+import { selectToken } from '@/store/slices/authSlice'
 import { toast } from 'sonner'
 import PieChart from '@/components/charts/PieChart'
 
@@ -136,8 +146,10 @@ function AddItemDialog({ portfolioId, open, onOpenChange }) {
 export default function PortfolioDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams()
+  const token = useSelector(selectToken)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [transactionsPage, setTransactionsPage] = useState(0)
+  const [isExporting, setIsExporting] = useState(false)
   const { data: portfolio, isLoading, error } = useGetPortfolioQuery(id)
   const {
     data: transactionsData,
@@ -162,6 +174,38 @@ export default function PortfolioDetailPage() {
       } catch (error) {
         toast.error(t('portfolioDetailPage.toast.deleteError'))
       }
+    }
+  }
+
+  const handleExportExcel = async () => {
+    if (!token) {
+      toast.error(t('portfolioDetailPage.export.authRequired'))
+      return
+    }
+    setIsExporting(true)
+    try {
+      await exportPortfolioToExcel(id, token)
+      toast.success(t('portfolioDetailPage.export.excelSuccess'))
+    } catch (error) {
+      toast.error(t('portfolioDetailPage.export.excelError'))
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleExportPdf = async () => {
+    if (!token) {
+      toast.error(t('portfolioDetailPage.export.authRequired'))
+      return
+    }
+    setIsExporting(true)
+    try {
+      await exportPortfolioToPdf(id, token)
+      toast.success(t('portfolioDetailPage.export.pdfSuccess'))
+    } catch (error) {
+      toast.error(t('portfolioDetailPage.export.pdfError'))
+    } finally {
+      setIsExporting(false)
     }
   }
 
@@ -221,10 +265,32 @@ export default function PortfolioDetailPage() {
             <p className="text-muted-foreground">{portfolio.description}</p>
           )}
         </div>
-        <Button onClick={() => setAddDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          {t('portfolioDetailPage.addItem')}
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Export Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={isExporting}>
+                <Download className="mr-2 h-4 w-4" />
+                {isExporting ? t('portfolioDetailPage.export.exporting') : t('portfolioDetailPage.export.title')}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportExcel}>
+                <FileSpreadsheet className="mr-2 h-4 w-4 text-green-600" />
+                {t('portfolioDetailPage.export.excel')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPdf}>
+                <FileText className="mr-2 h-4 w-4 text-red-600" />
+                {t('portfolioDetailPage.export.pdf')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button onClick={() => setAddDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            {t('portfolioDetailPage.addItem')}
+          </Button>
+        </div>
       </div>
 
       {/* Summary and Chart */}

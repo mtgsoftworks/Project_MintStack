@@ -1,0 +1,83 @@
+# Alertmanager Configuration for MintStack Finance Portal
+global:
+  # Global SMTP settings (update with your SMTP server)
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alertmanager@mintstack.com'
+  # smtp_auth_username: 'your-email@gmail.com'
+  # smtp_auth_password: 'your-app-password'
+
+# Route tree
+route:
+  # Default receiver
+  receiver: 'default-receiver'
+  
+  # Group alerts by these labels
+  group_by: ['alertname', 'severity']
+  
+  # Wait before sending first notification
+  group_wait: 30s
+  
+  # Wait before sending next notification about same group
+  group_interval: 5m
+  
+  # Repeat notification interval
+  repeat_interval: 4h
+
+  # Child routes for specific alert handling
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-receiver'
+      group_wait: 10s
+      repeat_interval: 1h
+    
+    # Warning alerts
+    - match:
+        severity: warning
+      receiver: 'warning-receiver'
+      group_wait: 1m
+      repeat_interval: 4h
+
+# Receivers
+receivers:
+  - name: 'default-receiver'
+    # Webhook receiver (can integrate with Slack, Teams, etc.)
+    # webhook_configs:
+    #   - url: 'http://your-webhook-endpoint/alerts'
+    #     send_resolved: true
+
+  - name: 'critical-receiver'
+    # Email notifications for critical alerts
+    # email_configs:
+    #   - to: 'ops-team@mintstack.com'
+    #     send_resolved: true
+    #     headers:
+    #       subject: '[CRITICAL] MintStack Alert: {{ .GroupLabels.alertname }}'
+    
+    # Webhook for Slack/Teams
+    # webhook_configs:
+    #   - url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+    #     send_resolved: true
+
+  - name: 'warning-receiver'
+    # Email notifications for warnings
+    # email_configs:
+    #   - to: 'dev-team@mintstack.com'
+    #     send_resolved: true
+
+# Inhibition rules - prevent notification floods
+inhibit_rules:
+  # If ApplicationDown is firing, suppress all other backend alerts
+  - source_match:
+      alertname: 'ApplicationDown'
+    target_match_re:
+      alertname: '.*'
+    equal: ['job']
+  
+  # If critical, suppress warning for same alertname
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname']

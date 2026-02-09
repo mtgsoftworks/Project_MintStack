@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Search, RefreshCw, TrendingUp, TrendingDown, ArrowUpDown } from 'lucide-react'
+import { Search, RefreshCw, TrendingUp, TrendingDown, ArrowUpDown, List, LayoutGrid } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import {
   Table,
   TableBody,
@@ -17,6 +19,7 @@ import {
 } from '@/components/ui/table'
 import { cn, formatCurrency, formatPercent } from '@/lib/utils'
 import { useGetStocksQuery } from '@/store/api/marketApi'
+import { useVirtualizer } from '@tanstack/react-virtual'
 
 function StockTableSkeleton() {
   return (
@@ -28,26 +31,86 @@ function StockTableSkeleton() {
   )
 }
 
+// Virtual scrolling stock row component
+function VirtualStockRow({ stock }) {
+  const { t } = useTranslation()
+  return (
+    <div className="flex items-center px-4 gap-4 h-14 border-b hover:bg-muted/50 transition-colors">
+      <div className="w-[180px] flex-shrink-0">
+        <Link
+          to={`/market/stocks/${stock.symbol}`}
+          className="flex items-center gap-3 hover:text-primary transition-colors"
+        >
+          <div className={cn(
+            "flex h-10 w-10 items-center justify-center rounded-lg",
+            stock.changePercent >= 0 ? "bg-success/10" : "bg-danger/10"
+          )}>
+            {stock.changePercent >= 0 ? (
+              <TrendingUp className="h-5 w-5 text-success" />
+            ) : (
+              <TrendingDown className="h-5 w-5 text-danger" />
+            )}
+          </div>
+          <span className="font-semibold">{stock.symbol}</span>
+        </Link>
+      </div>
+      <div className="flex-1 min-w-0">
+        <span className="text-muted-foreground truncate block">
+          {stock.name}
+        </span>
+      </div>
+      <div className="w-[120px] text-right font-semibold flex-shrink-0">
+        {formatCurrency(stock.currentPrice, 'TRY')}
+      </div>
+      <div className="w-[100px] text-right flex-shrink-0">
+        <Badge variant={stock.changePercent >= 0 ? 'success' : 'danger'}>
+          {formatPercent(stock.changePercent || 0)}
+        </Badge>
+      </div>
+      <div className="w-[100px] text-right text-muted-foreground flex-shrink-0">
+        {formatCurrency(stock.previousClose, 'TRY')}
+      </div>
+      <div className="w-[100px] text-right text-muted-foreground flex-shrink-0">
+        {stock.volume?.toLocaleString('tr-TR') || '-'}
+      </div>
+    </div>
+  )
+}
+
 export default function StocksPage() {
   const { t } = useTranslation()
   const [page, setPage] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('symbol')
   const [sortOrder, setSortOrder] = useState('asc')
+  const [useVirtualScroll, setUseVirtualScroll] = useState(false)
+  const parentRef = useRef(null)
+
+  // Load more items when virtual scrolling is enabled
+  const pageSize = useVirtualScroll ? 100 : 20
 
   const { data, isLoading, isFetching, refetch } = useGetStocksQuery({
-    page,
-    size: 20,
+    page: useVirtualScroll ? 0 : page,
+    size: pageSize,
     sort: `${sortBy},${sortOrder}`,
   })
 
   const stocks = data?.data || []
   const totalPages = data?.pagination?.totalPages || 0
+  const totalElements = data?.pagination?.totalElements || 0
 
   const filteredStocks = stocks.filter((stock) =>
     stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
     stock.name?.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  // Virtual scrolling setup
+  const virtualizer = useVirtualizer({
+    count: filteredStocks.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 56,
+    overscan: 10,
+  })
 
   const handleSort = (field) => {
     if (sortBy === field) {
@@ -68,7 +131,29 @@ export default function StocksPage() {
             {t('stocksPage.subtitle')}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
+          {/* Virtual Scroll Toggle */}
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="virtual-mode"
+              checked={useVirtualScroll}
+              onCheckedChange={setUseVirtualScroll}
+            />
+            <Label htmlFor="virtual-mode" className="text-sm cursor-pointer">
+              {useVirtualScroll ? (
+                <span className="flex items-center gap-1">
+                  <LayoutGrid className="h-4 w-4" />
+                  {t('stocksPage.virtualMode', { defaultValue: 'Sanal Liste' })}
+                </span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <List className="h-4 w-4" />
+                  {t('stocksPage.paginatedMode', { defaultValue: 'Sayfalı' })}
+                </span>
+              )}
+            </Label>
+          </div>
+
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -100,7 +185,100 @@ export default function StocksPage() {
         <CardContent>
           {isLoading ? (
             <StockTableSkeleton />
+          ) : useVirtualScroll ? (
+            /* Virtual Scrolling Mode */
+            <div className="border rounded-lg">
+              {/* Header */}
+              <div className="flex items-center px-4 h-12 border-b bg-muted/50 text-sm font-medium text-muted-foreground">
+                <div className="w-[180px] flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="-ml-3 h-8"
+                    onClick={() => handleSort('symbol')}
+                  >
+                    {t('stocksPage.headers.symbol')}
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex-1">{t('stocksPage.headers.company')}</div>
+                <div className="w-[120px] text-right flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="-mr-3 h-8"
+                    onClick={() => handleSort('currentPrice')}
+                  >
+                    {t('stocksPage.headers.price')}
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="w-[100px] text-right flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="-mr-3 h-8"
+                    onClick={() => handleSort('changePercent')}
+                  >
+                    {t('stocksPage.headers.change')}
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="w-[100px] text-right flex-shrink-0">{t('stocksPage.headers.previousClose')}</div>
+                <div className="w-[100px] text-right flex-shrink-0">{t('stocksPage.headers.volume')}</div>
+              </div>
+
+              {/* Virtual List */}
+              {filteredStocks.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  {t('stocksPage.empty')}
+                </div>
+              ) : (
+                <div
+                  ref={parentRef}
+                  className="overflow-auto"
+                  style={{ height: '500px' }}
+                >
+                  <div
+                    style={{
+                      height: `${virtualizer.getTotalSize()}px`,
+                      width: '100%',
+                      position: 'relative',
+                    }}
+                  >
+                    {virtualizer.getVirtualItems().map((virtualRow) => {
+                      const stock = filteredStocks[virtualRow.index]
+                      return (
+                        <div
+                          key={virtualRow.key}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: `${virtualRow.size}px`,
+                            transform: `translateY(${virtualRow.start}px)`,
+                          }}
+                        >
+                          <VirtualStockRow stock={stock} />
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Info */}
+              <div className="px-4 py-2 border-t bg-muted/30 text-xs text-muted-foreground">
+                {t('stocksPage.virtualInfo', { 
+                  visible: filteredStocks.length,
+                  total: totalElements,
+                  defaultValue: `${filteredStocks.length} / ${totalElements} hisse gösteriliyor`
+                })}
+              </div>
+            </div>
           ) : (
+            /* Regular Paginated Mode */
             <>
               <Table>
                 <TableHeader>

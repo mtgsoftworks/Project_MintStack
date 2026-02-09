@@ -3,8 +3,6 @@ package com.mintstack.finance.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "user_notifications", indexes = {
     @Index(name = "idx_notifications_user_id", columnList = "user_id"),

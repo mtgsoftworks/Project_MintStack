@@ -580,6 +580,17 @@
                 "buy": "Buy",
                 "sell": "Sell"
             }
+        },
+        "export": {
+            "title": "Export",
+            "exporting": "Exporting...",
+            "excel": "Excel (.xlsx)",
+            "pdf": "PDF (.pdf)",
+            "excelSuccess": "Excel file downloaded successfully",
+            "excelError": "Excel export failed",
+            "pdfSuccess": "PDF file downloaded successfully",
+            "pdfError": "PDF export failed",
+            "authRequired": "Please login to export"
         }
     },
     "settingsPage": {

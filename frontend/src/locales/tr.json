@@ -537,6 +537,17 @@
                 "buy": "Alış",
                 "sell": "Satış"
             }
+        },
+        "export": {
+            "title": "Dışa Aktar",
+            "exporting": "Dışa aktarılıyor...",
+            "excel": "Excel (.xlsx)",
+            "pdf": "PDF (.pdf)",
+            "excelSuccess": "Excel dosyası başarıyla indirildi",
+            "excelError": "Excel dışa aktarma başarısız",
+            "pdfSuccess": "PDF dosyası başarıyla indirildi",
+            "pdfError": "PDF dışa aktarma başarısız",
+            "authRequired": "Dışa aktarma için giriş yapmalısınız"
         }
     },
     "settingsPage": {

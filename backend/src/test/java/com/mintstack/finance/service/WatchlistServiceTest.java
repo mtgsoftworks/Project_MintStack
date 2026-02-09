@@ -181,7 +181,7 @@ class WatchlistServiceTest {
         when(watchlistRepository.save(any(Watchlist.class))).thenReturn(watchlist);
 
         // When
-        WatchlistResponse result = watchlistService.updateWatchlist("test-keycloak-id", watchlist.getId(), request);
+        watchlistService.updateWatchlist("test-keycloak-id", watchlist.getId(), request);
 
         // Then
         assertThat(watchlist.getName()).isEqualTo("Updated Name");
@@ -219,7 +219,7 @@ class WatchlistServiceTest {
         when(watchlistRepository.save(any(Watchlist.class))).thenReturn(watchlist);
 
         // When
-        WatchlistResponse result = watchlistService.addInstrument("test-keycloak-id", watchlist.getId(), "THYAO");
+        watchlistService.addInstrument("test-keycloak-id", watchlist.getId(), "THYAO");
 
         // Then
         verify(watchlistRepository).save(watchlist);
@@ -255,7 +255,7 @@ class WatchlistServiceTest {
         when(watchlistRepository.save(any(Watchlist.class))).thenReturn(watchlist);
 
         // When
-        WatchlistResponse result = watchlistService.removeInstrument("test-keycloak-id", watchlist.getId(), "THYAO");
+        watchlistService.removeInstrument("test-keycloak-id", watchlist.getId(), "THYAO");
 
         // Then
         verify(watchlistRepository).save(watchlist);

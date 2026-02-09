@@ -3,6 +3,9 @@ package com.mintstack.finance.service.external;
 import com.mintstack.finance.entity.CurrencyRate;
 import com.mintstack.finance.entity.CurrencyRate.RateSource;
 import com.mintstack.finance.exception.ExternalApiException;
+import com.mintstack.finance.repository.CurrencyRateRepository;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,19 +31,34 @@ import java.util.List;
 public class TcmbApiClient {
 
     private final WebClient tcmbWebClient;
+    private final CurrencyRateRepository currencyRateRepository;
 
     /**
      * Fetch today's currency rates from TCMB
      * Falls back to previous business day if today's rates not available
      */
+    @CircuitBreaker(name = "tcmbApi", fallbackMethod = "fetchTodayRatesFallback")
+    @Retry(name = "externalApi")
     public List<CurrencyRate> fetchTodayRates() {
         return fetchRates(LocalDate.now());
+    }
+
+    /**
+     * Fallback method for fetchTodayRates - returns cached rates from DB
+     */
+    public List<CurrencyRate> fetchTodayRatesFallback(Exception e) {
+        log.warn("TCMB API fallback triggered: {}", e.getMessage());
+        return currencyRateRepository.findBySourceOrderByFetchedAtDesc(RateSource.TCMB)
+            .stream()
+            .limit(50)
+            .toList();
     }
 
     /**
      * Fetch currency rates for a specific date from TCMB
      * If 404, tries previous days (TCMB doesn't publish on weekends/holidays)
      */
+    @CircuitBreaker(name = "tcmbApi", fallbackMethod = "fetchRatesFallback")
     public List<CurrencyRate> fetchRates(LocalDate date) {
         int maxRetries = 5; // Try up to 5 previous days
         LocalDate currentDate = date;
@@ -79,6 +97,17 @@ public class TcmbApiClient {
         }
         
         throw new ExternalApiException("TCMB", "Son " + maxRetries + " gün için kur bilgisi bulunamadı");
+    }
+
+    /**
+     * Fallback method for fetchRates - returns cached rates from DB
+     */
+    public List<CurrencyRate> fetchRatesFallback(LocalDate date, Exception e) {
+        log.warn("TCMB API fallback triggered for date {}: {}", date, e.getMessage());
+        return currencyRateRepository.findBySourceOrderByFetchedAtDesc(RateSource.TCMB)
+            .stream()
+            .limit(50)
+            .toList();
     }
 
     private String buildUrl(LocalDate date) {

@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import Keycloak from 'keycloak-js'
 import { setAuth, setInitialized } from '@/store/slices/authSlice'
-import { selectAutoUpdate, selectRefreshRate } from '@/store/slices/uiSlice'
+import { selectAutoUpdate, selectRefreshRate, selectTheme } from '@/store/slices/uiSlice'
 import { Layout, ProtectedRoute } from '@/components/layout'
 import websocketService from '@/services/websocketService'
 
@@ -49,8 +49,16 @@ function App() {
   const dispatch = useDispatch()
   const autoUpdate = useSelector(selectAutoUpdate)
   const refreshRate = useSelector(selectRefreshRate)
+  const theme = useSelector(selectTheme)
   const dataRefreshIntervalRef = useRef(null)
   const tokenRefreshIntervalRef = useRef(null)
+
+  // Apply theme class to document root
+  useEffect(() => {
+    const root = document.documentElement
+    root.classList.remove('light', 'dark')
+    root.classList.add(theme)
+  }, [theme])
 
   // Function to trigger data refresh via WebSocket
   const triggerDataRefresh = useCallback(() => {

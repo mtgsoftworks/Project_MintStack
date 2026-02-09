@@ -22,7 +22,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * Monte Carlo Simülasyon Servisi
@@ -37,7 +36,6 @@ public class MonteCarloService {
     private final PortfolioRepository portfolioRepository;
 
     private static final int DEFAULT_SIMULATIONS = 10000;
-    private static final double DEFAULT_CONFIDENCE = 0.95;
     private static final int TRADING_DAYS_PER_YEAR = 252;
 
     private final ExecutorService executor = Executors.newFixedThreadPool(
@@ -272,8 +270,6 @@ public class MonteCarloService {
         double dt = 1.0 / TRADING_DAYS_PER_YEAR;
         double drift = (annualizedReturn - 0.5 * annualizedVolatility * annualizedVolatility) * dt;
         double diffusion = annualizedVolatility * Math.sqrt(dt);
-
-        Random random = new Random();
 
         // Paralel simülasyon
         int batchSize = simulations / Runtime.getRuntime().availableProcessors();

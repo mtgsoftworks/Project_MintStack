@@ -112,7 +112,6 @@ class PriceSimulationEngineTest {
         int iterations = 100;
 
         // Başlangıç fiyatı ortalamanın üstünde, zaman içinde düşmeli
-        double sumDeviation = 0;
         BigDecimal price = currentPrice;
 
         // When
@@ -120,7 +119,6 @@ class PriceSimulationEngineTest {
             price = priceEngine.simulateMeanReversion(
                     symbol, price, meanPrice, baseVolatility,
                     VolatilityLevel.MEDIUM, reversionSpeed, 5);
-            sumDeviation += Math.abs(price.doubleValue() - meanPrice.doubleValue());
         }
 
         // Then - Fiyat sınırlar içinde kalmalı
