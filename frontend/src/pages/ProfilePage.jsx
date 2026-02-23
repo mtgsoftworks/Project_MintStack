@@ -1,6 +1,6 @@
 import { useSelector, useDispatch } from 'react-redux'
-import { User, Mail, Phone, Settings, Key, Bell, Shield } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Key, Shield } from 'lucide-react'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,7 +21,7 @@ export default function ProfilePage() {
   const roles = useSelector(selectRoles)
   const theme = useSelector(selectTheme)
   const dispatch = useDispatch()
-  const { data: profile, isLoading } = useGetProfileQuery()
+  const { data: profile } = useGetProfileQuery()
   const [updateProfile, { isLoading: updating }] = useUpdateProfileMutation()
 
   const [firstName, setFirstName] = useState('')

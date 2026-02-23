@@ -1,9 +1,16 @@
 package com.mintstack.finance.controller;
 
+import com.mintstack.finance.config.RateLimitConfig;
 import com.mintstack.finance.entity.SimulationConfig;
 import com.mintstack.finance.entity.SimulationConfig.MarketTrend;
 import com.mintstack.finance.entity.SimulationConfig.VolatilityLevel;
 import com.mintstack.finance.scheduler.SimulationScheduler;
+import com.mintstack.finance.service.PriceCacheService;
+import com.mintstack.finance.service.simulation.MarketEventEngine;
+import com.mintstack.finance.service.simulation.PriceSimulationEngine;
+import com.mintstack.finance.service.simulation.SimulatedCurrency;
+import com.mintstack.finance.service.simulation.SimulatedIndex;
+import com.mintstack.finance.service.simulation.SimulatedStock;
 import com.mintstack.finance.service.simulation.SimulationDataService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +54,18 @@ class SimulationControllerTest {
     @MockitoBean
     private SimulationScheduler simulationScheduler;
 
+    @MockitoBean
+    private PriceSimulationEngine priceSimulationEngine;
+
+    @MockitoBean
+    private MarketEventEngine marketEventEngine;
+
+    @MockitoBean
+    private PriceCacheService priceCacheService;
+
+    @MockitoBean
+    private RateLimitConfig rateLimitConfig;
+
     private SimulationConfig testConfig;
 
     @BeforeEach
@@ -64,7 +83,7 @@ class SimulationControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("GET /api/v1/simulation/config config döndürmeli")
+    @DisplayName("GET /api/v1/simulation/config config dÃ¶ndÃ¼rmeli")
     void testGetConfig_ReturnsConfig() throws Exception {
         // Given
         when(simulationDataService.getConfig()).thenReturn(testConfig);
@@ -80,7 +99,7 @@ class SimulationControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("POST /api/v1/simulation/config config güncellemeli")
+    @DisplayName("POST /api/v1/simulation/config config gÃ¼ncellemeli")
     void testUpdateConfig_ReturnsUpdatedConfig() throws Exception {
         // Given
         SimulationConfig updatedConfig = SimulationConfig.builder()
@@ -101,6 +120,7 @@ class SimulationControllerTest {
         request.put("marketTrend", "BULLISH");
         request.put("updateIntervalSeconds", 10);
         request.put("enableRandomEvents", false);
+        request.put("enableMarketHours", true);
 
         // When & Then
         mockMvc.perform(post("/api/v1/simulation/config")
@@ -118,7 +138,7 @@ class SimulationControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("POST /api/v1/simulation/toggle simülasyonu toggle etmeli")
+    @DisplayName("POST /api/v1/simulation/toggle simÃ¼lasyonu toggle etmeli")
     void testToggle_TogglesSimulation() throws Exception {
         // Given
         when(simulationDataService.getConfig()).thenReturn(testConfig);
@@ -145,7 +165,7 @@ class SimulationControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("POST /api/v1/simulation/reset simülasyonu sıfırlamalı")
+    @DisplayName("POST /api/v1/simulation/reset simÃ¼lasyonu sÄ±fÄ±rlamalÄ±")
     void testReset_ResetsSimulation() throws Exception {
         // Given
         doNothing().when(simulationDataService).resetSimulation();
@@ -163,23 +183,24 @@ class SimulationControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("GET /api/v1/simulation/status tam durum döndürmeli")
+    @DisplayName("GET /api/v1/simulation/status tam durum dÃ¶ndÃ¼rmeli")
     void testGetStatus_ReturnsCompleteStatus() throws Exception {
         // Given
         when(simulationDataService.getConfig()).thenReturn(testConfig);
         when(simulationScheduler.getTickCount()).thenReturn(100L);
         
-        Map<String, SimulationDataService.SimulatedStock> stocks = new HashMap<>();
-        stocks.put("THYAO", new SimulationDataService.SimulatedStock("THY", "BIST", 100.0, 0.02));
+        Map<String, SimulatedStock> stocks = new HashMap<>();
+        stocks.put("THYAO", new SimulatedStock("THY", "BIST", 100.0, 0.02));
         when(simulationDataService.getStocks()).thenReturn(stocks);
 
-        Map<String, SimulationDataService.SimulatedCurrency> currencies = new HashMap<>();
-        currencies.put("USD", new SimulationDataService.SimulatedCurrency("USD", 38.0, 38.5, 0.01));
+        Map<String, SimulatedCurrency> currencies = new HashMap<>();
+        currencies.put("USD", new SimulatedCurrency("USD", 38.0, 38.5, 0.01));
         when(simulationDataService.getCurrencies()).thenReturn(currencies);
 
-        Map<String, SimulationDataService.SimulatedIndex> indices = new HashMap<>();
-        indices.put("XU100", new SimulationDataService.SimulatedIndex("BIST 100", 9850.0, 0.015));
+        Map<String, SimulatedIndex> indices = new HashMap<>();
+        indices.put("XU100", new SimulatedIndex("BIST 100", 9850.0, 0.015));
         when(simulationDataService.getIndices()).thenReturn(indices);
+        when(simulationDataService.getCryptos()).thenReturn(new HashMap<>());
 
         // When & Then
         mockMvc.perform(get("/api/v1/simulation/status"))
@@ -194,12 +215,12 @@ class SimulationControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("GET /api/v1/simulation/stocks hisseleri döndürmeli")
+    @DisplayName("GET /api/v1/simulation/stocks hisseleri dÃ¶ndÃ¼rmeli")
     void testGetStocks_ReturnsStocks() throws Exception {
         // Given
-        Map<String, SimulationDataService.SimulatedStock> stocks = new HashMap<>();
-        stocks.put("THYAO", new SimulationDataService.SimulatedStock("Türk Hava Yolları", "BIST", 285.50, 0.025));
-        stocks.put("GARAN", new SimulationDataService.SimulatedStock("Garanti BBVA", "BIST", 125.80, 0.022));
+        Map<String, SimulatedStock> stocks = new HashMap<>();
+        stocks.put("THYAO", new SimulatedStock("TÃ¼rk Hava YollarÄ±", "BIST", 285.50, 0.025));
+        stocks.put("GARAN", new SimulatedStock("Garanti BBVA", "BIST", 125.80, 0.022));
         when(simulationDataService.getStocks()).thenReturn(stocks);
 
         // When & Then
@@ -207,18 +228,18 @@ class SimulationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.THYAO").exists())
-                .andExpect(jsonPath("$.data.THYAO.name").value("Türk Hava Yolları"))
+                .andExpect(jsonPath("$.data.THYAO.name").value("TÃ¼rk Hava YollarÄ±"))
                 .andExpect(jsonPath("$.data.GARAN").exists());
     }
 
     @Test
     @WithMockUser
-    @DisplayName("GET /api/v1/simulation/currencies dövizleri döndürmeli")
+    @DisplayName("GET /api/v1/simulation/currencies dÃ¶vizleri dÃ¶ndÃ¼rmeli")
     void testGetCurrencies_ReturnsCurrencies() throws Exception {
         // Given
-        Map<String, SimulationDataService.SimulatedCurrency> currencies = new HashMap<>();
-        currencies.put("USD", new SimulationDataService.SimulatedCurrency("ABD Doları", 38.42, 38.58, 0.008));
-        currencies.put("EUR", new SimulationDataService.SimulatedCurrency("Euro", 40.15, 40.38, 0.009));
+        Map<String, SimulatedCurrency> currencies = new HashMap<>();
+        currencies.put("USD", new SimulatedCurrency("ABD DolarÄ±", 38.42, 38.58, 0.008));
+        currencies.put("EUR", new SimulatedCurrency("Euro", 40.15, 40.38, 0.009));
         when(simulationDataService.getCurrencies()).thenReturn(currencies);
 
         // When & Then
@@ -226,18 +247,18 @@ class SimulationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.USD").exists())
-                .andExpect(jsonPath("$.data.USD.name").value("ABD Doları"))
+                .andExpect(jsonPath("$.data.USD.name").value("ABD DolarÄ±"))
                 .andExpect(jsonPath("$.data.EUR").exists());
     }
 
     @Test
     @WithMockUser
-    @DisplayName("GET /api/v1/simulation/indices endeksleri döndürmeli")
+    @DisplayName("GET /api/v1/simulation/indices endeksleri dÃ¶ndÃ¼rmeli")
     void testGetIndices_ReturnsIndices() throws Exception {
         // Given
-        Map<String, SimulationDataService.SimulatedIndex> indices = new HashMap<>();
-        indices.put("XU100", new SimulationDataService.SimulatedIndex("BIST 100", 9850.0, 0.015));
-        indices.put("XU030", new SimulationDataService.SimulatedIndex("BIST 30", 10200.0, 0.016));
+        Map<String, SimulatedIndex> indices = new HashMap<>();
+        indices.put("XU100", new SimulatedIndex("BIST 100", 9850.0, 0.015));
+        indices.put("XU030", new SimulatedIndex("BIST 30", 10200.0, 0.016));
         when(simulationDataService.getIndices()).thenReturn(indices);
 
         // When & Then
@@ -250,10 +271,11 @@ class SimulationControllerTest {
     }
 
     @Test
-    @DisplayName("Yetkisiz erişim 401 döndürmeli")
+    @DisplayName("Yetkisiz eriÅŸim 401 dÃ¶ndÃ¼rmeli")
     void testUnauthorizedAccess_Returns401() throws Exception {
         // When & Then
         mockMvc.perform(get("/api/v1/simulation/config"))
                 .andExpect(status().isUnauthorized());
     }
 }
+

@@ -6,6 +6,7 @@ import com.mintstack.finance.config.RateLimitConfig;
 import com.mintstack.finance.dto.request.CreatePortfolioRequest;
 import com.mintstack.finance.dto.response.PortfolioResponse;
 import com.mintstack.finance.dto.response.PortfolioTransactionResponse;
+import com.mintstack.finance.service.ExportService;
 import com.mintstack.finance.service.PortfolioService;
 import com.mintstack.finance.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -53,6 +54,9 @@ class PortfolioControllerTest {
 
     @MockitoBean
     private PortfolioService portfolioService;
+
+    @MockitoBean
+    private ExportService exportService;
 
     @MockitoBean
     private UserService userService;

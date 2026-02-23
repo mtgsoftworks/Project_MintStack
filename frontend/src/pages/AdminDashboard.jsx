@@ -13,7 +13,7 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         loadData()
-    }, [currentPage])
+    }, [currentPage]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const loadData = async () => {
         try {

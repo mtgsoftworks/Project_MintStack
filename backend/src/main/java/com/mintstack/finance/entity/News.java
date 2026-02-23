@@ -1,6 +1,7 @@
 package com.mintstack.finance.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -22,6 +23,7 @@ public class News extends BaseEntity {
     @JoinColumn(name = "category_id")
     private NewsCategory category;
 
+    @NotBlank(message = "Haber başlığı boş olamaz")
     @Column(name = "title", nullable = false)
     private String title;
 

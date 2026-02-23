@@ -19,48 +19,42 @@ processors:
   resource:
     attributes:
       - key: service.environment
-        value: development
+        value: production
         action: upsert
 
 exporters:
-  # Use elasticsearch exporter for OpenSearch (compatible)
   elasticsearch:
-    endpoints: ["http://opensearch:9200"]
+    endpoints: ["https://opensearch:9200"]
     logs_index: mintstack-logs
     traces_index: mintstack-traces
+    user: admin
+    password: "${OPENSEARCH_INITIAL_ADMIN_PASSWORD}"
+    tls:
+      insecure_skip_verify: true
   
   prometheus:
     endpoint: 0.0.0.0:8889
     namespace: mintstack
-  
-  debug:
-    verbosity: basic
 
 extensions:
   health_check:
     endpoint: 0.0.0.0:13133
-  
-  pprof:
-    endpoint: 0.0.0.0:1777
-  
-  zpages:
-    endpoint: 0.0.0.0:55679
 
 service:
-  extensions: [health_check, pprof, zpages]
+  extensions: [health_check]
   pipelines:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch, resource]
-      exporters: [elasticsearch, debug]
+      exporters: [elasticsearch]
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [prometheus, debug]
+      exporters: [prometheus]
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch, resource]
-      exporters: [elasticsearch, debug]
+      exporters: [elasticsearch]
   
   telemetry:
     logs:

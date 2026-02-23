@@ -1,12 +1,19 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || 'http://localhost:18080/api/v1'
+// Use relative URL to go through nginx proxy
+export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
+
+// Keycloak instance - will be set by App.jsx
+let keycloakInstance = null
+
+export const setKeycloakInstance = (instance) => {
+  keycloakInstance = instance
+}
 
 // Custom base query with auth token
 const baseQuery = fetchBaseQuery({
   baseUrl: API_BASE_URL,
   prepareHeaders: (headers, { getState }) => {
-    // Get token from auth state or keycloak
     const token = getState().auth?.token
 
     if (token) {
@@ -22,18 +29,14 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
   let result = await baseQuery(args, api, extraOptions)
 
   if (result?.error?.status === 401) {
-    // Try to refresh token via keycloak
-    const keycloak = window.keycloak
-    if (keycloak && keycloak.authenticated) {
+    if (keycloakInstance && keycloakInstance.authenticated) {
       try {
-        const refreshed = await keycloak.updateToken(30)
+        const refreshed = await keycloakInstance.updateToken(30)
         if (refreshed) {
-          // Retry with new token
-          api.dispatch({ type: 'auth/setToken', payload: keycloak.token })
+          api.dispatch({ type: 'auth/setToken', payload: keycloakInstance.token })
           result = await baseQuery(args, api, extraOptions)
         }
       } catch (error) {
-        // Token refresh failed, logout
         api.dispatch({ type: 'auth/logout' })
       }
     }
@@ -42,7 +45,6 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
   return result
 }
 
-// Create the base API
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithReauth,

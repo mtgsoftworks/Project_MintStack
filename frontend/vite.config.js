@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
+  define: {
+    global: 'globalThis',
+  },
   plugins: [react()],
   resolve: {
     alias: {
@@ -44,6 +47,12 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/setupTests.js',
     css: true,
+    fileParallelism: false,
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
     exclude: ['node_modules', 'e2e'],
     coverage: {
       provider: 'v8',
@@ -54,11 +63,13 @@ export default defineConfig({
         'src/mocks/**',
         'e2e/**',
       ],
+      // Gradual increase goal: target 80% coverage across all metrics
+      // Current milestones: lines: 60%, branches: 50%, functions: 55%, statements: 60%
       thresholds: {
-        lines: 50,
-        branches: 40,
-        functions: 45,
-        statements: 50,
+        lines: 60,
+        branches: 50,
+        functions: 55,
+        statements: 60,
       },
     },
   },

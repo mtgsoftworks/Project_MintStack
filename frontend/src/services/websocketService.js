@@ -8,7 +8,9 @@ class WebSocketService {
     constructor() {
         this.client = null
         this.subscriptions = new Map()
+        this.activeSubscriptions = new Map()
         this.isConnected = false
+        this.connectionState = 'DISCONNECTED'
         this.reconnectAttempts = 0
         this.maxReconnectAttempts = 5
         this.reconnectDelay = 3000
@@ -23,6 +25,7 @@ class WebSocketService {
 
         return new Promise((resolve, reject) => {
             try {
+                this.connectionState = 'CONNECTING'
                 this.client = new Client({
                     webSocketFactory: () => new SockJS(wsUrl),
                     debug: (str) => {
@@ -36,13 +39,16 @@ class WebSocketService {
                     onConnect: () => {
                         console.log('[WebSocket] Connected')
                         this.isConnected = true
+                        this.connectionState = 'CONNECTED'
                         this.reconnectAttempts = 0
+                        this.restoreSubscriptions()
                         this.notifyListeners('connect', { connected: true })
                         resolve()
                     },
                     onDisconnect: () => {
                         console.log('[WebSocket] Disconnected')
                         this.isConnected = false
+                        this.connectionState = 'DISCONNECTED'
                         this.notifyListeners('disconnect', { connected: false })
                     },
                     onStompError: (frame) => {
@@ -59,6 +65,7 @@ class WebSocketService {
                 this.client.activate()
             } catch (error) {
                 console.error('[WebSocket] Connection error:', error)
+                this.connectionState = 'DISCONNECTED'
                 reject(error)
             }
         })
@@ -70,14 +77,41 @@ class WebSocketService {
     handleReconnect() {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++
+            this.connectionState = 'RECONNECTING'
+            this.notifyListeners('reconnecting', { attempt: this.reconnectAttempts })
             console.log(`[WebSocket] Reconnecting... Attempt ${this.reconnectAttempts}`)
             setTimeout(() => {
+                this.connectionState = 'CONNECTING'
                 this.connect()
             }, this.reconnectDelay * this.reconnectAttempts)
         } else {
+            this.connectionState = 'DISCONNECTED'
             console.error('[WebSocket] Max reconnection attempts reached')
             this.notifyListeners('error', { error: 'Max reconnection attempts reached' })
         }
+    }
+
+    /**
+     * Restore all active subscriptions after reconnection
+     */
+    restoreSubscriptions() {
+        if (this.activeSubscriptions.size === 0) return
+
+        console.log(`[WebSocket] Restoring ${this.activeSubscriptions.size} subscriptions`)
+
+        this.activeSubscriptions.forEach((callback, topic) => {
+            const subscription = this.client.subscribe(topic, (message) => {
+                try {
+                    const data = JSON.parse(message.body)
+                    callback(data)
+                } catch (error) {
+                    console.error('[WebSocket] Error parsing message:', error)
+                    callback(message.body)
+                }
+            })
+            this.subscriptions.set(topic, subscription)
+            console.log(`[WebSocket] Restored subscription: ${topic}`)
+        })
     }
 
     /**
@@ -89,8 +123,10 @@ class WebSocketService {
                 subscription.unsubscribe()
             })
             this.subscriptions.clear()
+            this.activeSubscriptions.clear()
             this.client.deactivate()
             this.isConnected = false
+            this.connectionState = 'DISCONNECTED'
         }
     }
 
@@ -98,8 +134,10 @@ class WebSocketService {
      * Subscribe to a topic
      */
     subscribe(topic, callback) {
+        this.activeSubscriptions.set(topic, callback)
+
         if (!this.client || !this.isConnected) {
-            console.warn('[WebSocket] Not connected. Cannot subscribe.')
+            console.warn('[WebSocket] Not connected. Subscription queued.')
             return null
         }
 
@@ -122,6 +160,8 @@ class WebSocketService {
      * Unsubscribe from a topic
      */
     unsubscribe(topic) {
+        this.activeSubscriptions.delete(topic)
+
         const subscription = this.subscriptions.get(topic)
         if (subscription) {
             subscription.unsubscribe()
@@ -178,10 +218,17 @@ class WebSocketService {
     }
 
     /**
-     * Check if connected (method version for compatibility)
+     * Get current connection state
      */
     getConnectionState() {
-        return this.isConnected
+        return this.connectionState
+    }
+
+    /**
+     * Check if connected and in CONNECTED state
+     */
+    isConnected() {
+        return this.isConnected && this.connectionState === 'CONNECTED'
     }
 
     /**

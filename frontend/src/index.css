@@ -210,3 +210,47 @@
     scrollbar-width: none;
   }
 }
+
+/* Price change animations */
+@keyframes price-flash-up {
+  0% { background-color: rgba(34, 197, 94, 0.4); }
+  100% { background-color: transparent; }
+}
+
+@keyframes price-flash-down {
+  0% { background-color: rgba(239, 68, 68, 0.4); }
+  100% { background-color: transparent; }
+}
+
+.price-flash-up {
+  animation: price-flash-up 1s ease-out;
+}
+
+.price-flash-down {
+  animation: price-flash-down 1s ease-out;
+}
+
+/* Pulse animation for live indicators */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+.live-indicator {
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* Smooth number transitions */
+.price-value {
+  transition: color 0.3s ease;
+}
+
+/* Chart sparkline update */
+@keyframes chart-update {
+  0% { stroke-dashoffset: 100; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.sparkline-path {
+  animation: chart-update 0.5s ease-out;
+}

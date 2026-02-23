@@ -1,25 +1,30 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '@/utils/test-utils'
 import AdminDashboard from '@/pages/AdminDashboard'
 
-vi.mock('@/store/api/adminApi', () => ({
-  useGetAdminDashboardQuery: vi.fn(() => ({
-    data: {
-      totalUsers: 150,
-      totalPortfolios: 320,
-      totalInstruments: 500,
-      totalAlerts: 75,
-      activeUsers: 45,
-      recentUsers: [],
-    },
-    isLoading: false,
-    error: null,
-  })),
-  useGetUsersQuery: vi.fn(() => ({
-    data: { data: [], pagination: { totalElements: 0 } },
-    isLoading: false,
-  })),
+vi.mock('@/services/adminService', () => ({
+  default: {
+    getDashboard: vi.fn(() => Promise.resolve({
+      data: {
+        totalUsers: 150,
+        totalPortfolios: 320,
+        totalInstruments: 500,
+        activeAlerts: 75,
+        totalWatchlists: 200,
+        activeUsers: 45,
+        recentUsers: [],
+      },
+    })),
+    getUsers: vi.fn(() => Promise.resolve({
+      data: { content: [], totalElements: 0 },
+    })),
+    searchUsers: vi.fn(() => Promise.resolve({
+      data: { content: [], totalElements: 0 },
+    })),
+    activateUser: vi.fn(() => Promise.resolve({})),
+    deactivateUser: vi.fn(() => Promise.resolve({})),
+  },
 }))
 
 describe('AdminDashboard', () => {
@@ -27,8 +32,13 @@ describe('AdminDashboard', () => {
     vi.clearAllMocks()
   })
 
-  it('renders without crashing', () => {
+  it('renders without crashing', async () => {
     const { container } = renderWithProviders(<AdminDashboard />)
-    expect(container).toBeInTheDocument()
+    await waitFor(() => expect(container).toBeInTheDocument())
+  })
+
+  it('displays stats after loading', async () => {
+    renderWithProviders(<AdminDashboard />)
+    await waitFor(() => expect(screen.getByText('150')).toBeInTheDocument())
   })
 })

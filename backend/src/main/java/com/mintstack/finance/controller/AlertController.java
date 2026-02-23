@@ -4,6 +4,8 @@ import com.mintstack.finance.dto.request.CreateAlertRequest;
 import com.mintstack.finance.dto.response.AlertResponse;
 import com.mintstack.finance.dto.response.ApiResponse;
 import com.mintstack.finance.service.AlertService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/alerts")
 @RequiredArgsConstructor
+@Tag(name = "Alerts", description = "Fiyat alarm yönetimi")
+@SecurityRequirement(name = "bearer")
 public class AlertController {
 
     private final AlertService alertService;

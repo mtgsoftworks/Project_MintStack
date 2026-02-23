@@ -96,6 +96,40 @@ public class PriceUpdateService {
     }
 
     /**
+     * Broadcast a cryptocurrency price update to all subscribers
+     */
+    public void broadcastCryptoUpdate(String symbol, BigDecimal currentPrice, 
+                                       BigDecimal previousClose, BigDecimal changePercent24h,
+                                       BigDecimal high24h, BigDecimal low24h, Long volume24h) {
+        PriceUpdateMessage message = PriceUpdateMessage.builder()
+                .type("CRYPTO")
+                .symbol(symbol)
+                .price(currentPrice)
+                .previousPrice(lastPrices.get("CRYPTO_" + symbol))
+                .additionalData(Map.of(
+                    "previousClose", previousClose != null ? previousClose : BigDecimal.ZERO,
+                    "changePercent24h", changePercent24h != null ? changePercent24h : BigDecimal.ZERO,
+                    "high24h", high24h != null ? high24h : BigDecimal.ZERO,
+                    "low24h", low24h != null ? low24h : BigDecimal.ZERO,
+                    "volume24h", volume24h != null ? volume24h : 0L
+                ))
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        lastPrices.put("CRYPTO_" + symbol, currentPrice);
+        sendMessage("/topic/prices/crypto", message);
+        sendMessage("/topic/prices/crypto/" + symbol, message);
+        
+        log.debug("Broadcast crypto update: {} = {}", symbol, currentPrice);
+        
+        try {
+            alertService.checkAlertsForSymbol(symbol, currentPrice);
+        } catch (Exception e) {
+            log.warn("Error checking alerts for crypto {}: {}", symbol, e.getMessage());
+        }
+    }
+
+    /**
      * Broadcast a general market update
      */
     public void broadcastMarketUpdate(String type, String symbol, BigDecimal price,

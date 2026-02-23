@@ -101,7 +101,10 @@ public class PortfolioService {
         return mapToResponse(savedPortfolio);
     }
 
-    @CacheEvict(value = "portfolios", key = "#portfolioId")
+    @org.springframework.cache.annotation.Caching(evict = {
+        @CacheEvict(value = "portfolios", key = "#portfolioId"),
+        @CacheEvict(value = "userPortfolios", key = "#keycloakId")
+    })
     @Transactional
     public PortfolioResponse updatePortfolio(String keycloakId, UUID portfolioId, CreatePortfolioRequest request) {
         User user = userService.getUserByKeycloakId(keycloakId);
@@ -139,7 +142,10 @@ public class PortfolioService {
         log.info("Portfolio deleted: {}", portfolioId);
     }
 
-    @CacheEvict(value = "portfolios", key = "#portfolioId")
+    @org.springframework.cache.annotation.Caching(evict = {
+        @CacheEvict(value = "portfolios", key = "#portfolioId"),
+        @CacheEvict(value = "userPortfolios", key = "#keycloakId")
+    })
     @Transactional
     public PortfolioResponse addItem(String keycloakId, UUID portfolioId, AddPortfolioItemRequest request) {
         User user = userService.getUserByKeycloakId(keycloakId);
@@ -183,7 +189,10 @@ public class PortfolioService {
         return getPortfolio(keycloakId, portfolioId);
     }
 
-    @CacheEvict(value = "portfolios", key = "#portfolioId")
+    @org.springframework.cache.annotation.Caching(evict = {
+        @CacheEvict(value = "portfolios", key = "#portfolioId"),
+        @CacheEvict(value = "userPortfolios", key = "#keycloakId")
+    })
     @Transactional
     public PortfolioResponse removeItem(String keycloakId, UUID portfolioId, UUID itemId) {
         User user = userService.getUserByKeycloakId(keycloakId);

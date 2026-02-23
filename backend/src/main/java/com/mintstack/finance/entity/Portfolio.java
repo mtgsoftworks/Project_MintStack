@@ -1,6 +1,8 @@
 package com.mintstack.finance.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -22,6 +24,8 @@ public class Portfolio extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @NotBlank(message = "Portföy adı boş olamaz")
+    @Size(max = 100, message = "Portföy adı en fazla 100 karakter olabilir")
     @Column(name = "name", nullable = false)
     private String name;
 

@@ -65,11 +65,11 @@ export function PriceChart({
   const chartData = data.map(item => ({
     ...item,
     date: item.date || item.timestamp,
-    price: item.price || item.close || item.value,
+    [dataKey]: item[dataKey] || item.price || item.close || item.value,
   }))
 
-  const minValue = Math.min(...chartData.map(d => d.price)) * 0.99
-  const maxValue = Math.max(...chartData.map(d => d.price)) * 1.01
+  const minValue = Math.min(...chartData.map((d) => d[dataKey])) * 0.99
+  const maxValue = Math.max(...chartData.map((d) => d[dataKey])) * 1.01
 
   if (showArea) {
     return (
@@ -112,7 +112,7 @@ export function PriceChart({
             <Tooltip content={<CustomTooltip />} />
             <Area 
               type="monotone" 
-              dataKey="price" 
+              dataKey={dataKey}
               name="Fiyat"
               stroke={color} 
               strokeWidth={2}
@@ -158,7 +158,7 @@ export function PriceChart({
           <Tooltip content={<CustomTooltip />} />
           <Line 
             type="monotone" 
-            dataKey="price" 
+            dataKey={dataKey}
             name="Fiyat"
             stroke={color} 
             strokeWidth={2}

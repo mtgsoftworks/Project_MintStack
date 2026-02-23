@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.1-brightgreen?logo=springboot)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.2-brightgreen?logo=springboot)
 ![React](https://img.shields.io/badge/React-18.2-blue?logo=react)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue?logo=postgresql)
 ![Docker](https://img.shields.io/badge/Docker-Compose-blue?logo=docker)
@@ -92,7 +92,7 @@
 | Teknoloji | Versiyon |
 |-----------|----------|
 | Java | 17 |
-| Spring Boot | 3.2.1 |
+| Spring Boot | 3.4.2 |
 | Spring Security | OAuth2 Resource Server |
 | Spring Data JPA | Hibernate 6.4 |
 | Flyway | 9.22 |
@@ -124,6 +124,24 @@
 - **Logging**: Logstash → Kafka → OpenSearch
 - **Tracing**: OpenTelemetry Collector
 - **Reverse Proxy**: Nginx
+- **Monitoring**: Prometheus + Grafana + Alertmanager
+
+### Ortam Değişkenleri
+
+Tüm ortam değişkenleri `.env.example` dosyasında tanımlıdır.
+
+| Kategori | Değişkenler |
+|----------|------------|
+| Database | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` |
+| Redis | `REDIS_PASSWORD` |
+| Keycloak | `KEYCLOAK_ADMIN_PASSWORD`, `KEYCLOAK_FINANCE_BACKEND_SECRET` |
+| LDAP | `LDAP_ORGANISATION`, `LDAP_DOMAIN`, `LDAP_ADMIN_PASSWORD` |
+| Kafka | `KAFKA_SASL_USER`, `KAFKA_SASL_PASSWORD` |
+| OpenSearch | `OPENSEARCH_INITIAL_ADMIN_PASSWORD` |
+| External APIs | `ALPHA_VANTAGE_API_KEY`, `FINNHUB_API_KEY` |
+| Monitoring | `GRAFANA_ADMIN_PASSWORD` |
+
+> ⚠️ **Güvenlik**: Tüm secret'lar production'da değiştirilmelidir. Detaylar için `docs/SECURITY.md`
 
 ---
 
@@ -161,6 +179,8 @@ docker-compose ps
 | 🔐 Keycloak | http://localhost:8180 | Identity Management |
 | 📊 OpenSearch Dashboards | http://localhost:15601 | Log & Metrics Dashboard |
 | 📈 Prometheus Metrics | http://localhost:8889 | Metrics Endpoint |
+| 📊 Grafana | http://localhost:3030 | Monitoring Dashboards |
+| 🔔 Alertmanager | http://localhost:9093 | Alert Management |
 
 ### Varsayılan Kullanıcılar
 
@@ -208,21 +228,29 @@ MintStack-Finance/
 │       ├── components/           # Reusable UI components
 │       ├── pages/                # Route pages
 │       ├── services/             # API client services
+│       ├── store/                # Redux Toolkit state
 │       ├── context/              # Auth & Theme context
 │       ├── hooks/                # Custom React hooks
 │       └── utils/                # Helper functions
 │
 ├── 📂 docker/                     # Docker configurations
 │   ├── postgres/                 # DB init scripts
+│   ├── redis/                    # Redis config
+│   ├── kafka/                    # Kafka SASL config
 │   ├── otel/                     # OpenTelemetry config
-│   └── logstash/                 # Logstash pipeline
+│   ├── logstash/                 # Logstash pipeline
+│   ├── prometheus/               # Prometheus & alerts
+│   ├── grafana/                  # Dashboard provisioning
+│   ├── alertmanager/             # Alert configuration
+│   └── openldap/                 # LDAP certs & LDIF
 │
 ├── 📂 keycloak/                   # Realm export (users, roles)
-├── 📂 openldap/                   # LDIF seed data
+├── 📂 docs/                       # Dokümantasyon
 ├── 📂 .github/workflows/          # CI/CD pipelines
 │
 ├── docker-compose.yml            # Service orchestration
-├── env.local                     # Environment template
+├── .env.example                  # Environment template
+├── AGENTS.md                     # AI & Developer quick reference
 └── README.md
 ```
 
@@ -323,6 +351,37 @@ npm run build
 │   (Tracing)     │   (Pipeline)    │   (Streaming)   │   (Storage/UI)    │
 └─────────────────┴─────────────────┴─────────────────┴───────────────────┘
 ```
+
+---
+
+## 📚 Dokümantasyon
+
+| Doküman | Açıklama |
+|---------|----------|
+| [AGENTS.md](AGENTS.md) | AI asistanları ve geliştiriciler için hızlı referans |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Sistem mimarisi detayları |
+| [docs/ADR.md](docs/ADR.md) | Mimari karar kayıtları |
+| [docs/SECURITY.md](docs/SECURITY.md) | Güvenlik dokümantasyonu ve secret yönetimi |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deployment rehberi (dev & prod) |
+| [docs/KEYCLOAK_2FA_SETUP.md](docs/KEYCLOAK_2FA_SETUP.md) | 2FA kurulumu |
+| [docs/API_EXAMPLES.md](docs/API_EXAMPLES.md) | API kullanım örnekleri |
+
+---
+
+## 🔒 Güvenlik Notları
+
+### Production'da Dikkat Edilmesi Gerekenler
+
+1. **Tüm default şifreleri değiştirin** - `.env` dosyasındaki tüm secret'lar
+2. **HTTPS kullanın** - SSL sertifikası kurun (Let's Encrypt önerilir)
+3. **Firewall kuralları** - Sadece gerekli portları açın
+4. **2FA etkinleştirin** - Admin kullanıcıları için mutlaka
+5. **Secret'ları rotate edin** - Düzenli aralıklarla
+6. **Backup'ları şifreleyin** - Hassas verileri koruyun
+
+### Güvenlik Dokümantasyonu
+
+Detaylı güvenlik konfigürasyonu ve secret yönetimi için: **[docs/SECURITY.md](docs/SECURITY.md)**
 
 ---
 

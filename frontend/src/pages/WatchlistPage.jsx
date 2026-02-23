@@ -13,7 +13,7 @@ export default function WatchlistPage() {
 
     useEffect(() => {
         loadWatchlists()
-    }, [])
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     const loadWatchlists = async () => {
         try {

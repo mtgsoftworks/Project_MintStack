@@ -4,6 +4,7 @@ import com.mintstack.finance.dto.response.*;
 import com.mintstack.finance.service.TechnicalIndicatorService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/indicators")
 @RequiredArgsConstructor
 @Tag(name = "Technical Indicators", description = "Teknik analiz göstergeleri hesaplama")
+@SecurityRequirement(name = "bearer")
 public class TechnicalIndicatorController {
 
     private final TechnicalIndicatorService technicalIndicatorService;

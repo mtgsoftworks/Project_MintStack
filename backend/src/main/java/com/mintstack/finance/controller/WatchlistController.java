@@ -4,6 +4,8 @@ import com.mintstack.finance.dto.request.CreateWatchlistRequest;
 import com.mintstack.finance.dto.response.ApiResponse;
 import com.mintstack.finance.dto.response.WatchlistResponse;
 import com.mintstack.finance.service.WatchlistService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/watchlist")
 @RequiredArgsConstructor
+@Tag(name = "Watchlist", description = "İzleme listesi yönetimi")
+@SecurityRequirement(name = "bearer")
 public class WatchlistController {
 
     private final WatchlistService watchlistService;

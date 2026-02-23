@@ -11,6 +11,8 @@ import com.mintstack.finance.repository.CurrencyRateRepository;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
 import com.mintstack.finance.repository.UserApiConfigRepository;
+import com.mintstack.finance.service.external.YahooFinanceClient;
+import com.mintstack.finance.service.simulation.SimulationDataService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,6 +40,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("MarketDataService Unit Tests")
@@ -54,6 +57,12 @@ class MarketDataServiceTest {
 
     @Mock
     private UserApiConfigRepository userApiConfigRepository;
+
+    @Mock
+    private YahooFinanceClient yahooFinanceClient;
+
+    @Mock
+    private SimulationDataService simulationDataService;
 
     @InjectMocks
     private MarketDataService marketDataService;
@@ -100,6 +109,8 @@ class MarketDataServiceTest {
                 .isActive(true)
                 .build();
         thyaoStock.setId(UUID.randomUUID());
+
+        lenient().when(simulationDataService.isSimulationEnabled()).thenReturn(false);
     }
 
     // ===================== CURRENCY RATE TESTS =====================
@@ -123,7 +134,7 @@ class MarketDataServiceTest {
     @Test
     @DisplayName("getCurrencyRate should return specific currency rate")
     void getCurrencyRate_ShouldReturnSpecificRate() {
-        when(currencyRateRepository.findTopByCurrencyCodeOrderByFetchedAtDesc("USD"))
+        when(currencyRateRepository.findTopByCurrencyCodeAndSourceOrderByFetchedAtDesc("USD", RateSource.TCMB))
                 .thenReturn(Optional.of(usdRate));
 
         CurrencyRateResponse result = marketDataService.getCurrencyRate("USD");
@@ -137,7 +148,7 @@ class MarketDataServiceTest {
     @Test
     @DisplayName("getCurrencyRate should throw exception when currency not found")
     void getCurrencyRate_ShouldThrowException_WhenNotFound() {
-        when(currencyRateRepository.findTopByCurrencyCodeOrderByFetchedAtDesc("XYZ"))
+        when(currencyRateRepository.findTopByCurrencyCodeAndSourceOrderByFetchedAtDesc("XYZ", RateSource.TCMB))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> marketDataService.getCurrencyRate("XYZ"))
@@ -165,7 +176,7 @@ class MarketDataServiceTest {
     @Test
     @DisplayName("getInstrumentsByType should return instruments of given type")
     void getInstrumentsByType_ShouldReturnInstrumentsOfType() {
-        when(instrumentRepository.findByTypeAndIsActiveTrue(InstrumentType.STOCK))
+        when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType.STOCK, false))
                 .thenReturn(Arrays.asList(thyaoStock));
 
         List<InstrumentResponse> result = marketDataService.getInstrumentsByType(InstrumentType.STOCK);
@@ -181,7 +192,7 @@ class MarketDataServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Instrument> instrumentPage = new PageImpl<>(Arrays.asList(thyaoStock), pageable, 1);
         
-        when(instrumentRepository.findByTypeAndIsActiveTrue(InstrumentType.STOCK, pageable))
+        when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType.STOCK, false, pageable))
                 .thenReturn(instrumentPage);
 
         Page<InstrumentResponse> result = marketDataService.getInstrumentsByType(InstrumentType.STOCK, pageable);
@@ -193,7 +204,7 @@ class MarketDataServiceTest {
     @Test
     @DisplayName("getInstrument should return instrument by symbol")
     void getInstrument_ShouldReturnInstrumentBySymbol() {
-        when(instrumentRepository.findBySymbol("THYAO"))
+        when(instrumentRepository.findBySymbolAndIsSimulated("THYAO", false))
                 .thenReturn(Optional.of(thyaoStock));
 
         InstrumentResponse result = marketDataService.getInstrument("THYAO");
@@ -206,6 +217,8 @@ class MarketDataServiceTest {
     @Test
     @DisplayName("getInstrument should throw exception when instrument not found")
     void getInstrument_ShouldThrowException_WhenNotFound() {
+        when(instrumentRepository.findBySymbolAndIsSimulated("INVALID", false))
+                .thenReturn(Optional.empty());
         when(instrumentRepository.findBySymbol("INVALID"))
                 .thenReturn(Optional.empty());
 

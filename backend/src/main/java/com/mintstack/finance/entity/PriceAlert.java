@@ -1,6 +1,8 @@
 package com.mintstack.finance.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -34,6 +36,8 @@ public class PriceAlert extends BaseEntity {
     @Column(name = "alert_type", nullable = false, length = 20)
     private AlertType alertType;
 
+    @NotNull(message = "Hedef değer boş olamaz")
+    @DecimalMin(value = "0", message = "Hedef değer sıfırdan küçük olamaz")
     @Column(name = "target_value", nullable = false, precision = 18, scale = 4)
     private BigDecimal targetValue;
 

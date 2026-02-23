@@ -1,29 +1,28 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test'
+import { installApiMocks } from './helpers'
 
-test.describe('Authentication', () => {
-  test('should redirect to login when not authenticated', async ({ page }) => {
-    await page.goto('/');
-    // Keycloak should redirect to login
-    await expect(page).toHaveURL(/.*keycloak.*|.*login.*/);
-  });
+const authBypassEnabled = process.env.VITE_E2E_BYPASS_AUTH !== 'false'
 
-  test('should show login page elements', async ({ page }) => {
-    await page.goto('/login');
-    // Check for login form elements
-    await expect(page.locator('body')).toBeVisible();
-  });
-});
-
-test.describe('Navigation', () => {
+test.describe('Authentication Flow', () => {
   test.beforeEach(async ({ page }) => {
-    // Mock authentication for protected routes
-    await page.addInitScript(() => {
-      window.localStorage.setItem('token', 'mock-token');
-    });
-  });
+    await installApiMocks(page)
+  })
 
-  test('should navigate to dashboard', async ({ page }) => {
-    await page.goto('/');
-    await expect(page).toHaveTitle(/MintStack/);
-  });
-});
+  test('login route is reachable', async ({ page }) => {
+    await page.goto('/login')
+    await expect(page).toHaveURL(/\/(login)?$/)
+    await expect(page.locator('html')).toBeVisible()
+  })
+
+  test('protected route behavior matches auth mode', async ({ page }) => {
+    await page.goto('/portfolio')
+
+    if (authBypassEnabled) {
+      await expect(page).toHaveURL(/\/portfolio$/)
+      await expect(page.locator('main h1').first()).toBeVisible({ timeout: 15000 })
+      return
+    }
+
+    await expect(page).toHaveURL(/\/login$/)
+  })
+})

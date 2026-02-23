@@ -74,30 +74,21 @@ class PriceSimulationEngineTest {
     @Test
     @DisplayName("Bullish trend pozitif drift uygulamalı")
     void testSimulateGBM_WithBullishTrend_HasPositiveBias() {
-        // Given
-        String symbol = "TREND_TEST";
+        // Given - Volatiliteyi 0 tutup drift etkisini deterministic test et
         BigDecimal currentPrice = BigDecimal.valueOf(100.0);
-        int iterations = 2000;
-        
-        double sumBullish = 0;
-        double sumBearish = 0;
+        double oneTradingYearSeconds = 252.0 * 23400.0;
 
         // When
-        for (int i = 0; i < iterations; i++) {
-            BigDecimal bullishPrice = priceEngine.simulateGBM(
-                    symbol + "_bull_" + i, currentPrice, 0.01,
-                    VolatilityLevel.LOW, MarketTrend.BULLISH, 3600);
-            
-            BigDecimal bearishPrice = priceEngine.simulateGBM(
-                    symbol + "_bear_" + i, currentPrice, 0.01,
-                    VolatilityLevel.LOW, MarketTrend.BEARISH, 3600);
+        BigDecimal bullishPrice = priceEngine.simulateGBM(
+                "TREND_TEST_BULL", currentPrice, 0.0,
+                VolatilityLevel.LOW, MarketTrend.BULLISH, oneTradingYearSeconds);
 
-            sumBullish += bullishPrice.doubleValue();
-            sumBearish += bearishPrice.doubleValue();
-        }
+        BigDecimal bearishPrice = priceEngine.simulateGBM(
+                "TREND_TEST_BEAR", currentPrice, 0.0,
+                VolatilityLevel.LOW, MarketTrend.BEARISH, oneTradingYearSeconds);
 
-        // Then - Bullish ortalama > Bearish ortalama
-        assertThat(sumBullish / iterations).isGreaterThan(sumBearish / iterations);
+        // Then
+        assertThat(bullishPrice).isGreaterThan(bearishPrice);
     }
 
     @Test

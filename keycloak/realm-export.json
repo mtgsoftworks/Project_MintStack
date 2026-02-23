@@ -95,7 +95,7 @@
       "description": "Spring Boot Backend Service",
       "enabled": true,
       "clientAuthenticatorType": "client-secret",
-      "secret": "finance-backend-secret-2026",
+      "secret": "${KEYCLOAK_FINANCE_BACKEND_SECRET}",
       "redirectUris": [],
       "webOrigins": [],
       "bearerOnly": true,
@@ -170,7 +170,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "Admin123!",
+          "value": "${KEYCLOAK_ADMIN_USER_PASSWORD}",
           "temporary": false
         }
       ],
@@ -187,7 +187,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "Test123!",
+          "value": "${KEYCLOAK_TEST_USER_PASSWORD}",
           "temporary": false
         }
       ],
@@ -253,7 +253,7 @@
           "vendor": ["other"],
           "connectionUrl": ["ldap://openldap:389"],
           "bindDn": ["cn=admin,dc=mintstack,dc=local"],
-          "bindCredential": ["LdapAdmin2026!"],
+          "bindCredential": ["${LDAP_BIND_CREDENTIAL}"],
           "usersDn": ["ou=users,dc=mintstack,dc=local"],
           "usernameLDAPAttribute": ["uid"],
           "rdnLDAPAttribute": ["uid"],

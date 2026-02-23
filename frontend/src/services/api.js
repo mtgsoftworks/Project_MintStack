@@ -1,6 +1,7 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1'
+// Use relative URL to go through nginx proxy
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -89,7 +90,7 @@ api.interceptors.response.use(
 )
 
 // Legacy function for backwards compatibility
-export const setAuthToken = (token) => {
+export const setAuthToken = (_token) => {
   // Not needed anymore since we use keycloak instance directly
 }
 

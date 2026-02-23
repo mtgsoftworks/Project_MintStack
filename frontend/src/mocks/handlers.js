@@ -108,6 +108,43 @@ const mockUser = {
   notificationsEnabled: true,
 }
 
+const mockAlerts = [
+  {
+    id: 1,
+    symbol: 'AAPL',
+    instrumentName: 'Apple Inc.',
+    alertType: 'PRICE_ABOVE',
+    targetValue: 200,
+    isActive: true,
+    isTriggered: false,
+    createdAt: '2026-01-15T10:00:00',
+  },
+  {
+    id: 2,
+    symbol: 'THYAO',
+    instrumentName: 'Türk Hava Yolları',
+    alertType: 'PRICE_BELOW',
+    targetValue: 250,
+    isActive: true,
+    isTriggered: false,
+    createdAt: '2026-01-14T10:00:00',
+  },
+]
+
+const mockWatchlists = [
+  {
+    id: 1,
+    name: 'Ana Takip Listem',
+    description: 'Test takip listesi',
+    isDefault: true,
+    itemCount: 2,
+    items: [
+      { id: 1, symbol: 'AAPL', name: 'Apple Inc.', type: 'STOCK', currentPrice: 185.50, changePercent: 1.5 },
+      { id: 2, symbol: 'GOOGL', name: 'Alphabet Inc.', type: 'STOCK', currentPrice: 140.25, changePercent: -0.5 },
+    ],
+  },
+]
+
 // API Response wrapper
 const apiResponse = (data, success = true) => ({
   success,
@@ -328,7 +365,7 @@ export const handlers = [
 
   http.get(`${API_URL}/news/search`, ({ request }) => {
     const url = new URL(request.url)
-    const query = url.searchParams.get('q')?.toLowerCase() || ''
+    const query = url.searchParams.get('q')?.toLowerCase() || url.searchParams.get('query')?.toLowerCase() || ''
     const filtered = mockNews.filter(n =>
       n.title.toLowerCase().includes(query) ||
       n.summary.toLowerCase().includes(query)
@@ -424,5 +461,95 @@ export const handlers = [
       endDate: body.endDate,
       instruments,
     }))
+  }),
+
+  // Alerts endpoints
+  http.get(`${API_URL}/alerts`, () => {
+    return HttpResponse.json(apiResponse(mockAlerts))
+  }),
+
+  http.get(`${API_URL}/alerts/active`, () => {
+    const activeAlerts = mockAlerts.filter(a => a.isActive && !a.isTriggered)
+    return HttpResponse.json(apiResponse(activeAlerts))
+  }),
+
+  http.post(`${API_URL}/alerts`, async ({ request }) => {
+    const body = await request.json()
+    const newAlert = {
+      id: mockAlerts.length + 1,
+      ...body,
+      isActive: true,
+      isTriggered: false,
+      createdAt: new Date().toISOString(),
+    }
+    return HttpResponse.json(apiResponse(newAlert), { status: 201 })
+  }),
+
+  http.delete(`${API_URL}/alerts/:id`, () => {
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.put(`${API_URL}/alerts/:id/deactivate`, ({ params }) => {
+    const alert = mockAlerts.find(a => a.id === parseInt(params.id))
+    if (!alert) {
+      return HttpResponse.json(
+        { success: false, message: 'Alert not found' },
+        { status: 404 }
+      )
+    }
+    return HttpResponse.json(apiResponse({ ...alert, isActive: false }))
+  }),
+
+  // Watchlist endpoints
+  http.get(`${API_URL}/watchlist`, () => {
+    return HttpResponse.json(apiResponse(mockWatchlists))
+  }),
+
+  http.get(`${API_URL}/watchlist/:id`, ({ params }) => {
+    const watchlist = mockWatchlists.find(w => w.id === parseInt(params.id))
+    if (!watchlist) {
+      return HttpResponse.json(
+        { success: false, message: 'Watchlist not found' },
+        { status: 404 }
+      )
+    }
+    return HttpResponse.json(apiResponse(watchlist))
+  }),
+
+  http.post(`${API_URL}/watchlist`, async ({ request }) => {
+    const body = await request.json()
+    const newWatchlist = {
+      id: mockWatchlists.length + 1,
+      name: body.name,
+      description: body.description || '',
+      isDefault: false,
+      itemCount: 0,
+      items: [],
+    }
+    return HttpResponse.json(apiResponse(newWatchlist), { status: 201 })
+  }),
+
+  http.put(`${API_URL}/watchlist/:id`, async ({ request, params: _params }) => {
+    const body = await request.json()
+    const watchlist = mockWatchlists.find(w => w.id === parseInt(_params.id))
+    if (!watchlist) {
+      return HttpResponse.json(
+        { success: false, message: 'Watchlist not found' },
+        { status: 404 }
+      )
+    }
+    return HttpResponse.json(apiResponse({ ...watchlist, ...body }))
+  }),
+
+  http.delete(`${API_URL}/watchlist/:id`, () => {
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.post(`${API_URL}/watchlist/:id/items/:symbol`, () => {
+    return HttpResponse.json(apiResponse({ success: true }))
+  }),
+
+  http.delete(`${API_URL}/watchlist/:id/items/:symbol`, () => {
+    return new HttpResponse(null, { status: 204 })
   }),
 ]

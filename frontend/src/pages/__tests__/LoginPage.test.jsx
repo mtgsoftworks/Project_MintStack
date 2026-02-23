@@ -1,9 +1,35 @@
-import { vi, describe, it, expect } from 'vitest'
-import { screen } from '@testing-library/react'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
+import { screen, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '../../utils/test-utils'
 import LoginPage from '../LoginPage'
 
+vi.mock('../../App', () => ({
+  keycloak: {
+    init: vi.fn().mockResolvedValue(true),
+    login: vi.fn(),
+    logout: vi.fn(),
+    token: 'mock-token',
+    tokenParsed: {
+      sub: 'mock-user-id',
+      email: 'test@example.com',
+      given_name: 'Test',
+      family_name: 'User',
+      name: 'Test User',
+      realm_access: {
+        roles: ['user'],
+      },
+    },
+    subject: 'mock-user-id',
+    updateToken: vi.fn().mockResolvedValue(true),
+    authenticated: true,
+  },
+}))
+
 describe('LoginPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   const preloadedState = {
     auth: {
       user: null,
@@ -15,19 +41,21 @@ describe('LoginPage', () => {
     }
   }
 
-  it('renders without crashing', () => {
+  it('renders without crashing', async () => {
     const { container } = renderWithProviders(<LoginPage />, { preloadedState })
-    expect(container).toBeInTheDocument()
+    await waitFor(() => expect(container).toBeInTheDocument())
   })
 
-  it('renders MintStack branding', () => {
+  it('renders MintStack branding', async () => {
     renderWithProviders(<LoginPage />, { preloadedState })
-    expect(screen.getByText(/MintStack/i)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText(/MintStack/i)).toBeInTheDocument())
   })
 
-  it('renders login button', () => {
+  it('renders login button', async () => {
     renderWithProviders(<LoginPage />, { preloadedState })
-    const buttons = screen.getAllByRole('button')
-    expect(buttons.length).toBeGreaterThan(0)
+    await waitFor(() => {
+      const buttons = screen.getAllByRole('button')
+      expect(buttons.length).toBeGreaterThan(0)
+    })
   })
 })

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, RefreshCw, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react'
+import { RefreshCw, TrendingUp, TrendingDown } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn, formatCurrency, formatPercent, formatNumber } from '@/lib/utils'
+import { cn, formatCurrency, formatPercent } from '@/lib/utils'
 import {
   useGetMovingAverageQuery,
   useGetTrendAnalysisQuery,
@@ -26,7 +26,7 @@ export default function AnalysisPage() {
   const [period, setPeriod] = useState('1M')
   const [maType, setMaType] = useState('SMA')
   const [maPeriod, setMaPeriod] = useState('20')
-  const [compareSymbols, setCompareSymbols] = useState(['THYAO', 'GARAN'])
+  const [compareSymbols] = useState(['THYAO', 'GARAN'])
 
   const { data: maData, isLoading: maLoading, refetch: refetchMa } = useGetMovingAverageQuery({
     symbol,

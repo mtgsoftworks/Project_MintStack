@@ -1,6 +1,9 @@
 package com.mintstack.finance.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.util.ArrayList;
@@ -18,15 +21,20 @@ import java.util.List;
 @Builder
 public class User extends BaseEntity {
 
+    @NotBlank(message = "Keycloak ID boş olamaz")
     @Column(name = "keycloak_id", unique = true, nullable = false)
     private String keycloakId;
 
+    @Email(message = "Geçerli bir e-posta adresi giriniz")
+    @NotBlank(message = "E-posta adresi boş olamaz")
     @Column(name = "email", unique = true, nullable = false)
     private String email;
 
+    @Size(max = 100, message = "Ad en fazla 100 karakter olabilir")
     @Column(name = "first_name")
     private String firstName;
 
+    @Size(max = 100, message = "Soyad en fazla 100 karakter olabilir")
     @Column(name = "last_name")
     private String lastName;
 

@@ -10,11 +10,9 @@ import {
     Check,
     CheckCheck,
     TrendingUp,
-    TrendingDown,
     AlertCircle,
     Newspaper,
     DollarSign,
-    Trash2,
     Loader2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'

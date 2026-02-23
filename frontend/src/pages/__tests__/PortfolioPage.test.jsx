@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '../../utils/test-utils'
 import PortfolioPage from '../PortfolioPage'
 
@@ -17,28 +17,30 @@ describe('PortfolioPage', () => {
     vi.clearAllMocks()
     useGetPortfoliosQuery.mockReturnValue({
       data: [{ id: 1, name: 'Test Portfolio', totalValue: 1000, profitLoss: 100, profitLossPercent: 10 }],
-      isLoading: false
+      isLoading: false,
+      error: null,
     })
     useGetPortfolioSummaryQuery.mockReturnValue({
       data: { totalValue: 5000, totalCost: 4000, totalProfitLoss: 1000, totalProfitLossPercent: 25 },
-      isLoading: false
+      isLoading: false,
+      error: null,
     })
   })
 
-  it('renders without crashing', () => {
+  it('renders without crashing', async () => {
     const { container } = renderWithProviders(<PortfolioPage />)
-    expect(container).toBeInTheDocument()
+    await waitFor(() => expect(container).toBeInTheDocument())
   })
 
-  it('displays portfolio name from mock data', () => {
+  it('displays portfolio name from mock data', async () => {
     renderWithProviders(<PortfolioPage />)
-    expect(screen.getByText('Test Portfolio')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('Test Portfolio')).toBeInTheDocument())
   })
 
-  it('shows loading state', () => {
-    useGetPortfoliosQuery.mockReturnValue({ data: null, isLoading: true })
-    useGetPortfolioSummaryQuery.mockReturnValue({ data: null, isLoading: true })
+  it('shows loading state', async () => {
+    useGetPortfoliosQuery.mockReturnValue({ data: null, isLoading: true, error: null })
+    useGetPortfolioSummaryQuery.mockReturnValue({ data: null, isLoading: true, error: null })
     const { container } = renderWithProviders(<PortfolioPage />)
-    expect(container).toBeInTheDocument()
+    await waitFor(() => expect(container).toBeInTheDocument())
   })
 })

@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,14 +43,16 @@ class MonteCarloServiceTest {
     @Mock
     private PortfolioRepository portfolioRepository;
 
+    private Executor testExecutor;
     private MonteCarloService monteCarloService;
     private Instrument testInstrument;
     private UUID instrumentId;
 
     @BeforeEach
     void setUp() {
+        testExecutor = Executors.newFixedThreadPool(2);
         monteCarloService = new MonteCarloService(
-                instrumentRepository, priceHistoryRepository, portfolioRepository);
+                instrumentRepository, priceHistoryRepository, portfolioRepository, testExecutor);
         
         instrumentId = UUID.randomUUID();
         testInstrument = Instrument.builder()

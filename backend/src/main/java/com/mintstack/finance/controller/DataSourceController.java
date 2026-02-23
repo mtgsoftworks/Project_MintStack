@@ -4,6 +4,8 @@ import com.mintstack.finance.dto.request.DataPreferenceRequest;
 import com.mintstack.finance.dto.response.ApiResponse;
 import com.mintstack.finance.dto.response.DataPreferenceResponse;
 import com.mintstack.finance.service.DataSourceService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +20,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/data-sources")
 @RequiredArgsConstructor
+@Tag(name = "Data Sources", description = "Veri kaynağı yönetimi ve tercihleri")
+@SecurityRequirement(name = "bearer")
 public class DataSourceController {
 
     private final DataSourceService dataSourceService;

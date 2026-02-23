@@ -5,6 +5,7 @@ import com.mintstack.finance.dto.response.BacktestResult;
 import com.mintstack.finance.service.BacktestingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -22,6 +23,7 @@ import java.util.List;
 @RequestMapping("/api/v1/backtest")
 @RequiredArgsConstructor
 @Tag(name = "Backtesting", description = "Trading stratejisi backtesting")
+@SecurityRequirement(name = "bearer")
 public class BacktestingController {
 
     private final BacktestingService backtestingService;

@@ -8,19 +8,40 @@ import websocketService from '@/services/websocketService'
  * @param {Object} options - Hook options
  * @param {boolean} options.enabled - Whether to enable the subscription (default: true)
  * @param {function} options.onMessage - Custom message handler
+ * @param {number} options.debounceMs - Debounce interval for batch updates (default: 100)
  * @returns {Object} - { data, isConnected, error, subscribe, unsubscribe }
  */
 export function usePriceUpdates(topic, options = {}) {
-    const { enabled = true, onMessage } = options
+    const { enabled = true, onMessage, debounceMs = 100 } = options
 
     const [data, setData] = useState(null)
     const [isConnected, setIsConnected] = useState(false)
     const [error, setError] = useState(null)
+    const [pendingUpdates, setPendingUpdates] = useState({})
     const subscriptionRef = useRef(null)
+
+    // Debounce batch updates
+    useEffect(() => {
+        if (Object.keys(pendingUpdates).length === 0) return
+
+        const timer = setTimeout(() => {
+            setData(prev => prev ? { ...prev, ...pendingUpdates } : pendingUpdates)
+            setPendingUpdates({})
+        }, debounceMs)
+
+        return () => clearTimeout(timer)
+    }, [pendingUpdates, debounceMs])
 
     // Handle incoming messages
     const handleMessage = useCallback((message) => {
-        setData(message)
+        if (message.symbol) {
+            setPendingUpdates(prev => ({
+                ...prev,
+                [message.symbol]: message
+            }))
+        } else {
+            setData(message)
+        }
         if (onMessage) {
             onMessage(message)
         }

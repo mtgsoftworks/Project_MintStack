@@ -1,27 +1,28 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '@/utils/test-utils'
 import AlertsPage from '@/pages/AlertsPage'
 
-vi.mock('@/store/api/alertApi', () => ({
-  useGetAlertsQuery: vi.fn(() => ({
-    data: [
-      {
-        id: '1',
-        symbol: 'AAPL',
-        instrumentName: 'Apple Inc.',
-        alertType: 'PRICE_ABOVE',
-        targetValue: 200,
-        isActive: true,
-        isTriggered: false,
-        createdAt: '2026-01-15T10:00:00',
-      },
-    ],
-    isLoading: false,
-    error: null,
-  })),
-  useCreateAlertMutation: vi.fn(() => [vi.fn(), { isLoading: false }]),
-  useDeleteAlertMutation: vi.fn(() => [vi.fn(), { isLoading: false }]),
+vi.mock('@/services/alertService', () => ({
+  default: {
+    getAll: vi.fn(() => Promise.resolve({
+      data: [
+        {
+          id: 1,
+          symbol: 'AAPL',
+          instrumentName: 'Apple Inc.',
+          alertType: 'PRICE_ABOVE',
+          targetValue: 200,
+          isActive: true,
+          isTriggered: false,
+          createdAt: '2026-01-15T10:00:00',
+        },
+      ],
+    })),
+    create: vi.fn(() => Promise.resolve({ data: {} })),
+    delete: vi.fn(() => Promise.resolve({})),
+    deactivate: vi.fn(() => Promise.resolve({})),
+  },
 }))
 
 describe('AlertsPage', () => {
@@ -29,13 +30,13 @@ describe('AlertsPage', () => {
     vi.clearAllMocks()
   })
 
-  it('renders without crashing', () => {
+  it('renders without crashing', async () => {
     const { container } = renderWithProviders(<AlertsPage />)
-    expect(container).toBeInTheDocument()
+    await waitFor(() => expect(container).toBeInTheDocument())
   })
 
-  it('displays alert info', () => {
+  it('displays alert info', async () => {
     renderWithProviders(<AlertsPage />)
-    expect(screen.getByText(/AAPL/i)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText(/AAPL/i)).toBeInTheDocument())
   })
 })

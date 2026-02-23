@@ -138,6 +138,22 @@
         "language": "Language",
         "theme": "Theme",
         "notifications": "Notifications",
+        "dataSources": {
+            "title": "Data Sources",
+            "selectSource": "Select source",
+            "noProvider": "No source",
+            "active": "Active",
+            "refreshNow": "Refresh Data Now",
+            "updating": "Updating data...",
+            "pleaseWait": "Please wait, this may take a few seconds",
+            "updateSuccess": "Data updated successfully!",
+            "updateError": "Data fetch failed. Please try again.",
+            "sourceUpdated": "source updated",
+            "errorOccurred": "Error occurred"
+        },
+        "simulation": {
+            "title": "Simulation Mode"
+        },
         "emailNotifications": "Email Notifications",
         "pushNotifications": "Push Notifications",
         "apiKeys": {
@@ -291,6 +307,47 @@
         "status": {
             "active": "Active",
             "inactive": "Inactive"
+        }
+    },
+    "simulation": {
+        "debugPanel": "Simulation Debug Panel",
+        "debugPanelDesc": "Monitor and manage market simulation",
+        "start": "Start",
+        "stop": "Stop",
+        "reset": "Reset Simulation",
+        "metrics": {
+            "tickCount": "Tick Count",
+            "stocks": "Stocks",
+            "cryptos": "Cryptos",
+            "activeEvents": "Active Events",
+            "uptime": "Uptime"
+        },
+        "health": {
+            "status": "Status",
+            "healthy": "HEALTHY",
+            "degraded": "DEGRADED",
+            "unhealthy": "UNHEALTHY"
+        },
+        "config": {
+            "title": "Simulation Settings",
+            "volatility": "Volatility",
+            "volatilityLow": "Low",
+            "volatilityMedium": "Medium",
+            "volatilityHigh": "High",
+            "volatilityExtreme": "Extreme",
+            "trend": "Trend",
+            "trendBullish": "Bullish",
+            "trendNeutral": "Neutral",
+            "trendBearish": "Bearish",
+            "updateInterval": "Update Interval (s)"
+        },
+        "events": {
+            "trigger": "Trigger Event",
+            "active": "Active Events",
+            "remaining": "Remaining"
+        },
+        "volatility": {
+            "distribution": "Volatility Distribution"
         }
     },
     "errors": {

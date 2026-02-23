@@ -13,6 +13,7 @@ import com.mintstack.finance.repository.UserRepository;
 import com.mintstack.finance.scheduler.MarketDataScheduler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +30,7 @@ public class DataSourceService {
     private final UserDataPreferenceRepository preferenceRepository;
     private final UserApiConfigRepository apiConfigRepository;
     private final UserRepository userRepository;
-    private final MarketDataScheduler marketDataScheduler;
+    private final ObjectProvider<MarketDataScheduler> marketDataSchedulerProvider;
 
     // Provider capabilities matrix (Updated based on official API docs)
     // TCMB: https://evds2.tcmb.gov.tr/
@@ -187,17 +188,23 @@ public class DataSourceService {
         ApiProvider provider = config.getProvider();
         CompletableFuture.runAsync(() -> {
             try {
+                MarketDataScheduler scheduler = marketDataSchedulerProvider.getIfAvailable();
+                if (scheduler == null) {
+                    log.warn("MarketDataScheduler bean not available, skipping async fetch for provider: {}", provider);
+                    return;
+                }
+
                 log.info("Starting async data fetch for provider: {}", provider);
                 switch (provider) {
                     case TCMB:
-                        marketDataScheduler.fetchTcmbRates();
+                        scheduler.fetchTcmbRates();
                         break;
                     case YAHOO_FINANCE:
                     case ALPHA_VANTAGE:
                     case FINNHUB:
-                        marketDataScheduler.fetchStockPrices();
-                        marketDataScheduler.fetchNonTcmbForexRates();
-                        marketDataScheduler.fetchCryptoPrices();
+                        scheduler.fetchStockPrices();
+                        scheduler.fetchNonTcmbForexRates();
+                        scheduler.fetchCryptoPrices();
                         break;
                     default:
                         log.info("No immediate fetch handler for provider: {}", provider);

@@ -1,8 +1,11 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useEffect, useRef, useCallback, Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import Keycloak from 'keycloak-js'
 import { setAuth, setInitialized } from '@/store/slices/authSlice'
+import { setKeycloakInstance } from '@/services/api'
+import { setKeycloakInstance as setApiKeycloakInstance } from '@/store/api/baseApi'
 import { selectAutoUpdate, selectRefreshRate, selectTheme } from '@/store/slices/uiSlice'
 import { Layout, ProtectedRoute } from '@/components/layout'
 import websocketService from '@/services/websocketService'
@@ -27,6 +30,7 @@ const AlertsPage = lazy(() => import('@/pages/AlertsPage'))
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'))
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
+const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'))
 
 // Loading fallback component
 const PageLoader = () => (
@@ -42,8 +46,11 @@ const keycloakConfig = {
   clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'finance-frontend',
 }
 
-// Initialize Keycloak (module-scoped, not exposed on window)
 const keycloak = new Keycloak(keycloakConfig)
+setKeycloakInstance(keycloak)
+setApiKeycloakInstance(keycloak)
+
+export { keycloak }
 
 function App() {
   const dispatch = useDispatch()
@@ -94,6 +101,35 @@ function App() {
   }, [autoUpdate, refreshRate, triggerDataRefresh])
 
   useEffect(() => {
+    if (import.meta.env.VITE_E2E_BYPASS_AUTH === 'true') {
+      const e2eUser = {
+        id: 'e2e-user',
+        username: 'e2e-user',
+        name: 'E2E User',
+        email: 'e2e@mintstack.local',
+        roles: ['user', 'admin'],
+      }
+
+      dispatch(setAuth({
+        token: 'e2e-bypass-token',
+        user: e2eUser,
+        roles: e2eUser.roles,
+      }))
+
+      window.keycloak = {
+        authenticated: true,
+        logout: () => {
+          window.location.href = '/login'
+        },
+      }
+
+      return () => {
+        if (tokenRefreshIntervalRef.current) {
+          clearInterval(tokenRefreshIntervalRef.current)
+        }
+      }
+    }
+
     // Initialize Keycloak
     keycloak
       .init({
@@ -162,8 +198,9 @@ function App() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Public route */}
+        {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
         {/* Protected routes with Layout */}
         <Route element={<Layout />}>

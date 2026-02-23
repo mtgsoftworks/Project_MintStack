@@ -27,6 +27,14 @@ vi.mock('@/store/api/newsApi', () => ({
     data: [{ id: '1', name: 'Finans', slug: 'finans' }],
     isLoading: false,
   })),
+  useSearchNewsQuery: vi.fn(() => ({
+    data: { data: [], totalPages: 0 },
+    isLoading: false,
+  })),
+  useGetNewsByCategoryQuery: vi.fn(() => ({
+    data: { data: [], totalPages: 0 },
+    isLoading: false,
+  })),
 }))
 
 describe('NewsPage', () => {

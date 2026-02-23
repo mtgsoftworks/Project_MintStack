@@ -1,4 +1,6 @@
 # Prometheus Configuration for MintStack Finance Portal
+# Production configuration with basic auth (I3)
+# Create web.yml with: htpasswd -nBC 10 "" | tr -d ':\n' | sed 's/$2y/$2b/'
 global:
   scrape_interval: 15s
   evaluation_interval: 15s

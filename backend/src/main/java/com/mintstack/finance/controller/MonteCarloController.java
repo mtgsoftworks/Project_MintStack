@@ -7,6 +7,7 @@ import com.mintstack.finance.dto.response.VaRResult;
 import com.mintstack.finance.service.MonteCarloService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/montecarlo")
 @RequiredArgsConstructor
 @Tag(name = "Monte Carlo", description = "Monte Carlo simülasyonu ve risk analizi")
+@SecurityRequirement(name = "bearer")
 public class MonteCarloController {
 
     private final MonteCarloService monteCarloService;

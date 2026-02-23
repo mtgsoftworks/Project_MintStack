@@ -138,6 +138,22 @@
         "language": "Dil",
         "theme": "Tema",
         "notifications": "Bildirimler",
+        "dataSources": {
+            "title": "Veri Kaynakları",
+            "selectSource": "Kaynak seçin",
+            "noProvider": "Kaynak yok",
+            "active": "Aktif",
+            "refreshNow": "Verileri Şimdi Güncelle",
+            "updating": "Veriler güncelleniyor...",
+            "pleaseWait": "Lütfen bekleyin, bu birkaç saniye sürebilir",
+            "updateSuccess": "Veriler başarıyla güncellendi!",
+            "updateError": "Veri çekme başarısız oldu. Lütfen tekrar deneyin.",
+            "sourceUpdated": "kaynağı güncellendi",
+            "errorOccurred": "Hata oluştu"
+        },
+        "simulation": {
+            "title": "Simülasyon Modu"
+        },
         "emailNotifications": "E-posta Bildirimleri",
         "pushNotifications": "Push Bildirimleri",
         "apiKeys": {
@@ -276,7 +292,65 @@
         "totalUsers": "Toplam Kullanıcı",
         "activeUsers": "Aktif Kullanıcı",
         "activate": "Aktif Et",
-        "deactivate": "Pasif Et"
+        "deactivate": "Pasif Et",
+        "stats": {
+            "portfolios": "Toplam Portföy",
+            "activeAlerts": "Aktif Alarmlar",
+            "instruments": "Enstrümanlar",
+            "watchlists": "İzleme Listeleri"
+        },
+        "table": {
+            "user": "Kullanıcı",
+            "email": "E-posta",
+            "portfolios": "Portföyler",
+            "status": "Durum",
+            "registered": "Kayıt Tarihi"
+        },
+        "status": {
+            "active": "Aktif",
+            "inactive": "Pasif"
+        }
+    },
+    "simulation": {
+        "debugPanel": "Simülasyon Debug Paneli",
+        "debugPanelDesc": "Piyasa simülasyonunu izleyin ve yönetin",
+        "start": "Başlat",
+        "stop": "Durdur",
+        "reset": "Simülasyonu Sıfırla",
+        "metrics": {
+            "tickCount": "Tick Sayısı",
+            "stocks": "Hisseler",
+            "cryptos": "Kripto",
+            "activeEvents": "Aktif Olaylar",
+            "uptime": "Çalışma Süresi"
+        },
+        "health": {
+            "status": "Durum",
+            "healthy": "SAĞLIKLI",
+            "degraded": "BOZUK",
+            "unhealthy": "SAĞLIKSIZ"
+        },
+        "config": {
+            "title": "Simülasyon Ayarları",
+            "volatility": "Volatilite",
+            "volatilityLow": "Düşük",
+            "volatilityMedium": "Orta",
+            "volatilityHigh": "Yüksek",
+            "volatilityExtreme": "Ekstrem",
+            "trend": "Trend",
+            "trendBullish": "Yükseliş",
+            "trendNeutral": "Nötr",
+            "trendBearish": "Düşüş",
+            "updateInterval": "Güncelleme Aralığı (sn)"
+        },
+        "events": {
+            "trigger": "Olay Tetikle",
+            "active": "Aktif Olaylar",
+            "remaining": "Kalan süre"
+        },
+        "volatility": {
+            "distribution": "Volatilite Dağılımı"
+        }
     },
     "errors": {
         "networkError": "Bağlantı hatası",

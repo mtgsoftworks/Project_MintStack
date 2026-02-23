@@ -3,12 +3,11 @@ import {
   TrendingDown,
   DollarSign,
   BarChart3,
-  Newspaper,
   Wallet,
   ArrowUpRight,
   ArrowDownRight,
 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -262,7 +261,6 @@ export default function DashboardPage() {
   let bistChange = undefined
   let bistTrend = 'neutral'
   let bistTitle = t('dashboard.widgets.bist100.title')
-  let bistShow = true
 
   if (bistLoading) {
     // Keep loading state

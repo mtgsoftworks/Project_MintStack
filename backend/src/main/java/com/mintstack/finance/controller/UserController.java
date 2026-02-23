@@ -22,7 +22,6 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -144,26 +143,20 @@ public class UserController {
 
     @PostMapping("/me/notifications/{id}/read")
     @Operation(summary = "Bildirimi okundu olarak işaretle")
-    @Transactional
     public ResponseEntity<ApiResponse<Void>> markNotificationRead(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id) {
         
-        User user = userService.getOrCreateUser(jwt);
-        notificationRepository.markAsRead(id, user);
-        
+        userService.markNotificationAsRead(jwt.getSubject(), id);
         return ResponseEntity.ok(ApiResponse.success(null, "Bildirim okundu olarak işaretlendi"));
     }
 
     @PostMapping("/me/notifications/read-all")
     @Operation(summary = "Tüm bildirimleri okundu olarak işaretle")
-    @Transactional
     public ResponseEntity<ApiResponse<Void>> markAllNotificationsRead(
             @AuthenticationPrincipal Jwt jwt) {
         
-        User user = userService.getOrCreateUser(jwt);
-        int count = notificationRepository.markAllAsRead(user);
-        
+        int count = userService.markAllNotificationsAsRead(jwt.getSubject());
         return ResponseEntity.ok(ApiResponse.success(null, count + " bildirim okundu olarak işaretlendi"));
     }
 }

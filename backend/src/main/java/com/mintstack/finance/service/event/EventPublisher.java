@@ -1,8 +1,9 @@
 package com.mintstack.finance.service.event;
 
 import com.mintstack.finance.config.KafkaConfig;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
@@ -14,10 +15,16 @@ import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class EventPublisher {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    @Value("${app.messaging.enabled:true}")
+    private boolean messagingEnabled = true;
+
+    public EventPublisher(@Autowired(required = false) KafkaTemplate<String, Object> kafkaTemplate) {
+        this.kafkaTemplate = kafkaTemplate;
+    }
 
     public void publishLogEvent(String level, String message, String logger, Map<String, Object> context) {
         LogEvent event = LogEvent.builder()
@@ -60,6 +67,11 @@ public class EventPublisher {
     }
 
     private void send(String topic, String key, Object event) {
+        if (!messagingEnabled || kafkaTemplate == null) {
+            log.debug("Messaging disabled or Kafka template unavailable. Skipping publish to topic {}", topic);
+            return;
+        }
+
         CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send(topic, key, event);
         
         future.whenComplete((result, ex) -> {

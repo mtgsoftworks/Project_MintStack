@@ -19,10 +19,10 @@ public interface PortfolioRepository extends JpaRepository<Portfolio, UUID> {
 
     Optional<Portfolio> findByUserIdAndIsDefaultTrue(UUID userId);
 
-    @Query("SELECT p FROM Portfolio p LEFT JOIN FETCH p.items WHERE p.id = :id AND p.user.id = :userId")
+    @Query("SELECT p FROM Portfolio p LEFT JOIN FETCH p.items i LEFT JOIN FETCH i.instrument WHERE p.id = :id AND p.user.id = :userId")
     Optional<Portfolio> findByIdAndUserIdWithItems(@Param("id") UUID id, @Param("userId") UUID userId);
 
-    @Query("SELECT p FROM Portfolio p LEFT JOIN FETCH p.items WHERE p.user.id = :userId")
+    @Query("SELECT DISTINCT p FROM Portfolio p LEFT JOIN FETCH p.items i LEFT JOIN FETCH i.instrument WHERE p.user.id = :userId")
     List<Portfolio> findByUserIdWithItems(@Param("userId") UUID userId);
 
     boolean existsByUserIdAndName(UUID userId, String name);

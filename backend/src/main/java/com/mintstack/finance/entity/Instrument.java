@@ -1,6 +1,8 @@
 package com.mintstack.finance.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -21,9 +23,12 @@ import java.util.List;
 @Builder
 public class Instrument extends BaseEntity {
 
+    @NotBlank(message = "Sembol boş olamaz")
+    @Size(max = 20, message = "Sembol en fazla 20 karakter olabilir")
     @Column(name = "symbol", nullable = false, length = 20)
     private String symbol;
 
+    @NotBlank(message = "Enstrüman adı boş olamaz")
     @Column(name = "name", nullable = false)
     private String name;
 

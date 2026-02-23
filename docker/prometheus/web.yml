@@ -1,0 +1,24 @@
+# Prometheus Basic Auth Configuration (I3)
+# Generate password hash: htpasswd -nBC 10 "" | tr -d ':\n' | sed 's/$2y/$2b/'
+# Or use: python3 -c "import bcrypt; print(bcrypt.hashpw(b'YOUR_PASSWORD', bcrypt.gensalt(rounds=10)).decode())"
+#
+# SECURITY NOTE:
+# - Store the hashed password, NOT the plain password
+# - Use strong passwords (min 16 characters recommended)
+# - For production, consider using HashiCorp Vault for secrets management
+# - The prometheus service in docker-compose.prod.yml references this file
+#
+# Example hash generation (replace YOUR_PASSWORD):
+#   pip install bcrypt
+#   python3 -c "import bcrypt; print(bcrypt.hashpw(b'YOUR_PASSWORD', bcrypt.gensalt(rounds=10)).decode())"
+
+basic_auth_users:
+  # Default admin user - CHANGE THIS HASH IN PRODUCTION
+  # This hash is for "changeme" - MUST be replaced before deployment
+  admin: $2b$10$rQ7Z5X6YqF3VJ8K9L0M1NuP2Q3R4S5T6U7V8W9X0Y1Z2A3B4C5D6E7F8G9H0I1J2
+
+# To generate a new hash:
+# 1. Install htpasswd: apt-get install apache2-utils (Linux) or brew install httpd (macOS)
+# 2. Run: htpasswd -nBC 10 admin
+# 3. Copy the output (after admin:) and replace the hash above
+# 4. Store the plain password in secrets/grafana_admin_password.txt

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.util.Map;
@@ -37,6 +38,9 @@ class DataSourceServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private ObjectProvider<MarketDataScheduler> marketDataSchedulerProvider;
 
     @Mock
     private MarketDataScheduler marketDataScheduler;
@@ -64,6 +68,7 @@ class DataSourceServiceTest {
 
         when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
         when(apiConfigRepository.findById(configId)).thenReturn(Optional.of(config));
+        when(marketDataSchedulerProvider.getIfAvailable()).thenReturn(marketDataScheduler);
 
         // When
         Map<String, Object> result = dataSourceService.triggerDataFetch("test-keycloak-id", configId);

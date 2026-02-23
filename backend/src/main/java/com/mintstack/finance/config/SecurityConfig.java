@@ -47,7 +47,7 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/swagger-ui.html").permitAll()
                 
-                // WebSocket endpoints
+                // WebSocket endpoints - public for development (should be authenticated in production)
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/ws-native/**").permitAll()
                 
@@ -56,8 +56,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/news/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/news").permitAll()
                 
-                // Simulation endpoints (public for demo mode)
+                // Simulation endpoints - public for development (should be authenticated in production)
                 .requestMatchers("/api/v1/simulation/**").permitAll()
+                
+                // Data source endpoints - public for development
+                .requestMatchers("/api/v1/data-sources/**").permitAll()
                 
                 // Admin endpoints
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")

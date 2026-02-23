@@ -20,7 +20,7 @@ public interface PriceAlertRepository extends JpaRepository<PriceAlert, UUID> {
 
     Optional<PriceAlert> findByIdAndUserId(UUID id, UUID userId);
 
-    @Query("SELECT a FROM PriceAlert a WHERE a.isActive = true AND a.isTriggered = false")
+    @Query("SELECT a FROM PriceAlert a JOIN FETCH a.instrument WHERE a.isActive = true AND a.isTriggered = false")
     List<PriceAlert> findActiveAlerts();
 
     @Query("SELECT a FROM PriceAlert a JOIN FETCH a.instrument WHERE a.instrument.id = :instrumentId AND a.isActive = true")
@@ -29,7 +29,7 @@ public interface PriceAlertRepository extends JpaRepository<PriceAlert, UUID> {
     @Query("SELECT a FROM PriceAlert a JOIN FETCH a.instrument WHERE a.instrument.symbol = :symbol AND a.isActive = true")
     List<PriceAlert> findActiveAlertsBySymbol(@Param("symbol") String symbol);
 
-    @Query("SELECT a FROM PriceAlert a WHERE a.isTriggered = true AND a.notificationSent = false")
+    @Query("SELECT a FROM PriceAlert a JOIN FETCH a.instrument WHERE a.isTriggered = true AND a.notificationSent = false")
     List<PriceAlert> findTriggeredAlertsNotNotified();
 
     long countByUserIdAndIsActiveTrue(UUID userId);

@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom'
+import React from 'react'
 import { afterAll, afterEach, beforeAll, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import { server } from './mocks/server'
@@ -60,6 +61,29 @@ vi.mock('keycloak-js', () => {
   }
 })
 
+// Mock keycloak export from App
+vi.mock('@/App', () => ({
+  keycloak: {
+    init: vi.fn().mockResolvedValue(true),
+    login: vi.fn(),
+    logout: vi.fn(),
+    token: 'mock-token',
+    tokenParsed: {
+      sub: 'mock-user-id',
+      email: 'test@example.com',
+      given_name: 'Test',
+      family_name: 'User',
+      name: 'Test User',
+      realm_access: {
+        roles: ['user'],
+      },
+    },
+    subject: 'mock-user-id',
+    updateToken: vi.fn().mockResolvedValue(true),
+    authenticated: true,
+  },
+}))
+
 // Mock react-i18next with comprehensive translations
 const translations = {
   'nav.home': 'Dashboard',
@@ -115,6 +139,14 @@ vi.mock('react-i18next', () => ({
     init: () => { },
   },
   Trans: ({ children }) => children,
+  withTranslation: () => (Component) => {
+    const WrappedComponent = (props) => {
+      const t = (key) => translations[key] || key
+      return React.createElement(Component, { ...props, t })
+    }
+    WrappedComponent.displayName = `withTranslation(${Component.displayName || Component.name || 'Component'})`
+    return WrappedComponent
+  },
 }))
 
 // Start MSW server before all tests

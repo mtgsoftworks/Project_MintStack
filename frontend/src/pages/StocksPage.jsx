@@ -33,7 +33,6 @@ function StockTableSkeleton() {
 
 // Virtual scrolling stock row component
 function VirtualStockRow({ stock }) {
-  const { t } = useTranslation()
   return (
     <div className="flex items-center px-4 gap-4 h-14 border-b hover:bg-muted/50 transition-colors">
       <div className="w-[180px] flex-shrink-0">
