@@ -46,3 +46,8 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Local debug artifacts
+backend_logs.txt
+token_resp.json
+test_auth.js
