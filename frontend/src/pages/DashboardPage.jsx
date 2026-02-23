@@ -130,7 +130,14 @@ function CurrencyWidget() {
 
 function NewsWidget() {
   const { t } = useTranslation()
-  const { data, isLoading } = useGetNewsQuery({ page: 0, size: 5 })
+  const { data, isLoading } = useGetNewsQuery(
+    { page: 0, size: 5 },
+    {
+      pollingInterval: 10000,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+    }
+  )
   const news = data?.data || []
 
   return (
@@ -235,7 +242,14 @@ export default function DashboardPage() {
   const { t } = useTranslation()
   const isAuthenticated = useSelector(selectIsAuthenticated)
   const { data: currencies, isLoading: currenciesLoading } = useGetCurrenciesQuery()
-  const { data: bist100, isLoading: bistLoading } = useGetMarketIndexQuery('XU100.IS')
+  const { data: bist100, isLoading: bistLoading } = useGetMarketIndexQuery(
+    'XU100.IS',
+    {
+      pollingInterval: 5000,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+    }
+  )
   const { data: portfolios, isLoading: portfolioLoading } = useGetPortfoliosQuery(undefined, {
     skip: !isAuthenticated
   })

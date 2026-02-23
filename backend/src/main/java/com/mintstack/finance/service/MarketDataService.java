@@ -15,6 +15,8 @@ import com.mintstack.finance.repository.PriceHistoryRepository;
 import com.mintstack.finance.repository.UserApiConfigRepository;
 import com.mintstack.finance.entity.UserApiConfig;
 import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
+import com.mintstack.finance.service.simulation.SimulatedIndex;
+import com.mintstack.finance.service.simulation.SimulatedStock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -88,6 +90,11 @@ public class MarketDataService {
     public List<InstrumentResponse> getInstrumentsByType(InstrumentType type) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
         List<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(type, isSimulation);
+
+        if (shouldFallbackToRealInstruments(type, isSimulation, instruments.isEmpty())) {
+            instruments = instrumentRepository.findByTypeAndIsActiveTrue(type);
+        }
+
         return instruments.stream()
             .map(this::mapToInstrumentResponse)
             .collect(Collectors.toList());
@@ -97,6 +104,11 @@ public class MarketDataService {
     public Page<InstrumentResponse> getInstrumentsByType(InstrumentType type, Pageable pageable) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
         Page<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(type, isSimulation, pageable);
+
+        if (shouldFallbackToRealInstruments(type, isSimulation, instruments.isEmpty())) {
+            instruments = instrumentRepository.findByTypeAndIsActiveTrue(type, pageable);
+        }
+
         return instruments.map(this::mapToInstrumentResponse);
     }
 
@@ -148,6 +160,13 @@ public class MarketDataService {
 
     // Market Index (e.g. BIST 100)
     public InstrumentResponse getMarketIndex(String symbol) {
+        if (simulationDataService.isSimulationEnabled()) {
+            InstrumentResponse simulatedIndex = getSimulatedIndexResponse(symbol);
+            if (simulatedIndex != null) {
+                return simulatedIndex;
+            }
+        }
+
         // Try to find in DB first
         Instrument instrument = instrumentRepository.findBySymbol(symbol).orElse(null);
         
@@ -170,7 +189,7 @@ public class MarketDataService {
                     .symbol(symbol)
                     .name(symbol) // We don't have name if not in DB
                     .currentPrice(price)
-                    .type(InstrumentType.STOCK) // Treat as stock for now
+                    .type(InstrumentType.INDEX)
                     .currency("TRY");
                     
                 if (instrument != null) {
@@ -194,6 +213,66 @@ public class MarketDataService {
         // No data available - return null (no mock data)
         log.info("No market index data available for {}", symbol);
         return null;
+    }
+
+    private boolean shouldFallbackToRealInstruments(InstrumentType type, boolean simulationEnabled, boolean isEmpty) {
+        if (!simulationEnabled || !isEmpty) {
+            return false;
+        }
+        return type == InstrumentType.BOND || type == InstrumentType.FUND || type == InstrumentType.VIOP;
+    }
+
+    private InstrumentResponse getSimulatedIndexResponse(String symbol) {
+        SimulatedIndex index = simulationDataService.getIndex(symbol);
+        String normalizedSymbol = normalizeIndexSymbol(symbol);
+
+        if (index == null && !normalizedSymbol.equals(symbol)) {
+            index = simulationDataService.getIndex(normalizedSymbol);
+        }
+        if (index != null) {
+            Instrument instrument = Instrument.builder()
+                .symbol(symbol)
+                .name(index.getName())
+                .type(InstrumentType.INDEX)
+                .exchange("BIST")
+                .currency("TRY")
+                .currentPrice(index.getCurrentValue())
+                .previousClose(index.getPreviousClose())
+                .isActive(true)
+                .isSimulated(true)
+                .build();
+
+            return mapToInstrumentResponse(instrument);
+        }
+
+        SimulatedStock stockBasedIndex = simulationDataService.getStock(normalizedSymbol);
+        if (stockBasedIndex == null) {
+            return null;
+        }
+
+        Instrument instrument = Instrument.builder()
+            .symbol(symbol)
+            .name(stockBasedIndex.getName())
+            .type(InstrumentType.INDEX)
+            .exchange("BIST")
+            .currency("TRY")
+            .currentPrice(stockBasedIndex.getCurrentPrice())
+            .previousClose(stockBasedIndex.getPreviousClose())
+            .isActive(true)
+            .isSimulated(true)
+            .build();
+
+        return mapToInstrumentResponse(instrument);
+    }
+
+    private String normalizeIndexSymbol(String symbol) {
+        if (symbol == null) {
+            return "";
+        }
+        if (symbol.endsWith(".IS")) {
+            return symbol.substring(0, symbol.length() - 3);
+        }
+        return symbol;
     }
 
     // Save methods

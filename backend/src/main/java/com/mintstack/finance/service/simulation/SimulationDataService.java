@@ -52,13 +52,16 @@ public class SimulationDataService {
     private final Map<String, SimulatedCurrency> currencyCache = new ConcurrentHashMap<>();
     private final Map<String, SimulatedIndex> indexCache = new ConcurrentHashMap<>();
     private final Map<String, SimulatedCrypto> cryptoCache = new ConcurrentHashMap<>();
+    private static final long MIN_SIMULATION_NEWS_INTERVAL_SECONDS = 60L;
 
     private LocalDate lastTradingDate = null;
+    private LocalDateTime lastSimulationHeadlineAt = null;
     private final Random random = new Random();
 
     @PostConstruct
     public void initializeMarketData() {
         marketBootstrapService.initializeCaches(stockCache, currencyCache, indexCache, cryptoCache);
+        ensureBaseMockNewsIfEmpty();
     }
 
     public boolean isSimulationEnabled() {
@@ -165,6 +168,7 @@ public class SimulationDataService {
         simulateCurrencies(volatility, intervalSeconds);
         simulateIndices(volatility, trend, intervalSeconds, eventMultiplier);
         simulateCryptos(volatility, trend, intervalSeconds, randomEvents);
+        maybeGenerateSimulationHeadline(intervalSeconds);
     }
 
     private Map<String, Double> simulateNewsImpact() {
@@ -229,6 +233,65 @@ public class SimulationDataService {
             newsRepository.save(news);
         } catch (Exception error) {
             log.warn("Scenario news kaydedilemedi: {}", error.getMessage());
+        }
+    }
+
+    private void maybeGenerateSimulationHeadline(int updateIntervalSeconds) {
+        LocalDateTime now = LocalDateTime.now();
+        long minInterval = Math.max(MIN_SIMULATION_NEWS_INTERVAL_SECONDS, updateIntervalSeconds * 8L);
+
+        if (lastSimulationHeadlineAt != null
+            && now.isBefore(lastSimulationHeadlineAt.plusSeconds(minInterval))) {
+            return;
+        }
+
+        SimulatedIndex bist = indexCache.get("XU100.IS");
+        if (bist == null) {
+            bist = indexCache.get("XU100");
+        }
+        if (bist == null) {
+            return;
+        }
+
+        List<NewsCategory> categories = ensureDefaultNewsCategories();
+        if (categories.isEmpty()) {
+            return;
+        }
+
+        NewsCategory category = categories.stream()
+            .filter((item) -> "piyasa".equalsIgnoreCase(item.getSlug()))
+            .findFirst()
+            .orElse(categories.get(0));
+
+        BigDecimal price = bist.getCurrentValue().setScale(2, RoundingMode.HALF_UP);
+        BigDecimal changePercent = bist.getChangePercent().setScale(2, RoundingMode.HALF_UP);
+        String direction = changePercent.compareTo(BigDecimal.ZERO) >= 0 ? "yukselis" : "dusus";
+        String timestamp = now.toLocalTime().withNano(0).toString();
+
+        News autoNews = News.builder()
+            .title(String.format("Simulasyon BIST 100 guncellemesi: %s", price))
+            .summary(String.format("BIST 100 %% %s (%s) hareketi gosteriyor.", changePercent, direction))
+            .content(String.format(
+                "Simulasyon saat %s itibariyla BIST 100 %s seviyesinde. Gunluk degisim %%%s (%s).",
+                timestamp,
+                price,
+                changePercent,
+                direction
+            ))
+            .sourceName("Simulasyon")
+            .sourceUrl(String.format("https://mintstack.local/simulation-news/xu100-%s", now))
+            .category(category)
+            .publishedAt(now)
+            .isPublished(true)
+            .isFeatured(false)
+            .viewCount(0L)
+            .build();
+
+        try {
+            newsRepository.save(autoNews);
+            lastSimulationHeadlineAt = now;
+        } catch (Exception error) {
+            log.warn("Simulation headline kaydedilemedi: {}", error.getMessage());
         }
     }
 
@@ -385,6 +448,7 @@ public class SimulationDataService {
 
         priceEngine.clearState();
         initializeMarketData();
+        lastSimulationHeadlineAt = null;
     }
 
     @Transactional
@@ -441,5 +505,133 @@ public class SimulationDataService {
         for (SimulatedCrypto crypto : cryptoCache.values()) {
             crypto.setNewDayPreviousClose();
         }
+    }
+
+    private void ensureBaseMockNewsIfEmpty() {
+        try {
+            if (newsRepository.count() > 0) {
+                return;
+            }
+
+            List<NewsCategory> categories = ensureDefaultNewsCategories();
+            if (categories.isEmpty()) {
+                return;
+            }
+
+            NewsCategory primaryCategory = categories.stream()
+                .filter((item) -> "piyasa".equalsIgnoreCase(item.getSlug()))
+                .findFirst()
+                .orElse(categories.get(0));
+
+            LocalDateTime now = LocalDateTime.now();
+            List<News> baselineNews = List.of(
+                buildMockNews(
+                    primaryCategory,
+                    "BIST 100 simulated opening stays positive",
+                    "Simulation baseline news item for dashboard visibility.",
+                    "BIST 100 started the session with moderate buying interest in simulation mode.",
+                    "https://mintstack.local/simulation-news/bist100-opening",
+                    now.minusMinutes(10),
+                    true
+                ),
+                buildMockNews(
+                    primaryCategory,
+                    "Bond market remains stable in simulation mode",
+                    "Government bond yields are moving in a narrow range.",
+                    "Fixed income instruments continue to trade in a low-volatility range in simulation mode.",
+                    "https://mintstack.local/simulation-news/bond-market-stable",
+                    now.minusMinutes(25),
+                    false
+                ),
+                buildMockNews(
+                    primaryCategory,
+                    "Fund inflows favor balanced portfolios",
+                    "Balanced and mixed funds attract simulated demand.",
+                    "Fund allocations in simulation mode show preference for diversified products.",
+                    "https://mintstack.local/simulation-news/fund-inflows-balanced",
+                    now.minusMinutes(40),
+                    false
+                ),
+                buildMockNews(
+                    primaryCategory,
+                    "VIOP contracts see increased turnover",
+                    "Index and FX contracts show higher intraday turnover.",
+                    "Derivatives activity is elevated for benchmark contracts in simulation mode.",
+                    "https://mintstack.local/simulation-news/viop-turnover-rise",
+                    now.minusMinutes(55),
+                    false
+                ),
+                buildMockNews(
+                    primaryCategory,
+                    "Currency basket remains range-bound",
+                    "Major FX pairs keep a balanced trend in simulation mode.",
+                    "USDTRY and EURTRY continue inside a controlled volatility band in simulated trading.",
+                    "https://mintstack.local/simulation-news/currency-range-bound",
+                    now.minusMinutes(70),
+                    false
+                )
+            );
+
+            newsRepository.saveAll(baselineNews);
+            log.info("Seeded {} baseline simulation news items", baselineNews.size());
+        } catch (Exception error) {
+            log.warn("Baseline simulation news seed failed: {}", error.getMessage());
+        }
+    }
+
+    private List<NewsCategory> ensureDefaultNewsCategories() {
+        List<NewsCategory> categories = newsCategoryRepository.findAll();
+        if (!categories.isEmpty()) {
+            return categories;
+        }
+
+        List<NewsCategory> defaults = List.of(
+            NewsCategory.builder()
+                .name("Piyasa")
+                .slug("piyasa")
+                .description("Genel piyasa haberleri")
+                .displayOrder(1)
+                .isActive(true)
+                .build(),
+            NewsCategory.builder()
+                .name("Ekonomi")
+                .slug("ekonomi")
+                .description("Makro ekonomi haberleri")
+                .displayOrder(2)
+                .isActive(true)
+                .build(),
+            NewsCategory.builder()
+                .name("Sirket")
+                .slug("sirket")
+                .description("Sirket duyurulari")
+                .displayOrder(3)
+                .isActive(true)
+                .build()
+        );
+
+        return newsCategoryRepository.saveAll(defaults);
+    }
+
+    private News buildMockNews(
+        NewsCategory category,
+        String title,
+        String summary,
+        String content,
+        String sourceUrl,
+        LocalDateTime publishedAt,
+        boolean featured
+    ) {
+        return News.builder()
+            .title(title)
+            .summary(summary)
+            .content(content)
+            .sourceName("Simulasyon")
+            .sourceUrl(sourceUrl)
+            .category(category)
+            .publishedAt(publishedAt)
+            .isPublished(true)
+            .isFeatured(featured)
+            .viewCount(0L)
+            .build();
     }
 }

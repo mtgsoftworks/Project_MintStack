@@ -38,6 +38,8 @@ public class SimulationMarketBootstrapService {
             initializeCryptos(cryptoCache);
         }
 
+        ensureBist100Alias(indexCache);
+
         log.info(
             "Simulation market data initialized: {} stocks, {} currencies, {} indices, {} cryptos (from Redis: {})",
             stockCache.size(),
@@ -185,6 +187,40 @@ public class SimulationMarketBootstrapService {
         indexCache.put("XHOLD", new SimulatedIndex("BIST Holding", 7800.00, 0.017));
         indexCache.put("XUTEK", new SimulatedIndex("BIST Teknoloji", 5400.00, 0.025));
         indexCache.put("XGIDA", new SimulatedIndex("BIST Gida", 4200.00, 0.013));
+    }
+
+    private void ensureBist100Alias(Map<String, SimulatedIndex> indexCache) {
+        SimulatedIndex base = indexCache.get("XU100");
+        SimulatedIndex alias = indexCache.get("XU100.IS");
+
+        if (base == null && alias == null) {
+            base = new SimulatedIndex("BIST 100", 9850.00, 0.015);
+            indexCache.put("XU100", base);
+
+            alias = new SimulatedIndex("BIST 100", 9850.00, 0.015);
+            indexCache.put("XU100.IS", alias);
+            return;
+        }
+
+        if (base == null && alias != null) {
+            base = new SimulatedIndex(
+                alias.getName(),
+                alias.getCurrentValue().doubleValue(),
+                alias.getBaseVolatility()
+            );
+            base.setPreviousClose(alias.getPreviousClose());
+            indexCache.put("XU100", base);
+        }
+
+        if (alias == null && base != null) {
+            alias = new SimulatedIndex(
+                base.getName(),
+                base.getCurrentValue().doubleValue(),
+                base.getBaseVolatility()
+            );
+            alias.setPreviousClose(base.getPreviousClose());
+            indexCache.put("XU100.IS", alias);
+        }
     }
 
     private void initializeCryptos(Map<String, SimulatedCrypto> cryptoCache) {

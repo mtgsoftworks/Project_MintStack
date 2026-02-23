@@ -12,6 +12,8 @@ import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
 import com.mintstack.finance.repository.UserApiConfigRepository;
 import com.mintstack.finance.service.external.YahooFinanceClient;
+import com.mintstack.finance.service.simulation.SimulatedIndex;
+import com.mintstack.finance.service.simulation.SimulatedStock;
 import com.mintstack.finance.service.simulation.SimulationDataService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -41,6 +43,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("MarketDataService Unit Tests")
@@ -239,6 +242,123 @@ class MarketDataServiceTest {
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).getSymbol()).isEqualTo("THYAO");
+    }
+
+    @Test
+    @DisplayName("getInstrumentsByType should fallback to real data for unsupported simulation types")
+    void getInstrumentsByType_ShouldFallbackToRealData_WhenSimulationDataEmpty() {
+        Instrument bondInstrument = Instrument.builder()
+                .symbol("TRT120128T11")
+                .name("2Y Bond")
+                .type(InstrumentType.BOND)
+                .exchange("BIST")
+                .currency("TRY")
+                .currentPrice(new BigDecimal("98.45"))
+                .previousClose(new BigDecimal("98.10"))
+                .isActive(true)
+                .isSimulated(false)
+                .build();
+
+        when(simulationDataService.isSimulationEnabled()).thenReturn(true);
+        when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType.BOND, true))
+                .thenReturn(List.of());
+        when(instrumentRepository.findByTypeAndIsActiveTrue(InstrumentType.BOND))
+                .thenReturn(List.of(bondInstrument));
+
+        List<InstrumentResponse> result = marketDataService.getInstrumentsByType(InstrumentType.BOND);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getSymbol()).isEqualTo("TRT120128T11");
+        assertThat(result.get(0).getType()).isEqualTo(InstrumentType.BOND);
+    }
+
+    @Test
+    @DisplayName("getInstrumentsByType with pagination should fallback to real data for unsupported simulation types")
+    void getInstrumentsByType_WithPagination_ShouldFallbackToRealData_WhenSimulationDataEmpty() {
+        Instrument fundInstrument = Instrument.builder()
+                .symbol("MAC")
+                .name("Fund A")
+                .type(InstrumentType.FUND)
+                .exchange("TEFAS")
+                .currency("TRY")
+                .currentPrice(new BigDecimal("12.54"))
+                .previousClose(new BigDecimal("12.42"))
+                .isActive(true)
+                .isSimulated(false)
+                .build();
+
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Instrument> emptyPage = new PageImpl<>(List.of(), pageable, 0);
+        Page<Instrument> realPage = new PageImpl<>(List.of(fundInstrument), pageable, 1);
+
+        when(simulationDataService.isSimulationEnabled()).thenReturn(true);
+        when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType.FUND, true, pageable))
+                .thenReturn(emptyPage);
+        when(instrumentRepository.findByTypeAndIsActiveTrue(InstrumentType.FUND, pageable))
+                .thenReturn(realPage);
+
+        Page<InstrumentResponse> result = marketDataService.getInstrumentsByType(InstrumentType.FUND, pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getSymbol()).isEqualTo("MAC");
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("getMarketIndex should return simulated value when simulation mode is enabled")
+    void getMarketIndex_ShouldReturnSimulationIndex_WhenSimulationEnabled() {
+        SimulatedIndex simulatedIndex = new SimulatedIndex("BIST 100", 9850.0, 0.015);
+
+        when(simulationDataService.isSimulationEnabled()).thenReturn(true);
+        when(simulationDataService.getIndex("XU100.IS")).thenReturn(simulatedIndex);
+
+        InstrumentResponse result = marketDataService.getMarketIndex("XU100.IS");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getSymbol()).isEqualTo("XU100.IS");
+        assertThat(result.getType()).isEqualTo(InstrumentType.INDEX);
+        assertThat(result.getCurrentPrice()).isEqualByComparingTo("9850.0");
+
+        verifyNoInteractions(yahooFinanceClient);
+    }
+
+    @Test
+    @DisplayName("getMarketIndex should resolve XU100.IS alias from XU100 simulation cache")
+    void getMarketIndex_ShouldResolveAliasFromSimulationCache() {
+        SimulatedIndex simulatedIndex = new SimulatedIndex("BIST 100", 9925.5, 0.015);
+
+        when(simulationDataService.isSimulationEnabled()).thenReturn(true);
+        when(simulationDataService.getIndex("XU100.IS")).thenReturn(null);
+        when(simulationDataService.getIndex("XU100")).thenReturn(simulatedIndex);
+
+        InstrumentResponse result = marketDataService.getMarketIndex("XU100.IS");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getSymbol()).isEqualTo("XU100.IS");
+        assertThat(result.getCurrentPrice()).isEqualByComparingTo("9925.5");
+        assertThat(result.getType()).isEqualTo(InstrumentType.INDEX);
+
+        verifyNoInteractions(yahooFinanceClient);
+    }
+
+    @Test
+    @DisplayName("getMarketIndex should fallback to simulated stock when index cache is empty")
+    void getMarketIndex_ShouldFallbackToStock_WhenIndexMissing() {
+        SimulatedStock stockFallback = new SimulatedStock("BIST 100", "BIST", 10012.3, 0.015);
+
+        when(simulationDataService.isSimulationEnabled()).thenReturn(true);
+        when(simulationDataService.getIndex("XU100.IS")).thenReturn(null);
+        when(simulationDataService.getIndex("XU100")).thenReturn(null);
+        when(simulationDataService.getStock("XU100")).thenReturn(stockFallback);
+
+        InstrumentResponse result = marketDataService.getMarketIndex("XU100.IS");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getSymbol()).isEqualTo("XU100.IS");
+        assertThat(result.getType()).isEqualTo(InstrumentType.INDEX);
+        assertThat(result.getCurrentPrice()).isEqualByComparingTo("10012.3");
+
+        verifyNoInteractions(yahooFinanceClient);
     }
 
     // ===================== SAVE METHODS TESTS =====================
