@@ -10,6 +10,8 @@ import com.mintstack.finance.entity.UserDataPreference.DataType;
 import com.mintstack.finance.repository.UserApiConfigRepository;
 import com.mintstack.finance.repository.UserDataPreferenceRepository;
 import com.mintstack.finance.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import com.mintstack.finance.scheduler.MarketDataScheduler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 @Slf4j
 @Service
@@ -31,6 +34,9 @@ public class DataSourceService {
     private final UserApiConfigRepository apiConfigRepository;
     private final UserRepository userRepository;
     private final ObjectProvider<MarketDataScheduler> marketDataSchedulerProvider;
+    @Autowired
+    @Qualifier("taskExecutor")
+    private Executor taskExecutor;
 
     // Provider capabilities matrix (Updated based on official API docs)
     // TCMB: https://evds2.tcmb.gov.tr/
@@ -186,6 +192,8 @@ public class DataSourceService {
 
         // FIX: Trigger data fetch ASYNCHRONOUSLY to prevent HTTP blocking
         ApiProvider provider = config.getProvider();
+        Executor asyncExecutor = taskExecutor != null ? taskExecutor : Runnable::run;
+
         CompletableFuture.runAsync(() -> {
             try {
                 MarketDataScheduler scheduler = marketDataSchedulerProvider.getIfAvailable();
@@ -213,7 +221,7 @@ public class DataSourceService {
             } catch (Exception e) {
                 log.error("Error during async data fetch for {}: {}", provider, e.getMessage());
             }
-        });
+        }, asyncExecutor);
 
         Map<String, Object> result = new HashMap<>();
         result.put("triggered", true);

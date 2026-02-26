@@ -15,9 +15,9 @@ import {
 } from '@/store/slices/uiSlice'
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/store/api/userApi'
 import { useClearCacheMutation, useDeleteMarketDataMutation } from '@/store/api/settingsApi'
-import { portfolioService } from '@/services/portfolioService'
-import watchlistService from '@/services/watchlistService'
-import alertService from '@/services/alertService'
+import { useDeletePortfolioMutation, useGetPortfoliosQuery } from '@/store/api/portfolioApi'
+import { useDeleteWatchlistMutation, useGetWatchlistsQuery } from '@/store/api/watchlistApi'
+import { useDeleteAlertMutation, useGetAlertsQuery } from '@/store/api/alertsApi'
 
 const DEFAULT_NOTIFICATION_SETTINGS = {
     priceAlerts: true,
@@ -39,6 +39,12 @@ export function useGeneralSettings({ t, i18n }) {
     const [updateProfile] = useUpdateProfileMutation()
     const [clearCache, { isLoading: isClearingCache }] = useClearCacheMutation()
     const [deleteMarketData] = useDeleteMarketDataMutation()
+    const { data: portfolios = [] } = useGetPortfoliosQuery()
+    const { data: watchlists = [] } = useGetWatchlistsQuery()
+    const { data: alerts = [] } = useGetAlertsQuery()
+    const [deletePortfolio] = useDeletePortfolioMutation()
+    const [deleteWatchlist] = useDeleteWatchlistMutation()
+    const [deleteAlert] = useDeleteAlertMutation()
 
     const [notificationSettings, setNotificationSettings] = useState(DEFAULT_NOTIFICATION_SETTINGS)
 
@@ -148,29 +154,24 @@ export function useGeneralSettings({ t, i18n }) {
         )
 
         try {
-            const portfolios = await portfolioService.getPortfolios()
             for (const portfolio of portfolios) {
-                await portfolioService.deletePortfolio(portfolio.id)
+                await deletePortfolio(portfolio.id).unwrap()
             }
         } catch (error) {
             console.warn('Portfolio reset skipped:', error?.message)
         }
 
         try {
-            const watchlistsResponse = await watchlistService.getAll()
-            const watchlists = watchlistsResponse?.data || []
             for (const watchlist of watchlists) {
-                await watchlistService.delete(watchlist.id)
+                await deleteWatchlist(watchlist.id).unwrap()
             }
         } catch (error) {
             console.warn('Watchlist reset skipped:', error?.message)
         }
 
         try {
-            const alertsResponse = await alertService.getAll()
-            const alerts = alertsResponse?.data || []
             for (const alert of alerts) {
-                await alertService.delete(alert.id)
+                await deleteAlert(alert.id).unwrap()
             }
         } catch (error) {
             console.warn('Alerts reset skipped:', error?.message)

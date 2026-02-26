@@ -47,7 +47,8 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/swagger-ui.html").permitAll()
                 
-                // WebSocket endpoints - public for development (should be authenticated in production)
+                // WebSocket handshake endpoints are public, but STOMP CONNECT
+                // frames are authenticated by WebSocketAuthInterceptor.
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/ws-native/**").permitAll()
                 
@@ -56,11 +57,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/news/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/news").permitAll()
                 
-                // Simulation endpoints - public for development (should be authenticated in production)
-                .requestMatchers("/api/v1/simulation/**").permitAll()
-                
-                // Data source endpoints - public for development
-                .requestMatchers("/api/v1/data-sources/**").permitAll()
+                // Simulation endpoints - admin only
+                .requestMatchers("/api/v1/simulation/**").hasRole("ADMIN")
+
+                // Data source endpoints - authenticated users only
+                .requestMatchers("/api/v1/data-sources/**").authenticated()
                 
                 // Admin endpoints
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
@@ -84,8 +85,7 @@ public class SecurityConfig {
                 // Referrer-Policy
                 headers.referrerPolicy(referrer -> referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN));
                 // Permissions-Policy (Feature-Policy replacement)
-                // Note: permissionsPolicy is deprecated since Spring Security 6.4, but still works
-                headers.permissionsPolicy(permissions -> permissions.policy("accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"));
+                headers.permissionsPolicyHeader(permissions -> permissions.policy("accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"));
                 // HSTS - Strict Transport Security
                 headers.httpStrictTransportSecurity(hsts -> hsts
                     .includeSubDomains(true)

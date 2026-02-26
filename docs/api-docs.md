@@ -1,385 +1,45 @@
-# MintStack Finance Portal - API Documentation
+# MintStack Finance Portal - API Quick Reference
 
-## Base URL
-
-Local (Spring Boot dev):
-```
-http://localhost:8080/api/v1
-```
-
-Docker Compose:
-```
-http://localhost:18080/api/v1
-```
+Base URL: `http://localhost:18080/api/v1`  
+Swagger UI: `http://localhost:18080/swagger-ui.html`
 
 ## Authentication
-Bu API, OAuth2/OpenID Connect (Keycloak) kullanır. Korumalı endpoint'ler için JWT token gereklidir.
 
-```http
-Authorization: Bearer <token>
-```
-
-### Token Alma (Login)
-```http
-POST http://localhost:8180/realms/mintstack-finance/protocol/openid-connect/token
-Content-Type: application/x-www-form-urlencoded
-
-grant_type=password&client_id=finance-frontend&username=admin&password=Admin123!
-```
-
-## Endpoints
-
-### Market Data
-
-#### Döviz Kurları
-```http
-GET /market/currencies
-```
-Tüm güncel döviz kurlarını döndürür.
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "uuid",
-      "currencyCode": "USD",
-      "currencyName": "ABD Doları",
-      "buyingRate": 34.1234,
-      "sellingRate": 34.5678,
-      "source": "TCMB",
-      "fetchedAt": "2026-01-09T12:00:00Z"
-    }
-  ]
-}
-```
-
-#### Tek Döviz Kuru
-```http
-GET /market/currencies/{code}
-```
-
-#### Döviz Kur Geçmişi
-```http
-GET /market/currencies/{code}/history?startDate=2025-01-01&endDate=2026-01-09
-```
-
-#### Hisse Senetleri
-```http
-GET /market/stocks?search=THYAO&page=0&size=20
-```
-
-#### Hisse Detayı
-```http
-GET /market/stocks/{symbol}
-```
-
-#### Hisse Fiyat Geçmişi
-```http
-GET /market/stocks/{symbol}/history?days=30
-```
-
-#### Tahvil/Bono
-```http
-GET /market/bonds?page=0&size=20
-```
-
-#### Fonlar
-```http
-GET /market/funds?search=AFT&page=0&size=20
-```
-
-#### VIOP
-```http
-GET /market/viop?page=0&size=20
-```
-
-#### Arama
-```http
-GET /market/search?query=turk
-```
-
----
-
-## WebSocket (Real-time Prices)
-
-WebSocket endpoint (SockJS):
-```
-ws://localhost:18080/ws
-```
-
-Native WebSocket:
-```
-ws://localhost:18080/ws-native
-```
-
-Topics:
-```
-/topic/prices
-/topic/prices/stocks
-/topic/prices/stocks/{symbol}
-/topic/prices/currency
-/topic/prices/currency/{code}
-/user/queue/notifications
-```
-
-**Frontend Örneği:**
-```javascript
-import { Client } from '@stomp/stompjs'
-import SockJS from 'sockjs-client'
-
-const client = new Client({
-  webSocketFactory: () => new SockJS('http://localhost:18080/ws'),
-  onConnect: () => {
-    client.subscribe('/topic/prices/stocks/THYAO', (msg) => {
-      const data = JSON.parse(msg.body)
-      console.log('Price update:', data)
-    })
-  }
-})
-client.activate()
-```
-
-### Haberler
-
-#### Haber Listesi
-```http
-GET /news?category=doviz&search=usd&page=0&size=10
-```
-
-#### Son Haberler
-```http
-GET /news/latest
-```
-
-#### Öne Çıkan Haberler
-```http
-GET /news/featured
-```
-
-#### Haber Detayı
-```http
-GET /news/{id}
-```
-
-#### Kategoriler
-```http
-GET /news/categories
-```
-
----
-
-### Portföy Yönetimi (Kimlik Doğrulama Gerekli)
-
-#### Portföy Listesi
-```http
-GET /portfolios
-```
-
-#### Portföy Detayı
-```http
-GET /portfolios/{id}
-```
-
-#### Portföy Oluştur
-```http
-POST /portfolios
-Content-Type: application/json
-
-{
-  "name": "Ana Portföy",
-  "description": "Uzun vadeli yatırımlar",
-  "isDefault": false
-}
-```
-
-#### Portföy Güncelle
-```http
-PUT /portfolios/{id}
-Content-Type: application/json
-
-{
-  "name": "Güncellenmiş İsim",
-  "description": "Yeni açıklama"
-}
-```
-
-#### Portföy Sil
-```http
-DELETE /portfolios/{id}
-```
-
-#### Enstrüman Ekle
-```http
-POST /portfolios/{id}/items
-Content-Type: application/json
-
-{
-  "instrumentId": "uuid",
-  "quantity": 100,
-  "purchasePrice": 150.50,
-  "purchaseDate": "2026-01-01",
-  "notes": "İlk alım"
-}
-```
-
-#### Enstrüman Çıkar
-```http
-DELETE /portfolios/{id}/items/{itemId}
-```
-
-#### Portföy Özeti
-```http
-GET /portfolios/{id}/summary
-```
-
-#### Portföy İşlem Geçmişi
-```http
-GET /portfolios/{id}/transactions?page=0&size=20
-```
-
----
-
-### Analiz (Kimlik Doğrulama Gerekli)
-
-#### Hareketli Ortalama
-```http
-GET /analysis/ma/{symbol}?period=20&endDate=2026-01-09
-```
-
-#### Çoklu Hareketli Ortalama (MA7, MA25, MA99)
-```http
-GET /analysis/ma/multiple/{symbol}?endDate=2026-01-09
-```
-
-#### Trend Analizi
-```http
-GET /analysis/trend/{symbol}?days=30
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "symbol": "THYAO",
-    "period": 30,
-    "trend": "UPTREND",
-    "trendStrength": "STRONG",
-    "changePercent": 15.23,
-    "volatility": 0.0234,
-    "highPrice": 320.50,
-    "lowPrice": 278.00
-  }
-}
-```
-
-#### Enstrüman Karşılaştırma
-```http
-POST /analysis/compare
-Content-Type: application/json
-
-{
-  "symbols": ["THYAO", "PGSUS"],
-  "startDate": "2025-12-01",
-  "endDate": "2026-01-09"
-}
-```
-
----
-
-### Kullanıcı (Kimlik Doğrulama Gerekli)
-
-#### Profil Bilgisi
-```http
-GET /users/me
-```
-
-Alternatif:
-```http
-GET /users/profile
-```
-
-#### Profil Güncelle
-```http
-PUT /users/me
-Content-Type: application/json
-
-{
-  "firstName": "Ad",
-  "lastName": "Soyad",
-  "emailNotifications": true,
-  "pushNotifications": false,
-  "priceAlerts": true,
-  "portfolioUpdates": true
-}
-```
-
----
-
-## Response Format
-
-### Başarılı Response
-```json
-{
-  "timestamp": "2026-01-09T12:00:00Z",
-  "success": true,
-  "message": "İşlem başarılı",
-  "data": { ... },
-  "pagination": {
-    "page": 0,
-    "size": 20,
-    "totalElements": 100,
-    "totalPages": 5,
-    "first": true,
-    "last": false
-  }
-}
-```
-
-### Hata Response
-```json
-{
-  "timestamp": "2026-01-09T12:00:00Z",
-  "success": false,
-  "error": {
-    "status": 400,
-    "error": "Bad Request",
-    "message": "Geçersiz parametre",
-    "path": "/api/v1/portfolios",
-    "validationErrors": {
-      "name": "Portföy adı zorunludur"
-    }
-  }
-}
-```
-
----
-
-## Hata Kodları
-
-| Kod | Açıklama |
-|-----|----------|
-| 400 | Bad Request - Geçersiz istek |
-| 401 | Unauthorized - Kimlik doğrulama gerekli |
-| 403 | Forbidden - Yetkisiz erişim |
-| 404 | Not Found - Kaynak bulunamadı |
-| 500 | Internal Server Error - Sunucu hatası |
-| 502 | Bad Gateway - Harici API hatası |
-| 503 | Service Unavailable - Servis kullanılamıyor |
-
----
-
-## Swagger UI
-API dokümantasyonuna tarayıcıdan erişebilirsiniz:
-```
-http://localhost:18080/swagger-ui.html
-```
-
-## Rate Limiting
-| Endpoint Type | Limit | Açıklama |
-|--------------|-------|----------|
-| Public | 100 req/dk | Kimliksiz istekler |
-| Authenticated | 200 req/dk | Giriş yapmış kullanıcılar |
-| Admin | 500 req/dk | Admin rolü |
+- Auth server: Keycloak
+- Protected endpoints require `Authorization: Bearer <token>`
+- Token endpoint example:
+  `POST http://localhost:8180/realms/mintstack-finance/protocol/openid-connect/token`
+
+## Public Endpoints
+
+- `GET /market/currencies`
+- `GET /market/currencies/{code}`
+- `GET /market/stocks`
+- `GET /market/bonds`
+- `GET /market/funds`
+- `GET /market/viop`
+- `GET /news`
+- `GET /news/latest`
+- `GET /news/categories`
+
+## Authenticated Endpoints
+
+- Portfolio: `/portfolios/**`
+- Watchlist: `/watchlist/**`
+- Alerts: `/alerts/**`
+- User profile/preferences/notifications: `/users/**`
+- Data source preferences: `/data-sources/**`
+
+## Admin Endpoints
+
+- Admin dashboard/users: `/admin/**`
+- Simulation controls: `/simulation/**`
+
+## WebSocket
+
+- Endpoint: `ws://localhost:18080/ws` (SockJS/STOMP)
+- JWT is required on STOMP CONNECT headers:
+  - `Authorization: Bearer <token>`
+- Example topics:
+  - `/topic/prices/currency`
+  - `/topic/prices/stocks/{symbol}`

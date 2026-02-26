@@ -1,78 +1,76 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, Star, TrendingUp, TrendingDown } from 'lucide-react'
-import watchlistService from '@/services/watchlistService'
+import {
+    useCreateWatchlistMutation,
+    useDeleteWatchlistMutation,
+    useGetWatchlistQuery,
+    useGetWatchlistsQuery,
+    useRemoveWatchlistInstrumentMutation
+} from '@/store/api/watchlistApi'
 
 export default function WatchlistPage() {
     const { t } = useTranslation()
-    const [watchlists, setWatchlists] = useState([])
-    const [selectedWatchlist, setSelectedWatchlist] = useState(null)
-    const [loading, setLoading] = useState(true)
+    const [selectedWatchlistId, setSelectedWatchlistId] = useState(null)
     const [showCreateModal, setShowCreateModal] = useState(false)
     const [newWatchlistName, setNewWatchlistName] = useState('')
 
+    const { data: watchlists = [], isLoading: watchlistsLoading } = useGetWatchlistsQuery()
+    const { data: selectedWatchlist, isLoading: watchlistDetailLoading } = useGetWatchlistQuery(selectedWatchlistId, {
+        skip: !selectedWatchlistId
+    })
+
+    const [createWatchlist, { isLoading: creating }] = useCreateWatchlistMutation()
+    const [deleteWatchlist, { isLoading: deleting }] = useDeleteWatchlistMutation()
+    const [removeWatchlistInstrument, { isLoading: removingItem }] = useRemoveWatchlistInstrumentMutation()
+
+    const mutating = creating || deleting || removingItem
+
     useEffect(() => {
-        loadWatchlists()
-    }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-    const loadWatchlists = async () => {
-        try {
-            setLoading(true)
-            const response = await watchlistService.getAll()
-            setWatchlists(response.data || [])
-            if (response.data?.length > 0 && !selectedWatchlist) {
-                loadWatchlistDetails(response.data[0].id)
-            }
-        } catch (error) {
-            console.error('Error loading watchlists:', error)
-        } finally {
-            setLoading(false)
+        if (watchlists.length > 0 && !selectedWatchlistId) {
+            setSelectedWatchlistId(watchlists[0].id)
         }
-    }
-
-    const loadWatchlistDetails = async (id) => {
-        try {
-            const response = await watchlistService.getById(id)
-            setSelectedWatchlist(response.data)
-        } catch (error) {
-            console.error('Error loading watchlist details:', error)
+        if (watchlists.length === 0) {
+            setSelectedWatchlistId(null)
         }
-    }
+    }, [watchlists, selectedWatchlistId])
 
     const handleCreateWatchlist = async () => {
         if (!newWatchlistName.trim()) return
         try {
-            await watchlistService.create({ name: newWatchlistName })
+            const created = await createWatchlist({ name: newWatchlistName }).unwrap()
             setNewWatchlistName('')
             setShowCreateModal(false)
-            loadWatchlists()
+            if (created?.id) {
+                setSelectedWatchlistId(created.id)
+            }
         } catch (error) {
             console.error('Error creating watchlist:', error)
         }
     }
 
     const handleDeleteWatchlist = async (id) => {
-        if (!confirm(t('common.confirm'))) return
+        if (!window.confirm(t('common.confirm'))) return
         try {
-            await watchlistService.delete(id)
-            setSelectedWatchlist(null)
-            loadWatchlists()
+            await deleteWatchlist(id).unwrap()
+            if (selectedWatchlistId === id) {
+                setSelectedWatchlistId(null)
+            }
         } catch (error) {
             console.error('Error deleting watchlist:', error)
         }
     }
 
     const handleRemoveItem = async (symbol) => {
-        if (!selectedWatchlist) return
+        if (!selectedWatchlistId) return
         try {
-            await watchlistService.removeInstrument(selectedWatchlist.id, symbol)
-            loadWatchlistDetails(selectedWatchlist.id)
+            await removeWatchlistInstrument({ watchlistId: selectedWatchlistId, symbol }).unwrap()
         } catch (error) {
             console.error('Error removing item:', error)
         }
     }
 
-    if (loading) {
+    if (watchlistsLoading) {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
@@ -94,7 +92,6 @@ export default function WatchlistPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                {/* Watchlist Sidebar */}
                 <div className="lg:col-span-1">
                     <div className="bg-white rounded-xl shadow-sm p-4">
                         <h2 className="font-semibold text-gray-700 mb-4">{t('watchlist.title')}</h2>
@@ -102,11 +99,12 @@ export default function WatchlistPage() {
                             {watchlists.map((list) => (
                                 <button
                                     key={list.id}
-                                    onClick={() => loadWatchlistDetails(list.id)}
-                                    className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${selectedWatchlist?.id === list.id
+                                    onClick={() => setSelectedWatchlistId(list.id)}
+                                    className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
+                                        selectedWatchlistId === list.id
                                             ? 'bg-emerald-50 text-emerald-600'
                                             : 'hover:bg-gray-50'
-                                        }`}
+                                    }`}
                                 >
                                     <div className="flex items-center gap-2">
                                         {list.isDefault && <Star className="w-4 h-4 text-yellow-500" />}
@@ -122,7 +120,6 @@ export default function WatchlistPage() {
                     </div>
                 </div>
 
-                {/* Watchlist Items */}
                 <div className="lg:col-span-3">
                     {selectedWatchlist ? (
                         <div className="bg-white rounded-xl shadow-sm">
@@ -130,7 +127,8 @@ export default function WatchlistPage() {
                                 <h2 className="font-semibold text-gray-900">{selectedWatchlist.name}</h2>
                                 <button
                                     onClick={() => handleDeleteWatchlist(selectedWatchlist.id)}
-                                    className="text-red-500 hover:text-red-600"
+                                    disabled={mutating}
+                                    className="text-red-500 hover:text-red-600 disabled:opacity-50"
                                 >
                                     <Trash2 className="w-5 h-5" />
                                 </button>
@@ -155,11 +153,10 @@ export default function WatchlistPage() {
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 font-medium">
-                                                    ₺{item.currentPrice?.toLocaleString('tr-TR')}
+                                                    TRY {item.currentPrice?.toLocaleString('tr-TR')}
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <div className={`flex items-center gap-1 ${item.changePercent >= 0 ? 'text-green-600' : 'text-red-600'
-                                                        }`}>
+                                                    <div className={`flex items-center gap-1 ${item.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                                         {item.changePercent >= 0 ? (
                                                             <TrendingUp className="w-4 h-4" />
                                                         ) : (
@@ -171,7 +168,8 @@ export default function WatchlistPage() {
                                                 <td className="px-4 py-3 text-right">
                                                     <button
                                                         onClick={() => handleRemoveItem(item.symbol)}
-                                                        className="text-gray-400 hover:text-red-500"
+                                                        disabled={mutating}
+                                                        className="text-gray-400 hover:text-red-500 disabled:opacity-50"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
@@ -189,6 +187,10 @@ export default function WatchlistPage() {
                                 </table>
                             </div>
                         </div>
+                    ) : watchlistDetailLoading ? (
+                        <div className="bg-white rounded-xl shadow-sm p-8 text-center text-gray-500">
+                            {t('common.loading')}
+                        </div>
                     ) : (
                         <div className="bg-white rounded-xl shadow-sm p-8 text-center text-gray-500">
                             {t('watchlist.empty')}
@@ -197,7 +199,6 @@ export default function WatchlistPage() {
                 </div>
             </div>
 
-            {/* Create Modal */}
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-xl p-6 w-full max-w-md">
@@ -205,7 +206,7 @@ export default function WatchlistPage() {
                         <input
                             type="text"
                             value={newWatchlistName}
-                            onChange={(e) => setNewWatchlistName(e.target.value)}
+                            onChange={(event) => setNewWatchlistName(event.target.value)}
                             placeholder={t('watchlist.title')}
                             className="w-full px-4 py-2 border rounded-lg mb-4"
                         />
@@ -218,7 +219,8 @@ export default function WatchlistPage() {
                             </button>
                             <button
                                 onClick={handleCreateWatchlist}
-                                className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600"
+                                disabled={creating}
+                                className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:opacity-50"
                             >
                                 {t('common.save')}
                             </button>

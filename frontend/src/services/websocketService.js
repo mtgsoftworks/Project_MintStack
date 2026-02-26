@@ -14,7 +14,12 @@ class WebSocketService {
         this.reconnectAttempts = 0
         this.maxReconnectAttempts = 5
         this.reconnectDelay = 3000
+        this.authToken = null
         this.listeners = new Map()
+    }
+
+    setAuthToken(token) {
+        this.authToken = token || null
     }
 
     /**
@@ -22,12 +27,20 @@ class WebSocketService {
      */
     connect(options = {}) {
         const wsUrl = options.url || import.meta.env.VITE_WS_URL || 'http://localhost:18080/ws'
+        if (Object.prototype.hasOwnProperty.call(options, 'token')) {
+            this.setAuthToken(options.token)
+        }
 
         return new Promise((resolve, reject) => {
             try {
                 this.connectionState = 'CONNECTING'
+                const connectHeaders = this.authToken
+                    ? { Authorization: `Bearer ${this.authToken}` }
+                    : {}
+
                 this.client = new Client({
                     webSocketFactory: () => new SockJS(wsUrl),
+                    connectHeaders,
                     debug: (str) => {
                         if (import.meta.env.DEV) {
                             console.log('[WebSocket]', str)
@@ -227,7 +240,7 @@ class WebSocketService {
     /**
      * Check if connected and in CONNECTED state
      */
-    isConnected() {
+    isSocketConnected() {
         return this.isConnected && this.connectionState === 'CONNECTED'
     }
 

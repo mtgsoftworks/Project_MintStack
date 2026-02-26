@@ -6,7 +6,7 @@ cn: users
 gidNumber: 1000
 description: Regular Users Group
 memberUid: admin
-memberUid: testuser
+memberUid: test
 
 # Admins Group
 dn: cn=admins,ou=groups,dc=mintstack,dc=local

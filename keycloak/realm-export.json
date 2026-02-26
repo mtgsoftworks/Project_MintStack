@@ -47,7 +47,9 @@
         "composite": true,
         "clientRole": false,
         "composites": {
-          "realm": ["user"]
+          "realm": [
+            "user"
+          ]
         }
       }
     ],
@@ -66,16 +68,24 @@
     {
       "name": "Users",
       "path": "/Users",
-      "realmRoles": ["user"]
+      "realmRoles": [
+        "user"
+      ]
     },
     {
       "name": "Administrators",
       "path": "/Administrators",
-      "realmRoles": ["admin"]
+      "realmRoles": [
+        "admin"
+      ]
     }
   ],
-  "defaultGroups": ["/Users"],
-  "requiredCredentials": ["password"],
+  "defaultGroups": [
+    "/Users"
+  ],
+  "requiredCredentials": [
+    "password"
+  ],
   "otpPolicyType": "totp",
   "otpPolicyAlgorithm": "HmacSHA1",
   "otpPolicyInitialCounter": 0,
@@ -174,16 +184,20 @@
           "temporary": false
         }
       ],
-      "realmRoles": ["admin"],
-      "groups": ["/Administrators"]
+      "realmRoles": [
+        "admin"
+      ],
+      "groups": [
+        "/Administrators"
+      ]
     },
     {
-      "username": "testuser",
+      "username": "test",
       "enabled": true,
       "emailVerified": true,
       "firstName": "Test",
       "lastName": "User",
-      "email": "testuser@mintstack.local",
+      "email": "test@mintstack.local",
       "credentials": [
         {
           "type": "password",
@@ -191,8 +205,12 @@
           "temporary": false
         }
       ],
-      "realmRoles": ["user"],
-      "groups": ["/Users"]
+      "realmRoles": [
+        "user"
+      ],
+      "groups": [
+        "/Users"
+      ]
     }
   ],
   "components": {
@@ -206,82 +224,177 @@
               "name": "username",
               "providerId": "user-attribute-ldap-mapper",
               "config": {
-                "ldap.attribute": ["uid"],
-                "is.mandatory.in.ldap": ["true"],
-                "read.only": ["false"],
-                "always.read.value.from.ldap": ["false"],
-                "user.model.attribute": ["username"]
+                "ldap.attribute": [
+                  "uid"
+                ],
+                "is.mandatory.in.ldap": [
+                  "true"
+                ],
+                "read.only": [
+                  "false"
+                ],
+                "always.read.value.from.ldap": [
+                  "false"
+                ],
+                "user.model.attribute": [
+                  "username"
+                ]
               }
             },
             {
               "name": "first name",
               "providerId": "user-attribute-ldap-mapper",
               "config": {
-                "ldap.attribute": ["cn"],
-                "is.mandatory.in.ldap": ["true"],
-                "read.only": ["false"],
-                "always.read.value.from.ldap": ["false"],
-                "user.model.attribute": ["firstName"]
+                "ldap.attribute": [
+                  "cn"
+                ],
+                "is.mandatory.in.ldap": [
+                  "true"
+                ],
+                "read.only": [
+                  "false"
+                ],
+                "always.read.value.from.ldap": [
+                  "false"
+                ],
+                "user.model.attribute": [
+                  "firstName"
+                ]
               }
             },
             {
               "name": "last name",
               "providerId": "user-attribute-ldap-mapper",
               "config": {
-                "ldap.attribute": ["sn"],
-                "is.mandatory.in.ldap": ["true"],
-                "read.only": ["false"],
-                "always.read.value.from.ldap": ["false"],
-                "user.model.attribute": ["lastName"]
+                "ldap.attribute": [
+                  "sn"
+                ],
+                "is.mandatory.in.ldap": [
+                  "true"
+                ],
+                "read.only": [
+                  "false"
+                ],
+                "always.read.value.from.ldap": [
+                  "false"
+                ],
+                "user.model.attribute": [
+                  "lastName"
+                ]
               }
             },
             {
               "name": "email",
               "providerId": "user-attribute-ldap-mapper",
               "config": {
-                "ldap.attribute": ["mail"],
-                "is.mandatory.in.ldap": ["false"],
-                "read.only": ["false"],
-                "always.read.value.from.ldap": ["false"],
-                "user.model.attribute": ["email"]
+                "ldap.attribute": [
+                  "mail"
+                ],
+                "is.mandatory.in.ldap": [
+                  "false"
+                ],
+                "read.only": [
+                  "false"
+                ],
+                "always.read.value.from.ldap": [
+                  "false"
+                ],
+                "user.model.attribute": [
+                  "email"
+                ]
               }
             }
           ]
         },
         "config": {
-          "enabled": ["true"],
-          "vendor": ["other"],
-          "connectionUrl": ["ldap://openldap:389"],
-          "bindDn": ["cn=admin,dc=mintstack,dc=local"],
-          "bindCredential": ["${LDAP_BIND_CREDENTIAL}"],
-          "usersDn": ["ou=users,dc=mintstack,dc=local"],
-          "usernameLDAPAttribute": ["uid"],
-          "rdnLDAPAttribute": ["uid"],
-          "uuidLDAPAttribute": ["entryUUID"],
-          "userObjectClasses": ["inetOrgPerson"],
-          "editMode": ["WRITABLE"],
-          "syncRegistrations": ["true"],
-          "searchScope": ["1"],
-          "pagination": ["true"],
-          "importEnabled": ["true"],
-          "batchSizeForSync": ["1000"],
-          "fullSyncPeriod": ["-1"],
-          "changedSyncPeriod": ["-1"],
-          "cachePolicy": ["DEFAULT"],
-          "priority": ["0"],
-          "validatePasswordPolicy": ["false"],
-          "trustEmail": ["false"],
-          "useTruststoreSpi": ["ldapsOnly"],
-          "connectionPooling": ["true"],
-          "startTls": ["false"],
-          "useKerberosForPasswordAuthentication": ["false"]
+          "enabled": [
+            "true"
+          ],
+          "vendor": [
+            "other"
+          ],
+          "connectionUrl": [
+            "ldap://openldap:389"
+          ],
+          "bindDn": [
+            "cn=admin,dc=mintstack,dc=local"
+          ],
+          "bindCredential": [
+            "${LDAP_BIND_CREDENTIAL}"
+          ],
+          "usersDn": [
+            "ou=users,dc=mintstack,dc=local"
+          ],
+          "usernameLDAPAttribute": [
+            "uid"
+          ],
+          "rdnLDAPAttribute": [
+            "uid"
+          ],
+          "uuidLDAPAttribute": [
+            "entryUUID"
+          ],
+          "userObjectClasses": [
+            "inetOrgPerson"
+          ],
+          "editMode": [
+            "WRITABLE"
+          ],
+          "syncRegistrations": [
+            "true"
+          ],
+          "searchScope": [
+            "1"
+          ],
+          "pagination": [
+            "true"
+          ],
+          "importEnabled": [
+            "true"
+          ],
+          "batchSizeForSync": [
+            "1000"
+          ],
+          "fullSyncPeriod": [
+            "-1"
+          ],
+          "changedSyncPeriod": [
+            "-1"
+          ],
+          "cachePolicy": [
+            "DEFAULT"
+          ],
+          "priority": [
+            "0"
+          ],
+          "validatePasswordPolicy": [
+            "false"
+          ],
+          "trustEmail": [
+            "false"
+          ],
+          "useTruststoreSpi": [
+            "ldapsOnly"
+          ],
+          "connectionPooling": [
+            "true"
+          ],
+          "startTls": [
+            "false"
+          ],
+          "useKerberosForPasswordAuthentication": [
+            "false"
+          ]
         }
       }
     ]
   },
   "smtpServer": {},
   "internationalizationEnabled": true,
-  "supportedLocales": ["en", "tr"],
+  "supportedLocales": [
+    "en",
+    "tr"
+  ],
   "defaultLocale": "en",
   "browserSecurityHeaders": {
     "contentSecurityPolicyReportOnly": "",

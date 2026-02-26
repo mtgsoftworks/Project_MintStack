@@ -408,7 +408,7 @@ services:
       OTEL_SERVICE_NAME: finance-portal
       OPENSEARCH_HOST: opensearch
       OPENSEARCH_PORT: 9200
-      OPENSEARCH_SCHEME: https
+      OPENSEARCH_SCHEME: http
       OPENSEARCH_USERNAME: admin
       OPENSEARCH_PASSWORD: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
     ports:

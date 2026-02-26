@@ -1,57 +1,64 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Users, BarChart3, Bell, Wallet, RefreshCw, UserCheck, UserX, Search } from 'lucide-react'
-import adminService from '@/services/adminService'
+import {
+    useActivateAdminUserMutation,
+    useDeactivateAdminUserMutation,
+    useGetAdminDashboardQuery,
+    useGetAdminUsersQuery,
+    useSearchAdminUsersQuery
+} from '@/store/api/adminApi'
 
 export default function AdminDashboard() {
     const { t } = useTranslation()
-    const [dashboard, setDashboard] = useState(null)
-    const [users, setUsers] = useState([])
-    const [loading, setLoading] = useState(true)
+    const [searchInput, setSearchInput] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
     const [currentPage, setCurrentPage] = useState(0)
 
-    useEffect(() => {
-        loadData()
-    }, [currentPage]) // eslint-disable-line react-hooks/exhaustive-deps
+    const { data: dashboard, isLoading: dashboardLoading, refetch: refetchDashboard } = useGetAdminDashboardQuery()
+    const { data: usersPage, isFetching: usersFetching, refetch: refetchUsers } = useGetAdminUsersQuery(
+        { page: currentPage, size: 20 },
+        { skip: Boolean(searchQuery) }
+    )
+    const { data: searchedUsersPage, isFetching: searchFetching, refetch: refetchSearch } = useSearchAdminUsersQuery(
+        { query: searchQuery, page: currentPage, size: 20 },
+        { skip: !searchQuery }
+    )
 
-    const loadData = async () => {
-        try {
-            setLoading(true)
-            const [dashboardRes, usersRes] = await Promise.all([
-                adminService.getDashboard(),
-                searchQuery
-                    ? adminService.searchUsers(searchQuery, currentPage)
-                    : adminService.getUsers(currentPage)
-            ])
-            setDashboard(dashboardRes.data)
-            setUsers(usersRes.data?.content || [])
-        } catch (error) {
-            console.error('Error loading admin data:', error)
-        } finally {
-            setLoading(false)
-        }
+    const [activateUser, { isLoading: activating }] = useActivateAdminUserMutation()
+    const [deactivateUser, { isLoading: deactivating }] = useDeactivateAdminUserMutation()
+
+    const usersData = searchQuery ? searchedUsersPage : usersPage
+    const users = usersData?.content || []
+    const loading = dashboardLoading || usersFetching || searchFetching
+    const mutating = activating || deactivating
+
+    const handleSearch = () => {
+        setCurrentPage(0)
+        setSearchQuery(searchInput.trim())
     }
 
-    const handleSearch = async () => {
-        setCurrentPage(0)
-        loadData()
+    const handleRefresh = () => {
+        refetchDashboard()
+        if (searchQuery) {
+            refetchSearch()
+            return
+        }
+        refetchUsers()
     }
 
     const handleActivateUser = async (userId) => {
         try {
-            await adminService.activateUser(userId)
-            loadData()
+            await activateUser(userId).unwrap()
         } catch (error) {
             console.error('Error activating user:', error)
         }
     }
 
     const handleDeactivateUser = async (userId) => {
-        if (!confirm(t('common.confirm'))) return
+        if (!window.confirm(t('common.confirm'))) return
         try {
-            await adminService.deactivateUser(userId)
-            loadData()
+            await deactivateUser(userId).unwrap()
         } catch (error) {
             console.error('Error deactivating user:', error)
         }
@@ -79,15 +86,15 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between mb-6">
                 <h1 className="text-2xl font-bold text-gray-900">{t('admin.dashboard')}</h1>
                 <button
-                    onClick={loadData}
-                    className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                    onClick={handleRefresh}
+                    disabled={loading || mutating}
+                    className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-50"
                 >
-                    <RefreshCw className="w-4 h-4" />
+                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                     {t('common.refresh')}
                 </button>
             </div>
 
-            {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
                 {stats.map((stat, index) => (
                     <div key={index} className="bg-white rounded-xl p-4 shadow-sm">
@@ -100,7 +107,6 @@ export default function AdminDashboard() {
                 ))}
             </div>
 
-            {/* Users Section */}
             <div className="bg-white rounded-xl shadow-sm">
                 <div className="p-4 border-b flex items-center justify-between">
                     <h2 className="font-semibold text-gray-900">{t('admin.users')}</h2>
@@ -108,9 +114,9 @@ export default function AdminDashboard() {
                         <div className="relative">
                             <input
                                 type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                                value={searchInput}
+                                onChange={(event) => setSearchInput(event.target.value)}
+                                onKeyPress={(event) => event.key === 'Enter' && handleSearch()}
                                 placeholder={t('common.search')}
                                 className="pl-10 pr-4 py-2 border rounded-lg w-64"
                             />
@@ -170,14 +176,16 @@ export default function AdminDashboard() {
                                         {user.isActive ? (
                                             <button
                                                 onClick={() => handleDeactivateUser(user.id)}
-                                                className="text-red-500 hover:text-red-600 text-sm"
+                                                className="text-red-500 hover:text-red-600 text-sm disabled:opacity-50"
+                                                disabled={mutating}
                                             >
                                                 {t('admin.deactivate')}
                                             </button>
                                         ) : (
                                             <button
                                                 onClick={() => handleActivateUser(user.id)}
-                                                className="text-emerald-500 hover:text-emerald-600 text-sm"
+                                                className="text-emerald-500 hover:text-emerald-600 text-sm disabled:opacity-50"
+                                                disabled={mutating}
                                             >
                                                 {t('admin.activate')}
                                             </button>

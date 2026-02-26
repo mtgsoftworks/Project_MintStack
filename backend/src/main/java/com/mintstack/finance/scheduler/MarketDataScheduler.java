@@ -212,9 +212,6 @@ public class MarketDataScheduler {
                 }
             }
 
-            if (index + batchSize < FOREX_PAIRS.size()) {
-                sleepBetweenBatches(2000, "Forex batch delay interrupted");
-            }
         }
         log.info("Non-TCMB forex rates fetch completed.");
     }
@@ -258,9 +255,6 @@ public class MarketDataScheduler {
                 }
             }
 
-            if (index + batchSize < cryptoInstruments.size()) {
-                sleepBetweenBatches(1000, "Crypto batch delay interrupted");
-            }
         }
         log.info("Crypto prices fetch completed.");
     }
@@ -283,12 +277,4 @@ public class MarketDataScheduler {
         );
     }
 
-    private void sleepBetweenBatches(long millis, String warningMessage) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException error) {
-            log.warn(warningMessage);
-            Thread.currentThread().interrupt();
-        }
-    }
 }

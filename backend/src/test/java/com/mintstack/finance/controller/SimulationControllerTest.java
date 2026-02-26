@@ -82,7 +82,7 @@ class SimulationControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("GET /api/v1/simulation/config config dÃ¶ndÃ¼rmeli")
     void testGetConfig_ReturnsConfig() throws Exception {
         // Given
@@ -98,7 +98,7 @@ class SimulationControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("POST /api/v1/simulation/config config gÃ¼ncellemeli")
     void testUpdateConfig_ReturnsUpdatedConfig() throws Exception {
         // Given
@@ -137,7 +137,7 @@ class SimulationControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("POST /api/v1/simulation/toggle simÃ¼lasyonu toggle etmeli")
     void testToggle_TogglesSimulation() throws Exception {
         // Given
@@ -164,7 +164,7 @@ class SimulationControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("POST /api/v1/simulation/reset simÃ¼lasyonu sÄ±fÄ±rlamalÄ±")
     void testReset_ResetsSimulation() throws Exception {
         // Given
@@ -182,7 +182,7 @@ class SimulationControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("GET /api/v1/simulation/status tam durum dÃ¶ndÃ¼rmeli")
     void testGetStatus_ReturnsCompleteStatus() throws Exception {
         // Given
@@ -214,7 +214,7 @@ class SimulationControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("GET /api/v1/simulation/stocks hisseleri dÃ¶ndÃ¼rmeli")
     void testGetStocks_ReturnsStocks() throws Exception {
         // Given
@@ -233,7 +233,7 @@ class SimulationControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("GET /api/v1/simulation/currencies dÃ¶vizleri dÃ¶ndÃ¼rmeli")
     void testGetCurrencies_ReturnsCurrencies() throws Exception {
         // Given
@@ -252,7 +252,7 @@ class SimulationControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("GET /api/v1/simulation/indices endeksleri dÃ¶ndÃ¼rmeli")
     void testGetIndices_ReturnsIndices() throws Exception {
         // Given
@@ -278,4 +278,5 @@ class SimulationControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 }
+
 

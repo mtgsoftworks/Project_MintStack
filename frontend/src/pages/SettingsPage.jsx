@@ -1,11 +1,13 @@
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Database, FlaskConical } from 'lucide-react'
+import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { ApiKeysTab } from '@/pages/settings/ApiKeysTab'
 import { DataSourcesTab } from '@/pages/settings/DataSourcesTab'
 import { GeneralSettingsTab } from '@/pages/settings/GeneralSettingsTab'
 import { SimulationTab } from '@/pages/settings/SimulationTab'
+import { selectIsAdmin } from '@/store/slices/authSlice'
 import { getProviderInfo } from '@/pages/settings/providerInfo'
 import { useGeneralSettings } from '@/pages/settings/hooks/useGeneralSettings'
 import { useApiDataSourceSettings } from '@/pages/settings/hooks/useApiDataSourceSettings'
@@ -13,6 +15,7 @@ import { useSimulationSettings } from '@/pages/settings/hooks/useSimulationSetti
 
 export default function SettingsPage() {
     const { t, i18n } = useTranslation()
+    const isAdmin = useSelector(selectIsAdmin)
 
     const generalSettings = useGeneralSettings({ t, i18n })
     const apiDataSourceSettings = useApiDataSourceSettings({ t })
@@ -36,10 +39,12 @@ export default function SettingsPage() {
                         <Database className="h-4 w-4 mr-2" />
                         {t('settings.dataSources.title', { defaultValue: 'Veri Kaynaklari' })}
                     </TabsTrigger>
-                    <TabsTrigger value="simulation">
-                        <FlaskConical className="h-4 w-4 mr-2" />
-                        {t('settings.simulation.title', { defaultValue: 'Simulasyon' })}
-                    </TabsTrigger>
+                    {isAdmin && (
+                        <TabsTrigger value="simulation">
+                            <FlaskConical className="h-4 w-4 mr-2" />
+                            {t('settings.simulation.title', { defaultValue: 'Simulasyon' })}
+                        </TabsTrigger>
+                    )}
                 </TabsList>
 
                 <TabsContent value="general">
@@ -100,19 +105,21 @@ export default function SettingsPage() {
                     />
                 </TabsContent>
 
-                <TabsContent value="simulation">
-                    <SimulationTab
-                        t={t}
-                        simConfig={simulationSettings.simConfig}
-                        simStatus={simulationSettings.simStatus}
-                        onToggleSimulation={simulationSettings.handleToggleSimulation}
-                        onUpdateSimulationConfig={simulationSettings.handleUpdateSimulationConfig}
-                        onResetSimulation={simulationSettings.handleResetSimulation}
-                    />
-                </TabsContent>
+                {isAdmin && (
+                    <TabsContent value="simulation">
+                        <SimulationTab
+                            t={t}
+                            simConfig={simulationSettings.simConfig}
+                            simStatus={simulationSettings.simStatus}
+                            onToggleSimulation={simulationSettings.handleToggleSimulation}
+                            onUpdateSimulationConfig={simulationSettings.handleUpdateSimulationConfig}
+                            onResetSimulation={simulationSettings.handleResetSimulation}
+                        />
+                    </TabsContent>
+                )}
             </Tabs>
 
-            {simulationSettings.simConfig?.enabled && (
+            {isAdmin && simulationSettings.simConfig?.enabled && (
                 <Badge variant="success" className="w-fit">
                     {t('settings.simulation.active', { defaultValue: 'Simulasyon Aktif' })}
                 </Badge>

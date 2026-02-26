@@ -1,4 +1,5 @@
 import { toast } from 'sonner'
+import { useSelector } from 'react-redux'
 import {
     useGetSimulationConfigQuery,
     useUpdateSimulationConfigMutation,
@@ -7,10 +8,12 @@ import {
     useGetSimulationStatusQuery
 } from '@/store/api/simulationApi'
 import { getApiErrorMessage } from '@/pages/settings/getApiErrorMessage'
+import { selectIsAdmin } from '@/store/slices/authSlice'
 
 export function useSimulationSettings({ t }) {
-    const { data: simConfigData, refetch: refetchSimConfig } = useGetSimulationConfigQuery()
-    const { data: simStatusData } = useGetSimulationStatusQuery(undefined, { pollingInterval: 5000 })
+    const isAdmin = useSelector(selectIsAdmin)
+    const { data: simConfigData, refetch: refetchSimConfig } = useGetSimulationConfigQuery(undefined, { skip: !isAdmin })
+    const { data: simStatusData } = useGetSimulationStatusQuery(undefined, { pollingInterval: 5000, skip: !isAdmin })
     const [updateSimConfig] = useUpdateSimulationConfigMutation()
     const [toggleSimulation] = useToggleSimulationMutation()
     const [resetSimulation] = useResetSimulationMutation()
@@ -19,6 +22,10 @@ export function useSimulationSettings({ t }) {
     const simStatus = simStatusData?.data
 
     const handleToggleSimulation = async () => {
+        if (!isAdmin) {
+            toast.error(t('common.unauthorized'))
+            return
+        }
         try {
             await toggleSimulation().unwrap()
             refetchSimConfig()
@@ -33,6 +40,10 @@ export function useSimulationSettings({ t }) {
     }
 
     const handleUpdateSimulationConfig = async (payload) => {
+        if (!isAdmin) {
+            toast.error(t('common.unauthorized'))
+            return
+        }
         try {
             await updateSimConfig(payload).unwrap()
             refetchSimConfig()
@@ -54,6 +65,10 @@ export function useSimulationSettings({ t }) {
     }
 
     const handleResetSimulation = async () => {
+        if (!isAdmin) {
+            toast.error(t('common.unauthorized'))
+            return
+        }
         try {
             await resetSimulation().unwrap()
             refetchSimConfig()

@@ -7,7 +7,7 @@ import { setAuth, setInitialized } from '@/store/slices/authSlice'
 import { setKeycloakInstance } from '@/services/api'
 import { setKeycloakInstance as setApiKeycloakInstance } from '@/store/api/baseApi'
 import { selectAutoUpdate, selectRefreshRate, selectTheme } from '@/store/slices/uiSlice'
-import { Layout, ProtectedRoute } from '@/components/layout'
+import { AdminRoute, Layout, ProtectedRoute } from '@/components/layout'
 import websocketService from '@/services/websocketService'
 
 // Lazy-loaded Pages (code splitting)
@@ -115,6 +115,7 @@ function App() {
         user: e2eUser,
         roles: e2eUser.roles,
       }))
+      websocketService.setAuthToken('e2e-bypass-token')
 
       window.keycloak = {
         authenticated: true,
@@ -153,10 +154,11 @@ function App() {
             user,
             roles: user.roles,
           }))
+          websocketService.setAuthToken(keycloak.token)
 
           // Connect WebSocket for real-time price updates
           try {
-            websocketService.connect()
+            websocketService.connect({ token: keycloak.token })
           } catch (error) {
             console.warn('WebSocket connection failed:', error)
           }
@@ -167,6 +169,7 @@ function App() {
               .updateToken(30)
               .then((refreshed) => {
                 if (refreshed) {
+                  websocketService.setAuthToken(keycloak.token)
                   dispatch(setAuth({
                     token: keycloak.token,
                     user,
@@ -192,6 +195,7 @@ function App() {
       if (tokenRefreshIntervalRef.current) {
         clearInterval(tokenRefreshIntervalRef.current)
       }
+      websocketService.disconnect()
     }
   }, [dispatch])
 
@@ -327,13 +331,13 @@ function App() {
             }
           />
 
-          {/* Admin (role check is done in component) */}
+          {/* Admin */}
           <Route
             path="/admin"
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <AdminDashboard />
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
         </Route>

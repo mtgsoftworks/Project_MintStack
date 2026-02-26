@@ -3,26 +3,25 @@ import { screen, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '@/utils/test-utils'
 import AlertsPage from '@/pages/AlertsPage'
 
-vi.mock('@/services/alertService', () => ({
-  default: {
-    getAll: vi.fn(() => Promise.resolve({
-      data: [
-        {
-          id: 1,
-          symbol: 'AAPL',
-          instrumentName: 'Apple Inc.',
-          alertType: 'PRICE_ABOVE',
-          targetValue: 200,
-          isActive: true,
-          isTriggered: false,
-          createdAt: '2026-01-15T10:00:00',
-        },
-      ],
-    })),
-    create: vi.fn(() => Promise.resolve({ data: {} })),
-    delete: vi.fn(() => Promise.resolve({})),
-    deactivate: vi.fn(() => Promise.resolve({})),
-  },
+vi.mock('@/store/api/alertsApi', () => ({
+  useGetAlertsQuery: vi.fn(() => ({
+    data: [
+      {
+        id: 1,
+        symbol: 'AAPL',
+        instrumentName: 'Apple Inc.',
+        alertType: 'PRICE_ABOVE',
+        targetValue: 200,
+        isActive: true,
+        isTriggered: false,
+        createdAt: '2026-01-15T10:00:00',
+      },
+    ],
+    isLoading: false,
+  })),
+  useCreateAlertMutation: vi.fn(() => [vi.fn(), { isLoading: false }]),
+  useDeleteAlertMutation: vi.fn(() => [vi.fn(), { isLoading: false }]),
+  useDeactivateAlertMutation: vi.fn(() => [vi.fn(), { isLoading: false }]),
 }))
 
 describe('AlertsPage', () => {

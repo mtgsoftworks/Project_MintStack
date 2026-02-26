@@ -334,6 +334,11 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <skipTests>${skipUTs}</skipTests>
+                    <argLine>
+                        @{argLine}
+                        -javaagent:"${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar"
+                        -XX:+EnableDynamicAgentLoading
+                    </argLine>
                     <excludes>
                         <exclude>**/*IntegrationTest.java</exclude>
                     </excludes>
@@ -345,6 +350,11 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
                     <skipITs>${skipITs}</skipITs>
+                    <argLine>
+                        @{argLine}
+                        -javaagent:"${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar"
+                        -XX:+EnableDynamicAgentLoading
+                    </argLine>
                     <includes>
                         <include>**/*IntegrationTest.java</include>
                     </includes>

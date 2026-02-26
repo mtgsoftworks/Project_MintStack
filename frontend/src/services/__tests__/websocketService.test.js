@@ -8,15 +8,12 @@ vi.mock('sockjs-client', () => ({
 }))
 
 vi.mock('@stomp/stompjs', () => ({
-  Stomp: {
-    over: vi.fn().mockReturnValue({
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      subscribe: vi.fn(),
-      send: vi.fn(),
-      connected: false,
-    }),
-  },
+  Client: vi.fn().mockImplementation(() => ({
+    activate: vi.fn(),
+    deactivate: vi.fn(),
+    subscribe: vi.fn(() => ({ unsubscribe: vi.fn() })),
+    publish: vi.fn(),
+  })),
 }))
 
 describe('websocketService', () => {

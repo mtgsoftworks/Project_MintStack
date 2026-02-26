@@ -1,7 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, Bell, BellOff, TrendingUp, TrendingDown } from 'lucide-react'
-import alertService from '@/services/alertService'
+import {
+    useCreateAlertMutation,
+    useDeactivateAlertMutation,
+    useDeleteAlertMutation,
+    useGetAlertsQuery
+} from '@/store/api/alertsApi'
 
 const ALERT_TYPES = [
     { value: 'PRICE_ABOVE', labelKey: 'alerts.priceAbove', icon: TrendingUp },
@@ -12,8 +17,11 @@ const ALERT_TYPES = [
 
 export default function AlertsPage() {
     const { t } = useTranslation()
-    const [alerts, setAlerts] = useState([])
-    const [loading, setLoading] = useState(true)
+    const { data: alerts = [], isLoading } = useGetAlertsQuery()
+    const [createAlert, { isLoading: creating }] = useCreateAlertMutation()
+    const [deleteAlert, { isLoading: deleting }] = useDeleteAlertMutation()
+    const [deactivateAlert, { isLoading: deactivating }] = useDeactivateAlertMutation()
+
     const [showCreateModal, setShowCreateModal] = useState(false)
     const [newAlert, setNewAlert] = useState({
         symbol: '',
@@ -22,44 +30,28 @@ export default function AlertsPage() {
         notes: '',
     })
 
-    useEffect(() => {
-        loadAlerts()
-    }, [])
-
-    const loadAlerts = async () => {
-        try {
-            setLoading(true)
-            const response = await alertService.getAll()
-            setAlerts(response.data || [])
-        } catch (error) {
-            console.error('Error loading alerts:', error)
-        } finally {
-            setLoading(false)
-        }
-    }
+    const mutating = creating || deleting || deactivating
 
     const handleCreateAlert = async () => {
         if (!newAlert.symbol || !newAlert.targetValue) return
         try {
-            await alertService.create({
+            await createAlert({
                 symbol: newAlert.symbol.toUpperCase(),
                 alertType: newAlert.alertType,
                 targetValue: parseFloat(newAlert.targetValue),
                 notes: newAlert.notes,
-            })
+            }).unwrap()
             setNewAlert({ symbol: '', alertType: 'PRICE_ABOVE', targetValue: '', notes: '' })
             setShowCreateModal(false)
-            loadAlerts()
         } catch (error) {
             console.error('Error creating alert:', error)
         }
     }
 
     const handleDeleteAlert = async (id) => {
-        if (!confirm(t('common.confirm'))) return
+        if (!window.confirm(t('common.confirm'))) return
         try {
-            await alertService.delete(id)
-            loadAlerts()
+            await deleteAlert(id).unwrap()
         } catch (error) {
             console.error('Error deleting alert:', error)
         }
@@ -67,19 +59,18 @@ export default function AlertsPage() {
 
     const handleDeactivate = async (id) => {
         try {
-            await alertService.deactivate(id)
-            loadAlerts()
+            await deactivateAlert(id).unwrap()
         } catch (error) {
             console.error('Error deactivating alert:', error)
         }
     }
 
     const getAlertTypeLabel = (type) => {
-        const alertType = ALERT_TYPES.find(t => t.value === type)
+        const alertType = ALERT_TYPES.find((item) => item.value === type)
         return alertType ? t(alertType.labelKey) : type
     }
 
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
@@ -100,29 +91,27 @@ export default function AlertsPage() {
                 </button>
             </div>
 
-            {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="bg-white rounded-xl p-4 shadow-sm">
                     <div className="text-sm text-gray-500">{t('alerts.active')}</div>
                     <div className="text-2xl font-bold text-emerald-600">
-                        {alerts.filter(a => a.isActive).length}
+                        {alerts.filter((alert) => alert.isActive).length}
                     </div>
                 </div>
                 <div className="bg-white rounded-xl p-4 shadow-sm">
                     <div className="text-sm text-gray-500">{t('alerts.triggered')}</div>
                     <div className="text-2xl font-bold text-orange-600">
-                        {alerts.filter(a => a.isTriggered).length}
+                        {alerts.filter((alert) => alert.isTriggered).length}
                     </div>
                 </div>
                 <div className="bg-white rounded-xl p-4 shadow-sm">
                     <div className="text-sm text-gray-500">{t('alerts.inactive')}</div>
                     <div className="text-2xl font-bold text-gray-400">
-                        {alerts.filter(a => !a.isActive && !a.isTriggered).length}
+                        {alerts.filter((alert) => !alert.isActive && !alert.isTriggered).length}
                     </div>
                 </div>
             </div>
 
-            {/* Alerts List */}
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                 <table className="w-full">
                     <thead className="bg-gray-50">
@@ -151,7 +140,7 @@ export default function AlertsPage() {
                                 <td className="px-4 py-3 font-medium">
                                     {alert.alertType.includes('PERCENT')
                                         ? `%${alert.targetValue}`
-                                        : `₺${alert.targetValue?.toLocaleString('tr-TR')}`}
+                                        : `TRY ${alert.targetValue?.toLocaleString('tr-TR')}`}
                                 </td>
                                 <td className="px-4 py-3">
                                     {alert.isTriggered ? (
@@ -176,7 +165,8 @@ export default function AlertsPage() {
                                         {alert.isActive && !alert.isTriggered && (
                                             <button
                                                 onClick={() => handleDeactivate(alert.id)}
-                                                className="text-gray-400 hover:text-orange-500"
+                                                disabled={mutating}
+                                                className="text-gray-400 hover:text-orange-500 disabled:opacity-50"
                                                 title={t('alertsPage.actions.deactivate')}
                                             >
                                                 <BellOff className="w-4 h-4" />
@@ -184,7 +174,8 @@ export default function AlertsPage() {
                                         )}
                                         <button
                                             onClick={() => handleDeleteAlert(alert.id)}
-                                            className="text-gray-400 hover:text-red-500"
+                                            disabled={mutating}
+                                            className="text-gray-400 hover:text-red-500 disabled:opacity-50"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -203,7 +194,6 @@ export default function AlertsPage() {
                 </table>
             </div>
 
-            {/* Create Modal */}
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-xl p-6 w-full max-w-md">
@@ -217,7 +207,7 @@ export default function AlertsPage() {
                                 <input
                                     type="text"
                                     value={newAlert.symbol}
-                                    onChange={(e) => setNewAlert({ ...newAlert, symbol: e.target.value })}
+                                    onChange={(event) => setNewAlert({ ...newAlert, symbol: event.target.value })}
                                     placeholder={t('alertsPage.placeholders.symbol')}
                                     className="w-full px-4 py-2 border rounded-lg"
                                 />
@@ -229,7 +219,7 @@ export default function AlertsPage() {
                                 </label>
                                 <select
                                     value={newAlert.alertType}
-                                    onChange={(e) => setNewAlert({ ...newAlert, alertType: e.target.value })}
+                                    onChange={(event) => setNewAlert({ ...newAlert, alertType: event.target.value })}
                                     className="w-full px-4 py-2 border rounded-lg"
                                 >
                                     {ALERT_TYPES.map((type) => (
@@ -247,7 +237,7 @@ export default function AlertsPage() {
                                 <input
                                     type="number"
                                     value={newAlert.targetValue}
-                                    onChange={(e) => setNewAlert({ ...newAlert, targetValue: e.target.value })}
+                                    onChange={(event) => setNewAlert({ ...newAlert, targetValue: event.target.value })}
                                     placeholder={t('alertsPage.placeholders.targetValue')}
                                     className="w-full px-4 py-2 border rounded-lg"
                                 />
@@ -260,7 +250,7 @@ export default function AlertsPage() {
                                 <input
                                     type="text"
                                     value={newAlert.notes}
-                                    onChange={(e) => setNewAlert({ ...newAlert, notes: e.target.value })}
+                                    onChange={(event) => setNewAlert({ ...newAlert, notes: event.target.value })}
                                     className="w-full px-4 py-2 border rounded-lg"
                                 />
                             </div>
@@ -275,7 +265,8 @@ export default function AlertsPage() {
                             </button>
                             <button
                                 onClick={handleCreateAlert}
-                                className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600"
+                                disabled={creating}
+                                className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:opacity-50"
                             >
                                 {t('common.save')}
                             </button>

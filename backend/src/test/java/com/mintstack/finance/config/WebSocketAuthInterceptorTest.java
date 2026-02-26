@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -64,17 +65,16 @@ class WebSocketAuthInterceptorTest {
     }
 
     @Test
-    @DisplayName("CONNECT with invalid JWT does not throw exception")
-    void preSend_InvalidJwt_DoesNotThrow() {
+    @DisplayName("CONNECT with invalid JWT throws AccessDeniedException")
+    void preSend_InvalidJwt_ThrowsAccessDeniedException() {
         when(jwtDecoder.decode(anyString())).thenThrow(new JwtException("Invalid token"));
 
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
         accessor.addNativeHeader("Authorization", "Bearer bad-token");
 
         Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
-        Message<?> result = interceptor.preSend(message, channel);
-
-        assertThat(result).isNotNull();
+        assertThatThrownBy(() -> interceptor.preSend(message, channel))
+            .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
     }
 
     @Test
@@ -89,13 +89,12 @@ class WebSocketAuthInterceptorTest {
     }
 
     @Test
-    @DisplayName("CONNECT without token passes through")
-    void preSend_NoToken_PassesThrough() {
+    @DisplayName("CONNECT without token throws AccessDeniedException")
+    void preSend_NoToken_ThrowsAccessDeniedException() {
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
 
         Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
-        Message<?> result = interceptor.preSend(message, channel);
-
-        assertThat(result).isNotNull();
+        assertThatThrownBy(() -> interceptor.preSend(message, channel))
+            .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
     }
 }

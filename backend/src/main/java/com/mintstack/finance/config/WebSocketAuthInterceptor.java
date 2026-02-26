@@ -8,6 +8,8 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -37,25 +39,44 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
             String token = extractToken(accessor);
+            if (token == null || token.isEmpty()) {
+                log.warn("WebSocket connection rejected: missing JWT token");
+                throw new AccessDeniedException("WebSocket authentication required");
+            }
 
-            if (token != null && !token.isEmpty()) {
-                try {
-                    Jwt jwt = jwtDecoder.decode(token);
-                    List<SimpleGrantedAuthority> authorities = extractAuthorities(jwt);
+            try {
+                Jwt jwt = jwtDecoder.decode(token);
+                List<SimpleGrantedAuthority> authorities = extractAuthorities(jwt);
 
-                    UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(jwt.getSubject(), null, authorities);
+                UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(jwt.getSubject(), null, authorities);
 
-                    accessor.setUser(authentication);
-                    log.debug("WebSocket authenticated for user: {}", jwt.getSubject());
-                } catch (Exception e) {
-                    log.warn("WebSocket JWT validation failed: {}", e.getMessage());
-                    // Allow connection but without authentication (public topics still work)
-                }
+                message = attachAuthentication(message, accessor, authentication);
+                log.debug("WebSocket authenticated for user: {}", jwt.getSubject());
+            } catch (Exception e) {
+                log.warn("WebSocket JWT validation failed: {}", e.getMessage());
+                throw new AccessDeniedException("Invalid WebSocket authentication token");
             }
         }
 
         return message;
+    }
+
+    private Message<?> attachAuthentication(
+        Message<?> message,
+        StompHeaderAccessor accessor,
+        UsernamePasswordAuthenticationToken authentication
+    ) {
+        if (accessor.isMutable()) {
+            accessor.setUser(authentication);
+            return message;
+        }
+
+        // Some test/runtime flows provide immutable headers; wrap to a mutable accessor.
+        StompHeaderAccessor mutableAccessor = StompHeaderAccessor.wrap(message);
+        mutableAccessor.setLeaveMutable(true);
+        mutableAccessor.setUser(authentication);
+        return MessageBuilder.createMessage(message.getPayload(), mutableAccessor.getMessageHeaders());
     }
 
     private String extractToken(StompHeaderAccessor accessor) {
