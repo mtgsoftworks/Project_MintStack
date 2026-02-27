@@ -27,6 +27,28 @@
 - Transport hardening: security headers + CORS allowlist.
 - Rate limiting: Bucket4j (anonymous/auth/admin buckets).
 
+## 3.1 Portfolio Execution Model (Simulation)
+
+- Order intake:
+  - API accepts `MARKET`, `LIMIT`, `STOP` order types for `BUY`/`SELL`.
+  - Orders are persisted first, then evaluated for fill.
+- Lifecycle states:
+  - `PENDING` -> `PARTIALLY_FILLED` -> `FILLED`
+  - terminal states: `CANCELED`, `REJECTED`
+- Fill simulation constraints:
+  - market session window for non-market queued fills
+  - latest instrument volume-based fill quantity cap
+  - slippage model based on order type and liquidity ratio
+- Accounting:
+  - portfolio cash balance is updated on each fill
+  - commission = base rate + minimum commission + commission tax
+  - realized PnL is tracked on sell fills
+  - unrealized PnL is computed from open lots
+- User operations:
+  - process queued orders (`/orders/process`)
+  - cancel queued orders (`/orders/{orderId}/cancel`)
+  - adjust simulated cash (`/cash`)
+
 ## 4. Scheduling
 
 Configured in `backend/src/main/resources/application.yml`:

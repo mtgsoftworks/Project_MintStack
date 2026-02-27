@@ -30,6 +30,41 @@ Swagger UI: `http://localhost:18080/swagger-ui.html`
 - User profile/preferences/notifications: `/users/**`
 - Data source preferences: `/data-sources/**`
 
+## Portfolio Trading & Simulation Endpoints
+
+- `POST /portfolios/{id}/trades`
+  - Creates a simulated trade order.
+  - Request fields:
+    - `instrumentId` or `instrumentSymbol` (one is required)
+    - `transactionType`: `BUY | SELL`
+    - `orderType`: `MARKET | LIMIT | STOP` (default: `MARKET`)
+    - `quantity`
+    - `price` (optional reference for market)
+    - `limitPrice` (required for `LIMIT`)
+    - `stopPrice` (required for `STOP`)
+    - `transactionDate`, `notes` (optional)
+
+- `POST /portfolios/{id}/orders/process`
+  - Attempts to fill queued `PENDING` / `PARTIALLY_FILLED` orders.
+
+- `POST /portfolios/{id}/orders/{orderId}/cancel?reason=...`
+  - Cancels pending order.
+
+- `POST /portfolios/{id}/cash`
+  - Simulated cash adjustment.
+  - Request:
+    - `action`: `DEPOSIT | WITHDRAW`
+    - `amount`
+    - `notes` (optional)
+
+- `GET /portfolios/{id}/transactions`
+  - Query params:
+    - `page`, `size`
+    - `orderStatus` (optional): `PENDING | PARTIALLY_FILLED | FILLED | CANCELED | REJECTED`
+
+- `GET /portfolios/{id}/summary`
+  - Includes `cashBalance`, `netAssetValue`, `realizedProfitLoss`, `unrealizedProfitLoss`.
+
 ## Admin Endpoints
 
 - Admin dashboard/users: `/admin/**`

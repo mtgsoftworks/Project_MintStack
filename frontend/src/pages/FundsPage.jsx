@@ -37,7 +37,7 @@ export default function FundsPage() {
   const filteredFunds = funds.filter((fund) =>
     fund.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
     fund.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  ).sort((left, right) => left.symbol.localeCompare(right.symbol))
 
   return (
     <div className="space-y-6 animate-in">
@@ -124,7 +124,7 @@ export default function FundsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
-                        {fund.totalValue ? formatCurrency(fund.totalValue, 'TRY') : '-'}
+                        {fund.totalValue != null ? formatCurrency(fund.totalValue, 'TRY') : '-'}
                       </TableCell>
                     </TableRow>
                   ))

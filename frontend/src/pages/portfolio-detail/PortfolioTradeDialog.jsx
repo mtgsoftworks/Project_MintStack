@@ -20,6 +20,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useExecutePortfolioTradeMutation } from '@/store/api/portfolioApi'
+import {
+  useGetBondsQuery,
+  useGetFundsQuery,
+  useGetStocksQuery,
+  useGetViopQuery,
+} from '@/store/api/marketApi'
 
 const ORDER_TYPES = {
   MARKET: 'MARKET',
@@ -33,10 +39,12 @@ export function PortfolioTradeDialog({
   open,
   onOpenChange,
   defaultSymbol = '',
+  defaultInstrumentId = null,
   maxQuantity = null,
 }) {
   const { t } = useTranslation()
-  const [symbol, setSymbol] = useState(defaultSymbol)
+  const [symbol, setSymbol] = useState(defaultSymbol || '')
+  const [selectedInstrumentId, setSelectedInstrumentId] = useState(defaultInstrumentId)
   const [quantity, setQuantity] = useState('')
   const [price, setPrice] = useState('')
   const [orderType, setOrderType] = useState(ORDER_TYPES.MARKET)
@@ -45,12 +53,66 @@ export function PortfolioTradeDialog({
   const [tradeDate, setTradeDate] = useState(() => new Date().toISOString().split('T')[0])
   const [notes, setNotes] = useState('')
   const [executeTrade, { isLoading }] = useExecutePortfolioTradeMutation()
+  const isSell = mode === 'SELL'
+  const isLockedInstrument = Boolean(defaultSymbol || defaultInstrumentId)
+
+  const queryOptions = { skip: !open }
+  const { data: stocksResponse } = useGetStocksQuery(
+    { page: 0, size: 500, sort: 'symbol,asc' },
+    queryOptions
+  )
+  const { data: bondsResponse } = useGetBondsQuery(
+    { page: 0, size: 250, sort: 'symbol,asc' },
+    queryOptions
+  )
+  const { data: fundsResponse } = useGetFundsQuery(
+    { page: 0, size: 250, sort: 'symbol,asc' },
+    queryOptions
+  )
+  const { data: viopResponse } = useGetViopQuery(
+    { page: 0, size: 250, sort: 'symbol,asc' },
+    queryOptions
+  )
+
+  const instruments = useMemo(() => {
+    const combined = [
+      ...(stocksResponse?.data || []),
+      ...(bondsResponse?.data || []),
+      ...(fundsResponse?.data || []),
+      ...(viopResponse?.data || []),
+    ]
+
+    const uniqueBySymbol = new Map()
+    for (const instrument of combined) {
+      const symbolValue = (instrument?.symbol || '').toUpperCase()
+      if (!symbolValue || uniqueBySymbol.has(symbolValue)) {
+        continue
+      }
+      uniqueBySymbol.set(symbolValue, {
+        id: instrument.id,
+        symbol: symbolValue,
+        name: instrument.name || symbolValue,
+        type: instrument.type || '-',
+      })
+    }
+    return [...uniqueBySymbol.values()].sort((left, right) => left.symbol.localeCompare(right.symbol))
+  }, [stocksResponse, bondsResponse, fundsResponse, viopResponse])
+
+  const instrumentBySymbol = useMemo(
+    () => new Map(instruments.map((instrument) => [instrument.symbol, instrument])),
+    [instruments]
+  )
+  const instrumentById = useMemo(
+    () => new Map(instruments.map((instrument) => [instrument.id, instrument])),
+    [instruments]
+  )
 
   useEffect(() => {
     if (!open) {
       return
     }
-    setSymbol(defaultSymbol || '')
+    setSymbol((defaultSymbol || '').toUpperCase())
+    setSelectedInstrumentId(defaultInstrumentId)
     setQuantity(maxQuantity != null ? String(maxQuantity) : '')
     setPrice('')
     setOrderType(ORDER_TYPES.MARKET)
@@ -58,12 +120,49 @@ export function PortfolioTradeDialog({
     setStopPrice('')
     setNotes('')
     setTradeDate(new Date().toISOString().split('T')[0])
-  }, [open, defaultSymbol, maxQuantity])
+  }, [open, defaultSymbol, defaultInstrumentId, maxQuantity])
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+    const normalizedSymbol = (symbol || '').toUpperCase().trim()
+    if (!normalizedSymbol) {
+      return
+    }
+    const match = instrumentBySymbol.get(normalizedSymbol)
+    if (match) {
+      setSelectedInstrumentId(match.id)
+    }
+  }, [open, symbol, instrumentBySymbol])
 
   const isBuy = mode === 'BUY'
-  const resolvedSymbol = (defaultSymbol || symbol || '').toUpperCase().trim()
+  const resolvedSymbol = (symbol || '').toUpperCase().trim()
 
   const title = useMemo(() => (isBuy ? 'Alis Islemi' : 'Satis Islemi'), [isBuy])
+
+  const handleInstrumentInputChange = (value) => {
+    const normalizedValue = value.toUpperCase().trim()
+    setSymbol(normalizedValue)
+    const match = instrumentBySymbol.get(normalizedValue)
+    setSelectedInstrumentId(match?.id ?? null)
+  }
+
+  const resolveApiErrorMessage = (error, fallbackMessage) => {
+    const responseData = error?.data
+    if (!responseData) {
+      return fallbackMessage
+    }
+    if (typeof responseData === 'string') {
+      return responseData
+    }
+    return (
+      responseData.message ||
+      responseData.error ||
+      responseData.details ||
+      fallbackMessage
+    )
+  }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -79,8 +178,12 @@ export function PortfolioTradeDialog({
       return
     }
 
-    if (!resolvedSymbol) {
+    if (!resolvedSymbol && !selectedInstrumentId) {
       toast.error('Sembol zorunludur')
+      return
+    }
+    if (!selectedInstrumentId && instruments.length > 0) {
+      toast.error('Listeden gecerli bir varlik secin')
       return
     }
 
@@ -112,10 +215,13 @@ export function PortfolioTradeDialog({
       return
     }
 
+    const selectedInstrument = selectedInstrumentId ? instrumentById.get(selectedInstrumentId) : null
+
     try {
       await executeTrade({
         portfolioId,
-        instrumentSymbol: resolvedSymbol,
+        instrumentId: selectedInstrument?.id,
+        instrumentSymbol: selectedInstrument ? undefined : resolvedSymbol,
         transactionType: mode,
         orderType,
         quantity: parsedQuantity,
@@ -128,8 +234,11 @@ export function PortfolioTradeDialog({
 
       toast.success(isBuy ? 'Alis islemi kaydedildi' : 'Satis islemi kaydedildi')
       onOpenChange(false)
-    } catch {
-      toast.error(isBuy ? t('portfolioDetailPage.toast.addError') : t('portfolioDetailPage.toast.deleteError'))
+    } catch (error) {
+      toast.error(resolveApiErrorMessage(
+        error,
+        isBuy ? t('portfolioDetailPage.toast.addError') : t('portfolioDetailPage.toast.deleteError')
+      ))
     }
   }
 
@@ -152,11 +261,27 @@ export function PortfolioTradeDialog({
               <Input
                 id="trade-symbol"
                 value={resolvedSymbol}
-                onChange={(event) => setSymbol(event.target.value.toUpperCase())}
-                placeholder={t('portfolioDetailPage.addItemDialog.symbolPlaceholder')}
+                onChange={(event) => handleInstrumentInputChange(event.target.value)}
+                list="trade-instruments-list"
+                placeholder="Sembol yazin ve listeden secin"
                 required
-                disabled={Boolean(defaultSymbol)}
+                disabled={isLockedInstrument}
               />
+              <datalist id="trade-instruments-list">
+                {instruments.map((instrument) => (
+                  <option
+                    key={instrument.id || instrument.symbol}
+                    value={instrument.symbol}
+                  >
+                    {`${instrument.name} (${instrument.type})`}
+                  </option>
+                ))}
+              </datalist>
+              {!isLockedInstrument && (
+                <p className="text-xs text-muted-foreground">
+                  {instruments.length} varlik listelendi. Sembol yazarak secim yapabilirsiniz.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -170,7 +295,11 @@ export function PortfolioTradeDialog({
                 onChange={(event) => setQuantity(event.target.value)}
                 placeholder={t('portfolioDetailPage.addItemDialog.quantityPlaceholder')}
                 required
+                max={isSell && maxQuantity != null ? String(maxQuantity) : undefined}
               />
+              {isSell && maxQuantity != null && (
+                <p className="text-xs text-muted-foreground">Maksimum satis miktari: {maxQuantity}</p>
+              )}
             </div>
 
             <div className="space-y-2">

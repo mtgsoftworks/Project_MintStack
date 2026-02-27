@@ -74,3 +74,16 @@ docker cp mintstack-keycloak-prod:/tmp/realm-export.json ./realm-export-prod.jso
 - Deploy workflow signs image artifacts and deploys via SSH using repository secrets.
 - Required staging secrets: `STAGING_HOST`, `STAGING_USER`, `STAGING_SSH_KEY`
 - Required production secrets: `PROD_HOST`, `PROD_USER`, `PROD_SSH_KEY`
+
+## 6. Troubleshooting
+
+### OTEL Collector Health Shows `unhealthy`
+
+If `mintstack-otel-collector` is running but marked unhealthy, recreate only that service:
+
+```bash
+docker compose up -d otel-collector
+docker compose ps otel-collector
+```
+
+Current healthcheck uses collector binary execution (`/otelcol-contrib --version`) to avoid shell tool dependency issues inside minimal images.

@@ -37,7 +37,7 @@ export default function BondsPage() {
   const filteredBonds = bonds.filter((bond) =>
     bond.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
     bond.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  ).sort((left, right) => left.symbol.localeCompare(right.symbol))
 
   return (
     <div className="space-y-6 animate-in">
@@ -127,7 +127,7 @@ export default function BondsPage() {
                         {formatCurrency(bond.currentPrice, 'TRY')}
                       </TableCell>
                       <TableCell className="text-right">
-                        {bond.yield ? `%${bond.yield.toFixed(2)}` : '-'}
+                        {bond.yieldRate != null ? `%${Number(bond.yieldRate).toFixed(2)}` : '-'}
                       </TableCell>
                       <TableCell className="text-right">
                         <Badge variant={bond.changePercent >= 0 ? 'success' : 'danger'}>

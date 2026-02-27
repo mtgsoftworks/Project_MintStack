@@ -33,11 +33,38 @@ Important:
 | Backend API | <http://localhost:18080/api/v1> |
 | Swagger UI | <http://localhost:18080/swagger-ui.html> |
 | Keycloak | <http://localhost:8180> |
+| Grafana | <http://localhost:3030> |
 
-Keycloak admin console credentials come from your `.env` values:
+## Local Access Credentials
+
+This section is for local development only. Rotate/change these values before any shared or production use.
+
+### Application Login (Frontend)
+
+- Username: `admin`
+- Password: `Admin123!Mint!`
+- Username: `test`
+- Password: `TestUser123!M!`
+
+### Keycloak Admin Console
+
+- URL: <http://localhost:8180/admin/>
+- Username: `admin`
+- Password: `C1GVjujPw3WlrV5zNZOpknZSyz0ELaC9wK7YB6Uc0Y0=`
+
+### Grafana
+
+- URL: <http://localhost:3030>
+- Username: `admin`
+- Password: `aRIRHwf1jzfC8VMhQsLpVhIUtPhKcM+X`
+
+Keycloak and Grafana credentials are sourced from `.env`:
 
 - `KEYCLOAK_ADMIN`
 - `KEYCLOAK_ADMIN_PASSWORD`
+- `KEYCLOAK_ADMIN_USER_PASSWORD`
+- `KEYCLOAK_TEST_USER_PASSWORD`
+- `GRAFANA_ADMIN_PASSWORD`
 
 ## Tech Stack
 
@@ -45,6 +72,31 @@ Keycloak admin console credentials come from your `.env` values:
 - Frontend: React 18.2, Vite 5
 - Infra: Docker, Keycloak, OpenLDAP, Nginx
 - Observability: OpenSearch, Prometheus, Grafana
+
+## Portfolio Simulation Updates
+
+- Trading supports `MARKET`, `LIMIT`, and `STOP` orders.
+- Order lifecycle is modeled as `PENDING`, `PARTIALLY_FILLED`, `FILLED`, `CANCELED`, `REJECTED`.
+- Pending orders can be processed on demand from UI/API.
+- Portfolio cash operations support simulated deposit/withdraw.
+- Commission model includes:
+  - base commission rate
+  - minimum commission amount
+  - commission tax rate
+  - instrument-based multiplier
+- Portfolio summary exposes:
+  - cash balance
+  - net asset value
+  - realized PnL
+  - unrealized PnL
+
+Key portfolio endpoints:
+
+- `POST /api/v1/portfolios/{id}/trades`
+- `POST /api/v1/portfolios/{id}/orders/process`
+- `POST /api/v1/portfolios/{id}/orders/{orderId}/cancel`
+- `POST /api/v1/portfolios/{id}/cash`
+- `GET /api/v1/portfolios/{id}/transactions?orderStatus=...`
 
 ## Development
 

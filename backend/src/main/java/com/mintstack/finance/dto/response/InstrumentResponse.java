@@ -38,6 +38,10 @@ public class InstrumentResponse {
 
     private Long volume;
 
+    private BigDecimal yieldRate;
+
+    private BigDecimal totalValue;
+
     private LocalDate maturityDate;
     
     private Boolean isActive;

@@ -30,6 +30,7 @@ export default function PortfolioDetailPage() {
     const [sellDialogOpen, setSellDialogOpen] = useState(false)
     const [cashDialogOpen, setCashDialogOpen] = useState(false)
     const [sellSymbol, setSellSymbol] = useState('')
+    const [sellInstrumentId, setSellInstrumentId] = useState(null)
     const [sellMaxQuantity, setSellMaxQuantity] = useState(null)
     const [processOrders, { isLoading: isProcessingOrders }] = useProcessPortfolioOrdersMutation()
     const [cancelOrder] = useCancelPortfolioOrderMutation()
@@ -61,6 +62,7 @@ export default function PortfolioDetailPage() {
     const handleOpenSellDialog = (item) => {
         const quantity = Number.parseFloat(item.quantity)
         setSellSymbol(item.instrumentSymbol || item.symbol || '')
+        setSellInstrumentId(item.instrumentId || null)
         setSellMaxQuantity(Number.isFinite(quantity) ? quantity : null)
         setSellDialogOpen(true)
     }
@@ -189,6 +191,7 @@ export default function PortfolioDetailPage() {
                 open={sellDialogOpen}
                 onOpenChange={setSellDialogOpen}
                 defaultSymbol={sellSymbol}
+                defaultInstrumentId={sellInstrumentId}
                 maxQuantity={sellMaxQuantity}
             />
 

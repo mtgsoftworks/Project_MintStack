@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { RefreshCw, TrendingDown, TrendingUp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,13 +14,46 @@ import {
   useGetMovingAverageQuery,
   useGetTrendAnalysisQuery,
 } from '@/store/api/analysisApi'
+import { useGetStocksQuery } from '@/store/api/marketApi'
 
 export default function AnalysisPage() {
-  const [symbol, setSymbol] = useState('THYAO')
+  const [symbol, setSymbol] = useState('')
   const [period, setPeriod] = useState('1M')
   const [maType, setMaType] = useState('SMA')
   const [maPeriod, setMaPeriod] = useState('20')
-  const [compareInput, setCompareInput] = useState('THYAO,GARAN')
+  const [compareInput, setCompareInput] = useState('')
+
+  const {
+    data: stocksResponse,
+    isFetching: stocksFetching,
+    refetch: refetchStocks,
+  } = useGetStocksQuery({ page: 0, size: 300, sort: 'symbol,asc' })
+
+  const availableSymbols = useMemo(
+    () =>
+      (stocksResponse?.data || [])
+        .map((stock) => (stock.symbol || '').toUpperCase())
+        .filter(Boolean),
+    [stocksResponse]
+  )
+
+  useEffect(() => {
+    if (availableSymbols.length === 0) {
+      return
+    }
+    if (!symbol || !availableSymbols.includes(symbol)) {
+      setSymbol(availableSymbols[0])
+    }
+  }, [availableSymbols, symbol])
+
+  useEffect(() => {
+    if (availableSymbols.length < 2) {
+      return
+    }
+    if (!compareInput.trim()) {
+      setCompareInput(`${availableSymbols[0]},${availableSymbols[1]}`)
+    }
+  }, [availableSymbols, compareInput])
 
   const compareSymbols = useMemo(
     () =>
@@ -32,16 +65,22 @@ export default function AnalysisPage() {
     [compareInput]
   )
 
-  const { data: maData, isLoading: maLoading, refetch: refetchMa } = useGetMovingAverageQuery({
-    symbol,
-    maType,
-    maPeriod: Number.parseInt(maPeriod, 10),
-  })
+  const { data: maData, isLoading: maLoading, refetch: refetchMa } = useGetMovingAverageQuery(
+    {
+      symbol,
+      maType,
+      maPeriod: Number.parseInt(maPeriod, 10),
+    },
+    { skip: !symbol }
+  )
 
-  const { data: trendData, isLoading: trendLoading, refetch: refetchTrend } = useGetTrendAnalysisQuery({
-    symbol,
-    period,
-  })
+  const { data: trendData, isLoading: trendLoading, refetch: refetchTrend } = useGetTrendAnalysisQuery(
+    {
+      symbol,
+      period,
+    },
+    { skip: !symbol }
+  )
 
   const {
     data: comparisonData,
@@ -81,6 +120,7 @@ export default function AnalysisPage() {
     .filter(Boolean)
 
   const handleRefreshAll = () => {
+    refetchStocks()
     refetchMa()
     refetchTrend()
     if (compareSymbols.length >= 2) {
@@ -99,9 +139,15 @@ export default function AnalysisPage() {
           <Input
             value={symbol}
             onChange={(event) => setSymbol(event.target.value.toUpperCase())}
-            placeholder="Sembol"
+            list="analysis-symbols"
+            placeholder="Sembol secin"
             className="w-32"
           />
+          <datalist id="analysis-symbols">
+            {availableSymbols.map((itemSymbol) => (
+              <option key={itemSymbol} value={itemSymbol} />
+            ))}
+          </datalist>
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-24">
               <SelectValue />
@@ -115,7 +161,7 @@ export default function AnalysisPage() {
             </SelectContent>
           </Select>
           <Button variant="outline" size="icon" onClick={handleRefreshAll}>
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className={cn('h-4 w-4', stocksFetching && 'animate-spin')} />
           </Button>
         </div>
       </div>
