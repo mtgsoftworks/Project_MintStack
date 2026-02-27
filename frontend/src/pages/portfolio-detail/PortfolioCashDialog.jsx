@@ -13,7 +13,59 @@ import {
 } from '@/components/ui/dialog'
 import { useAdjustPortfolioCashMutation } from '@/store/api/portfolioApi'
 
-export function PortfolioCashDialog({ portfolioId, open, onOpenChange }) {
+const THOUSANDS_DOT_PATTERN = /^\d{1,3}(\.\d{3})+$/
+const THOUSANDS_COMMA_PATTERN = /^\d{1,3}(,\d{3})+$/
+
+function parseLocalizedAmount(value) {
+  if (value == null) {
+    return Number.NaN
+  }
+
+  const raw = String(value)
+    .trim()
+    .replace(/\s/g, '')
+    .replace(/[^0-9,.\-]/g, '')
+
+  if (!raw) {
+    return Number.NaN
+  }
+
+  const hasComma = raw.includes(',')
+  const hasDot = raw.includes('.')
+
+  if (hasComma && hasDot) {
+    if (raw.lastIndexOf(',') > raw.lastIndexOf('.')) {
+      return Number.parseFloat(raw.replace(/\./g, '').replace(',', '.'))
+    }
+    return Number.parseFloat(raw.replace(/,/g, ''))
+  }
+
+  if (hasComma) {
+    if (THOUSANDS_COMMA_PATTERN.test(raw)) {
+      return Number.parseFloat(raw.replace(/,/g, ''))
+    }
+    return Number.parseFloat(raw.replace(',', '.'))
+  }
+
+  if (hasDot && THOUSANDS_DOT_PATTERN.test(raw)) {
+    return Number.parseFloat(raw.replace(/\./g, ''))
+  }
+
+  return Number.parseFloat(raw)
+}
+
+function resolveApiErrorMessage(error, fallbackMessage) {
+  const responseData = error?.data
+  if (!responseData) {
+    return fallbackMessage
+  }
+  if (typeof responseData === 'string') {
+    return responseData
+  }
+  return responseData.message || responseData.error || responseData.details || fallbackMessage
+}
+
+export function PortfolioCashDialog({ portfolioId, open, onOpenChange, currentCashBalance = null }) {
   const [action, setAction] = useState('DEPOSIT')
   const [amount, setAmount] = useState('')
   const [notes, setNotes] = useState('')
@@ -30,10 +82,18 @@ export function PortfolioCashDialog({ portfolioId, open, onOpenChange }) {
   const handleSubmit = async (event) => {
     event.preventDefault()
 
-    const parsedAmount = parseFloat(amount)
+    const parsedAmount = parseLocalizedAmount(amount)
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       toast.error('Gecerli bir tutar girin')
       return
+    }
+
+    if (action === 'WITHDRAW' && Number.isFinite(Number(currentCashBalance))) {
+      const availableCash = Number(currentCashBalance)
+      if (parsedAmount > availableCash) {
+        toast.error(`Yetersiz bakiye. Mevcut: ${availableCash.toLocaleString('tr-TR')}`)
+        return
+      }
     }
 
     try {
@@ -46,8 +106,8 @@ export function PortfolioCashDialog({ portfolioId, open, onOpenChange }) {
 
       toast.success(action === 'DEPOSIT' ? 'Nakit eklendi' : 'Nakit cekildi')
       onOpenChange(false)
-    } catch {
-      toast.error('Nakit islemi basarisiz oldu')
+    } catch (error) {
+      toast.error(resolveApiErrorMessage(error, 'Nakit islemi basarisiz oldu'))
     }
   }
 
@@ -85,14 +145,14 @@ export function PortfolioCashDialog({ portfolioId, open, onOpenChange }) {
               <Label htmlFor="cash-amount">Tutar</Label>
               <Input
                 id="cash-amount"
-                type="number"
-                min="0.000001"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
-                placeholder="1000"
+                placeholder="1000 veya 1.000,50"
                 required
               />
+              <p className="text-xs text-muted-foreground">Virgul veya nokta ile tutar girebilirsiniz.</p>
             </div>
 
             <div className="space-y-2">

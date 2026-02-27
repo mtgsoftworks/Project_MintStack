@@ -9,6 +9,7 @@ import com.mintstack.finance.service.ApiKeyValidationService;
 import com.mintstack.finance.service.MarketDataService;
 import com.mintstack.finance.service.SettingsService;
 import com.mintstack.finance.service.UserService;
+import com.mintstack.finance.service.simulation.SimulationDataService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +23,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -37,6 +39,7 @@ public class SettingsController {
     private final UserService userService;
     private final CacheManager cacheManager;
     private final MarketDataService marketDataService;
+    private final SimulationDataService simulationDataService;
 
     @GetMapping("/api-keys")
     @Operation(summary = "Kullanıcının API anahtarlarını listele")
@@ -148,7 +151,16 @@ public class SettingsController {
         
         log.info("User {} requested to delete all market data", jwt.getSubject());
         
-        Map<String, Object> result = marketDataService.deleteAllMarketData();
+        Map<String, Object> result = new LinkedHashMap<>(marketDataService.deleteAllMarketData());
+        boolean simulationWasEnabled = simulationDataService.isSimulationEnabled();
+        if (simulationWasEnabled) {
+            simulationDataService.updateConfig(false, null, null, null, null, null);
+        }
+        Map<String, Object> simulationDeletion = simulationDataService.deleteSimulationData();
+        result.put("simulationDisabled", simulationWasEnabled);
+        result.put("deletedSimulationInstruments", simulationDeletion.getOrDefault("deletedInstruments", 0L));
+        result.put("deactivatedSimulationInstruments", simulationDeletion.getOrDefault("deactivatedInstruments", 0L));
+        result.put("deletedSimulationCurrencyRates", simulationDeletion.getOrDefault("deletedCurrencyRates", 0L));
         
         // Also clear cache
         var cacheNames = cacheManager.getCacheNames();

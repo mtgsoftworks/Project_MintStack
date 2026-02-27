@@ -172,6 +172,7 @@ public class DataSourceService {
         // Auto-create preferences for this provider's capabilities
         Set<DataType> capabilities = PROVIDER_CAPABILITIES.getOrDefault(config.getProvider(), Set.of());
         List<String> createdPreferences = new ArrayList<>();
+        List<String> advisoryNotes = new ArrayList<>();
         
         for (DataType dataType : capabilities) {
             Optional<UserDataPreference> existing = preferenceRepository
@@ -187,6 +188,16 @@ public class DataSourceService {
                     .build();
                 preferenceRepository.save(pref);
                 createdPreferences.add(DATA_TYPE_LABELS.getOrDefault(dataType, dataType.name()));
+            }
+        }
+
+        if (config.getProvider() == ApiProvider.ALPHA_VANTAGE) {
+            advisoryNotes.add("Alpha Vantage BIST hisse verisinde kisitli olabilir; sistem Yahoo public endpoint fallback'i dener.");
+            boolean hasYahoo = !apiConfigRepository
+                .findByUserIdAndProviderAndIsActiveTrue(user.getId(), ApiProvider.YAHOO_FINANCE)
+                .isEmpty();
+            if (!hasYahoo) {
+                advisoryNotes.add("Daha tutarli BIST verisi icin Yahoo Finance veya Finnhub anahtari eklenmesi onerilir.");
             }
         }
 
@@ -228,6 +239,7 @@ public class DataSourceService {
         result.put("provider", config.getProvider().name());
         result.put("providerLabel", PROVIDER_LABELS.getOrDefault(config.getProvider(), config.getProvider().name()));
         result.put("autoCreatedPreferences", createdPreferences);
+        result.put("advisoryNotes", advisoryNotes);
         result.put("fetchTriggered", true);  // Always true now since we trigger async
         result.put("message", "Veri çekme işlemi arka planda başlatıldı");
         

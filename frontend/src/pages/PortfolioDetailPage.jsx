@@ -116,9 +116,16 @@ export default function PortfolioDetailPage() {
     }
 
     const items = portfolio.items || []
-    const chartData = items.map((item) => ({
-        name: item.instrumentSymbol || item.symbol || item.instrumentName || item.name || '-',
-        value: item.currentValue || 0
+    const chartDataBySymbol = items.reduce((accumulator, item) => {
+        const symbol = item.instrumentSymbol || item.symbol || item.instrumentName || item.name || '-'
+        const numericValue = Number(item.currentValue ?? 0)
+        const value = Number.isFinite(numericValue) ? numericValue : 0
+        accumulator.set(symbol, (accumulator.get(symbol) || 0) + value)
+        return accumulator
+    }, new Map())
+    const chartData = Array.from(chartDataBySymbol.entries()).map(([name, value]) => ({
+        name,
+        value,
     }))
 
     return (
@@ -199,6 +206,7 @@ export default function PortfolioDetailPage() {
                 portfolioId={id}
                 open={cashDialogOpen}
                 onOpenChange={setCashDialogOpen}
+                currentCashBalance={portfolio.cashBalance}
             />
         </div>
     )

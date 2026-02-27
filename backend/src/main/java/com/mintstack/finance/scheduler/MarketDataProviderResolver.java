@@ -73,17 +73,27 @@ class MarketDataProviderResolver {
         UserApiConfig alphaConfig,
         UserApiConfig finnhubConfig
     ) {
+        BigDecimal price = null;
+
         if (preferredProvider != null) {
-            return fetchPriceForProvider(preferredProvider, instrument, yahooConfig, alphaConfig, finnhubConfig);
+            price = fetchPriceForProvider(preferredProvider, instrument, yahooConfig, alphaConfig, finnhubConfig);
+            if (price != null) {
+                return price;
+            }
+            log.warn("Preferred provider {} returned no price for {}. Trying fallback providers.",
+                preferredProvider, instrument.getSymbol());
         }
 
-        BigDecimal price = fetchPriceForProvider(ApiProvider.YAHOO_FINANCE, instrument, yahooConfig, alphaConfig, finnhubConfig);
-        if (price == null) {
-            price = fetchPriceForProvider(ApiProvider.ALPHA_VANTAGE, instrument, yahooConfig, alphaConfig, finnhubConfig);
+        for (ApiProvider provider : ApiProvider.values()) {
+            if (!isMarketPriceProvider(provider) || provider == preferredProvider) {
+                continue;
+            }
+            price = fetchPriceForProvider(provider, instrument, yahooConfig, alphaConfig, finnhubConfig);
+            if (price != null) {
+                return price;
+            }
         }
-        if (price == null) {
-            price = fetchPriceForProvider(ApiProvider.FINNHUB, instrument, yahooConfig, alphaConfig, finnhubConfig);
-        }
+
         if (price == null) {
             log.warn("No price fetched for {} using any provider for {}", instrument.getSymbol(), dataType);
         }
@@ -188,10 +198,9 @@ class MarketDataProviderResolver {
     }
 
     private BigDecimal fetchFromYahoo(Instrument instrument, UserApiConfig yahooConfig) {
-        if (yahooConfig == null) {
-            return null;
-        }
-        return yahooFinanceClient.fetchStockPrice(instrument.getSymbol(), yahooConfig.getApiKey(), yahooConfig.getBaseUrl());
+        String apiKey = yahooConfig != null ? yahooConfig.getApiKey() : null;
+        String baseUrl = yahooConfig != null ? yahooConfig.getBaseUrl() : null;
+        return yahooFinanceClient.fetchStockPrice(instrument.getSymbol(), apiKey, baseUrl);
     }
 
     private BigDecimal fetchFromAlpha(Instrument instrument, UserApiConfig alphaConfig) {
@@ -214,5 +223,11 @@ class MarketDataProviderResolver {
             return symbol;
         }
         return symbol.contains(".") ? symbol : symbol + ".IS";
+    }
+
+    private boolean isMarketPriceProvider(ApiProvider provider) {
+        return provider == ApiProvider.YAHOO_FINANCE
+            || provider == ApiProvider.ALPHA_VANTAGE
+            || provider == ApiProvider.FINNHUB;
     }
 }

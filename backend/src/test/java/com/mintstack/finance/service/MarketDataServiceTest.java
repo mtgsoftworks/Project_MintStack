@@ -10,6 +10,7 @@ import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.CurrencyRateRepository;
 import com.mintstack.finance.repository.InstrumentRepository;
+import com.mintstack.finance.repository.NewsRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
 import com.mintstack.finance.repository.UserApiConfigRepository;
 import com.mintstack.finance.service.external.YahooFinanceClient;
@@ -59,6 +60,9 @@ class MarketDataServiceTest {
 
     @Mock
     private PriceHistoryRepository priceHistoryRepository;
+
+    @Mock
+    private NewsRepository newsRepository;
 
     @Mock
     private UserApiConfigRepository userApiConfigRepository;
@@ -401,6 +405,50 @@ class MarketDataServiceTest {
 
         verify(instrumentRepository, times(1)).save(any(Instrument.class));
         assertThat(thyaoStock.getCurrentPrice()).isEqualTo(newPrice);
+    }
+
+    @Test
+    @DisplayName("deleteAllMarketData should clear rates/history/news and deactivate real instruments")
+    void deleteAllMarketData_ShouldClearDataAndDeactivateRealInstruments() {
+        Instrument realIndex = Instrument.builder()
+            .symbol("XU100.IS")
+            .type(InstrumentType.INDEX)
+            .isActive(true)
+            .isSimulated(false)
+            .build();
+        Instrument realStock = Instrument.builder()
+            .symbol("THYAO")
+            .type(InstrumentType.STOCK)
+            .isActive(true)
+            .isSimulated(false)
+            .build();
+        Instrument simulatedStock = Instrument.builder()
+            .symbol("SIM_STOCK")
+            .type(InstrumentType.STOCK)
+            .isActive(true)
+            .isSimulated(true)
+            .build();
+
+        when(currencyRateRepository.count()).thenReturn(12L);
+        when(priceHistoryRepository.count()).thenReturn(34L);
+        when(newsRepository.count()).thenReturn(7L);
+        when(instrumentRepository.findAll()).thenReturn(List.of(realIndex, realStock, simulatedStock));
+
+        var result = marketDataService.deleteAllMarketData();
+
+        assertThat(result.get("deletedCurrencyRates")).isEqualTo(12L);
+        assertThat(result.get("deletedPriceHistory")).isEqualTo(34L);
+        assertThat(result.get("deletedNews")).isEqualTo(7L);
+        assertThat(result.get("deactivatedRealInstruments")).isEqualTo(2L);
+        assertThat(result.get("deactivatedIndices")).isEqualTo(1L);
+        assertThat(realIndex.getIsActive()).isFalse();
+        assertThat(realStock.getIsActive()).isFalse();
+        assertThat(simulatedStock.getIsActive()).isTrue();
+
+        verify(currencyRateRepository, times(1)).deleteAll();
+        verify(priceHistoryRepository, times(1)).deleteAll();
+        verify(newsRepository, times(1)).deleteAllInBatch();
+        verify(instrumentRepository, times(1)).saveAll(any(List.class));
     }
 
     @Test

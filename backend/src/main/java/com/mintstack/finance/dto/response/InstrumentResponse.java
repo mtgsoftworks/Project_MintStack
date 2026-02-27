@@ -36,11 +36,23 @@ public class InstrumentResponse {
     
     private BigDecimal changePercent;
 
+    private BigDecimal openPrice;
+
+    private BigDecimal highPrice;
+
+    private BigDecimal lowPrice;
+
     private Long volume;
 
     private BigDecimal yieldRate;
 
     private BigDecimal totalValue;
+
+    private BigDecimal marketCap;
+
+    private BigDecimal week52High;
+
+    private BigDecimal week52Low;
 
     private LocalDate maturityDate;
     

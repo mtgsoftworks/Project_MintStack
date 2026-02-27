@@ -39,7 +39,7 @@ export const settingsApi = baseApi.injectEndpoints({
                 url: '/settings/market-data',
                 method: 'DELETE',
             }),
-            invalidatesTags: ['Currencies', 'Stocks', 'Bonds', 'Funds', 'Viop', 'Indices', 'Simulation'],
+            invalidatesTags: ['Currencies', 'Stocks', 'Bonds', 'Funds', 'Viop', 'Indices', 'Simulation', 'News', 'NewsCategories'],
         }),
         // Data Source endpoints
         getDataSourceCapabilities: builder.query({

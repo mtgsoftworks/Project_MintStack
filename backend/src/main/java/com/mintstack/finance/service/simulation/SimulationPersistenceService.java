@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -177,8 +178,13 @@ public class SimulationPersistenceService {
     @Transactional
     public Map<String, Object> deleteSimulationData() {
         List<Instrument> simulatedInstruments = instrumentRepository.findByIsSimulated(true);
-        long instrumentCount = simulatedInstruments.size();
-        instrumentRepository.deleteAll(simulatedInstruments);
+        long deletedInstrumentCount = 0L;
+        long deactivatedInstrumentCount = 0L;
+        if (!simulatedInstruments.isEmpty()) {
+            simulatedInstruments.forEach(instrument -> instrument.setIsActive(false));
+            instrumentRepository.saveAll(simulatedInstruments);
+            deactivatedInstrumentCount = simulatedInstruments.size();
+        }
 
         List<CurrencyRate> simulatedRates = currencyRateRepository.findBySource(CurrencyRate.RateSource.MANUAL);
         long currencyCount = simulatedRates.size();
@@ -190,12 +196,14 @@ public class SimulationPersistenceService {
             log.warn("Simulasyon haberleri silinemedi: {}", error.getMessage());
         }
 
-        log.info("Simulation data deleted: {} instrument, {} currency rate", instrumentCount, currencyCount);
+        log.info("Simulation data cleanup completed: {} instrument deleted, {} instrument deactivated, {} currency rate deleted",
+            deletedInstrumentCount, deactivatedInstrumentCount, currencyCount);
 
-        return Map.of(
-            "deletedInstruments", instrumentCount,
-            "deletedCurrencyRates", currencyCount
-        );
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("deletedInstruments", deletedInstrumentCount);
+        result.put("deactivatedInstruments", deactivatedInstrumentCount);
+        result.put("deletedCurrencyRates", currencyCount);
+        return result;
     }
 
     private void saveDailyPriceHistory(String symbol, SimulatedStock stock) {

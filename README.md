@@ -98,6 +98,22 @@ Key portfolio endpoints:
 - `POST /api/v1/portfolios/{id}/cash`
 - `GET /api/v1/portfolios/{id}/transactions?orderStatus=...`
 
+## Market Data Notes
+
+- `DELETE /api/v1/settings/market-data` now clears:
+  - currency rates
+  - price history
+  - news
+  - active real market instruments (they are deactivated)
+- This endpoint is a full reset flow. After calling it, market lists can be empty until data is reloaded.
+- Frontend cache invalidation now includes market + news queries for this action.
+
+### Alpha Vantage (BIST)
+
+- Alpha Vantage can be limited for BIST stock coverage and also has strict rate limits.
+- Backend now applies fallback provider logic if preferred provider fetch fails.
+- Yahoo public endpoint fallback is attempted for stock prices even without a Yahoo API key.
+
 ## Development
 
 ### Backend

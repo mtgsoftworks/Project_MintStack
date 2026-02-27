@@ -11,6 +11,7 @@ import com.mintstack.finance.entity.PriceHistory;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.CurrencyRateRepository;
 import com.mintstack.finance.repository.InstrumentRepository;
+import com.mintstack.finance.repository.NewsRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
 import com.mintstack.finance.repository.UserApiConfigRepository;
 import com.mintstack.finance.entity.UserApiConfig;
@@ -52,6 +53,7 @@ public class MarketDataService {
     private final CurrencyRateRepository currencyRateRepository;
 
     private final PriceHistoryRepository priceHistoryRepository;
+    private final NewsRepository newsRepository;
     private final UserApiConfigRepository userApiConfigRepository;
     private final com.mintstack.finance.service.external.YahooFinanceClient yahooFinanceClient;
     private final com.mintstack.finance.service.simulation.SimulationDataService simulationDataService;
@@ -178,6 +180,9 @@ public class MarketDataService {
 
         // Try to find in DB first
         Instrument instrument = instrumentRepository.findBySymbol(symbol).orElse(null);
+        if (instrument != null && !Boolean.TRUE.equals(instrument.getIsActive())) {
+            instrument = null;
+        }
         
         // If instrument exists and has recent price, return it
         if (instrument != null && instrument.getCurrentPrice() != null) {
@@ -340,17 +345,43 @@ public class MarketDataService {
     public Map<String, Object> deleteAllMarketData() {
         long currencyCount = currencyRateRepository.count();
         long priceHistoryCount = priceHistoryRepository.count();
+        long newsCount = newsRepository.count();
+        InstrumentDeactivationSummary deactivationSummary = deactivateAllRealInstruments();
         
         currencyRateRepository.deleteAll();
         priceHistoryRepository.deleteAll();
+        newsRepository.deleteAllInBatch();
         
-        log.info("Deleted all market data: {} currency rates, {} price history records", 
-            currencyCount, priceHistoryCount);
+        log.info("Deleted all market data: {} currency rates, {} price history records, {} news, {} real instruments deactivated ({} indices)",
+            currencyCount, priceHistoryCount, newsCount, deactivationSummary.total(), deactivationSummary.indices());
         
         return Map.of(
             "deletedCurrencyRates", currencyCount,
-            "deletedPriceHistory", priceHistoryCount
+            "deletedPriceHistory", priceHistoryCount,
+            "deletedNews", newsCount,
+            "deactivatedRealInstruments", deactivationSummary.total(),
+            "deactivatedIndices", deactivationSummary.indices()
         );
+    }
+
+    private InstrumentDeactivationSummary deactivateAllRealInstruments() {
+        List<Instrument> activeRealInstruments = instrumentRepository.findAll().stream()
+            .filter(this::isRealInstrument)
+            .filter(instrument -> Boolean.TRUE.equals(instrument.getIsActive()))
+            .collect(Collectors.toList());
+        if (activeRealInstruments.isEmpty()) {
+            return new InstrumentDeactivationSummary(0L, 0L);
+        }
+        long activeIndexCount = activeRealInstruments.stream()
+            .filter(instrument -> instrument.getType() == InstrumentType.INDEX)
+            .count();
+        activeRealInstruments.forEach(instrument -> instrument.setIsActive(false));
+        instrumentRepository.saveAll(activeRealInstruments);
+        return new InstrumentDeactivationSummary(activeRealInstruments.size(), activeIndexCount);
+    }
+
+    private boolean isRealInstrument(Instrument instrument) {
+        return instrument != null && !Boolean.TRUE.equals(instrument.getIsSimulated());
     }
 
     // Mapping methods
@@ -404,10 +435,16 @@ public class MarketDataService {
             changePercent = instrument.getChangePercent();
         }
 
+        Optional<PriceHistory> latestHistory = resolveLatestHistory(instrument);
         Long volume = resolveLatestVolume(instrument);
         LocalDate maturityDate = resolveMaturityDate(instrument);
         BigDecimal yieldRate = resolveYieldRate(instrument, maturityDate);
         BigDecimal totalValue = resolveTotalValue(instrument, volume);
+        BigDecimal marketCap = resolveMarketCap(instrument, totalValue);
+        PriceRange week52Range = resolveWeek52Range(instrument);
+        BigDecimal openPrice = resolveOpenPrice(instrument, latestHistory);
+        BigDecimal highPrice = resolveHighPrice(instrument, latestHistory);
+        BigDecimal lowPrice = resolveLowPrice(instrument, latestHistory);
         
         return InstrumentResponse.builder()
             .id(instrument.getId())
@@ -420,12 +457,47 @@ public class MarketDataService {
             .previousClose(instrument.getPreviousClose())
             .change(change)
             .changePercent(changePercent)
+            .openPrice(openPrice)
+            .highPrice(highPrice)
+            .lowPrice(lowPrice)
             .volume(volume)
             .yieldRate(yieldRate)
             .totalValue(totalValue)
+            .marketCap(marketCap)
+            .week52High(week52Range.high())
+            .week52Low(week52Range.low())
             .maturityDate(maturityDate)
             .isActive(instrument.getIsActive())
             .build();
+    }
+
+    private Optional<PriceHistory> resolveLatestHistory(Instrument instrument) {
+        if (instrument == null || instrument.getId() == null) {
+            return Optional.empty();
+        }
+        Optional<PriceHistory> latest = priceHistoryRepository.findTopByInstrumentIdOrderByPriceDateDesc(instrument.getId());
+        return latest != null ? latest : Optional.empty();
+    }
+
+    private BigDecimal resolveOpenPrice(Instrument instrument, Optional<PriceHistory> latestHistory) {
+        if (latestHistory.isPresent() && latestHistory.get().getOpenPrice() != null) {
+            return latestHistory.get().getOpenPrice();
+        }
+        return firstPositive(instrument.getPreviousClose(), instrument.getCurrentPrice());
+    }
+
+    private BigDecimal resolveHighPrice(Instrument instrument, Optional<PriceHistory> latestHistory) {
+        if (latestHistory.isPresent() && latestHistory.get().getHighPrice() != null) {
+            return latestHistory.get().getHighPrice();
+        }
+        return firstPositive(instrument.getCurrentPrice(), instrument.getPreviousClose());
+    }
+
+    private BigDecimal resolveLowPrice(Instrument instrument, Optional<PriceHistory> latestHistory) {
+        if (latestHistory.isPresent() && latestHistory.get().getLowPrice() != null) {
+            return latestHistory.get().getLowPrice();
+        }
+        return firstPositive(instrument.getCurrentPrice(), instrument.getPreviousClose());
     }
 
     private Long resolveLatestVolume(Instrument instrument) {
@@ -547,6 +619,61 @@ public class MarketDataService {
             .setScale(2, RoundingMode.HALF_UP);
     }
 
+    private BigDecimal resolveMarketCap(Instrument instrument, BigDecimal totalValue) {
+        if (instrument == null || instrument.getType() != InstrumentType.STOCK) {
+            return null;
+        }
+        if (totalValue != null && totalValue.compareTo(BigDecimal.ZERO) > 0) {
+            return totalValue.setScale(2, RoundingMode.HALF_UP);
+        }
+        BigDecimal base = firstPositive(instrument.getCurrentPrice(), instrument.getPreviousClose());
+        if (base == null) {
+            return null;
+        }
+        return base.multiply(new BigDecimal("2500000")).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private PriceRange resolveWeek52Range(Instrument instrument) {
+        if (instrument == null || instrument.getType() != InstrumentType.STOCK || instrument.getSymbol() == null) {
+            return new PriceRange(null, null);
+        }
+
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(365);
+        List<PriceHistory> history = priceHistoryRepository.findBySymbolAndDateRange(instrument.getSymbol(), startDate, endDate);
+
+        BigDecimal high = history.stream()
+            .map(price -> firstPositive(price.getHighPrice(), price.getClosePrice(), price.getOpenPrice()))
+            .filter(java.util.Objects::nonNull)
+            .max(BigDecimal::compareTo)
+            .orElse(null);
+        BigDecimal low = history.stream()
+            .map(price -> firstPositive(price.getLowPrice(), price.getClosePrice(), price.getOpenPrice()))
+            .filter(java.util.Objects::nonNull)
+            .min(BigDecimal::compareTo)
+            .orElse(null);
+
+        BigDecimal reference = firstPositive(instrument.getCurrentPrice(), instrument.getPreviousClose());
+        if (high == null && reference != null) {
+            high = reference.multiply(new BigDecimal("1.15"));
+        }
+        if (low == null && reference != null) {
+            low = reference.multiply(new BigDecimal("0.85"));
+        }
+        if (high == null || low == null) {
+            return new PriceRange(null, null);
+        }
+        if (low.compareTo(high) > 0) {
+            BigDecimal temp = low;
+            low = high;
+            high = temp;
+        }
+        return new PriceRange(
+            high.setScale(6, RoundingMode.HALF_UP),
+            low.setScale(6, RoundingMode.HALF_UP)
+        );
+    }
+
     private Long resolveSyntheticVolume(Instrument instrument) {
         if (instrument == null || instrument.getType() == null) {
             return null;
@@ -596,6 +723,18 @@ public class MarketDataService {
         return type == InstrumentType.STOCK || type == InstrumentType.INDEX || type == InstrumentType.CRYPTO;
     }
 
+    private BigDecimal firstPositive(BigDecimal... values) {
+        if (values == null) {
+            return null;
+        }
+        for (BigDecimal value : values) {
+            if (value != null && value.compareTo(BigDecimal.ZERO) > 0) {
+                return value;
+            }
+        }
+        return null;
+    }
+
     private PriceHistoryResponse mapToPriceHistoryResponse(PriceHistory history) {
         return PriceHistoryResponse.builder()
             .date(history.getPriceDate())
@@ -606,5 +745,11 @@ public class MarketDataService {
             .adjustedClose(history.getAdjustedClose())
             .volume(history.getVolume())
             .build();
+    }
+
+    private record PriceRange(BigDecimal high, BigDecimal low) {
+    }
+
+    private record InstrumentDeactivationSummary(long total, long indices) {
     }
 }
