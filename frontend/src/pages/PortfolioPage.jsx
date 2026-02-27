@@ -50,16 +50,38 @@ function CreatePortfolioDialog({ open, onOpenChange }) {
   const { t } = useTranslation()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [initialCashBalance, setInitialCashBalance] = useState('100000')
+  const [commissionRate, setCommissionRate] = useState('0.001')
   const [createPortfolio, { isLoading }] = useCreatePortfolioMutation()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const parsedInitialCash = Number.parseFloat(initialCashBalance)
+    const parsedCommissionRate = Number.parseFloat(commissionRate)
+
+    if (!Number.isFinite(parsedInitialCash) || parsedInitialCash < 0) {
+      toast.error('Baslangic nakit bakiyesi gecersiz')
+      return
+    }
+
+    if (!Number.isFinite(parsedCommissionRate) || parsedCommissionRate < 0 || parsedCommissionRate > 0.1) {
+      toast.error('Komisyon orani 0 ile 0.1 arasinda olmali')
+      return
+    }
+
     try {
-      await createPortfolio({ name, description }).unwrap()
+      await createPortfolio({
+        name,
+        description,
+        initialCashBalance: parsedInitialCash,
+        commissionRate: parsedCommissionRate,
+      }).unwrap()
       toast.success(t('portfolioPage.toast.createSuccess'))
       onOpenChange(false)
       setName('')
       setDescription('')
+      setInitialCashBalance('100000')
+      setCommissionRate('0.001')
     } catch (error) {
       toast.error(t('portfolioPage.toast.createError'))
     }
@@ -94,6 +116,32 @@ function CreatePortfolioDialog({ open, onOpenChange }) {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={t('portfolioPage.dialog.descriptionPlaceholder')}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="initial-cash">Baslangic Nakit (TRY)</Label>
+              <Input
+                id="initial-cash"
+                type="number"
+                min="0"
+                step="0.01"
+                value={initialCashBalance}
+                onChange={(e) => setInitialCashBalance(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="commission-rate">Komisyon Orani (ondalik)</Label>
+              <Input
+                id="commission-rate"
+                type="number"
+                min="0"
+                max="0.1"
+                step="0.0001"
+                value={commissionRate}
+                onChange={(e) => setCommissionRate(e.target.value)}
+                required
+              />
+              <p className="text-xs text-muted-foreground">Ornek: 0.001 = %0.1</p>
             </div>
           </div>
           <DialogFooter>
@@ -146,7 +194,7 @@ export default function PortfolioPage() {
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <Card className="card-hover">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -161,12 +209,23 @@ export default function PortfolioPage() {
           <Card className="card-hover">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-medium text-muted-foreground">{t('portfolioPage.summary.totalCost')}</span>
+                <span className="text-sm font-medium text-muted-foreground">Toplam Nakit</span>
+                <div className="p-2 rounded-lg bg-info/10">
+                  <Wallet className="h-5 w-5 text-info" />
+                </div>
+              </div>
+              <div className="stat-value">{formatCurrency(summary.totalCashBalance || 0, 'TRY')}</div>
+            </CardContent>
+          </Card>
+          <Card className="card-hover">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-medium text-muted-foreground">Net Varlik</span>
                 <div className="p-2 rounded-lg bg-muted">
                   <Wallet className="h-5 w-5 text-muted-foreground" />
                 </div>
               </div>
-              <div className="stat-value">{formatCurrency(summary.totalCost, 'TRY')}</div>
+              <div className="stat-value">{formatCurrency(summary.totalNetAssetValue || 0, 'TRY')}</div>
             </CardContent>
           </Card>
           <Card className="card-hover">
@@ -174,8 +233,8 @@ export default function PortfolioPage() {
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-medium text-muted-foreground">{t('portfolioPage.summary.totalProfitLoss')}</span>
                 <div className={cn(
-                  "p-2 rounded-lg",
-                  summary.totalProfitLoss >= 0 ? "bg-success/10" : "bg-danger/10"
+                  'p-2 rounded-lg',
+                  summary.totalProfitLoss >= 0 ? 'bg-success/10' : 'bg-danger/10'
                 )}>
                   {summary.totalProfitLoss >= 0 ? (
                     <TrendingUp className="h-5 w-5 text-success" />
@@ -185,8 +244,8 @@ export default function PortfolioPage() {
                 </div>
               </div>
               <div className={cn(
-                "stat-value",
-                summary.totalProfitLoss >= 0 ? "text-success" : "text-danger"
+                'stat-value',
+                summary.totalProfitLoss >= 0 ? 'text-success' : 'text-danger'
               )}>
                 {formatCurrency(summary.totalProfitLoss, 'TRY')}
               </div>
@@ -269,15 +328,18 @@ export default function PortfolioPage() {
               <CardContent>
                 <Link to={`/portfolio/${portfolio.id}`} className="block">
                   <div className="text-2xl font-bold mb-1">
-                    {formatCurrency(portfolio.totalValue || 0, 'TRY')}
+                    {formatCurrency(portfolio.netAssetValue || 0, 'TRY')}
+                  </div>
+                  <div className="text-xs text-muted-foreground mb-2">
+                    Nakit: {formatCurrency(portfolio.cashBalance || 0, 'TRY')}
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant={portfolio.profitLossPercent >= 0 ? 'success' : 'danger'}>
                       {formatPercent(portfolio.profitLossPercent || 0)}
                     </Badge>
                     <span className={cn(
-                      "text-sm font-medium",
-                      portfolio.profitLoss >= 0 ? "text-success" : "text-danger"
+                      'text-sm font-medium',
+                      portfolio.profitLoss >= 0 ? 'text-success' : 'text-danger'
                     )}>
                       {formatCurrency(portfolio.profitLoss || 0, 'TRY')}
                     </span>

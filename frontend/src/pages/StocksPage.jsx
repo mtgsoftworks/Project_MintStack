@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Search, RefreshCw, TrendingUp, TrendingDown, ArrowUpDown, List, LayoutGrid } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -78,12 +78,19 @@ function VirtualStockRow({ stock }) {
 
 export default function StocksPage() {
   const { t } = useTranslation()
+  const [searchParams] = useSearchParams()
+  const searchParam = searchParams.get('search') || ''
   const [page, setPage] = useState(0)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState(() => searchParam)
   const [sortBy, setSortBy] = useState('symbol')
   const [sortOrder, setSortOrder] = useState('asc')
   const [useVirtualScroll, setUseVirtualScroll] = useState(false)
   const parentRef = useRef(null)
+
+  useEffect(() => {
+    setSearchQuery(searchParam)
+    setPage(0)
+  }, [searchParam])
 
   // Load more items when virtual scrolling is enabled
   const pageSize = useVirtualScroll ? 100 : 20
@@ -92,6 +99,7 @@ export default function StocksPage() {
     page: useVirtualScroll ? 0 : page,
     size: pageSize,
     sort: `${sortBy},${sortOrder}`,
+    search: searchQuery.trim() || undefined,
   })
 
   const stocks = data?.data || []

@@ -17,6 +17,8 @@ public interface PortfolioItemRepository extends JpaRepository<PortfolioItem, UU
 
     Optional<PortfolioItem> findByIdAndPortfolioId(UUID id, UUID portfolioId);
 
+    List<PortfolioItem> findByPortfolioIdAndInstrumentIdOrderByPurchaseDateAsc(UUID portfolioId, UUID instrumentId);
+
     @Query("SELECT pi FROM PortfolioItem pi JOIN FETCH pi.instrument WHERE pi.portfolio.id = :portfolioId")
     List<PortfolioItem> findByPortfolioIdWithInstruments(@Param("portfolioId") UUID portfolioId);
 

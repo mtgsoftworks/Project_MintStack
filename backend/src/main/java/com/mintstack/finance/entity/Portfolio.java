@@ -36,20 +36,48 @@ public class Portfolio extends BaseEntity {
     @Builder.Default
     private Boolean isDefault = false;
 
+    @Column(name = "initial_cash_balance", precision = 18, scale = 6, nullable = false)
+    @Builder.Default
+    private BigDecimal initialCashBalance = new BigDecimal("100000.000000");
+
+    @Column(name = "cash_balance", precision = 18, scale = 6, nullable = false)
+    @Builder.Default
+    private BigDecimal cashBalance = new BigDecimal("100000.000000");
+
+    @Column(name = "commission_rate", precision = 8, scale = 6, nullable = false)
+    @Builder.Default
+    private BigDecimal commissionRate = new BigDecimal("0.001000");
+
+    @Column(name = "minimum_commission_amount", precision = 18, scale = 6, nullable = false)
+    @Builder.Default
+    private BigDecimal minimumCommissionAmount = new BigDecimal("1.000000");
+
+    @Column(name = "commission_tax_rate", precision = 8, scale = 6, nullable = false)
+    @Builder.Default
+    private BigDecimal commissionTaxRate = new BigDecimal("0.050000");
+
     @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<PortfolioItem> items = new ArrayList<>();
 
-    public BigDecimal getTotalValue() {
+    public BigDecimal getPositionValue() {
         return items.stream()
             .map(PortfolioItem::getCurrentValue)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public BigDecimal getTotalValue() {
+        return getPositionValue();
     }
 
     public BigDecimal getTotalCost() {
         return items.stream()
             .map(PortfolioItem::getTotalCost)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public BigDecimal getNetAssetValue() {
+        return getPositionValue().add(cashBalance != null ? cashBalance : BigDecimal.ZERO);
     }
 
     public BigDecimal getTotalProfitLoss() {

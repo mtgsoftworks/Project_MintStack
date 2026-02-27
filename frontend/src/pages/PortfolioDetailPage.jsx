@@ -7,31 +7,40 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
+    useCancelPortfolioOrderMutation,
     useGetPortfolioQuery,
-    useRemovePortfolioItemMutation
+    useProcessPortfolioOrdersMutation
 } from '@/store/api/portfolioApi'
 import { selectToken } from '@/store/slices/authSlice'
-import { toast } from 'sonner'
-import { AddItemDialog } from '@/pages/portfolio-detail/AddItemDialog'
+import { PortfolioTradeDialog } from '@/pages/portfolio-detail/PortfolioTradeDialog'
+import { PortfolioCashDialog } from '@/pages/portfolio-detail/PortfolioCashDialog'
 import { PortfolioHeaderActions } from '@/pages/portfolio-detail/PortfolioHeaderActions'
 import { PortfolioSummarySection } from '@/pages/portfolio-detail/PortfolioSummarySection'
 import { PortfolioItemsTable } from '@/pages/portfolio-detail/PortfolioItemsTable'
 import { PortfolioTransactionsCard } from '@/pages/portfolio-detail/PortfolioTransactionsCard'
 import { usePortfolioTransactions } from '@/pages/portfolio-detail/hooks/usePortfolioTransactions'
 import { usePortfolioExport } from '@/pages/portfolio-detail/hooks/usePortfolioExport'
+import { toast } from 'sonner'
 
 export default function PortfolioDetailPage() {
     const { t } = useTranslation()
     const { id } = useParams()
     const token = useSelector(selectToken)
-    const [addDialogOpen, setAddDialogOpen] = useState(false)
+    const [buyDialogOpen, setBuyDialogOpen] = useState(false)
+    const [sellDialogOpen, setSellDialogOpen] = useState(false)
+    const [cashDialogOpen, setCashDialogOpen] = useState(false)
+    const [sellSymbol, setSellSymbol] = useState('')
+    const [sellMaxQuantity, setSellMaxQuantity] = useState(null)
+    const [processOrders, { isLoading: isProcessingOrders }] = useProcessPortfolioOrdersMutation()
+    const [cancelOrder] = useCancelPortfolioOrderMutation()
 
     const { data: portfolio, isLoading, error } = useGetPortfolioQuery(id)
-    const [removeItem] = useRemovePortfolioItemMutation()
 
     const {
         transactionsPage,
         setTransactionsPage,
+        orderStatus,
+        setOrderStatus,
         transactionsLoading,
         transactionsFetching,
         transactions,
@@ -49,16 +58,28 @@ export default function PortfolioDetailPage() {
         t
     })
 
-    const handleRemoveItem = async (itemId) => {
-        if (!window.confirm(t('portfolioDetailPage.confirmDelete'))) {
-            return
-        }
+    const handleOpenSellDialog = (item) => {
+        const quantity = Number.parseFloat(item.quantity)
+        setSellSymbol(item.instrumentSymbol || item.symbol || '')
+        setSellMaxQuantity(Number.isFinite(quantity) ? quantity : null)
+        setSellDialogOpen(true)
+    }
 
+    const handleProcessOrders = async () => {
         try {
-            await removeItem({ portfolioId: id, itemId }).unwrap()
-            toast.success(t('portfolioDetailPage.toast.deleteSuccess'))
+            await processOrders({ portfolioId: id }).unwrap()
+            toast.success('Bekleyen emirler islendi')
         } catch {
-            toast.error(t('portfolioDetailPage.toast.deleteError'))
+            toast.error('Bekleyen emirler islenemedi')
+        }
+    }
+
+    const handleCancelOrder = async (orderId) => {
+        try {
+            await cancelOrder({ portfolioId: id, orderId }).unwrap()
+            toast.success('Emir iptal edildi')
+        } catch {
+            toast.error('Emir iptal edilemedi')
         }
     }
 
@@ -117,9 +138,12 @@ export default function PortfolioDetailPage() {
                 <PortfolioHeaderActions
                     t={t}
                     isExporting={isExporting}
+                    isProcessingOrders={isProcessingOrders}
+                    onProcessOrders={handleProcessOrders}
+                    onOpenCashDialog={() => setCashDialogOpen(true)}
                     onExportExcel={handleExportExcel}
                     onExportPdf={handleExportPdf}
-                    onOpenAddDialog={() => setAddDialogOpen(true)}
+                    onOpenAddDialog={() => setBuyDialogOpen(true)}
                 />
             </div>
 
@@ -133,8 +157,8 @@ export default function PortfolioDetailPage() {
             <PortfolioItemsTable
                 t={t}
                 items={items}
-                onOpenAddDialog={() => setAddDialogOpen(true)}
-                onRemoveItem={handleRemoveItem}
+                onOpenAddDialog={() => setBuyDialogOpen(true)}
+                onSellItem={handleOpenSellDialog}
             />
 
             <PortfolioTransactionsCard
@@ -145,14 +169,33 @@ export default function PortfolioDetailPage() {
                 transactionsFetching={transactionsFetching}
                 transactionPages={transactionPages}
                 transactionsPage={transactionsPage}
+                orderStatus={orderStatus}
+                onChangeOrderStatus={setOrderStatus}
+                onCancelOrder={handleCancelOrder}
                 onPrevPage={() => setTransactionsPage((page) => Math.max(0, page - 1))}
                 onNextPage={() => setTransactionsPage((page) => page + 1)}
             />
 
-            <AddItemDialog
+            <PortfolioTradeDialog
                 portfolioId={id}
-                open={addDialogOpen}
-                onOpenChange={setAddDialogOpen}
+                mode="BUY"
+                open={buyDialogOpen}
+                onOpenChange={setBuyDialogOpen}
+            />
+
+            <PortfolioTradeDialog
+                portfolioId={id}
+                mode="SELL"
+                open={sellDialogOpen}
+                onOpenChange={setSellDialogOpen}
+                defaultSymbol={sellSymbol}
+                maxQuantity={sellMaxQuantity}
+            />
+
+            <PortfolioCashDialog
+                portfolioId={id}
+                open={cashDialogOpen}
+                onOpenChange={setCashDialogOpen}
             />
         </div>
     )

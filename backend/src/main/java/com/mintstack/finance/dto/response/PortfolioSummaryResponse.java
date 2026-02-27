@@ -21,5 +21,13 @@ public class PortfolioSummaryResponse {
 
     private BigDecimal totalProfitLossPercent;
 
+    private BigDecimal totalCashBalance;
+
+    private BigDecimal totalNetAssetValue;
+
+    private BigDecimal totalRealizedProfitLoss;
+
+    private BigDecimal totalUnrealizedProfitLoss;
+
     private Integer portfolioCount;
 }

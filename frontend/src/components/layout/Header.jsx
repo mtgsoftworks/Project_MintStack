@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -45,6 +45,7 @@ export function Header() {
   const isAuthenticated = useSelector(selectIsAuthenticated)
   const theme = useSelector(selectTheme)
   const { t } = useTranslation()
+  const [searchQuery, setSearchQuery] = useState('')
 
   const { data: notificationsData } = useGetNotificationsQuery(
     { page: 0, size: 10 },
@@ -64,6 +65,16 @@ export function Header() {
     if (window.keycloak) {
       window.keycloak.logout({ redirectUri: window.location.origin })
     }
+  }
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault()
+    const query = searchQuery.trim()
+    if (!query) {
+      return
+    }
+
+    navigate(`/market/stocks?search=${encodeURIComponent(query)}`)
   }
 
   return (
@@ -87,20 +98,29 @@ export function Header() {
         </div>
 
         {/* Search */}
-        <div className="hidden md:flex relative">
+        <form className="hidden md:flex relative" onSubmit={handleSearchSubmit}>
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
             placeholder={t('header.searchPlaceholder')}
             className="w-64 pl-9 bg-muted/50"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </div>
+        </form>
       </div>
 
       {/* Right side */}
       <div className="flex items-center gap-2">
         {/* Mobile search */}
-        <Button variant="ghost" size="icon" className="md:hidden">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          onClick={() => navigate('/market/stocks')}
+          aria-label={t('common.search')}
+          title={t('common.search')}
+        >
           <Search className="h-5 w-5" />
         </Button>
 

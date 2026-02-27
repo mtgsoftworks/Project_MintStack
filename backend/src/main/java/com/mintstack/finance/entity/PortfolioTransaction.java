@@ -40,6 +40,43 @@ public class PortfolioTransaction extends BaseEntity {
     @Column(name = "price", precision = 18, scale = 6, nullable = false)
     private BigDecimal price;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "order_type", nullable = false, length = 20)
+    @Builder.Default
+    private OrderType orderType = OrderType.MARKET;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "order_status", nullable = false, length = 30)
+    @Builder.Default
+    private OrderStatus orderStatus = OrderStatus.FILLED;
+
+    @Column(name = "commission_amount", precision = 18, scale = 6, nullable = false)
+    @Builder.Default
+    private BigDecimal commissionAmount = BigDecimal.ZERO;
+
+    @Column(name = "filled_quantity", precision = 18, scale = 6, nullable = false)
+    @Builder.Default
+    private BigDecimal filledQuantity = BigDecimal.ZERO;
+
+    @Column(name = "average_fill_price", precision = 18, scale = 6)
+    private BigDecimal averageFillPrice;
+
+    @Column(name = "filled_at")
+    private java.time.LocalDateTime filledAt;
+
+    @Column(name = "cancel_reason", length = 500)
+    private String cancelReason;
+
+    @Column(name = "realized_profit_loss", precision = 18, scale = 6, nullable = false)
+    @Builder.Default
+    private BigDecimal realizedProfitLoss = BigDecimal.ZERO;
+
+    @Column(name = "limit_price", precision = 18, scale = 6)
+    private BigDecimal limitPrice;
+
+    @Column(name = "stop_price", precision = 18, scale = 6)
+    private BigDecimal stopPrice;
+
     @Column(name = "transaction_date", nullable = false)
     private LocalDate transactionDate;
 
@@ -49,5 +86,19 @@ public class PortfolioTransaction extends BaseEntity {
     public enum TransactionType {
         BUY,
         SELL
+    }
+
+    public enum OrderType {
+        MARKET,
+        LIMIT,
+        STOP
+    }
+
+    public enum OrderStatus {
+        PENDING,
+        PARTIALLY_FILLED,
+        FILLED,
+        CANCELED,
+        REJECTED
     }
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mintstack.finance.config.CorsProperties;
 import com.mintstack.finance.config.RateLimitConfig;
 import com.mintstack.finance.dto.request.CreatePortfolioRequest;
+import com.mintstack.finance.dto.request.ExecutePortfolioTradeRequest;
 import com.mintstack.finance.dto.response.PortfolioResponse;
 import com.mintstack.finance.dto.response.PortfolioTransactionResponse;
 import com.mintstack.finance.service.ExportService;
@@ -31,6 +32,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -153,6 +155,36 @@ class PortfolioControllerTest {
 
     @Test
     @WithMockUser
+    void executeTrade_ShouldReturnUpdatedPortfolio() throws Exception {
+        UUID portfolioId = UUID.randomUUID();
+        ExecutePortfolioTradeRequest request = ExecutePortfolioTradeRequest.builder()
+            .instrumentSymbol("THYAO")
+            .transactionType(com.mintstack.finance.entity.PortfolioTransaction.TransactionType.BUY)
+            .quantity(BigDecimal.valueOf(2))
+            .price(BigDecimal.valueOf(100))
+            .transactionDate(LocalDate.now())
+            .build();
+
+        PortfolioResponse response = PortfolioResponse.builder()
+            .id(portfolioId)
+            .name("Trade Portfolio")
+            .itemCount(1)
+            .build();
+        when(portfolioService.executeTrade(any(), eq(portfolioId), any(ExecutePortfolioTradeRequest.class)))
+            .thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/portfolios/" + portfolioId + "/trades")
+                .with(jwt().jwt(j -> j.subject("test-user")))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.name").value("Trade Portfolio"));
+    }
+
+    @Test
+    @WithMockUser
     void deletePortfolio_ShouldDeletePortfolio() throws Exception {
         // Given
         UUID portfolioId = UUID.randomUUID();
@@ -188,7 +220,7 @@ class PortfolioControllerTest {
 
         Pageable pageable = PageRequest.of(0, 20);
         Page<PortfolioTransactionResponse> page = new PageImpl<>(List.of(transaction), pageable, 1);
-        when(portfolioService.getPortfolioTransactions(any(), eq(portfolioId), any(Pageable.class)))
+        when(portfolioService.getPortfolioTransactions(any(), eq(portfolioId), nullable(com.mintstack.finance.entity.PortfolioTransaction.OrderStatus.class), any(Pageable.class)))
             .thenReturn(page);
 
         // When & Then

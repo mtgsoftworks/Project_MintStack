@@ -31,6 +31,14 @@ export function PortfolioSummarySection({ t, portfolio, items, chartData }) {
                         <span className="font-semibold">{formatCurrency(portfolio.totalValue || 0, 'TRY')}</span>
                     </div>
                     <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Nakit Bakiye</span>
+                        <span className="font-semibold">{formatCurrency(portfolio.cashBalance || 0, 'TRY')}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Net Varlik Degeri</span>
+                        <span className="font-semibold">{formatCurrency(portfolio.netAssetValue || 0, 'TRY')}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
                         <span className="text-muted-foreground">{t('portfolioDetailPage.summary.totalCost')}</span>
                         <span className="font-medium">{formatCurrency(portfolio.totalCost || 0, 'TRY')}</span>
                     </div>
@@ -42,6 +50,28 @@ export function PortfolioSummarySection({ t, portfolio, items, chartData }) {
                         )}>
                             {formatCurrency(portfolio.profitLoss || 0, 'TRY')}
                         </span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Gerceklesmis Kar/Zarar</span>
+                        <span className={cn(
+                            'font-semibold',
+                            (portfolio.realizedProfitLoss || 0) >= 0 ? 'text-success' : 'text-danger'
+                        )}>
+                            {formatCurrency(portfolio.realizedProfitLoss || 0, 'TRY')}
+                        </span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Gerceklesmemis Kar/Zarar</span>
+                        <span className={cn(
+                            'font-semibold',
+                            (portfolio.unrealizedProfitLoss || 0) >= 0 ? 'text-success' : 'text-danger'
+                        )}>
+                            {formatCurrency(portfolio.unrealizedProfitLoss || 0, 'TRY')}
+                        </span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Komisyon Orani</span>
+                        <span className="font-medium">%{(((portfolio.commissionRate || 0) * 100)).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between py-2">
                         <span className="text-muted-foreground">{t('portfolioDetailPage.summary.profitLossRatio')}</span>

@@ -1,4 +1,4 @@
-import { Plus, Trash2, TrendingDown, TrendingUp } from 'lucide-react'
+import { ArrowDownRight, Plus, TrendingDown, TrendingUp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,7 +12,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn, formatCurrency, formatNumber, formatPercent } from '@/lib/utils'
 
-export function PortfolioItemsTable({ t, items, onOpenAddDialog, onRemoveItem }) {
+export function PortfolioItemsTable({ t, items, onOpenAddDialog, onSellItem }) {
     return (
         <Card>
             <CardHeader>
@@ -89,9 +89,9 @@ export function PortfolioItemsTable({ t, items, onOpenAddDialog, onRemoveItem })
                                             <Button
                                                 variant="ghost"
                                                 size="icon-sm"
-                                                onClick={() => onRemoveItem(item.id)}
+                                                onClick={() => onSellItem(item)}
                                             >
-                                                <Trash2 className="h-4 w-4 text-danger" />
+                                                <ArrowDownRight className="h-4 w-4 text-danger" />
                                             </Button>
                                         </TableCell>
                                     </TableRow>

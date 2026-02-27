@@ -156,6 +156,64 @@ export const portfolioApi = baseApi.injectEndpoints({
       ],
     }),
 
+    // Execute buy/sell trade
+    executePortfolioTrade: builder.mutation({
+      query: ({ portfolioId, ...data }) => ({
+        url: `/portfolios/${portfolioId}/trades`,
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: (result, error, { portfolioId }) => [
+        { type: 'Portfolios', id: portfolioId },
+        { type: 'Portfolios', id: 'LIST' },
+        { type: 'Portfolios', id: 'SUMMARY' },
+        { type: 'PortfolioTransactions', id: `LIST_${portfolioId}` },
+      ],
+    }),
+
+    // Process pending/partial orders
+    processPortfolioOrders: builder.mutation({
+      query: ({ portfolioId }) => ({
+        url: `/portfolios/${portfolioId}/orders/process`,
+        method: 'POST',
+      }),
+      invalidatesTags: (result, error, { portfolioId }) => [
+        { type: 'Portfolios', id: portfolioId },
+        { type: 'Portfolios', id: 'LIST' },
+        { type: 'Portfolios', id: 'SUMMARY' },
+        { type: 'PortfolioTransactions', id: `LIST_${portfolioId}` },
+      ],
+    }),
+
+    // Cancel a pending order
+    cancelPortfolioOrder: builder.mutation({
+      query: ({ portfolioId, orderId, reason }) => ({
+        url: `/portfolios/${portfolioId}/orders/${orderId}/cancel`,
+        method: 'POST',
+        params: reason ? { reason } : undefined,
+      }),
+      invalidatesTags: (result, error, { portfolioId }) => [
+        { type: 'Portfolios', id: portfolioId },
+        { type: 'Portfolios', id: 'LIST' },
+        { type: 'Portfolios', id: 'SUMMARY' },
+        { type: 'PortfolioTransactions', id: `LIST_${portfolioId}` },
+      ],
+    }),
+
+    // Deposit/withdraw cash
+    adjustPortfolioCash: builder.mutation({
+      query: ({ portfolioId, ...data }) => ({
+        url: `/portfolios/${portfolioId}/cash`,
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: (result, error, { portfolioId }) => [
+        { type: 'Portfolios', id: portfolioId },
+        { type: 'Portfolios', id: 'LIST' },
+        { type: 'Portfolios', id: 'SUMMARY' },
+      ],
+    }),
+
     // Update portfolio item
     updatePortfolioItem: builder.mutation({
       query: ({ portfolioId, itemId, ...data }) => ({
@@ -186,9 +244,9 @@ export const portfolioApi = baseApi.injectEndpoints({
 
     // Get portfolio transactions
     getPortfolioTransactions: builder.query({
-      query: ({ portfolioId, page = 0, size = 10 }) => ({
+      query: ({ portfolioId, page = 0, size = 10, orderStatus }) => ({
         url: `/portfolios/${portfolioId}/transactions`,
-        params: { page, size },
+        params: { page, size, orderStatus },
       }),
       transformResponse: (response) => response,
       providesTags: (result, error, { portfolioId }) => [
@@ -206,6 +264,10 @@ export const {
   useUpdatePortfolioMutation,
   useDeletePortfolioMutation,
   useAddPortfolioItemMutation,
+  useExecutePortfolioTradeMutation,
+  useProcessPortfolioOrdersMutation,
+  useCancelPortfolioOrderMutation,
+  useAdjustPortfolioCashMutation,
   useUpdatePortfolioItemMutation,
   useRemovePortfolioItemMutation,
   useGetPortfolioTransactionsQuery,

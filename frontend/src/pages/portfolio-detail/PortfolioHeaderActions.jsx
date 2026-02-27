@@ -1,4 +1,4 @@
-import { Download, FileSpreadsheet, FileText, Plus } from 'lucide-react'
+import { Download, FileSpreadsheet, FileText, Plus, Wallet, PlayCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
     DropdownMenu,
@@ -10,12 +10,25 @@ import {
 export function PortfolioHeaderActions({
     t,
     isExporting,
+    isProcessingOrders,
+    onProcessOrders,
+    onOpenCashDialog,
     onExportExcel,
     onExportPdf,
     onOpenAddDialog
 }) {
     return (
         <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={onOpenCashDialog}>
+                <Wallet className="mr-2 h-4 w-4" />
+                Nakit
+            </Button>
+
+            <Button variant="outline" onClick={onProcessOrders} disabled={isProcessingOrders}>
+                <PlayCircle className="mr-2 h-4 w-4" />
+                {isProcessingOrders ? 'Isleniyor...' : 'Bekleyen Emirleri Isle'}
+            </Button>
+
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="outline" disabled={isExporting}>

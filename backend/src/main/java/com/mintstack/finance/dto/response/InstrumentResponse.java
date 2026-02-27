@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Data
@@ -34,6 +35,10 @@ public class InstrumentResponse {
     private BigDecimal change;
     
     private BigDecimal changePercent;
+
+    private Long volume;
+
+    private LocalDate maturityDate;
     
     private Boolean isActive;
 }

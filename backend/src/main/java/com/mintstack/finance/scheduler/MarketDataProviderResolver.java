@@ -90,6 +90,13 @@ class MarketDataProviderResolver {
         return price;
     }
 
+    Long resolveLatestVolume(Instrument instrument) {
+        if (instrument == null || instrument.getSymbol() == null) {
+            return null;
+        }
+        return yahooFinanceClient.getLatestVolume(instrument.getSymbol());
+    }
+
     CurrencyRate fetchForexRate(
         String fromCurrency,
         String toCurrency,

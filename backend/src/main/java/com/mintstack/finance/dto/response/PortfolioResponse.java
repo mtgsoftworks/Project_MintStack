@@ -17,26 +17,44 @@ import java.util.UUID;
 public class PortfolioResponse {
 
     private UUID id;
-    
+
     private String name;
-    
+
     private String description;
-    
+
     private Boolean isDefault;
-    
+
     private BigDecimal totalValue;
-    
+
     private BigDecimal totalCost;
-    
+
     private BigDecimal profitLoss;
-    
+
     private BigDecimal profitLossPercent;
-    
+
+    private BigDecimal positionValue;
+
+    private BigDecimal cashBalance;
+
+    private BigDecimal initialCashBalance;
+
+    private BigDecimal commissionRate;
+
+    private BigDecimal minimumCommissionAmount;
+
+    private BigDecimal commissionTaxRate;
+
+    private BigDecimal netAssetValue;
+
+    private BigDecimal realizedProfitLoss;
+
+    private BigDecimal unrealizedProfitLoss;
+
     private int itemCount;
-    
+
     private List<PortfolioItemResponse> items;
-    
+
     private LocalDateTime createdAt;
-    
+
     private LocalDateTime updatedAt;
 }

@@ -6,6 +6,7 @@ import com.mintstack.finance.entity.CurrencyRate;
 import com.mintstack.finance.entity.CurrencyRate.RateSource;
 import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.Instrument.InstrumentType;
+import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.CurrencyRateRepository;
 import com.mintstack.finance.repository.InstrumentRepository;
@@ -39,11 +40,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("MarketDataService Unit Tests")
@@ -319,7 +321,7 @@ class MarketDataServiceTest {
         assertThat(result.getType()).isEqualTo(InstrumentType.INDEX);
         assertThat(result.getCurrentPrice()).isEqualByComparingTo("9850.0");
 
-        verifyNoInteractions(yahooFinanceClient);
+        verify(yahooFinanceClient, never()).fetchStockPrice(anyString(), anyString(), anyString());
     }
 
     @Test
@@ -338,7 +340,7 @@ class MarketDataServiceTest {
         assertThat(result.getCurrentPrice()).isEqualByComparingTo("9925.5");
         assertThat(result.getType()).isEqualTo(InstrumentType.INDEX);
 
-        verifyNoInteractions(yahooFinanceClient);
+        verify(yahooFinanceClient, never()).fetchStockPrice(anyString(), anyString(), anyString());
     }
 
     @Test
@@ -358,7 +360,19 @@ class MarketDataServiceTest {
         assertThat(result.getType()).isEqualTo(InstrumentType.INDEX);
         assertThat(result.getCurrentPrice()).isEqualByComparingTo("10012.3");
 
-        verifyNoInteractions(yahooFinanceClient);
+        verify(yahooFinanceClient, never()).fetchStockPrice(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("getMarketIndex should throw exception when no data source is available")
+    void getMarketIndex_ShouldThrowException_WhenNoDataAvailable() {
+        when(simulationDataService.isSimulationEnabled()).thenReturn(false);
+        when(instrumentRepository.findBySymbol("XU100.IS")).thenReturn(Optional.empty());
+        when(userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.YAHOO_FINANCE))
+                .thenReturn(List.of());
+
+        assertThatThrownBy(() -> marketDataService.getMarketIndex("XU100.IS"))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     // ===================== SAVE METHODS TESTS =====================

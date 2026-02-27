@@ -74,7 +74,8 @@ class MarketDataInstrumentUpdateService {
                 );
 
                 if (price != null) {
-                    updateInstrumentPrice(instrument, price);
+                    Long volume = providerResolver.resolveLatestVolume(instrument);
+                    updateInstrumentPrice(instrument, price, volume);
                 }
             } catch (Exception error) {
                 log.error("Failed to update price for {} ({}): {}", instrument.getSymbol(), type, error.getMessage());
@@ -88,12 +89,12 @@ class MarketDataInstrumentUpdateService {
         }
     }
 
-    void updateInstrumentPrice(Instrument instrument, BigDecimal price) {
+    void updateInstrumentPrice(Instrument instrument, BigDecimal price, Long volume) {
         BigDecimal previousClose = instrument.getCurrentPrice();
         instrument.setPreviousClose(previousClose);
         instrument.setCurrentPrice(price);
         instrumentRepository.save(instrument);
-        saveDailyPriceHistory(instrument, price);
+        saveDailyPriceHistory(instrument, price, volume);
 
         BigDecimal change = previousClose != null ? price.subtract(previousClose) : BigDecimal.ZERO;
         BigDecimal changePercent = previousClose != null && previousClose.compareTo(BigDecimal.ZERO) != 0
@@ -109,7 +110,7 @@ class MarketDataInstrumentUpdateService {
         );
     }
 
-    private void saveDailyPriceHistory(Instrument instrument, BigDecimal price) {
+    private void saveDailyPriceHistory(Instrument instrument, BigDecimal price, Long volume) {
         if (price == null) {
             return;
         }
@@ -122,6 +123,7 @@ class MarketDataInstrumentUpdateService {
                 .openPrice(price)
                 .highPrice(price)
                 .lowPrice(price)
+                .volume(volume)
                 .build();
             marketDataService.savePriceHistory(history);
         } catch (Exception error) {

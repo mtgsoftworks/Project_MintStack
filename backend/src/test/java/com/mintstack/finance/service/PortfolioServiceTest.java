@@ -2,6 +2,7 @@ package com.mintstack.finance.service;
 
 import com.mintstack.finance.dto.request.AddPortfolioItemRequest;
 import com.mintstack.finance.dto.request.CreatePortfolioRequest;
+import com.mintstack.finance.dto.request.ExecutePortfolioTradeRequest;
 import com.mintstack.finance.dto.response.PortfolioResponse;
 import com.mintstack.finance.dto.response.PortfolioTransactionResponse;
 import com.mintstack.finance.entity.Instrument;
@@ -14,6 +15,7 @@ import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PortfolioItemRepository;
 import com.mintstack.finance.repository.PortfolioRepository;
 import com.mintstack.finance.repository.PortfolioTransactionRepository;
+import com.mintstack.finance.repository.PriceHistoryRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +40,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -55,6 +58,9 @@ class PortfolioServiceTest {
 
     @Mock
     private PortfolioTransactionRepository portfolioTransactionRepository;
+
+    @Mock
+    private PriceHistoryRepository priceHistoryRepository;
 
     @Mock
     private UserService userService;
@@ -209,6 +215,8 @@ class PortfolioServiceTest {
         when(portfolioItemRepository.save(any(PortfolioItem.class))).thenReturn(savedItem);
         when(portfolioTransactionRepository.save(any(PortfolioTransaction.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
+        when(portfolioRepository.save(any(Portfolio.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         var result = portfolioService.addItem(keycloakId, portfolioId, request);
@@ -217,11 +225,11 @@ class PortfolioServiceTest {
         assertThat(result).isNotNull();
         verify(portfolioItemRepository).save(any(PortfolioItem.class));
         ArgumentCaptor<PortfolioTransaction> transactionCaptor = ArgumentCaptor.forClass(PortfolioTransaction.class);
-        verify(portfolioTransactionRepository).save(transactionCaptor.capture());
-        PortfolioTransaction transaction = transactionCaptor.getValue();
+        verify(portfolioTransactionRepository, atLeastOnce()).save(transactionCaptor.capture());
+        PortfolioTransaction transaction = transactionCaptor.getAllValues().get(transactionCaptor.getAllValues().size() - 1);
         assertThat(transaction.getTransactionType()).isEqualTo(PortfolioTransaction.TransactionType.BUY);
         assertThat(transaction.getQuantity()).isEqualByComparingTo(request.getQuantity());
-        assertThat(transaction.getPrice()).isEqualByComparingTo(request.getPurchasePrice());
+        assertThat(transaction.getAverageFillPrice()).isEqualByComparingTo(request.getPurchasePrice());
         assertThat(transaction.getInstrument()).isEqualTo(testInstrument);
         assertThat(transaction.getPortfolio()).isEqualTo(testPortfolio);
     }
@@ -248,6 +256,12 @@ class PortfolioServiceTest {
             .thenReturn(Optional.of(testPortfolio));
         when(portfolioItemRepository.findByIdAndPortfolioId(itemId, portfolioId))
             .thenReturn(Optional.of(item));
+        when(instrumentRepository.findById(testInstrument.getId()))
+            .thenReturn(Optional.of(testInstrument));
+        when(portfolioItemRepository.findByPortfolioIdAndInstrumentIdOrderByPurchaseDateAsc(portfolioId, testInstrument.getId()))
+            .thenReturn(List.of(item));
+        when(portfolioRepository.save(any(Portfolio.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
         when(portfolioTransactionRepository.save(any(PortfolioTransaction.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -257,13 +271,180 @@ class PortfolioServiceTest {
         // Then
         verify(portfolioItemRepository).delete(item);
         ArgumentCaptor<PortfolioTransaction> transactionCaptor = ArgumentCaptor.forClass(PortfolioTransaction.class);
-        verify(portfolioTransactionRepository).save(transactionCaptor.capture());
-        PortfolioTransaction transaction = transactionCaptor.getValue();
+        verify(portfolioTransactionRepository, atLeastOnce()).save(transactionCaptor.capture());
+        PortfolioTransaction transaction = transactionCaptor.getAllValues().get(transactionCaptor.getAllValues().size() - 1);
         assertThat(transaction.getTransactionType()).isEqualTo(PortfolioTransaction.TransactionType.SELL);
         assertThat(transaction.getQuantity()).isEqualByComparingTo(item.getQuantity());
-        assertThat(transaction.getPrice()).isEqualByComparingTo(testInstrument.getCurrentPrice());
+        assertThat(transaction.getAverageFillPrice()).isEqualByComparingTo(testInstrument.getCurrentPrice());
         assertThat(transaction.getInstrument()).isEqualTo(testInstrument);
         assertThat(transaction.getPortfolio()).isEqualTo(testPortfolio);
+    }
+
+    @Test
+    void executeTrade_ShouldCreateBuyTransaction() {
+        UUID portfolioId = testPortfolio.getId();
+        ExecutePortfolioTradeRequest request = ExecutePortfolioTradeRequest.builder()
+            .instrumentSymbol(testInstrument.getSymbol())
+            .transactionType(PortfolioTransaction.TransactionType.BUY)
+            .quantity(BigDecimal.valueOf(3))
+            .price(BigDecimal.valueOf(99.5))
+            .transactionDate(LocalDate.now())
+            .notes("Buy test")
+            .build();
+
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
+        when(portfolioRepository.findByIdAndUserId(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(portfolioRepository.findByIdAndUserIdWithItems(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(instrumentRepository.findBySymbol(testInstrument.getSymbol()))
+            .thenReturn(Optional.of(testInstrument));
+        when(portfolioTransactionRepository.save(any(PortfolioTransaction.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(portfolioRepository.save(any(Portfolio.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        portfolioService.executeTrade(keycloakId, portfolioId, request);
+
+        verify(portfolioItemRepository).save(any(PortfolioItem.class));
+        ArgumentCaptor<PortfolioTransaction> transactionCaptor = ArgumentCaptor.forClass(PortfolioTransaction.class);
+        verify(portfolioTransactionRepository, atLeastOnce()).save(transactionCaptor.capture());
+        PortfolioTransaction transaction = transactionCaptor.getAllValues().get(transactionCaptor.getAllValues().size() - 1);
+        assertThat(transaction.getTransactionType()).isEqualTo(PortfolioTransaction.TransactionType.BUY);
+        assertThat(transaction.getOrderStatus()).isEqualTo(PortfolioTransaction.OrderStatus.FILLED);
+    }
+
+    @Test
+    void executeTrade_ShouldReducePositionOnSell() {
+        UUID portfolioId = testPortfolio.getId();
+        PortfolioItem firstLot = PortfolioItem.builder()
+            .portfolio(testPortfolio)
+            .instrument(testInstrument)
+            .quantity(BigDecimal.valueOf(5))
+            .purchasePrice(BigDecimal.valueOf(90))
+            .purchaseDate(LocalDate.now().minusDays(2))
+            .build();
+        firstLot.setId(UUID.randomUUID());
+
+        PortfolioItem secondLot = PortfolioItem.builder()
+            .portfolio(testPortfolio)
+            .instrument(testInstrument)
+            .quantity(BigDecimal.valueOf(7))
+            .purchasePrice(BigDecimal.valueOf(95))
+            .purchaseDate(LocalDate.now().minusDays(1))
+            .build();
+        secondLot.setId(UUID.randomUUID());
+
+        ExecutePortfolioTradeRequest request = ExecutePortfolioTradeRequest.builder()
+            .instrumentSymbol(testInstrument.getSymbol())
+            .transactionType(PortfolioTransaction.TransactionType.SELL)
+            .quantity(BigDecimal.valueOf(6))
+            .price(BigDecimal.valueOf(110))
+            .transactionDate(LocalDate.now())
+            .build();
+
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
+        when(portfolioRepository.findByIdAndUserId(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(portfolioRepository.findByIdAndUserIdWithItems(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(instrumentRepository.findBySymbol(testInstrument.getSymbol()))
+            .thenReturn(Optional.of(testInstrument));
+        when(portfolioItemRepository.findByPortfolioIdAndInstrumentIdOrderByPurchaseDateAsc(portfolioId, testInstrument.getId()))
+            .thenReturn(List.of(firstLot, secondLot));
+        when(portfolioTransactionRepository.save(any(PortfolioTransaction.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(portfolioRepository.save(any(Portfolio.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        portfolioService.executeTrade(keycloakId, portfolioId, request);
+
+        verify(portfolioItemRepository).delete(firstLot);
+        ArgumentCaptor<PortfolioItem> updatedCaptor = ArgumentCaptor.forClass(PortfolioItem.class);
+        verify(portfolioItemRepository).save(updatedCaptor.capture());
+        assertThat(updatedCaptor.getValue().getQuantity()).isEqualByComparingTo(BigDecimal.valueOf(6));
+
+        ArgumentCaptor<PortfolioTransaction> transactionCaptor = ArgumentCaptor.forClass(PortfolioTransaction.class);
+        verify(portfolioTransactionRepository, atLeastOnce()).save(transactionCaptor.capture());
+        PortfolioTransaction transaction = transactionCaptor.getAllValues().get(transactionCaptor.getAllValues().size() - 1);
+        assertThat(transaction.getTransactionType()).isEqualTo(PortfolioTransaction.TransactionType.SELL);
+        assertThat(transaction.getFilledQuantity()).isEqualByComparingTo(BigDecimal.valueOf(6));
+        assertThat(transaction.getOrderStatus()).isEqualTo(PortfolioTransaction.OrderStatus.FILLED);
+    }
+
+    @Test
+    void executeTrade_ShouldApplyCommissionAndUpdateCash_OnBuy() {
+        UUID portfolioId = testPortfolio.getId();
+        ExecutePortfolioTradeRequest request = ExecutePortfolioTradeRequest.builder()
+            .instrumentSymbol(testInstrument.getSymbol())
+            .transactionType(PortfolioTransaction.TransactionType.BUY)
+            .orderType(PortfolioTransaction.OrderType.MARKET)
+            .quantity(BigDecimal.TEN)
+            .price(BigDecimal.valueOf(100))
+            .transactionDate(LocalDate.now())
+            .build();
+
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
+        when(portfolioRepository.findByIdAndUserId(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(portfolioRepository.findByIdAndUserIdWithItems(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(instrumentRepository.findBySymbol(testInstrument.getSymbol()))
+            .thenReturn(Optional.of(testInstrument));
+        when(portfolioRepository.save(any(Portfolio.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(portfolioTransactionRepository.save(any(PortfolioTransaction.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        portfolioService.executeTrade(keycloakId, portfolioId, request);
+
+        ArgumentCaptor<Portfolio> portfolioCaptor = ArgumentCaptor.forClass(Portfolio.class);
+        verify(portfolioRepository).save(portfolioCaptor.capture());
+        assertThat(portfolioCaptor.getValue().getCashBalance())
+            .isEqualByComparingTo(new BigDecimal("98998.950000"));
+
+        ArgumentCaptor<PortfolioTransaction> transactionCaptor = ArgumentCaptor.forClass(PortfolioTransaction.class);
+        verify(portfolioTransactionRepository, atLeastOnce()).save(transactionCaptor.capture());
+        PortfolioTransaction transaction = transactionCaptor.getAllValues().get(transactionCaptor.getAllValues().size() - 1);
+        assertThat(transaction.getCommissionAmount())
+            .isEqualByComparingTo(new BigDecimal("1.050000"));
+        assertThat(transaction.getOrderType())
+            .isEqualTo(PortfolioTransaction.OrderType.MARKET);
+        assertThat(transaction.getOrderStatus())
+            .isEqualTo(PortfolioTransaction.OrderStatus.FILLED);
+    }
+
+    @Test
+    void executeTrade_ShouldKeepPending_WhenLimitBuyNotTriggered() {
+        UUID portfolioId = testPortfolio.getId();
+        testInstrument.setCurrentPrice(BigDecimal.valueOf(120));
+
+        ExecutePortfolioTradeRequest request = ExecutePortfolioTradeRequest.builder()
+            .instrumentSymbol(testInstrument.getSymbol())
+            .transactionType(PortfolioTransaction.TransactionType.BUY)
+            .orderType(PortfolioTransaction.OrderType.LIMIT)
+            .quantity(BigDecimal.ONE)
+            .limitPrice(BigDecimal.valueOf(100))
+            .transactionDate(LocalDate.now())
+            .build();
+
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
+        when(portfolioRepository.findByIdAndUserId(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(portfolioRepository.findByIdAndUserIdWithItems(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(instrumentRepository.findBySymbol(testInstrument.getSymbol()))
+            .thenReturn(Optional.of(testInstrument));
+        when(portfolioTransactionRepository.save(any(PortfolioTransaction.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        portfolioService.executeTrade(keycloakId, portfolioId, request);
+
+        ArgumentCaptor<PortfolioTransaction> transactionCaptor = ArgumentCaptor.forClass(PortfolioTransaction.class);
+        verify(portfolioTransactionRepository, atLeastOnce()).save(transactionCaptor.capture());
+        PortfolioTransaction transaction = transactionCaptor.getAllValues().get(transactionCaptor.getAllValues().size() - 1);
+        assertThat(transaction.getOrderStatus()).isEqualTo(PortfolioTransaction.OrderStatus.PENDING);
+        assertThat(transaction.getFilledQuantity()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test

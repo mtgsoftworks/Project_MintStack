@@ -32,15 +32,41 @@ public class PortfolioTransactionResponse {
 
     private PortfolioTransaction.TransactionType transactionType;
 
+    private PortfolioTransaction.OrderType orderType;
+
+    private PortfolioTransaction.OrderStatus orderStatus;
+
     private BigDecimal quantity;
+
+    private BigDecimal filledQuantity;
+
+    private BigDecimal remainingQuantity;
 
     private BigDecimal price;
 
+    private BigDecimal averageFillPrice;
+
     private BigDecimal total;
+
+    private BigDecimal grossTotal;
+
+    private BigDecimal commissionAmount;
+
+    private BigDecimal netTotal;
+
+    private BigDecimal limitPrice;
+
+    private BigDecimal stopPrice;
+
+    private BigDecimal realizedProfitLoss;
+
+    private String cancelReason;
 
     private LocalDate transactionDate;
 
     private String notes;
 
     private LocalDateTime createdAt;
+
+    private LocalDateTime filledAt;
 }

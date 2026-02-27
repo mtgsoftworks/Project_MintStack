@@ -21,6 +21,8 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -30,6 +32,7 @@ public class YahooFinanceClient {
     private final WebClient yahooFinanceWebClient;
     private final InstrumentRepository instrumentRepository;
     private final ObjectMapper objectMapper;
+    private final Map<String, Long> latestVolumes = new ConcurrentHashMap<>();
 
     // Direct Yahoo Finance URL (no API key needed)
     private static final String DIRECT_YAHOO_URL = "https://query1.finance.yahoo.com/v8";
@@ -99,6 +102,12 @@ public class YahooFinanceClient {
             JsonNode meta = result.path("meta");
             
             BigDecimal price = new BigDecimal(meta.path("regularMarketPrice").asText());
+            JsonNode volumeNode = meta.path("regularMarketVolume");
+            if (!volumeNode.isMissingNode() && !volumeNode.isNull()) {
+                long volume = volumeNode.asLong();
+                latestVolumes.put(symbol, volume);
+                latestVolumes.put(yahooSymbol, volume);
+            }
             log.debug("Fetched price for {}: {}", symbol, price);
             
             return price;
@@ -254,5 +263,9 @@ public class YahooFinanceClient {
             }
         }
         return client;
+    }
+
+    public Long getLatestVolume(String symbol) {
+        return latestVolumes.get(symbol);
     }
 }

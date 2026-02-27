@@ -248,7 +248,7 @@ public class MarketDataScheduler {
                 try {
                     BigDecimal price = providerResolver.fetchCryptoPrice(instrument.getSymbol(), finnhubConfig);
                     if (price != null) {
-                        instrumentUpdateService.updateInstrumentPrice(instrument, price);
+                        instrumentUpdateService.updateInstrumentPrice(instrument, price, null);
                     }
                 } catch (Exception error) {
                     log.error("Failed to update crypto price for {}: {}", instrument.getSymbol(), error.getMessage());

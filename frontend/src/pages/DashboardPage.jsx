@@ -6,6 +6,7 @@ import {
   Wallet,
   ArrowUpRight,
   ArrowDownRight,
+  RefreshCw,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -15,10 +16,11 @@ import { cn, formatCurrency, formatPercent, formatRelativeTime } from '@/lib/uti
 import { useGetCurrenciesQuery, useGetStocksQuery, useGetMarketIndexQuery } from '@/store/api/marketApi'
 import { useGetNewsQuery } from '@/store/api/newsApi'
 import { useGetPortfoliosQuery } from '@/store/api/portfolioApi'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { selectIsAuthenticated } from '@/store/slices/authSlice'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { baseApi } from '@/store/api/baseApi'
 
 function StatCard({ title, value, change, icon: Icon, trend, loading }) {
   if (loading) {
@@ -240,9 +242,21 @@ function StocksWidget() {
 
 export default function DashboardPage() {
   const { t } = useTranslation()
+  const dispatch = useDispatch()
   const isAuthenticated = useSelector(selectIsAuthenticated)
-  const { data: currencies, isLoading: currenciesLoading } = useGetCurrenciesQuery()
-  const { data: bist100, isLoading: bistLoading } = useGetMarketIndexQuery(
+  const {
+    data: currencies,
+    isLoading: currenciesLoading,
+    isFetching: currenciesFetching,
+    refetch: refetchCurrencies,
+  } = useGetCurrenciesQuery()
+  const {
+    data: bistData,
+    isLoading: bistLoading,
+    isFetching: bistFetching,
+    error: bistError,
+    refetch: refetchBist,
+  } = useGetMarketIndexQuery(
     'XU100.IS',
     {
       pollingInterval: 5000,
@@ -250,9 +264,26 @@ export default function DashboardPage() {
       refetchOnReconnect: true,
     }
   )
-  const { data: portfolios, isLoading: portfolioLoading } = useGetPortfoliosQuery(undefined, {
+  const {
+    data: portfolios,
+    isLoading: portfolioLoading,
+    isFetching: portfolioFetching,
+    refetch: refetchPortfolios,
+  } = useGetPortfoliosQuery(undefined, {
     skip: !isAuthenticated
   })
+  const isRefreshing = currenciesFetching || portfolioFetching || bistFetching
+
+  const handleRefresh = () => {
+    refetchCurrencies()
+    refetchBist()
+    if (isAuthenticated) {
+      refetchPortfolios()
+    }
+
+    // Refresh dashboard widgets that subscribe to these tags.
+    dispatch(baseApi.util.invalidateTags(['Stocks', 'News', 'Currencies', 'Indices', 'Portfolios']))
+  }
 
   // Calculate portfolio summary
   const portfolioSummary = portfolios?.reduce((acc, portfolio) => ({
@@ -269,17 +300,16 @@ export default function DashboardPage() {
   const usdRate = currencies?.find(c => c.currencyCode === 'USD')
 
   // BIST 100 Logic
-  const bistData = bist100?.data
-  const bistError = bist100?.error
   let bistValue = '-'
   let bistChange = undefined
   let bistTrend = 'neutral'
   let bistTitle = t('dashboard.widgets.bist100.title')
+  const bistErrorMessage = bistError?.data?.error?.message || bistError?.data?.message || ''
 
   if (bistLoading) {
     // Keep loading state
   } else if (bistError) {
-    if (bistError.status === 404 || (bistError.data?.message && bistError.data.message.includes('Provider'))) {
+    if (bistError.status === 404 || bistErrorMessage.includes('Provider')) {
       // Provider missing
       bistValue = t('dashboard.widgets.bist100.noProvider')
       bistTitle = `${t('dashboard.widgets.bist100.title')} (${t('dashboard.widgets.bist100.noSource')})`
@@ -287,20 +317,32 @@ export default function DashboardPage() {
       // Fetch error
       bistValue = t('dashboard.widgets.bist100.error')
     }
-  } else if (bistData) {
+  } else if (bistData?.currentPrice != null) {
     bistValue = formatCurrency(bistData.currentPrice, 'TRY')
     bistChange = bistData.changePercent
     bistTrend = bistData.changePercent >= 0 ? 'up' : 'down'
+  } else {
+    bistValue = t('dashboard.widgets.bist100.noData', { defaultValue: 'Veri yok' })
   }
 
   return (
     <div className="space-y-6 animate-in">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold">{t('nav.home')}</h1>
-        <p className="text-muted-foreground">
-          {t('dashboard.subtitle')}
-        </p>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">{t('nav.home')}</h1>
+          <p className="text-muted-foreground">
+            {t('dashboard.subtitle')}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+        >
+          <RefreshCw className={cn('h-4 w-4 mr-2', isRefreshing && 'animate-spin')} />
+          {t('common.refresh')}
+        </Button>
       </div>
 
       {/* Stats Grid */}

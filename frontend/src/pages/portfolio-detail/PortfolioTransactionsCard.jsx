@@ -12,6 +12,30 @@ import {
 } from '@/components/ui/table'
 import { formatCurrency, formatDate, formatNumber } from '@/lib/utils'
 
+function getOrderTypeLabel(orderType) {
+    if (orderType === 'LIMIT') return 'LIMIT'
+    if (orderType === 'STOP') return 'STOP'
+    return 'MARKET'
+}
+
+function getStatusVariant(orderStatus) {
+    if (orderStatus === 'FILLED') return 'success'
+    if (orderStatus === 'PARTIALLY_FILLED') return 'warning'
+    if (orderStatus === 'PENDING') return 'secondary'
+    if (orderStatus === 'CANCELED') return 'danger'
+    if (orderStatus === 'REJECTED') return 'destructive'
+    return 'secondary'
+}
+
+const ORDER_STATUS_OPTIONS = [
+    { value: 'ALL', label: 'Tum' },
+    { value: 'PENDING', label: 'Pending' },
+    { value: 'PARTIALLY_FILLED', label: 'Partial' },
+    { value: 'FILLED', label: 'Filled' },
+    { value: 'CANCELED', label: 'Canceled' },
+    { value: 'REJECTED', label: 'Rejected' },
+]
+
 export function PortfolioTransactionsCard({
     t,
     transactions,
@@ -20,16 +44,36 @@ export function PortfolioTransactionsCard({
     transactionsFetching,
     transactionPages,
     transactionsPage,
+    orderStatus,
+    onChangeOrderStatus,
+    onCancelOrder,
     onPrevPage,
     onNextPage
 }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>{t('portfolioDetailPage.transactions.title')}</CardTitle>
-                <CardDescription>
-                    {t('portfolioDetailPage.transactions.count', { count: totalTransactions })}
-                </CardDescription>
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <CardTitle>{t('portfolioDetailPage.transactions.title')}</CardTitle>
+                        <CardDescription>
+                            {t('portfolioDetailPage.transactions.count', { count: totalTransactions })}
+                        </CardDescription>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {ORDER_STATUS_OPTIONS.map((option) => (
+                            <Button
+                                key={option.value}
+                                type="button"
+                                size="sm"
+                                variant={orderStatus === option.value ? 'default' : 'outline'}
+                                onClick={() => onChangeOrderStatus(option.value)}
+                            >
+                                {option.label}
+                            </Button>
+                        ))}
+                    </div>
+                </div>
             </CardHeader>
             <CardContent>
                 {transactionsLoading ? (
@@ -49,11 +93,16 @@ export function PortfolioTransactionsCard({
                                 <TableRow>
                                     <TableHead>{t('portfolioDetailPage.transactions.headers.date')}</TableHead>
                                     <TableHead>{t('portfolioDetailPage.transactions.headers.type')}</TableHead>
+                                    <TableHead>Emir</TableHead>
+                                    <TableHead>Durum</TableHead>
                                     <TableHead>{t('portfolioDetailPage.transactions.headers.symbol')}</TableHead>
-                                    <TableHead className="text-right">{t('portfolioDetailPage.transactions.headers.quantity')}</TableHead>
-                                    <TableHead className="text-right">{t('portfolioDetailPage.transactions.headers.price')}</TableHead>
-                                    <TableHead className="text-right">{t('portfolioDetailPage.transactions.headers.total')}</TableHead>
-                                    <TableHead>{t('portfolioDetailPage.transactions.headers.note')}</TableHead>
+                                    <TableHead className="text-right">Qty</TableHead>
+                                    <TableHead className="text-right">Filled</TableHead>
+                                    <TableHead className="text-right">Fiyat</TableHead>
+                                    <TableHead className="text-right">Brut</TableHead>
+                                    <TableHead className="text-right">Komisyon</TableHead>
+                                    <TableHead className="text-right">Net</TableHead>
+                                    <TableHead>Islem</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -70,22 +119,36 @@ export function PortfolioTransactionsCard({
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
+                                                <Badge variant="secondary">{getOrderTypeLabel(transaction.orderType)}</Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant={getStatusVariant(transaction.orderStatus)}>{transaction.orderStatus}</Badge>
+                                            </TableCell>
+                                            <TableCell>
                                                 <div>
                                                     <p className="font-semibold">{transaction.instrumentSymbol}</p>
                                                     <p className="text-xs text-muted-foreground">{transaction.instrumentName}</p>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="text-right">
-                                                {formatNumber(transaction.quantity)}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {formatCurrency(transaction.price, 'TRY')}
-                                            </TableCell>
-                                            <TableCell className="text-right font-semibold">
-                                                {formatCurrency(transaction.total, 'TRY')}
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground">
-                                                {transaction.notes || '-'}
+                                            <TableCell className="text-right">{formatNumber(transaction.quantity)}</TableCell>
+                                            <TableCell className="text-right">{formatNumber(transaction.filledQuantity ?? 0)}</TableCell>
+                                            <TableCell className="text-right">{formatCurrency(transaction.averageFillPrice ?? transaction.price, 'TRY')}</TableCell>
+                                            <TableCell className="text-right">{formatCurrency(transaction.grossTotal ?? transaction.total, 'TRY')}</TableCell>
+                                            <TableCell className="text-right text-muted-foreground">{formatCurrency(transaction.commissionAmount ?? 0, 'TRY')}</TableCell>
+                                            <TableCell className="text-right font-semibold">{formatCurrency(transaction.netTotal ?? transaction.total, 'TRY')}</TableCell>
+                                            <TableCell>
+                                                {(transaction.orderStatus === 'PENDING' || transaction.orderStatus === 'PARTIALLY_FILLED') ? (
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => onCancelOrder(transaction.id)}
+                                                    >
+                                                        Iptal
+                                                    </Button>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground">-</span>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     )

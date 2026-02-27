@@ -1,54 +1,64 @@
-import { useState } from 'react'
-import { RefreshCw, TrendingUp, TrendingDown } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useMemo, useState } from 'react'
+import { RefreshCw, TrendingDown, TrendingUp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import PriceChart from '@/components/charts/PriceChart'
 import { cn, formatCurrency, formatPercent } from '@/lib/utils'
 import {
+  useGetComparisonQuery,
   useGetMovingAverageQuery,
   useGetTrendAnalysisQuery,
-  useGetComparisonQuery,
 } from '@/store/api/analysisApi'
-import PriceChart from '@/components/charts/PriceChart'
 
 export default function AnalysisPage() {
   const [symbol, setSymbol] = useState('THYAO')
   const [period, setPeriod] = useState('1M')
   const [maType, setMaType] = useState('SMA')
   const [maPeriod, setMaPeriod] = useState('20')
-  const [compareSymbols] = useState(['THYAO', 'GARAN'])
+  const [compareInput, setCompareInput] = useState('THYAO,GARAN')
+
+  const compareSymbols = useMemo(
+    () =>
+      compareInput
+        .split(/[\s,;]+/)
+        .map((value) => value.trim().toUpperCase())
+        .filter(Boolean)
+        .slice(0, 5),
+    [compareInput]
+  )
 
   const { data: maData, isLoading: maLoading, refetch: refetchMa } = useGetMovingAverageQuery({
     symbol,
     maType,
-    maPeriod: parseInt(maPeriod),
+    maPeriod: Number.parseInt(maPeriod, 10),
   })
 
-  const { data: trendData, isLoading: trendLoading } = useGetTrendAnalysisQuery({
+  const { data: trendData, isLoading: trendLoading, refetch: refetchTrend } = useGetTrendAnalysisQuery({
     symbol,
     period,
   })
 
-  const { data: comparisonData, isLoading: comparisonLoading } = useGetComparisonQuery({
-    symbols: compareSymbols,
-    period,
-  })
+  const {
+    data: comparisonData,
+    isLoading: comparisonLoading,
+    refetch: refetchComparison,
+  } = useGetComparisonQuery(
+    {
+      symbols: compareSymbols,
+      period,
+    },
+    {
+      skip: compareSymbols.length < 2,
+    }
+  )
 
-  const trendDirection = trendData?.trend === 'UPTREND'
-    ? 'UP'
-    : trendData?.trend === 'DOWNTREND'
-      ? 'DOWN'
-      : 'SIDEWAYS'
+  const trendDirection =
+    trendData?.trend === 'UPTREND' ? 'UP' : trendData?.trend === 'DOWNTREND' ? 'DOWN' : 'SIDEWAYS'
 
   const comparisonItems = (comparisonData || [])
     .map((item) => {
@@ -70,20 +80,25 @@ export default function AnalysisPage() {
     })
     .filter(Boolean)
 
+  const handleRefreshAll = () => {
+    refetchMa()
+    refetchTrend()
+    if (compareSymbols.length >= 2) {
+      refetchComparison()
+    }
+  }
+
   return (
     <div className="space-y-6 animate-in">
-      {/* Page Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Teknik Analiz</h1>
-          <p className="text-muted-foreground">
-            Hareketli ortalama, trend analizi ve karşılaştırma
-          </p>
+          <p className="text-muted-foreground">Hareketli ortalama, trend ve karsilastirma</p>
         </div>
         <div className="flex items-center gap-2">
           <Input
             value={symbol}
-            onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+            onChange={(event) => setSymbol(event.target.value.toUpperCase())}
             placeholder="Sembol"
             className="w-32"
           />
@@ -96,10 +111,10 @@ export default function AnalysisPage() {
               <SelectItem value="1M">1 Ay</SelectItem>
               <SelectItem value="3M">3 Ay</SelectItem>
               <SelectItem value="6M">6 Ay</SelectItem>
-              <SelectItem value="1Y">1 Yıl</SelectItem>
+              <SelectItem value="1Y">1 Yil</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="icon" onClick={() => refetchMa()}>
+          <Button variant="outline" size="icon" onClick={handleRefreshAll}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
@@ -109,10 +124,9 @@ export default function AnalysisPage() {
         <TabsList>
           <TabsTrigger value="ma">Hareketli Ortalama</TabsTrigger>
           <TabsTrigger value="trend">Trend Analizi</TabsTrigger>
-          <TabsTrigger value="compare">Karşılaştırma</TabsTrigger>
+          <TabsTrigger value="compare">Karsilastirma</TabsTrigger>
         </TabsList>
 
-        {/* Moving Average Tab */}
         <TabsContent value="ma" className="space-y-6">
           <div className="flex items-center gap-4">
             <Select value={maType} onValueChange={setMaType}>
@@ -130,11 +144,11 @@ export default function AnalysisPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="10">10 Gün</SelectItem>
-                <SelectItem value="20">20 Gün</SelectItem>
-                <SelectItem value="50">50 Gün</SelectItem>
-                <SelectItem value="100">100 Gün</SelectItem>
-                <SelectItem value="200">200 Gün</SelectItem>
+                <SelectItem value="10">10 Gun</SelectItem>
+                <SelectItem value="20">20 Gun</SelectItem>
+                <SelectItem value="50">50 Gun</SelectItem>
+                <SelectItem value="100">100 Gun</SelectItem>
+                <SelectItem value="200">200 Gun</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -142,51 +156,42 @@ export default function AnalysisPage() {
           <div className="grid gap-6 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>{symbol} - {maType} ({maPeriod})</CardTitle>
-                <CardDescription>
-                  {maType === 'SMA' && 'Basit Hareketli Ortalama'}
-                  {maType === 'EMA' && 'Üstel Hareketli Ortalama'}
-                  {maType === 'WMA' && 'Ağırlıklı Hareketli Ortalama'}
-                </CardDescription>
+                <CardTitle>
+                  {symbol} - {maType} ({maPeriod})
+                </CardTitle>
+                <CardDescription>Fiyat ve hareketli ortalama</CardDescription>
               </CardHeader>
-              <CardContent>
-                {maLoading ? (
-                  <Skeleton className="h-64" />
-                ) : (
-                  <PriceChart data={maData?.data || []} />
-                )}
-              </CardContent>
+              <CardContent>{maLoading ? <Skeleton className="h-64" /> : <PriceChart data={maData?.data || []} />}</CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>İstatistikler</CardTitle>
+                <CardTitle>Istatistikler</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex justify-between py-2 border-b">
+                <div className="flex justify-between border-b py-2">
                   <span className="text-muted-foreground">Son Fiyat</span>
                   <span className="font-semibold">
                     {maData ? formatCurrency(maData.currentPrice, 'TRY') : '-'}
                   </span>
                 </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-muted-foreground">{maType} Değeri</span>
-                  <span className="font-semibold">
-                    {maData ? formatCurrency(maData.maValue, 'TRY') : '-'}
-                  </span>
+                <div className="flex justify-between border-b py-2">
+                  <span className="text-muted-foreground">{maType}</span>
+                  <span className="font-semibold">{maData ? formatCurrency(maData.maValue, 'TRY') : '-'}</span>
                 </div>
-                <div className="flex justify-between py-2 border-b">
+                <div className="flex justify-between border-b py-2">
                   <span className="text-muted-foreground">Fark</span>
-                  <span className={cn(
-                    "font-semibold",
-                    maData?.difference >= 0 ? "text-success" : "text-danger"
-                  )}>
+                  <span className={cn('font-semibold', maData?.difference >= 0 ? 'text-success' : 'text-danger')}>
                     {maData ? formatPercent(maData.differencePercent) : '-'}
                   </span>
                 </div>
                 <div className="flex justify-between py-2">
                   <span className="text-muted-foreground">Sinyal</span>
-                  <Badge variant={maData?.signal === 'BUY' ? 'success' : maData?.signal === 'SELL' ? 'danger' : 'secondary'}>
+                  <Badge
+                    variant={
+                      maData?.signal === 'BUY' ? 'success' : maData?.signal === 'SELL' ? 'danger' : 'secondary'
+                    }
+                  >
                     {maData?.signal === 'BUY' ? 'AL' : maData?.signal === 'SELL' ? 'SAT' : 'BEKLE'}
                   </Badge>
                 </div>
@@ -195,22 +200,15 @@ export default function AnalysisPage() {
           </div>
         </TabsContent>
 
-        {/* Trend Analysis Tab */}
         <TabsContent value="trend" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>{symbol} - Trend Analizi</CardTitle>
-                <CardDescription>
-                  Fiyat trendi ve destek/direnç seviyeleri
-                </CardDescription>
+                <CardDescription>Destek/direnc seviyeleri ile trend yorumu</CardDescription>
               </CardHeader>
               <CardContent>
-                {trendLoading ? (
-                  <Skeleton className="h-64" />
-                ) : (
-                  <PriceChart data={trendData?.data || []} />
-                )}
+                {trendLoading ? <Skeleton className="h-64" /> : <PriceChart data={trendData?.data || []} />}
               </CardContent>
             </Card>
 
@@ -219,56 +217,69 @@ export default function AnalysisPage() {
                 <CardTitle>Trend Bilgileri</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-muted-foreground">Trend Yönü</span>
+                <div className="flex justify-between border-b py-2">
+                  <span className="text-muted-foreground">Trend Yonu</span>
                   <Badge variant={trendDirection === 'UP' ? 'success' : trendDirection === 'DOWN' ? 'danger' : 'secondary'}>
-                    {trendDirection === 'UP' ? 'Yükseliş' : trendDirection === 'DOWN' ? 'Düşüş' : 'Yatay'}
+                    {trendDirection === 'UP' ? 'Yukselis' : trendDirection === 'DOWN' ? 'Dusus' : 'Yatay'}
                   </Badge>
                 </div>
-                <div className="flex justify-between py-2 border-b">
+                <div className="flex justify-between border-b py-2">
                   <span className="text-muted-foreground">Destek</span>
                   <span className="font-semibold">
                     {trendData ? formatCurrency(trendData.support, 'TRY') : '-'}
                   </span>
                 </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-muted-foreground">Direnç</span>
+                <div className="flex justify-between border-b py-2">
+                  <span className="text-muted-foreground">Direnc</span>
                   <span className="font-semibold">
                     {trendData ? formatCurrency(trendData.resistance, 'TRY') : '-'}
                   </span>
                 </div>
                 <div className="flex justify-between py-2">
-                  <span className="text-muted-foreground">Güç</span>
-                  <span className="font-semibold">
-                    {trendData ? `${trendData.strength}%` : '-'}
-                  </span>
+                  <span className="text-muted-foreground">Guc</span>
+                  <span className="font-semibold">{trendData ? `${trendData.strength}%` : '-'}</span>
                 </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        {/* Comparison Tab */}
         <TabsContent value="compare" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Performans Karşılaştırması</CardTitle>
-              <CardDescription>
-                Seçilen semboller: {compareSymbols.join(', ')}
-              </CardDescription>
+              <CardTitle>Sembol Secimi</CardTitle>
+              <CardDescription>Karsilastirma icin en az 2 sembol girin (virgul ile)</CardDescription>
             </CardHeader>
             <CardContent>
-              {comparisonLoading ? (
+              <Input
+                value={compareInput}
+                onChange={(event) => setCompareInput(event.target.value)}
+                placeholder="THYAO,GARAN,AKBNK"
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Performans Karsilastirmasi</CardTitle>
+              <CardDescription>Secilen semboller: {compareSymbols.join(', ') || '-'}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {compareSymbols.length < 2 ? (
+                <div className="py-8 text-center text-muted-foreground">Karsilastirma icin en az 2 sembol gerekli</div>
+              ) : comparisonLoading ? (
                 <Skeleton className="h-64" />
               ) : comparisonItems.length > 0 ? (
                 <div className="space-y-4">
                   {comparisonItems.map((item) => (
-                    <div key={item.symbol} className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                    <div key={item.symbol} className="flex items-center justify-between rounded-lg bg-muted/50 p-4">
                       <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "flex h-10 w-10 items-center justify-center rounded-lg",
-                          item.changePercent >= 0 ? "bg-success/10" : "bg-danger/10"
-                        )}>
+                        <div
+                          className={cn(
+                            'flex h-10 w-10 items-center justify-center rounded-lg',
+                            item.changePercent >= 0 ? 'bg-success/10' : 'bg-danger/10'
+                          )}
+                        >
                           {item.changePercent >= 0 ? (
                             <TrendingUp className="h-5 w-5 text-success" />
                           ) : (
@@ -290,9 +301,7 @@ export default function AnalysisPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  Karşılaştırma verisi yok
-                </div>
+                <div className="py-8 text-center text-muted-foreground">Karsilastirma verisi yok</div>
               )}
             </CardContent>
           </Card>

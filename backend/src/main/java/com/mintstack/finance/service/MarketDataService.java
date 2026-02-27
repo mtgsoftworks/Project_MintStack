@@ -29,8 +29,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -38,6 +43,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @io.micrometer.observation.annotation.Observed(name = "market.data.service", contextualName = "market-data-operations")
 public class MarketDataService {
+
+    private static final Pattern VIOP_MATURITY_PATTERN = Pattern.compile("(\\d{4})$");
 
     private final InstrumentRepository instrumentRepository;
     private final CurrencyRateRepository currencyRateRepository;
@@ -205,14 +212,13 @@ public class MarketDataService {
             }
         }
 
-        // Return existing instrument data (even if price is null)
-        if (instrument != null) {
+        // Return existing instrument data only when it has a price.
+        if (instrument != null && instrument.getCurrentPrice() != null) {
             return mapToInstrumentResponse(instrument);
         }
-        
-        // No data available - return null (no mock data)
+
         log.info("No market index data available for {}", symbol);
-        return null;
+        throw new ResourceNotFoundException("Endeks", "sembol", symbol);
     }
 
     private boolean shouldFallbackToRealInstruments(InstrumentType type, boolean simulationEnabled, boolean isEmpty) {
@@ -297,10 +303,35 @@ public class MarketDataService {
 
     @Transactional
     public void savePriceHistory(PriceHistory priceHistory) {
-        if (!priceHistoryRepository.existsByInstrumentIdAndPriceDate(
-                priceHistory.getInstrument().getId(), priceHistory.getPriceDate())) {
-            priceHistoryRepository.save(priceHistory);
+        UUID instrumentId = priceHistory.getInstrument().getId();
+        LocalDate priceDate = priceHistory.getPriceDate();
+
+        Optional<PriceHistory> existing = priceHistoryRepository.findByInstrumentIdAndPriceDate(instrumentId, priceDate);
+        if (existing.isPresent()) {
+            PriceHistory current = existing.get();
+            if (priceHistory.getOpenPrice() != null) {
+                current.setOpenPrice(priceHistory.getOpenPrice());
+            }
+            if (priceHistory.getHighPrice() != null) {
+                current.setHighPrice(priceHistory.getHighPrice());
+            }
+            if (priceHistory.getLowPrice() != null) {
+                current.setLowPrice(priceHistory.getLowPrice());
+            }
+            if (priceHistory.getClosePrice() != null) {
+                current.setClosePrice(priceHistory.getClosePrice());
+            }
+            if (priceHistory.getAdjustedClose() != null) {
+                current.setAdjustedClose(priceHistory.getAdjustedClose());
+            }
+            if (priceHistory.getVolume() != null) {
+                current.setVolume(priceHistory.getVolume());
+            }
+            priceHistoryRepository.save(current);
+            return;
         }
+
+        priceHistoryRepository.save(priceHistory);
     }
 
     @Transactional
@@ -382,8 +413,49 @@ public class MarketDataService {
             .previousClose(instrument.getPreviousClose())
             .change(change)
             .changePercent(changePercent)
+            .volume(resolveLatestVolume(instrument))
+            .maturityDate(resolveMaturityDate(instrument))
             .isActive(instrument.getIsActive())
             .build();
+    }
+
+    private Long resolveLatestVolume(Instrument instrument) {
+        if (instrument == null) {
+            return null;
+        }
+
+        if (instrument.getId() != null) {
+            Optional<PriceHistory> latestHistory = priceHistoryRepository.findTopByInstrumentIdOrderByPriceDateDesc(instrument.getId());
+            if (latestHistory != null && latestHistory.isPresent() && latestHistory.get().getVolume() != null) {
+                return latestHistory.get().getVolume();
+            }
+        }
+
+        if (instrument.getSymbol() != null) {
+            return yahooFinanceClient.getLatestVolume(instrument.getSymbol());
+        }
+        return null;
+    }
+
+    private LocalDate resolveMaturityDate(Instrument instrument) {
+        if (instrument == null || instrument.getType() != InstrumentType.VIOP || instrument.getSymbol() == null) {
+            return null;
+        }
+
+        Matcher matcher = VIOP_MATURITY_PATTERN.matcher(instrument.getSymbol());
+        if (!matcher.find()) {
+            return null;
+        }
+
+        String value = matcher.group(1);
+        int month = Integer.parseInt(value.substring(0, 2));
+        int year = 2000 + Integer.parseInt(value.substring(2, 4));
+
+        if (month < 1 || month > 12) {
+            return null;
+        }
+
+        return YearMonth.of(year, month).atEndOfMonth();
     }
 
     private PriceHistoryResponse mapToPriceHistoryResponse(PriceHistory history) {
