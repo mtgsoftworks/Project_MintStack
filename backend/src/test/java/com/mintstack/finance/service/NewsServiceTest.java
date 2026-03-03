@@ -1,6 +1,7 @@
 package com.mintstack.finance.service;
 
 import com.mintstack.finance.dto.response.NewsResponse;
+import com.mintstack.finance.dto.response.NewsCategoryResponse;
 import com.mintstack.finance.entity.News;
 import com.mintstack.finance.entity.NewsCategory;
 import com.mintstack.finance.exception.ResourceNotFoundException;
@@ -126,5 +127,17 @@ class NewsServiceTest {
     @Test
     void service_ShouldBeInjected() {
         assertThat(newsService).isNotNull();
+    }
+
+    @Test
+    void getCategories_ShouldReturnCategoryDtos() {
+        when(newsCategoryRepository.findByIsActiveTrueOrderByDisplayOrderAsc())
+            .thenReturn(List.of(testCategory));
+
+        List<NewsCategoryResponse> result = newsService.getCategories();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getSlug()).isEqualTo("ekonomi");
+        assertThat(result.get(0).getName()).isEqualTo("Ekonomi");
     }
 }

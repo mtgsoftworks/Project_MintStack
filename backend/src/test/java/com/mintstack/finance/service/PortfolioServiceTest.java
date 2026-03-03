@@ -16,11 +16,12 @@ import com.mintstack.finance.repository.PortfolioItemRepository;
 import com.mintstack.finance.repository.PortfolioRepository;
 import com.mintstack.finance.repository.PortfolioTransactionRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
+import com.mintstack.finance.service.portfolio.PortfolioFinancialRulesService;
+import com.mintstack.finance.service.portfolio.PortfolioOrderExecutionService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -65,7 +66,6 @@ class PortfolioServiceTest {
     @Mock
     private UserService userService;
 
-    @InjectMocks
     private PortfolioService portfolioService;
 
     private User testUser;
@@ -75,6 +75,24 @@ class PortfolioServiceTest {
 
     @BeforeEach
     void setUp() {
+        PortfolioFinancialRulesService financialRulesService = new PortfolioFinancialRulesService();
+        PortfolioOrderExecutionService orderExecutionService = new PortfolioOrderExecutionService(
+            portfolioRepository,
+            portfolioItemRepository,
+            portfolioTransactionRepository,
+            priceHistoryRepository,
+            financialRulesService
+        );
+        portfolioService = new PortfolioService(
+            portfolioRepository,
+            portfolioItemRepository,
+            instrumentRepository,
+            portfolioTransactionRepository,
+            userService,
+            financialRulesService,
+            orderExecutionService
+        );
+
         keycloakId = "test-keycloak-id";
         
         testUser = User.builder()

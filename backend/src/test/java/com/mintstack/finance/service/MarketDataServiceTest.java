@@ -13,6 +13,8 @@ import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.NewsRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
 import com.mintstack.finance.repository.UserApiConfigRepository;
+import com.mintstack.finance.service.market.InstrumentMetricsService;
+import com.mintstack.finance.service.market.MarketDataMaintenanceService;
 import com.mintstack.finance.service.external.YahooFinanceClient;
 import com.mintstack.finance.service.simulation.SimulatedIndex;
 import com.mintstack.finance.service.simulation.SimulatedStock;
@@ -21,7 +23,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
@@ -42,6 +43,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -73,7 +75,6 @@ class MarketDataServiceTest {
     @Mock
     private SimulationDataService simulationDataService;
 
-    @InjectMocks
     private MarketDataService marketDataService;
 
     private CurrencyRate usdRate;
@@ -82,6 +83,27 @@ class MarketDataServiceTest {
 
     @BeforeEach
     void setUp() {
+        MarketDataMaintenanceService marketDataMaintenanceService = new MarketDataMaintenanceService(
+            instrumentRepository,
+            currencyRateRepository,
+            priceHistoryRepository,
+            newsRepository
+        );
+        InstrumentMetricsService instrumentMetricsService = new InstrumentMetricsService(
+            priceHistoryRepository,
+            yahooFinanceClient
+        );
+        marketDataService = new MarketDataService(
+            instrumentRepository,
+            currencyRateRepository,
+            priceHistoryRepository,
+            userApiConfigRepository,
+            yahooFinanceClient,
+            simulationDataService,
+            marketDataMaintenanceService,
+            instrumentMetricsService
+        );
+
         // Setup test currency rates
         usdRate = CurrencyRate.builder()
                 .currencyCode("USD")
@@ -120,6 +142,7 @@ class MarketDataServiceTest {
         thyaoStock.setId(UUID.randomUUID());
 
         lenient().when(simulationDataService.isSimulationEnabled()).thenReturn(false);
+        lenient().when(instrumentRepository.findBySymbol(anyString())).thenReturn(Optional.empty());
     }
 
     // ===================== CURRENCY RATE TESTS =====================
@@ -368,15 +391,64 @@ class MarketDataServiceTest {
     }
 
     @Test
+    @DisplayName("getMarketIndex should resolve XU100.IS alias from XU100 in real data")
+    void getMarketIndex_ShouldResolveAliasFromRealData() {
+        Instrument realIndex = Instrument.builder()
+                .symbol("XU100")
+                .name("BIST 100")
+                .type(InstrumentType.INDEX)
+                .exchange("BIST")
+                .currency("TRY")
+                .currentPrice(new BigDecimal("9875.40"))
+                .previousClose(new BigDecimal("9800.10"))
+                .isActive(true)
+                .isSimulated(false)
+                .build();
+
+        when(simulationDataService.isSimulationEnabled()).thenReturn(false);
+        when(instrumentRepository.findBySymbol("XU100.IS")).thenReturn(Optional.empty());
+        when(instrumentRepository.findBySymbol("XU100")).thenReturn(Optional.of(realIndex));
+
+        InstrumentResponse result = marketDataService.getMarketIndex("XU100.IS");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getSymbol()).isEqualTo("XU100");
+        assertThat(result.getCurrentPrice()).isEqualByComparingTo("9875.40");
+        assertThat(result.getType()).isEqualTo(InstrumentType.INDEX);
+
+        verify(yahooFinanceClient, never()).fetchStockPrice(anyString(), anyString(), anyString());
+    }
+
+    @Test
     @DisplayName("getMarketIndex should throw exception when no data source is available")
     void getMarketIndex_ShouldThrowException_WhenNoDataAvailable() {
         when(simulationDataService.isSimulationEnabled()).thenReturn(false);
         when(instrumentRepository.findBySymbol("XU100.IS")).thenReturn(Optional.empty());
-        when(userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.YAHOO_FINANCE))
-                .thenReturn(List.of());
+        when(instrumentRepository.findBySymbol("XU100")).thenReturn(Optional.empty());
+        when(userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.YAHOO_FINANCE)).thenReturn(List.of());
+        when(yahooFinanceClient.fetchStockPrice(anyString(), any(), any()))
+                .thenThrow(new RuntimeException("No market feed"));
 
         assertThatThrownBy(() -> marketDataService.getMarketIndex("XU100.IS"))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("getMarketIndex should fetch from Yahoo direct fallback when no API config exists")
+    void getMarketIndex_ShouldFetchFromYahooDirectFallback_WhenNoConfig() {
+        when(simulationDataService.isSimulationEnabled()).thenReturn(false);
+        when(instrumentRepository.findBySymbol("XU100.IS")).thenReturn(Optional.empty());
+        when(instrumentRepository.findBySymbol("XU100")).thenReturn(Optional.empty());
+        when(userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.YAHOO_FINANCE)).thenReturn(List.of());
+        when(yahooFinanceClient.fetchStockPrice(eq("XU100.IS"), isNull(), isNull()))
+                .thenReturn(new BigDecimal("10123.45"));
+
+        InstrumentResponse result = marketDataService.getMarketIndex("XU100.IS");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getSymbol()).isEqualTo("XU100.IS");
+        assertThat(result.getCurrentPrice()).isEqualByComparingTo("10123.45");
+        assertThat(result.getType()).isEqualTo(InstrumentType.INDEX);
     }
 
     // ===================== SAVE METHODS TESTS =====================

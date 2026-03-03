@@ -1,6 +1,7 @@
 package com.mintstack.finance.service;
 
 import com.mintstack.finance.dto.response.NewsResponse;
+import com.mintstack.finance.dto.response.NewsCategoryResponse;
 import com.mintstack.finance.entity.News;
 import com.mintstack.finance.entity.NewsCategory;
 import com.mintstack.finance.exception.ResourceNotFoundException;
@@ -74,8 +75,11 @@ public class NewsService {
     }
 
     @Transactional(readOnly = true)
-    public List<NewsCategory> getCategories() {
-        return categoryRepository.findByIsActiveTrueOrderByDisplayOrderAsc();
+    public List<NewsCategoryResponse> getCategories() {
+        return categoryRepository.findByIsActiveTrueOrderByDisplayOrderAsc()
+            .stream()
+            .map(this::mapToCategoryResponse)
+            .collect(Collectors.toList());
     }
 
     @Transactional
@@ -111,6 +115,17 @@ public class NewsService {
             .publishedAt(news.getPublishedAt())
             .isFeatured(news.getIsFeatured())
             .viewCount(news.getViewCount())
+            .build();
+    }
+
+    private NewsCategoryResponse mapToCategoryResponse(NewsCategory category) {
+        return NewsCategoryResponse.builder()
+            .id(category.getId())
+            .name(category.getName())
+            .slug(category.getSlug())
+            .description(category.getDescription())
+            .displayOrder(category.getDisplayOrder())
+            .isActive(category.getIsActive())
             .build();
     }
 }

@@ -3,6 +3,7 @@ package com.mintstack.finance.controller;
 import com.mintstack.finance.config.CorsProperties;
 import com.mintstack.finance.config.RateLimitConfig;
 import com.mintstack.finance.config.SecurityConfig;
+import com.mintstack.finance.dto.response.NewsCategoryResponse;
 import com.mintstack.finance.dto.response.NewsResponse;
 import com.mintstack.finance.service.NewsService;
 import org.junit.jupiter.api.Test;
@@ -122,5 +123,24 @@ class NewsControllerTest {
         mockMvc.perform(get("/api/v1/news/search").param("query", "döviz"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void getCategories_ShouldReturnCategoryDtos() throws Exception {
+        NewsCategoryResponse category = NewsCategoryResponse.builder()
+            .id(UUID.randomUUID())
+            .name("Ekonomi")
+            .slug("ekonomi")
+            .description("Ekonomi haberleri")
+            .displayOrder(1)
+            .isActive(true)
+            .build();
+
+        when(newsService.getCategories()).thenReturn(List.of(category));
+
+        mockMvc.perform(get("/api/v1/news/categories"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data[0].slug").value("ekonomi"));
     }
 }

@@ -1,16 +1,16 @@
-# MintStack Finance Portal
+﻿# MintStack Finance Portal
 
-Turkey-focused finance platform for market tracking, portfolio management, and technical analysis.
+Turkiye odakli finans platformu: piyasa izleme, portfoy yonetimi, teknik analiz, alarm ve bildirim altyapisi.
 
-## Quick Start
+## Hizli Baslangic
 
-### Requirements
+### Gereksinimler
 
 - Docker
 - Docker Compose v2+
 - Git
 
-### Run
+### Calistirma
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/MintStack-Finance.git
@@ -19,122 +19,96 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Important:
+> Not: `.env` dosyasini repoya commit etmeyin. Tum sifre ve anahtarlari guclu degerlerle degistirin.
 
-- Never commit `.env` or real credentials.
-- Set strong values for all secrets before first run.
-- For default user passwords, use environment variables referenced in `keycloak/realm-export.json`.
+## Servisler
 
-## Services
-
-| Service | URL |
+| Servis | URL |
 |---|---|
+| API Gateway (Dev Nginx) | <http://localhost:8088> |
 | Frontend | <http://localhost:3002> |
-| Backend API | <http://localhost:18080/api/v1> |
-| Swagger UI | <http://localhost:18080/swagger-ui.html> |
+| Backend API (Gateway) | <http://localhost:8088/api/v1> |
+| Swagger UI (Gateway) | <http://localhost:8088/swagger-ui.html> |
 | Keycloak | <http://localhost:8180> |
-| Grafana | <http://localhost:3030> |
+| Grafana | <http://localhost:13030> |
 
-## Local Access Credentials
+## Giris Bilgileri (Dev)
 
-This section is for local development only. Rotate/change these values before any shared or production use.
+### Uygulama (Frontend)
 
-### Application Login (Frontend)
+- `admin / .env icindeki KEYCLOAK_ADMIN_USER_PASSWORD`
+- `test / .env icindeki KEYCLOAK_TEST_USER_PASSWORD`
 
-- Username: `admin`
-- Password: `Admin123!Mint!`
-- Username: `test`
-- Password: `TestUser123!M!`
-
-### Keycloak Admin Console
+### Keycloak Admin Konsolu
 
 - URL: <http://localhost:8180/admin/>
-- Username: `admin`
-- Password: `C1GVjujPw3WlrV5zNZOpknZSyz0ELaC9wK7YB6Uc0Y0=`
+- Kullanici: `.env` icindeki `KEYCLOAK_ADMIN`
+- Sifre: `.env` icindeki `KEYCLOAK_ADMIN_PASSWORD`
 
 ### Grafana
 
-- URL: <http://localhost:3030>
-- Username: `admin`
-- Password: `aRIRHwf1jzfC8VMhQsLpVhIUtPhKcM+X`
+- URL: <http://localhost:13030>
+- Kullanici: `admin`
+- Sifre: `.env` icindeki `GRAFANA_ADMIN_PASSWORD`
 
-Keycloak and Grafana credentials are sourced from `.env`:
+## Profiller
 
-- `KEYCLOAK_ADMIN`
-- `KEYCLOAK_ADMIN_PASSWORD`
-- `KEYCLOAK_ADMIN_USER_PASSWORD`
-- `KEYCLOAK_TEST_USER_PASSWORD`
-- `GRAFANA_ADMIN_PASSWORD`
-
-## Tech Stack
-
-- Backend: Java 17, Spring Boot 3.4.2, PostgreSQL 15, Redis 7, Kafka 3.5
-- Frontend: React 18.2, Vite 5
-- Infra: Docker, Keycloak, OpenLDAP, Nginx
-- Observability: OpenSearch, Prometheus, Grafana
-
-## Portfolio Simulation Updates
-
-- Trading supports `MARKET`, `LIMIT`, and `STOP` orders.
-- Order lifecycle is modeled as `PENDING`, `PARTIALLY_FILLED`, `FILLED`, `CANCELED`, `REJECTED`.
-- Pending orders can be processed on demand from UI/API.
-- Portfolio cash operations support simulated deposit/withdraw.
-- Commission model includes:
-  - base commission rate
-  - minimum commission amount
-  - commission tax rate
-  - instrument-based multiplier
-- Portfolio summary exposes:
-  - cash balance
-  - net asset value
-  - realized PnL
-  - unrealized PnL
-
-Key portfolio endpoints:
-
-- `POST /api/v1/portfolios/{id}/trades`
-- `POST /api/v1/portfolios/{id}/orders/process`
-- `POST /api/v1/portfolios/{id}/orders/{orderId}/cancel`
-- `POST /api/v1/portfolios/{id}/cash`
-- `GET /api/v1/portfolios/{id}/transactions?orderStatus=...`
-
-## Market Data Notes
-
-- `DELETE /api/v1/settings/market-data` now clears:
-  - currency rates
-  - price history
-  - news
-  - active real market instruments (they are deactivated)
-- This endpoint is a full reset flow. After calling it, market lists can be empty until data is reloaded.
-- Frontend cache invalidation now includes market + news queries for this action.
-
-### Alpha Vantage (BIST)
-
-- Alpha Vantage can be limited for BIST stock coverage and also has strict rate limits.
-- Backend now applies fallback provider logic if preferred provider fetch fails.
-- Yahoo public endpoint fallback is attempted for stock prices even without a Yahoo API key.
-
-## Development
-
-### Backend
+### Varsayilan Dev (KRaft + SASL)
 
 ```bash
-cd backend
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+docker compose up -d
 ```
 
-### Frontend
+### Secure Dev
 
 ```bash
+docker compose -f docker-compose.yml -f docker-compose.secure-dev.yml up -d
+```
+
+### Lightweight Dev
+
+```bash
+docker compose -f docker-compose.light.yml up -d
+```
+
+## Teknoloji Yigini
+
+- Backend: Java 17, Spring Boot 3.4, PostgreSQL 15, Redis 7, Kafka 3.5
+- Frontend: React 18, TypeScript, Vite 5, Tailwind CSS, Redux Toolkit
+- Kimlik: Keycloak 26, OpenLDAP
+- Gozlemlenebilirlik: Prometheus, Grafana, OpenSearch, OTEL, Logstash
+
+## Gelistirme
+
+```bash
+# Backend
+cd backend
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+
+# Frontend
 cd frontend
 npm install
 npm run dev
 ```
 
-## Project Layout
+## Dizin Yapisi
 
-- `backend`: Spring Boot API
-- `frontend`: React SPA
-- `docker`: DB, cache, messaging, observability configs
-- `keycloak`: realm and auth configuration
-- `docs`: architecture, deployment, and security docs
+| Dizin | Aciklama |
+|---|---|
+| `backend/` | Spring Boot API |
+| `frontend/` | React SPA |
+| `docker/` | Altyapi ve observability konfigurasyonlari |
+| `keycloak/` | Realm ve kimlik konfigurasyonlari |
+| `docs/` | Mimari, modelleme, sunum ve operasyon dokumanlari |
+
+## Dokumanlar
+
+- [Toplanti 2 Sunum Akisi](docs/TOPLANTI_2_SUNUM_AKISI.md)
+- [Toplanti 2 Konusma Notlari](docs/TOPLANTI_2_KONUSMA_NOTLARI.md)
+- [Mimari Dokumani](docs/ARCHITECTURE.md)
+- [Tasarim ve Modelleme](docs/TASARIM_MIMARISI_VE_MODELLEME.md)
+- [ADR Kayitlari](docs/ADR.md)
+- [API Ozeti](docs/api-docs.md)
+- [Deployment Rehberi](docs/DEPLOYMENT.md)
+- [Guvenlik Rehberi](docs/SECURITY.md)
+- [Keycloak 2FA Kurulumu](docs/KEYCLOAK_2FA_SETUP.md)

@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -145,6 +146,35 @@ class SettingsServiceTest {
 
         // Then
         assertThat(result).isNotNull();
+        verify(userApiConfigRepository).save(existingConfig);
+    }
+
+    @Test
+    void addApiConfig_ShouldSkipValidation_WhenDeactivatingExistingConfig() {
+        // Given
+        User user = createTestUser();
+        UserApiConfig existingConfig = createTestConfig(user);
+        existingConfig.setApiKey("existing-key-12345678");
+        existingConfig.setIsActive(true);
+
+        ApiConfigRequest request = new ApiConfigRequest();
+        request.setProvider(ApiProvider.ALPHA_VANTAGE);
+        request.setApiKey(""); // user deactivates source without changing key
+        request.setIsActive(false);
+
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(userApiConfigRepository.findByUserIdAndProvider(user.getId(), ApiProvider.ALPHA_VANTAGE))
+            .thenReturn(Optional.of(existingConfig));
+        when(userApiConfigRepository.save(any(UserApiConfig.class))).thenReturn(existingConfig);
+
+        // When
+        ApiConfigResponse result = settingsService.addApiConfig(user.getId(), request);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(existingConfig.getIsActive()).isFalse();
+        assertThat(existingConfig.getApiKey()).isEqualTo("existing-key-12345678");
+        verify(apiKeyValidationService, never()).validateApiKey(any(), anyString(), any());
         verify(userApiConfigRepository).save(existingConfig);
     }
 

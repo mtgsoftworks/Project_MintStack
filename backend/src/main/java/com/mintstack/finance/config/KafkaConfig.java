@@ -20,6 +20,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +32,15 @@ public class KafkaConfig {
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
+    @Value("${spring.kafka.properties.security.protocol:PLAINTEXT}")
+    private String securityProtocol;
+
+    @Value("${spring.kafka.properties.sasl.mechanism:}")
+    private String saslMechanism;
+
+    @Value("${spring.kafka.properties.sasl.jaas.config:}")
+    private String saslJaasConfig;
+
     // Topic names
     public static final String TOPIC_LOGS = "mintstack-logs";
     public static final String TOPIC_MARKET_DATA = "mintstack-market-data";
@@ -40,6 +50,7 @@ public class KafkaConfig {
     public KafkaAdmin kafkaAdmin() {
         Map<String, Object> configs = new HashMap<>();
         configs.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        addSecurityProps(configs);
         return new KafkaAdmin(configs);
     }
 
@@ -77,6 +88,7 @@ public class KafkaConfig {
         configProps.put(ProducerConfig.ACKS_CONFIG, "all");
         configProps.put(ProducerConfig.RETRIES_CONFIG, 3);
         configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        addSecurityProps(configProps);
         return new DefaultKafkaProducerFactory<>(configProps);
     }
 
@@ -94,6 +106,7 @@ public class KafkaConfig {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        addSecurityProps(props);
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
@@ -104,5 +117,21 @@ public class KafkaConfig {
         factory.setConsumerFactory(consumerFactory());
         factory.setConcurrency(3);
         return factory;
+    }
+
+    private void addSecurityProps(Map<String, Object> props) {
+        if (!StringUtils.hasText(securityProtocol)) {
+            return;
+        }
+
+        props.put("security.protocol", securityProtocol);
+        if (securityProtocol.startsWith("SASL")) {
+            if (StringUtils.hasText(saslMechanism)) {
+                props.put("sasl.mechanism", saslMechanism);
+            }
+            if (StringUtils.hasText(saslJaasConfig)) {
+                props.put("sasl.jaas.config", saslJaasConfig);
+            }
+        }
     }
 }

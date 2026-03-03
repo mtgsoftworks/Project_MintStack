@@ -1,77 +1,79 @@
-# MintStack Finance Portal - Architecture
+﻿# Sistem Mimarisi
 
-## 1. Runtime Topology
+## 1. Amac ve Kapsam
 
-- Frontend: React + Vite (Nginx container in Docker)
-- Backend: Spring Boot monolith (REST + WebSocket + schedulers)
-- Data stores: PostgreSQL + Redis
-- Messaging: Kafka
-- Auth: Keycloak (with OpenLDAP integration)
-- Observability: Prometheus, Grafana, OpenSearch, Logstash, OTEL Collector
+Bu dokuman, MintStack Finance Portal sisteminin calisma topolojisini, servis sorumluluklarini ve temel veri akislarini teknik toplanti sunumunda kullanilacak seviyede ozetler.
 
-## 2. Core Data Flow
+## 2. Ust Seviye Mimari (C4-Container)
 
-1. Scheduled jobs fetch market/news data from external providers.
-2. Backend validates, transforms, and persists data in PostgreSQL.
-3. Hot/read paths are cached in Redis.
-4. Important updates are published to Kafka topics.
-5. Clients receive near-real-time updates over STOMP WebSocket topics.
+```mermaid
+flowchart LR
+    U[Kullanici] --> F[Frontend - React/Vite]
+    F --> N[Nginx API Gateway]
+    N --> B[Backend - Spring Boot]
 
-## 3. Security Model
+    B --> P[(PostgreSQL)]
+    B --> R[(Redis)]
+    B --> K[Kafka]
+    B --> KC[Keycloak]
 
-- Authentication: OAuth2 Resource Server with Keycloak JWT.
-- Authorization:
-  - Public read-only: `GET /api/v1/market/**`, `GET /api/v1/news/**`
-  - Authenticated: user-scoped endpoints (`/users`, `/portfolios`, `/watchlist`, `/alerts`, `/data-sources`)
-  - Admin-only: `/api/v1/admin/**`, `/api/v1/simulation/**`
-- Transport hardening: security headers + CORS allowlist.
-- Rate limiting: Bucket4j (anonymous/auth/admin buckets).
+    B --> OTL[OTEL Collector]
+    B --> PR[Prometheus]
+    K --> LS[Logstash]
+    LS --> OS[OpenSearch]
+    PR --> G[Grafana]
+```
 
-## 3.1 Portfolio Execution Model (Simulation)
+## 3. Servis Sorumluluklari
 
-- Order intake:
-  - API accepts `MARKET`, `LIMIT`, `STOP` order types for `BUY`/`SELL`.
-  - Orders are persisted first, then evaluated for fill.
-- Lifecycle states:
-  - `PENDING` -> `PARTIALLY_FILLED` -> `FILLED`
-  - terminal states: `CANCELED`, `REJECTED`
-- Fill simulation constraints:
-  - market session window for non-market queued fills
-  - latest instrument volume-based fill quantity cap
-  - slippage model based on order type and liquidity ratio
-- Accounting:
-  - portfolio cash balance is updated on each fill
-  - commission = base rate + minimum commission + commission tax
-  - realized PnL is tracked on sell fills
-  - unrealized PnL is computed from open lots
-- User operations:
-  - process queued orders (`/orders/process`)
-  - cancel queued orders (`/orders/{orderId}/cancel`)
-  - adjust simulated cash (`/cash`)
+- Frontend: UI, state yonetimi, RTK Query ile API tuketimi, WebSocket dinleme.
+- Nginx: Tek giris noktasi, API ve WebSocket reverse proxy.
+- Backend: Is kurallari, portfoy islemleri, market veri toplama, scheduler, auth kontrol.
+- PostgreSQL: Kalici is verisi (kullanici, portfoy, emir, fiyat gecmisi, haber).
+- Redis: Sicak veri cache ve performans optimizasyonu.
+- Kafka: Olay akisi ve log boru hatti.
+- Logstash/OpenSearch: Log isleme, indeksleme, arama.
+- Prometheus/Grafana: Metrik toplama, panel ve alarm.
+- Keycloak: OAuth2/OIDC kimlik dogrulama ve rol bazli yetkilendirme.
 
-## 4. Scheduling
+## 4. Katmanli Backend Tasarimi
 
-Configured in `backend/src/main/resources/application.yml`:
+- `controller`: REST endpointleri
+- `service`: Is kurallari ve orkestrasyon
+- `repository`: Veri erisim katmani
+- `entity`: JPA model nesneleri
+- `scheduler`: Zamanlanmis veri toplama ve guncelleme
+- `config`: Security, Kafka, Redis, WebSocket, OpenSearch ayarlari
 
-- TCMB rates: `0 30 10,16 * * MON-FRI`
-- Stock prices: `0 * * * * *` (every minute)
-- Non-TCMB forex: `0 */5 * * * MON-FRI`
-- Crypto prices: `0 * * * * *` (every minute)
-- News fetch: `0 */15 * * * *` (every 15 minutes)
-- Cleanup: `0 0 2 * * *`
+## 5. Temel Veri Akislari
 
-## 5. Ports (Docker Compose Dev)
+### 5.1 Piyasa Verisi
 
-- Frontend: `3002`
-- Backend: `18080`
-- Keycloak: `8180`
-- PostgreSQL: `5432` (localhost-bound)
-- Redis: `6379` (localhost-bound)
-- Kafka: `29092`
-- OpenSearch: `19200` (localhost-bound)
+1. Scheduler, tercih edilen saglayicidan veriyi ceker.
+2. Veri normalize edilir ve PostgreSQL'e yazilir.
+3. Sicak okuma senaryolari Redis cache'e alinır.
+4. Gerekli durumlarda WebSocket ile istemcilere anlik guncelleme aktarilir.
 
-## 6. Architectural Notes
+### 5.2 Portfoy Islem Akisi
 
-- Current style is a modular monolith with clear package boundaries.
-- Simulation domain is the heaviest module and isolated under `service/simulation`.
-- Frontend data layer is standardized around RTK Query endpoints.
+1. Kullanici emir olusturur (`BUY/SELL`, `MARKET/LIMIT/STOP`).
+2. Emir dogrulama ve nakit/pozisyon kontrolu yapilir.
+3. Uygun kosulda emir gerceklesir, degilse bekleyen emre duser.
+4. Portfoy ozeti, gerceklesen islemler ve PnL yeniden hesaplanir.
+
+## 6. Performans ve Olceklenebilirlik Notlari
+
+- API gecikmesini azaltmak icin Redis cache kullanilir.
+- WebSocket ile polling ihtiyaci azaltilir.
+- Kafka ile log/olay isleme asenkron hale getirilir.
+- KRaft modunda Kafka ile Zookeeper bagimliligi kaldirilmistir.
+
+## 7. Bilinen Teknik Riskler
+
+- TypeScript strict modu henuz acik degil (`strict: false`).
+- Bazi servisler (ozellikle portfoy/market data) hala buyuk ve bolunmeye aday.
+- Tek backend uygulamasi (moduler monolith) ileride bounded context bazli ayrilabilir.
+
+## 8. Toplanti Icin Kisa Mesaj
+
+"Mimariyi tek giris noktali, guvenli, gozlemlenebilir ve moduler bir yapiya getirdik; veri akisinda cache + scheduler + websocket kombinasyonuyla hem guncellik hem performans hedefini tuttuk."

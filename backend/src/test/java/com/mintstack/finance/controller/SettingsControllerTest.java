@@ -120,6 +120,35 @@ class SettingsControllerTest {
     }
 
     @Test
+    void addApiConfig_ShouldAllowDeactivateWithoutApiKey() throws Exception {
+        // Given
+        User user = createTestUser();
+        ApiConfigRequest request = new ApiConfigRequest();
+        request.setProvider(ApiProvider.ALPHA_VANTAGE);
+        request.setApiKey("");
+        request.setIsActive(false);
+
+        ApiConfigResponse response = ApiConfigResponse.builder()
+            .id(UUID.randomUUID())
+            .provider(ApiProvider.ALPHA_VANTAGE)
+            .isActive(false)
+            .build();
+
+        when(userService.getOrCreateUser(any())).thenReturn(user);
+        when(settingsService.addApiConfig(eq(TEST_USER_ID), any(ApiConfigRequest.class))).thenReturn(response);
+
+        // When & Then
+        mockMvc.perform(post("/api/v1/settings/api-keys")
+                .with(jwt().jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.provider").value("ALPHA_VANTAGE"))
+            .andExpect(jsonPath("$.data.isActive").value(false));
+    }
+
+    @Test
     void deleteApiConfig_ShouldReturnSuccess() throws Exception {
         // Given
         User user = createTestUser();

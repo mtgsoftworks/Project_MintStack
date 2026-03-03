@@ -57,7 +57,7 @@ services:
           memory: 128M
 
   keycloak:
-    image: quay.io/keycloak/keycloak:23.0
+    image: quay.io/keycloak/keycloak:26.5.4
     container_name: mintstack-keycloak
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
@@ -67,9 +67,8 @@ services:
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
       KC_HOSTNAME_STRICT: "false"
-      KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HTTP_ENABLED: "true"
-      KC_PROXY: edge
+      KC_PROXY_HEADERS: xforwarded
     command: start-dev --import-realm
     volumes:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
@@ -125,47 +124,36 @@ services:
   # OBSERVABILITY LAYER
   # ===========================================
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
-    container_name: mintstack-zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    volumes:
-      - zookeeper_data:/var/lib/zookeeper/data
-      - zookeeper_log:/var/lib/zookeeper/log
-    networks:
-      - mintstack-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.1'
-          memory: 128M
-
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: mintstack-kafka
-    depends_on:
-      - zookeeper
     ports:
       - "29092:29092"
     environment:
-      KAFKA_BROKER_ID: ${KAFKA_BROKER_ID}
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+      KAFKA_LISTENER_NAME_INTERNAL_PLAIN_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="kafka" password="${KAFKA_SASL_PASSWORD}" user_kafka="${KAFKA_SASL_PASSWORD}";
+      KAFKA_LISTENER_NAME_EXTERNAL_PLAIN_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="kafka" password="${KAFKA_SASL_PASSWORD}" user_kafka="${KAFKA_SASL_PASSWORD}";
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qk}
     volumes:
       - kafka_data:/var/lib/kafka/data
     networks:
       - mintstack-network
     healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/9092'"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -179,7 +167,7 @@ services:
           memory: 256M
 
   opensearch:
-    image: opensearchproject/opensearch:2.11.0
+    image: opensearchproject/opensearch:2.13.0
     container_name: mintstack-opensearch
     environment:
       - cluster.name=mintstack-cluster
@@ -188,7 +176,7 @@ services:
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
-      - plugins.security.disabled=true
+      - plugins.security.disabled=false
     ulimits:
       memlock:
         soft: -1
@@ -204,7 +192,7 @@ services:
     networks:
       - mintstack-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
+      test: ["CMD-SHELL", "curl -k -s -u admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD} https://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -218,13 +206,16 @@ services:
           memory: 512M
 
   opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:2.11.0
+    image: opensearchproject/opensearch-dashboards:2.13.0
     container_name: mintstack-opensearch-dashboards
     ports:
       - "15601:5601"
     environment:
-      OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
-      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+      OPENSEARCH_HOSTS: '["https://opensearch:9200"]'
+      OPENSEARCH_USERNAME: admin
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+      OPENSEARCH_SSL_VERIFICATIONMODE: none
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "false"
     depends_on:
       opensearch:
         condition: service_healthy
@@ -249,6 +240,15 @@ services:
       - ./docker/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
     environment:
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_SASL_MECHANISM: PLAIN
+      KAFKA_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="kafka" password="${KAFKA_SASL_PASSWORD}";
+      OPENSEARCH_HOSTS: https://opensearch:9200
+      OPENSEARCH_USERNAME: admin
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+      OPENSEARCH_SSL: true
+      OPENSEARCH_SSL_VERIFY: false
     depends_on:
       - kafka
       - opensearch
@@ -272,8 +272,8 @@ services:
     volumes:
       - ./docker/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
     ports:
-      - "14317:4317"
-      - "14318:4318"
+      - "24317:4317"
+      - "24318:4318"
     depends_on:
       - opensearch
     networks:
@@ -331,13 +331,13 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
-      GF_SERVER_ROOT_URL: http://localhost:3030
+      GF_SERVER_ROOT_URL: http://localhost:13030
     volumes:
       - grafana_data:/var/lib/grafana
       - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
     ports:
-      - "3030:3000"
+      - "13030:3000"
     depends_on:
       - prometheus
     networks:
@@ -401,6 +401,9 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: PLAIN
+      SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="kafka" password="${KAFKA_SASL_PASSWORD}";
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/mintstack-finance/protocol/openid-connect/certs
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8180/realms/mintstack-finance
 
@@ -410,11 +413,9 @@ services:
       OTEL_SERVICE_NAME: finance-portal
       OPENSEARCH_HOST: opensearch
       OPENSEARCH_PORT: 9200
-      OPENSEARCH_SCHEME: http
+      OPENSEARCH_SCHEME: https
       OPENSEARCH_USERNAME: admin
       OPENSEARCH_PASSWORD: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
-    ports:
-      - "18080:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -445,13 +446,15 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:18080/api/v1
+        VITE_API_URL: http://localhost:8088/api/v1
+        VITE_WS_URL: http://localhost:8088/ws
         VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL}
         VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM}
         VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID}
     container_name: mintstack-frontend
     environment:
-      VITE_API_URL: http://localhost:18080/api/v1
+      VITE_API_URL: http://localhost:8088/api/v1
+      VITE_WS_URL: http://localhost:8088/ws
       VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL}
       VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM}
       VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID}
@@ -470,6 +473,32 @@ services:
           cpus: '0.1'
           memory: 64M
 
+  nginx:
+    image: nginx:alpine
+    container_name: mintstack-nginx
+    ports:
+      - "8088:80"
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - mintstack-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.05'
+          memory: 32M
+
 networks:
   mintstack-network:
     driver: bridge
@@ -479,8 +508,6 @@ volumes:
   redis_data:
   openldap_data:
   openldap_config:
-  zookeeper_data:
-  zookeeper_log:
   kafka_data:
   opensearch_data:
   prometheus_data:

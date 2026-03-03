@@ -1,23 +1,44 @@
-# MintStack Finance Portal - Güvenlik & Secret Yönetimi
+﻿# Guvenlik Rehberi
 
-## 1. Secret Üretimi ve Yönetimi
+## 1. Secret Yonetimi
 
-Asla secret'ları koda commit etmeyin. `.env.example` dosyasını kopyalayarak kendi `.env` dosyanızı oluşturun ve tüm şifreleri güçlü, benzersiz değerlerle değiştirin.
+- Secret degerlerini asla repoya commit etmeyin.
+- `.env.example` dosyasini kopyalayip `.env` olusturun.
+- Tum varsayilan sifreleri degistirin.
 
-**Güçlü Secret Üretmek İçin Komutlar:**
+Guclu secret uretimi:
 
 ```bash
-openssl rand -base64 24   # Database, Redis, Kafka için
-openssl rand -base64 32   # Keycloak Admin, JWT vb. için
+openssl rand -base64 24
+openssl rand -base64 32
 ```
 
-*OpenSearch Admin Şifresi minimum 8 karakter, büyük harf, küçük harf, özel karakter ve rakam içermelidir.*
+## 2. Uretim Guvenlik Kontrol Listesi
 
-## 2. Security Checklist (Production)
+1. Keycloak admin sifresi ve client secret'lar degistirildi.
+2. OpenSearch admin sifresi guclu ve unique.
+3. Tls/https aktif.
+4. Internal portlar disariya kapali.
+5. 2FA aktif (`docs/KEYCLOAK_2FA_SETUP.md`).
+6. Backup rutini otomatik.
+7. Loglarda hassas veri maskeleme kontrol edildi.
 
-1. `.env` dosyasındaki tüm varsayılan şifreleri ve API Key'leri değiştirin.
-2. Tüm web trafiğini HTTPS üzerinden yönlendirin (örn. Nginx + Let's Encrypt).
-3. Veritabanı ve Redis gibi internal servis portlarını firewall ile kapalı tutun (sadece localhost veya docker network içine açık).
-4. Keycloak'ta Admin kullanıcısı için 2FA'yı mutlaka aktifleştirin (`docs/KEYCLOAK_2FA_SETUP.md`).
-5. OpenSearch'e default credential'lar ile dış bağlantıyı kesin veya şifreyi güçlendirin.
-6. Yedek almayı (Backup) unutmayın.
+## 3. Uygulama Seviyesi Guvenlik
+
+- OAuth2/JWT ile kimlik dogrulama
+- Rol bazli endpoint yetkilendirme (`USER`, `ADMIN`)
+- Rate limiting ile kotuye kullanim korumasi
+- Gateway uzerinden tek giris noktasi
+
+## 4. Operasyonel Guvenlik
+
+- Image guncellemeleri duzenli yapilmali.
+- Secret rotasyonu periyodik olmali.
+- Alarm esikleri (CPU, memory, hata oranlari) aktif tutulmali.
+- Anahtar olaylar icin audit log izleme acik olmali.
+
+## 5. Sik Hatalar
+
+- Varsayilan sifrelerle canli ortama cikmak.
+- Disariya acik DB/Redis portu birakmak.
+- SSL dogrulamasini kalici olarak kapatmak.

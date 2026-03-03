@@ -115,11 +115,11 @@ docker-compose up -d --build
 | Karar | Seçim | Gerekçe |
 |-------|-------|---------|
 | Backend Framework | Spring Boot 3.4 | Java 17+, OAuth2, WebSocket, kurumsal destek |
-| Frontend Framework | React 18 + Vite | Component-based, hızlı dev, zengin ekosistem |
+| Frontend Framework | React 18 + TypeScript + Vite | Component-based, hızlı dev, zengin ekosistem |
 | Veritabanı | PostgreSQL 15 | ACID, JSONB, full-text search |
 | Cache | Redis 7 | Session, rate-limiting, market data cache |
 | Message Queue | Kafka 3.5 | Event-driven, yüksek throughput |
-| Identity Provider | Keycloak 23 | OAuth2/OIDC, LDAP federation, 2FA |
+| Identity Provider | Keycloak 26 | OAuth2/OIDC, LDAP federation, 2FA |
 | Logging | OpenSearch | Log aggregation, distributed tracing |
 | Tracing | OpenTelemetry | Vendor-agnostic observability |
 
@@ -154,7 +154,7 @@ public class MarketDataService {
 }
 ```
 
-### JavaScript/React (Frontend)
+### TypeScript/React (Frontend)
 
 - **Functional components** + **hooks** kullanın
 - **Redux Toolkit** global state için
@@ -206,19 +206,23 @@ Tüm ortam değişkenleri `.env.example` dosyasında tanımlıdır.
 - Environment variables doğru mu? `.env` dosyasını kontrol edin
 
 ### Frontend API hatası
-- Backend ayağa kalktı mı? `http://localhost:18080/actuator/health`
+- Backend ayağa kalktı mı? `http://localhost:8088/actuator/health`
 - CORS ayarları doğru mu? `application.yml` içinde `cors.allowed-origins`
 - Keycloak token geçerli mi? Browser console'da network tab
 
 ### WebSocket bağlantı hatası
-- Backend WebSocket endpoint aktif mi? `http://localhost:18080/ws`
+- Backend WebSocket endpoint aktif mi? `http://localhost:8088/ws`
 - SockJS fallback çalışıyor mu? Browser console'da kontrol
 
 ## İlgili Dokümantasyon
 
 - `README.md` - Proje genel bakış
-- `docs/ARCHITECTURE.md` - Sistem mimarisi detayları
-- `docs/ADR.md` - Mimari karar kayıtları
-- `docs/SECURITY.md` - Güvenlik dokümantasyonu
+- `docs/api-docs.md` - API quick reference
+- `docs/ARCHITECTURE.md` - Sistem mimarisi
+- `docs/ADR.md` - Mimari kararlar
 - `docs/DEPLOYMENT.md` - Deployment rehberi
+- `docs/SECURITY.md` - Güvenlik checklist
 - `docs/KEYCLOAK_2FA_SETUP.md` - 2FA kurulumu
+- `docs/API_VERSIONING.md` - API versiyonlama
+
+

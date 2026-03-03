@@ -66,9 +66,11 @@ public class SettingsService {
 
         boolean isUpdate = existingConfig != null;
         boolean apiKeyChanged = request.getApiKey() != null && !request.getApiKey().isEmpty();
+        boolean requestedActive = request.getIsActive() == null || Boolean.TRUE.equals(request.getIsActive());
 
-        // 1. Validate API key only if it's new or changed
-        if (!isUpdate || apiKeyChanged) {
+        // 1. Validate API key only for active configs.
+        // Deactivation should never require API key validation.
+        if (requestedActive && (!isUpdate || apiKeyChanged)) {
             ApiKeyValidationService.ValidationResult validation = apiKeyValidationService.validateApiKey(
                     request.getProvider(),
                     request.getApiKey(),
@@ -105,7 +107,7 @@ public class SettingsService {
         }
 
         config.setBaseUrl(effectiveUrl);
-        config.setIsActive(request.getIsActive());
+        config.setIsActive(requestedActive);
 
         UserApiConfig saved = userApiConfigRepository.save(config);
         log.info("{} API config for user {} provider {}", isUpdate ? "Updated" : "Created", userId != null ? userId : "system", request.getProvider());

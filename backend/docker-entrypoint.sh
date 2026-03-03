@@ -45,6 +45,14 @@ file_env 'ALPHA_VANTAGE_API_KEY'
 file_env 'FINNHUB_API_KEY'
 file_env 'SMTP_PASSWORD'
 file_env 'SMTP_USERNAME'
+file_env 'OPENSEARCH_PASSWORD'
+file_env 'SPRING_KAFKA_SASL_PASSWORD'
+
+# Derive Kafka JAAS config from secret value when SASL password is provided.
+if [ -n "${SPRING_KAFKA_SASL_PASSWORD:-}" ] && [ -z "${SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG:-}" ]; then
+  KAFKA_SASL_USERNAME="${SPRING_KAFKA_SASL_USERNAME:-kafka}"
+  export SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG="org.apache.kafka.common.security.plain.PlainLoginModule required username=\"${KAFKA_SASL_USERNAME}\" password=\"${SPRING_KAFKA_SASL_PASSWORD}\";"
+fi
 
 echo "[entrypoint] Secrets loaded. Starting application..."
 

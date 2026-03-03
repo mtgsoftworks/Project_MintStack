@@ -1,26 +1,33 @@
-# Keycloak 2FA ve "Beni Hatırla" Kurulumu
+﻿# Keycloak 2FA ve Remember Me Kurulumu
 
-## 1. 2FA (OTP) Aktifleştirme
+## 1. 2FA (OTP) Aktiflestirme
 
-1. Keycloak Admin Konsoluna giriş yapın.
-2. `mintstack-finance` realm'ini seçin.
-3. **Authentication** → **Policies** → **OTP Policy**:
-   - OTP Type: `totp`, Algorithm: `SHA1`, Digits: `6`, Period: `30` -> **Save**
-4. **Authentication** → **Required Actions**:
-   - `Configure OTP` -> **Enabled** ve **Default Action** işaretleyin.
-5. **Authentication** → **Flows** → **Browser**:
-   - `OTP Form` ekleyin ve **REQUIRED** yapın.
+1. Keycloak admin paneline girin.
+2. `mintstack-finance` realm'ini secin.
+3. `Authentication > Policies > OTP Policy`
+   - OTP Type: `totp`
+   - Digits: `6`
+   - Period: `30`
+4. `Authentication > Required Actions`
+   - `Configure OTP` -> Enabled + Default Action
+5. `Authentication > Flows > Browser`
+   - `OTP Form` adimini `REQUIRED` yapin.
 
-*Kullanıcılar ilk girişte Google Authenticator ile eşleşmek zorundadır.*
+## 2. Remember Me Ayari
 
-## 2. "Beni Hatırla" (Remember Me)
+1. `Realm Settings > Sessions`
+   - `Remember Me` aktif edin.
+   - SSO idle/max surelerini politika ile uyumlu tanimlayin.
+2. `Clients > finance-frontend > Settings`
+   - Standard Flow aktif olsun.
 
-1. **Realm Settings** → **Sessions**:
-   - SSO Session Idle / Max sürelerini belirleyin (Örn: 30 / 90 gün).
-   - **Remember Me** -> **ON**
-2. **Clients** → `finance-frontend` → **Settings**:
-   - Standard Flow / Direct Access Grants -> **ON**
+## 3. Dogrulama
 
-## Sorun Giderme
+- Test kullanicisiyla login olun.
+- OTP kurulumu zorunlu ekraninin geldigini kontrol edin.
+- Remember Me secenegiyle tekrar giriste davranisi test edin.
 
-- **Kullanıcı Kilitlendiyse:** Admin konsolundan kullanıcının "Credentials" sekmesinden OTP kaydını silebilirsiniz, tekrar kurması istenir.
+## 4. Sorun Giderme
+
+- OTP cihaz kaybi durumunda kullanicinin OTP credential'i admin panelden sifirlanabilir.
+- Saat farki problemi varsa sunucu ve cihaz NTP senkronunu kontrol edin.

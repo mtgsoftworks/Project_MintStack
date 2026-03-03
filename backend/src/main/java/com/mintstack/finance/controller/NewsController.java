@@ -2,8 +2,8 @@ package com.mintstack.finance.controller;
 
 import com.mintstack.finance.dto.response.ApiResponse;
 import com.mintstack.finance.dto.response.NewsResponse;
+import com.mintstack.finance.dto.response.NewsCategoryResponse;
 import com.mintstack.finance.dto.response.PaginationInfo;
-import com.mintstack.finance.entity.NewsCategory;
 import com.mintstack.finance.service.NewsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -93,8 +93,8 @@ public class NewsController {
 
     @GetMapping("/categories")
     @Operation(summary = "Haber kategorilerini getir")
-    public ResponseEntity<ApiResponse<List<NewsCategory>>> getCategories() {
-        List<NewsCategory> categories = newsService.getCategories();
+    public ResponseEntity<ApiResponse<List<NewsCategoryResponse>>> getCategories() {
+        List<NewsCategoryResponse> categories = newsService.getCategories();
         return ResponseEntity.ok(ApiResponse.success(categories));
     }
 

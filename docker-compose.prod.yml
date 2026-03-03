@@ -113,7 +113,7 @@ services:
           memory: 256M
 
   keycloak:
-    image: quay.io/keycloak/keycloak:23.0
+    image: quay.io/keycloak/keycloak:26.5.4
     container_name: mintstack-keycloak-prod
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
@@ -124,7 +124,7 @@ services:
       KC_DB_PASSWORD_FILE: /run/secrets/postgres_password
       KC_HOSTNAME_STRICT: "true"
       KC_HOSTNAME: ${KC_HOSTNAME:-localhost}
-      KC_PROXY: edge
+      KC_PROXY_HEADERS: xforwarded
     secrets:
       - keycloak_admin_password
       - postgres_password
@@ -170,11 +170,16 @@ services:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/mintstack-finance/protocol/openid-connect/certs
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/mintstack-finance
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: PLAIN
+      SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="kafka" password="${KAFKA_SASL_PASSWORD}";
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       OTEL_SERVICE_NAME: finance-portal
       OPENSEARCH_HOST: opensearch
       OPENSEARCH_PORT: 9200
-      OPENSEARCH_SCHEME: http
+      OPENSEARCH_SCHEME: https
+      OPENSEARCH_USERNAME: admin
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
       ALPHA_VANTAGE_API_KEY_FILE: /run/secrets/alpha_vantage_key
     secrets:
       - postgres_password
@@ -228,40 +233,32 @@ services:
   # OBSERVABILITY LAYER
   # ===========================================
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
-    container_name: mintstack-zookeeper-prod
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    volumes:
-      - zookeeper_data:/var/lib/zookeeper/data
-      - zookeeper_log:/var/lib/zookeeper/log
-    networks:
-      - obs-network
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: mintstack-kafka-prod
-    depends_on:
-      - zookeeper
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+      KAFKA_LISTENER_NAME_INTERNAL_PLAIN_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="kafka" password="${KAFKA_SASL_PASSWORD}" user_kafka="${KAFKA_SASL_PASSWORD}";
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qk}
     volumes:
       - kafka_data:/var/lib/kafka/data
     networks:
       - obs-network
     healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/9092'"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -271,7 +268,7 @@ services:
           memory: 512M
 
   opensearch:
-    image: opensearchproject/opensearch:2.11.0
+    image: opensearchproject/opensearch:2.13.0
     container_name: mintstack-opensearch-prod
     environment:
       - cluster.name=mintstack-cluster
@@ -279,7 +276,7 @@ services:
       - discovery.type=single-node
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-      - plugins.security.disabled=true
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
     ulimits:
       memlock:
         soft: -1
@@ -293,7 +290,7 @@ services:
       - data-network
       - obs-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
+      test: ["CMD-SHELL", "curl -k -s -u admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD} https://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -310,6 +307,15 @@ services:
       - ./docker/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
     environment:
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_SASL_MECHANISM: PLAIN
+      KAFKA_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="kafka" password="${KAFKA_SASL_PASSWORD}";
+      OPENSEARCH_HOSTS: https://opensearch:9200
+      OPENSEARCH_USERNAME: admin
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+      OPENSEARCH_SSL: true
+      OPENSEARCH_SSL_VERIFY: false
     depends_on:
       - kafka
       - opensearch
@@ -325,6 +331,8 @@ services:
     image: otel/opentelemetry-collector-contrib:0.91.0
     container_name: mintstack-otel-collector-prod
     command: ["--config=/etc/otel-collector-config.yaml"]
+    environment:
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
     volumes:
       - ./docker/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
     depends_on:
@@ -470,8 +478,6 @@ volumes:
   redis_data:
   openldap_data:
   openldap_config:
-  zookeeper_data:
-  zookeeper_log:
   kafka_data:
   opensearch_data:
   prometheus_data:

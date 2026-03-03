@@ -27,7 +27,7 @@ jobs:
         env:
           POSTGRES_DB: ${{ secrets.TEST_DB_NAME || 'testdb' }}
           POSTGRES_USER: ${{ secrets.TEST_DB_USER || 'testuser' }}
-          POSTGRES_PASSWORD: ${{ secrets.TEST_DB_PASSWORD }}
+          POSTGRES_PASSWORD: ${{ secrets.TEST_DB_PASSWORD || 'testpass' }}
         ports:
           - 5432:5432
         options: >-
@@ -50,6 +50,14 @@ jobs:
         run: mvn clean verify -B
         env:
           SPRING_PROFILES_ACTIVE: test
+
+      - name: Flyway migration validation
+        run: >
+          mvn -B org.flywaydb:flyway-maven-plugin:10.17.0:validate
+          -Dflyway.url=jdbc:postgresql://localhost:5432/${{ secrets.TEST_DB_NAME || 'testdb' }}
+          -Dflyway.user=${{ secrets.TEST_DB_USER || 'testuser' }}
+          -Dflyway.password=${{ secrets.TEST_DB_PASSWORD || 'testpass' }}
+          -Dflyway.locations=filesystem:src/main/resources/db/migration
 
       - name: Upload test results
         if: always()
@@ -103,6 +111,28 @@ jobs:
         with:
           name: frontend-coverage
           path: frontend/coverage/
+
+  # ===========================================
+  # Docker Compose Validation
+  # ===========================================
+  compose-validate:
+    name: Compose Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate default compose
+        run: docker compose -f docker-compose.yml config > /dev/null
+
+      - name: Validate secure-dev compose
+        run: docker compose -f docker-compose.yml -f docker-compose.secure-dev.yml config > /dev/null
+
+      - name: Validate light compose
+        run: docker compose -f docker-compose.light.yml config > /dev/null
+
+      - name: Validate KRaft compose
+        run: docker compose -f docker-compose.yml -f docker-compose.kraft.yml config > /dev/null
 
   # ===========================================
   # E2E Tests

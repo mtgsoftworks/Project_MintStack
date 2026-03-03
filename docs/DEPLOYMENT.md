@@ -1,14 +1,13 @@
-# MintStack Finance Portal - Deployment Guide
+﻿# Deployment Rehberi
 
-## 1. Requirements
+## 1. Gereksinimler
 
-- Linux host (Ubuntu 22.04+ recommended)
 - Docker 24+
 - Docker Compose 2.20+
 - Git
-- Minimum: 4 CPU, 8 GB RAM, 50 GB SSD
+- Onerilen kaynak: en az 4 CPU, 8 GB RAM
 
-## 2. Development Deployment
+## 2. Gelistirme Ortami
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/MintStack-Finance.git
@@ -17,73 +16,75 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Common operations:
+Erisim noktalar:
+
+- Frontend: `http://localhost:3002`
+- Gateway: `http://localhost:8088`
+- API: `http://localhost:8088/api/v1`
+- Swagger: `http://localhost:8088/swagger-ui.html`
+- Keycloak: `http://localhost:8180`
+
+## 3. Profil Bazli Calisma
+
+### Varsayilan
 
 ```bash
-docker compose logs -f
-docker compose restart
-docker compose down -v
+docker compose up -d
 ```
 
-## 3. Production Deployment
+### Secure Dev
 
-1. Configure `.env` with strong non-default values.
-2. Create required Docker secret files under `./secrets`.
-3. Provide TLS certificates under `./nginx/ssl`.
-4. Start production stack:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.secure-dev.yml up -d
+```
+
+### Lightweight
+
+```bash
+docker compose -f docker-compose.light.yml up -d
+```
+
+## 4. Uretim Ortami
+
+1. `.env` icerigini guclu degerlerle doldurun.
+2. TLS sertifikalarini ve secret dosyalarini hazirlayin.
+3. Prod compose ile stack'i kaldirin:
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-## 4. Backups
-
-### PostgreSQL
-
-Development:
+## 5. Isletim Komutlari
 
 ```bash
-docker exec mintstack-postgres pg_dump -U mintstack mintstack_finance > backup.sql
+docker compose ps
+docker compose logs -f
+
+docker compose restart <service>
+docker compose down
 ```
 
-Production:
+## 6. Backup/Restore
+
+### Bash scriptleri
 
 ```bash
-docker exec mintstack-postgres-prod pg_dump -U mintstack mintstack_finance > backup-prod.sql
+./docker/backup/pg_backup.sh dev ./backups 7
+./docker/backup/pg_backup.sh prod ./backups 14
+
+./docker/backup/pg_restore.sh dev ./backups/<dosya>.sql.gz
+./docker/backup/pg_restore.sh prod ./backups/<dosya>.sql.gz
 ```
 
-### Keycloak Realm Export
+### PowerShell scriptleri
 
-Development:
-
-```bash
-docker exec mintstack-keycloak /opt/keycloak/bin/kc.sh export --realm mintstack-finance --file /tmp/realm-export.json
-docker cp mintstack-keycloak:/tmp/realm-export.json .
+```powershell
+.\docker\backup\pg_backup.ps1 -Mode dev -BackupDir .\backups -RetentionDays 7
+.\docker\backup\pg_restore.ps1 -Mode dev -BackupFile .\backups\<dosya>.sql
 ```
 
-Production:
+## 7. Toplanti Oncesi Hizli Kontrol
 
-```bash
-docker exec mintstack-keycloak-prod /opt/keycloak/bin/kc.sh export --realm mintstack-finance --file /tmp/realm-export.json
-docker cp mintstack-keycloak-prod:/tmp/realm-export.json ./realm-export-prod.json
-```
-
-## 5. CI/CD Notes
-
-- CI pipeline validates backend/frontend build and tests.
-- Deploy workflow signs image artifacts and deploys via SSH using repository secrets.
-- Required staging secrets: `STAGING_HOST`, `STAGING_USER`, `STAGING_SSH_KEY`
-- Required production secrets: `PROD_HOST`, `PROD_USER`, `PROD_SSH_KEY`
-
-## 6. Troubleshooting
-
-### OTEL Collector Health Shows `unhealthy`
-
-If `mintstack-otel-collector` is running but marked unhealthy, recreate only that service:
-
-```bash
-docker compose up -d otel-collector
-docker compose ps otel-collector
-```
-
-Current healthcheck uses collector binary execution (`/otelcol-contrib --version`) to avoid shell tool dependency issues inside minimal images.
+- `docker compose ps` tum kritik servisler up/healthy mi?
+- `http://localhost:8088/actuator/health` cevap donuyor mu?
+- Frontend login ve temel sayfalar aciliyor mu?

@@ -53,7 +53,7 @@ export default defineConfig(() => {
     test: {
       globals: true,
       environment: 'jsdom',
-      setupFiles: './src/setupTests.js',
+      setupFiles: './src/setupTests.ts',
       css: true,
       fileParallelism: false,
       poolOptions: {
@@ -67,7 +67,7 @@ export default defineConfig(() => {
         reporter: ['text', 'html', 'lcov'],
         exclude: [
           'node_modules/',
-          'src/setupTests.js',
+          'src/setupTests.ts',
           'src/mocks/**',
           'e2e/**',
         ],

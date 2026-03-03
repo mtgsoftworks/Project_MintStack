@@ -3,6 +3,9 @@
     <Properties>
         <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-}] %-5level %logger{36} - %msg%n</Property>
         <Property name="KAFKA_SERVERS">${env:SPRING_KAFKA_BOOTSTRAP_SERVERS:-localhost:29092}</Property>
+        <Property name="KAFKA_SECURITY_PROTOCOL">${env:SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL:-PLAINTEXT}</Property>
+        <Property name="KAFKA_SASL_MECHANISM">${env:SPRING_KAFKA_PROPERTIES_SASL_MECHANISM:-PLAIN}</Property>
+        <Property name="KAFKA_SASL_JAAS_CONFIG">${env:SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG:-}</Property>
         <Property name="SERVICE_NAME">${env:OTEL_SERVICE_NAME:-finance-portal}</Property>
     </Properties>
 
@@ -25,6 +28,9 @@
                 <EventTemplateAdditionalField key="service" value="${SERVICE_NAME}"/>
             </JsonTemplateLayout>
             <Property name="bootstrap.servers">${KAFKA_SERVERS}</Property>
+            <Property name="security.protocol">${KAFKA_SECURITY_PROTOCOL}</Property>
+            <Property name="sasl.mechanism">${KAFKA_SASL_MECHANISM}</Property>
+            <Property name="sasl.jaas.config">${KAFKA_SASL_JAAS_CONFIG}</Property>
             <Property name="max.block.ms">2000</Property>
             <Property name="acks">1</Property>
             <Property name="retries">2</Property>

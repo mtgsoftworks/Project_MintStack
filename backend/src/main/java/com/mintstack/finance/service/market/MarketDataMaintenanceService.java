@@ -1,0 +1,131 @@
+package com.mintstack.finance.service.market;
+
+import com.mintstack.finance.entity.CurrencyRate;
+import com.mintstack.finance.entity.Instrument;
+import com.mintstack.finance.entity.Instrument.InstrumentType;
+import com.mintstack.finance.entity.PriceHistory;
+import com.mintstack.finance.exception.ResourceNotFoundException;
+import com.mintstack.finance.repository.CurrencyRateRepository;
+import com.mintstack.finance.repository.InstrumentRepository;
+import com.mintstack.finance.repository.NewsRepository;
+import com.mintstack.finance.repository.PriceHistoryRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class MarketDataMaintenanceService {
+
+    private final InstrumentRepository instrumentRepository;
+    private final CurrencyRateRepository currencyRateRepository;
+    private final PriceHistoryRepository priceHistoryRepository;
+    private final NewsRepository newsRepository;
+
+    @Transactional
+    public void saveCurrencyRates(List<CurrencyRate> rates) {
+        currencyRateRepository.saveAll(rates);
+        log.info("Saved {} currency rates - cache invalidated", rates.size());
+    }
+
+    @Transactional
+    public void updateInstrumentPrice(String symbol, BigDecimal price) {
+        Instrument instrument = instrumentRepository.findBySymbol(symbol)
+            .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "sembol", symbol));
+
+        instrument.setPreviousClose(instrument.getCurrentPrice());
+        instrument.setCurrentPrice(price);
+        instrumentRepository.save(instrument);
+
+        log.debug("Updated price for {}: {}", symbol, price);
+    }
+
+    @Transactional
+    public void savePriceHistory(PriceHistory priceHistory) {
+        UUID instrumentId = priceHistory.getInstrument().getId();
+        LocalDate priceDate = priceHistory.getPriceDate();
+
+        Optional<PriceHistory> existing = priceHistoryRepository.findByInstrumentIdAndPriceDate(instrumentId, priceDate);
+        if (existing.isPresent()) {
+            PriceHistory current = existing.get();
+            if (priceHistory.getOpenPrice() != null) {
+                current.setOpenPrice(priceHistory.getOpenPrice());
+            }
+            if (priceHistory.getHighPrice() != null) {
+                current.setHighPrice(priceHistory.getHighPrice());
+            }
+            if (priceHistory.getLowPrice() != null) {
+                current.setLowPrice(priceHistory.getLowPrice());
+            }
+            if (priceHistory.getClosePrice() != null) {
+                current.setClosePrice(priceHistory.getClosePrice());
+            }
+            if (priceHistory.getAdjustedClose() != null) {
+                current.setAdjustedClose(priceHistory.getAdjustedClose());
+            }
+            if (priceHistory.getVolume() != null) {
+                current.setVolume(priceHistory.getVolume());
+            }
+            priceHistoryRepository.save(current);
+            return;
+        }
+
+        priceHistoryRepository.save(priceHistory);
+    }
+
+    @Transactional
+    public Map<String, Object> deleteAllMarketData() {
+        long currencyCount = currencyRateRepository.count();
+        long priceHistoryCount = priceHistoryRepository.count();
+        long newsCount = newsRepository.count();
+        InstrumentDeactivationSummary deactivationSummary = deactivateAllRealInstruments();
+
+        currencyRateRepository.deleteAll();
+        priceHistoryRepository.deleteAll();
+        newsRepository.deleteAllInBatch();
+
+        log.info("Deleted all market data: {} currency rates, {} price history records, {} news, {} real instruments deactivated ({} indices)",
+            currencyCount, priceHistoryCount, newsCount, deactivationSummary.total(), deactivationSummary.indices());
+
+        return Map.of(
+            "deletedCurrencyRates", currencyCount,
+            "deletedPriceHistory", priceHistoryCount,
+            "deletedNews", newsCount,
+            "deactivatedRealInstruments", deactivationSummary.total(),
+            "deactivatedIndices", deactivationSummary.indices()
+        );
+    }
+
+    private InstrumentDeactivationSummary deactivateAllRealInstruments() {
+        List<Instrument> activeRealInstruments = instrumentRepository.findAll().stream()
+            .filter(this::isRealInstrument)
+            .filter(instrument -> Boolean.TRUE.equals(instrument.getIsActive()))
+            .collect(Collectors.toList());
+        if (activeRealInstruments.isEmpty()) {
+            return new InstrumentDeactivationSummary(0L, 0L);
+        }
+        long activeIndexCount = activeRealInstruments.stream()
+            .filter(instrument -> instrument.getType() == InstrumentType.INDEX)
+            .count();
+        activeRealInstruments.forEach(instrument -> instrument.setIsActive(false));
+        instrumentRepository.saveAll(activeRealInstruments);
+        return new InstrumentDeactivationSummary(activeRealInstruments.size(), activeIndexCount);
+    }
+
+    private boolean isRealInstrument(Instrument instrument) {
+        return instrument != null && !Boolean.TRUE.equals(instrument.getIsSimulated());
+    }
+
+    private record InstrumentDeactivationSummary(long total, long indices) {
+    }
+}

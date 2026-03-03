@@ -1,16 +1,23 @@
-# MintStack Finance Portal - API Quick Reference
+﻿# API Ozeti
 
-Base URL: `http://localhost:18080/api/v1`  
-Swagger UI: `http://localhost:18080/swagger-ui.html`
+## 1. Erisim Bilgisi
 
-## Authentication
+- Base URL (Gateway): `http://localhost:8088/api/v1`
+- Swagger UI (Gateway): `http://localhost:8088/swagger-ui.html`
+- Kimlik sunucusu: `http://localhost:8180`
 
-- Auth server: Keycloak
-- Protected endpoints require `Authorization: Bearer <token>`
-- Token endpoint example:
-  `POST http://localhost:8180/realms/mintstack-finance/protocol/openid-connect/token`
+## 2. Kimlik Dogrulama
 
-## Public Endpoints
+- Korumali endpointler icin `Authorization: Bearer <token>` gerekir.
+- Token alma ornegi:
+  - `POST /realms/mintstack-finance/protocol/openid-connect/token`
+
+## 3. API Versiyonlama
+
+- URL bazli versiyonlama kullanilir: `/api/v1/...`
+- Aktif versiyon: `v1`
+
+## 4. Public Endpointler
 
 - `GET /market/currencies`
 - `GET /market/currencies/{code}`
@@ -22,59 +29,44 @@ Swagger UI: `http://localhost:18080/swagger-ui.html`
 - `GET /news/latest`
 - `GET /news/categories`
 
-## Authenticated Endpoints
+## 5. Auth Gerektiren Endpointler
 
-- Portfolio: `/portfolios/**`
-- Watchlist: `/watchlist/**`
-- Alerts: `/alerts/**`
-- User profile/preferences/notifications: `/users/**`
-- Data source preferences: `/data-sources/**`
+- Portfoy: `/portfolios/**`
+- Izleme listesi: `/watchlist/**`
+- Alarm: `/alerts/**`
+- Kullanici profil/tercih/bildirim: `/users/**`
+- Veri kaynagi tercihleri: `/data-sources/**`
 
-## Portfolio Trading & Simulation Endpoints
+## 6. Portfoy ve Simulasyon Endpointleri
 
 - `POST /portfolios/{id}/trades`
-  - Creates a simulated trade order.
-  - Request fields:
-    - `instrumentId` or `instrumentSymbol` (one is required)
-    - `transactionType`: `BUY | SELL`
-    - `orderType`: `MARKET | LIMIT | STOP` (default: `MARKET`)
-    - `quantity`
-    - `price` (optional reference for market)
-    - `limitPrice` (required for `LIMIT`)
-    - `stopPrice` (required for `STOP`)
-    - `transactionDate`, `notes` (optional)
+  - Emir olusturur.
+  - Alanlar: `instrumentId|instrumentSymbol`, `transactionType`, `orderType`, `quantity`, `price/limitPrice/stopPrice`.
 
 - `POST /portfolios/{id}/orders/process`
-  - Attempts to fill queued `PENDING` / `PARTIALLY_FILLED` orders.
+  - Bekleyen emirleri kosullara gore islemeye calisir.
 
-- `POST /portfolios/{id}/orders/{orderId}/cancel?reason=...`
-  - Cancels pending order.
+- `POST /portfolios/{id}/orders/{orderId}/cancel`
+  - Bekleyen emri iptal eder.
 
 - `POST /portfolios/{id}/cash`
-  - Simulated cash adjustment.
-  - Request:
-    - `action`: `DEPOSIT | WITHDRAW`
-    - `amount`
-    - `notes` (optional)
+  - Simulasyon nakit hareketi (`DEPOSIT`/`WITHDRAW`).
 
 - `GET /portfolios/{id}/transactions`
-  - Query params:
-    - `page`, `size`
-    - `orderStatus` (optional): `PENDING | PARTIALLY_FILLED | FILLED | CANCELED | REJECTED`
+  - Filtreleme ve sayfalama destekler.
 
 - `GET /portfolios/{id}/summary`
-  - Includes `cashBalance`, `netAssetValue`, `realizedProfitLoss`, `unrealizedProfitLoss`.
+  - Nakit, net varlik, gerceklesen/gerceklesmemis PnL alanlarini doner.
 
-## Admin Endpoints
+## 7. Admin Endpointleri
 
-- Admin dashboard/users: `/admin/**`
-- Simulation controls: `/simulation/**`
+- Dashboard ve kullanici yonetimi: `/admin/**`
+- Simulasyon kontrolu: `/simulation/**`
 
-## WebSocket
+## 8. WebSocket
 
-- Endpoint: `ws://localhost:18080/ws` (SockJS/STOMP)
-- JWT is required on STOMP CONNECT headers:
-  - `Authorization: Bearer <token>`
-- Example topics:
+- Endpoint: `ws://localhost:8088/ws`
+- STOMP connect header: `Authorization: Bearer <token>`
+- Ornek topicler:
   - `/topic/prices/currency`
   - `/topic/prices/stocks/{symbol}`
