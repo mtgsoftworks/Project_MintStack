@@ -1,13 +1,14 @@
+import { useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Calendar, Clock, Eye, ExternalLink, Share2 } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Calendar, Clock, Eye, ExternalLink, Share2 } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { formatDateTime, formatRelativeTime } from '@/lib/utils'
+import { getNewsDisplayTitle, getNewsSourceLabel, isSimulationNews } from '@/lib/news'
 import { useGetNewsByIdQuery, useIncrementViewCountMutation } from '@/store/api/newsApi'
-import { useEffect } from 'react'
 
 export default function NewsDetailPage() {
   const { id } = useParams()
@@ -21,24 +22,26 @@ export default function NewsDetailPage() {
   }, [id, incrementViewCount])
 
   const categoryLabel = news?.category?.name || news?.categoryName
+  const simulationNews = isSimulationNews(news)
+  const displayTitle = getNewsDisplayTitle(news)
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="mx-auto max-w-4xl space-y-6">
         <Skeleton className="h-8 w-48" />
         <Card>
           <Skeleton className="aspect-video" />
           <CardHeader>
             <Skeleton className="h-8 w-full" />
             <Skeleton className="h-8 w-3/4" />
-            <div className="flex gap-4 mt-4">
+            <div className="mt-4 flex gap-4">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-4 w-24" />
             </div>
           </CardHeader>
           <CardContent>
-            <Skeleton className="h-4 w-full mb-2" />
-            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="mb-2 h-4 w-full" />
+            <Skeleton className="mb-2 h-4 w-full" />
             <Skeleton className="h-4 w-3/4" />
           </CardContent>
         </Card>
@@ -48,14 +51,14 @@ export default function NewsDetailPage() {
 
   if (error || !news) {
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="mx-auto max-w-4xl">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="text-muted-foreground mb-4">Haber bulunamadı.</p>
+            <p className="mb-4 text-muted-foreground">Haber bulunamadi.</p>
             <Button asChild>
               <Link to="/news">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Haberlere Dön
+                Haberlere Don
               </Link>
             </Button>
           </CardContent>
@@ -65,42 +68,31 @@ export default function NewsDetailPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in">
-      {/* Back Button */}
+    <div className="mx-auto max-w-4xl space-y-6 animate-in">
       <Button variant="ghost" asChild>
         <Link to="/news">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Haberlere Dön
+          Haberlere Don
         </Link>
       </Button>
 
-      {/* News Article */}
-      <Card>
+      <Card className={simulationNews ? 'border-warning/50 bg-warning/5' : ''}>
         {news.imageUrl && (
           <div className="aspect-video overflow-hidden rounded-t-xl">
-            <img
-              src={news.imageUrl}
-              alt={news.title}
-              className="h-full w-full object-cover"
-            />
+            <img src={news.imageUrl} alt={news.title} className="h-full w-full object-cover" />
           </div>
         )}
-        
-        <CardHeader className="space-y-4">
-          <div className="flex items-center gap-2 flex-wrap">
-            {categoryLabel && (
-              <Badge variant="secondary">{categoryLabel}</Badge>
-            )}
-            {news.isFeatured && (
-              <Badge variant="info">Öne Çıkan</Badge>
-            )}
-          </div>
-          
-          <h1 className="text-2xl md:text-3xl font-bold leading-tight">
-            {news.title}
-          </h1>
 
-          <div className="flex items-center flex-wrap gap-4 text-sm text-muted-foreground">
+        <CardHeader className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            {categoryLabel && <Badge variant="secondary">{categoryLabel}</Badge>}
+            {news.isFeatured && <Badge variant="info">One Cikan</Badge>}
+            {simulationNews && <Badge variant="warning">Simulasyon Haberi</Badge>}
+          </div>
+
+          <h1 className="text-2xl font-bold leading-tight md:text-3xl">{displayTitle}</h1>
+
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Calendar className="h-4 w-4" />
               {formatDateTime(news.publishedAt)}
@@ -111,26 +103,37 @@ export default function NewsDetailPage() {
             </span>
             <span className="flex items-center gap-1">
               <Eye className="h-4 w-4" />
-              {news.viewCount} görüntülenme
+              {news.viewCount} goruntulenme
             </span>
           </div>
 
+          {simulationNews && (
+            <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning-dark">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <p className="font-semibold">Simulasyon haberi</p>
+                <p>Bu icerik simulasyon ortami tarafindan uretilmistir. Gercek haber kaynagi degildir.</p>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between pt-2">
-            <span className="text-sm font-medium">
-              Kaynak: {news.sourceName}
+            <span className={`text-sm font-medium ${simulationNews ? 'text-warning-dark' : ''}`}>
+              Kaynak: {getNewsSourceLabel(news)}
             </span>
             <div className="flex items-center gap-2">
-              {news.sourceUrl && (
+              {news.sourceUrl && !simulationNews && (
                 <Button variant="outline" size="sm" asChild>
                   <a href={news.sourceUrl} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="mr-2 h-4 w-4" />
-                    Kaynağa Git
+                    Kaynaga Git
                   </a>
                 </Button>
               )}
+              {simulationNews && <span className="text-xs text-warning-dark">Gercek dis kaynak linki yoktur.</span>}
               <Button variant="outline" size="sm">
                 <Share2 className="mr-2 h-4 w-4" />
-                Paylaş
+                Paylas
               </Button>
             </div>
           </div>
@@ -139,21 +142,12 @@ export default function NewsDetailPage() {
         <Separator />
 
         <CardContent className="pt-6">
-          {news.summary && (
-            <p className="text-lg text-muted-foreground mb-6 font-medium">
-              {news.summary}
-            </p>
-          )}
-          
+          {news.summary && <p className="mb-6 text-lg font-medium text-muted-foreground">{news.summary}</p>}
+
           {news.content ? (
-            <div 
-              className="prose prose-neutral dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: news.content }}
-            />
+            <div className="prose prose-neutral max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: news.content }} />
           ) : (
-            <p className="text-muted-foreground">
-              İçerik mevcut değil. Daha fazla bilgi için kaynağa göz atın.
-            </p>
+            <p className="text-muted-foreground">Icerik mevcut degil. Daha fazla bilgi icin kaynaga goz atin.</p>
           )}
         </CardContent>
       </Card>

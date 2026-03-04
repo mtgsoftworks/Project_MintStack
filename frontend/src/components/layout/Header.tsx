@@ -32,10 +32,12 @@ import {
   selectTheme,
   toggleTheme,
 } from '@/store/slices/uiSlice'
-import { selectUser, selectIsAuthenticated } from '@/store/slices/authSlice'
+import { logout, selectUser, selectIsAuthenticated } from '@/store/slices/authSlice'
 import { getInitials } from '@/lib/utils'
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher'
 import { useGetNotificationsQuery } from '@/store/api/userApi'
+import websocketService from '@/services/websocketService'
+import { baseApi } from '@/store/api/baseApi'
 
 export function Header() {
   const dispatch = useDispatch()
@@ -60,11 +62,26 @@ export function Header() {
     return notifications.filter(n => !n.isRead).length
   }, [notifications])
 
-  const handleLogout = () => {
-    // Keycloak logout
-    if (window.keycloak) {
-      window.keycloak.logout({ redirectUri: window.location.origin })
+  const clearLocalSession = () => {
+    websocketService.disconnect()
+    dispatch(baseApi.util.resetApiState())
+    dispatch(logout())
+  }
+
+  const handleLogout = async () => {
+    const redirectUri = `${window.location.origin}/login`
+    clearLocalSession()
+
+    try {
+      if (window.keycloak?.logout) {
+        await window.keycloak.logout({ redirectUri })
+        return
+      }
+    } catch (error) {
+      console.error('Logout failed:', error)
     }
+
+    navigate('/login', { replace: true })
   }
 
   const handleSearchSubmit = (event) => {

@@ -182,10 +182,6 @@ export function PortfolioTradeDialog({
       toast.error('Sembol zorunludur')
       return
     }
-    if (!selectedInstrumentId && instruments.length > 0) {
-      toast.error('Listeden gecerli bir varlik secin')
-      return
-    }
 
     const parsedPrice = price !== '' ? parseFloat(price) : undefined
     if (parsedPrice != null && (!Number.isFinite(parsedPrice) || parsedPrice <= 0)) {
@@ -216,12 +212,13 @@ export function PortfolioTradeDialog({
     }
 
     const selectedInstrument = selectedInstrumentId ? instrumentById.get(selectedInstrumentId) : null
+    const resolvedInstrumentId = selectedInstrument?.id ?? selectedInstrumentId ?? null
 
     try {
       await executeTrade({
         portfolioId,
-        instrumentId: selectedInstrument?.id,
-        instrumentSymbol: selectedInstrument ? undefined : resolvedSymbol,
+        instrumentId: resolvedInstrumentId || undefined,
+        instrumentSymbol: resolvedInstrumentId ? undefined : resolvedSymbol,
         transactionType: mode,
         orderType,
         quantity: parsedQuantity,

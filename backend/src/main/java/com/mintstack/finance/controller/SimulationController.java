@@ -113,6 +113,9 @@ public class SimulationController {
         status.put("enableRandomEvents", config.getEnableRandomEvents());
         status.put("tickCount", simulationScheduler.getTickCount());
         status.put("stockCount", simulationDataService.getStocks().size());
+        status.put("bondCount", simulationDataService.getBonds().size());
+        status.put("fundCount", simulationDataService.getFunds().size());
+        status.put("viopCount", simulationDataService.getViop().size());
         status.put("currencyCount", simulationDataService.getCurrencies().size());
         status.put("indexCount", simulationDataService.getIndices().size());
         status.put("cryptoCount", simulationDataService.getCryptos().size());

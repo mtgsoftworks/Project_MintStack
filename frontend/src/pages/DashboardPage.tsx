@@ -1,4 +1,4 @@
-import {
+﻿import {
   TrendingUp,
   TrendingDown,
   DollarSign,
@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn, formatCurrency, formatPercent, formatRelativeTime } from '@/lib/utils'
+import { getNewsDisplayTitle, getNewsSourceLabel, isSimulationNews } from '@/lib/news'
 import { useGetCurrenciesQuery, useGetStocksQuery, useGetMarketIndexQuery } from '@/store/api/marketApi'
 import { useGetNewsQuery } from '@/store/api/newsApi'
 import { useGetPortfoliosQuery } from '@/store/api/portfolioApi'
@@ -164,24 +165,33 @@ function NewsWidget() {
           </div>
         ) : (
           <div className="space-y-4">
-            {news.map((item) => (
-              <Link
-                key={item.id}
-                to={`/news/${item.id}`}
-                className="block group"
-              >
-                <div className="space-y-1">
-                  <p className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-2">
-                    {item.title}
-                  </p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{item.sourceName}</span>
-                    <span>•</span>
-                    <span>{formatRelativeTime(item.publishedAt)}</span>
+            {news.map((item) => {
+              const simulationNews = isSimulationNews(item)
+              return (
+                <Link
+                  key={item.id}
+                  to={`/news/${item.id}`}
+                  className="block group"
+                >
+                  <div className={cn('space-y-1 rounded-md p-2 -mx-2', simulationNews && 'border border-warning/30 bg-warning/10')}>
+                    <p
+                      className={cn(
+                        'text-sm font-medium group-hover:text-primary transition-colors line-clamp-2',
+                        simulationNews && 'text-warning-dark'
+                      )}
+                    >
+                      {getNewsDisplayTitle(item)}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{getNewsSourceLabel(item)}</span>
+                      {simulationNews && <Badge variant="warning">Simulasyon</Badge>}
+                      <span>•</span>
+                      <span>{formatRelativeTime(item.publishedAt)}</span>
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              )
+            })}
           </div>
         )}
       </CardContent>
@@ -394,3 +404,6 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+
+

@@ -19,6 +19,7 @@ import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PortfolioItemRepository;
 import com.mintstack.finance.repository.PortfolioRepository;
 import com.mintstack.finance.repository.PortfolioTransactionRepository;
+import com.mintstack.finance.service.simulation.SimulationDataService;
 import com.mintstack.finance.service.portfolio.PortfolioFinancialRulesService;
 import com.mintstack.finance.service.portfolio.PortfolioOrderExecutionService;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +55,7 @@ public class PortfolioService {
     private final InstrumentRepository instrumentRepository;
     private final PortfolioTransactionRepository portfolioTransactionRepository;
     private final UserService userService;
+    private final SimulationDataService simulationDataService;
     private final PortfolioFinancialRulesService financialRulesService;
     private final PortfolioOrderExecutionService orderExecutionService;
 
@@ -526,7 +528,14 @@ public class PortfolioService {
 
         if (instrumentSymbol != null && !instrumentSymbol.isBlank()) {
             String symbol = instrumentSymbol.trim().toUpperCase();
+            boolean simulationEnabled = simulationDataService.isSimulationEnabled();
+            if (simulationEnabled) {
+                return instrumentRepository.findBySymbolAndIsSimulated(symbol, true)
+                    .or(() -> instrumentRepository.findBySymbol(symbol))
+                    .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "symbol", symbol));
+            }
             return instrumentRepository.findBySymbol(symbol)
+                .or(() -> instrumentRepository.findBySymbolAndIsSimulated(symbol, true))
                 .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "symbol", symbol));
         }
         throw new BadRequestException("Enstrüman ID veya sembolü zorunludur");

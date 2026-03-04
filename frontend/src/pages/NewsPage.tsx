@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatRelativeTime } from '@/lib/utils'
+import { getNewsDisplayTitle, getNewsSourceLabel, isSimulationNews } from '@/lib/news'
 import {
   useGetNewsByCategoryQuery,
   useGetNewsCategoriesQuery,
@@ -17,10 +18,12 @@ import {
 
 function NewsCard({ news }) {
   const categoryLabel = news?.category?.name || news?.categoryName
+  const simulationNews = isSimulationNews(news)
+  const displayTitle = getNewsDisplayTitle(news)
 
   return (
     <Link to={`/news/${news.id}`}>
-      <Card className="card-hover h-full">
+      <Card className={`card-hover h-full ${simulationNews ? 'border-warning/50 bg-warning/5' : ''}`}>
         {news.imageUrl && (
           <div className="aspect-video overflow-hidden rounded-t-xl">
             <img
@@ -31,7 +34,7 @@ function NewsCard({ news }) {
           </div>
         )}
         <CardHeader className="pb-2">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="mb-2 flex items-center gap-2">
             {categoryLabel && (
               <Badge variant="secondary" className="text-xs">
                 {categoryLabel}
@@ -39,18 +42,21 @@ function NewsCard({ news }) {
             )}
             {news.isFeatured && (
               <Badge variant="info" className="text-xs">
-                Öne Çıkan
+                One Cikan
+              </Badge>
+            )}
+            {simulationNews && (
+              <Badge variant="warning" className="text-xs">
+                Simulasyon Haberi
               </Badge>
             )}
           </div>
-          <CardTitle className="text-base font-semibold line-clamp-2 group-hover:text-primary transition-colors">
-            {news.title}
+          <CardTitle className="line-clamp-2 text-base font-semibold transition-colors group-hover:text-primary">
+            {displayTitle}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-            {news.summary}
-          </p>
+          <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">{news.summary}</p>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1">
@@ -62,7 +68,7 @@ function NewsCard({ news }) {
                 {news.viewCount}
               </span>
             </div>
-            <span>{news.sourceName}</span>
+            <span className={simulationNews ? 'font-semibold text-warning-dark' : ''}>{getNewsSourceLabel(news)}</span>
           </div>
         </CardContent>
       </Card>
@@ -75,13 +81,13 @@ function NewsCardSkeleton() {
     <Card>
       <Skeleton className="aspect-video rounded-t-xl" />
       <CardHeader className="pb-2">
-        <Skeleton className="h-4 w-20 mb-2" />
+        <Skeleton className="mb-2 h-4 w-20" />
         <Skeleton className="h-5 w-full" />
         <Skeleton className="h-5 w-3/4" />
       </CardHeader>
       <CardContent>
-        <Skeleton className="h-4 w-full mb-2" />
-        <Skeleton className="h-4 w-2/3 mb-4" />
+        <Skeleton className="mb-2 h-4 w-full" />
+        <Skeleton className="mb-4 h-4 w-2/3" />
         <div className="flex justify-between">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-3 w-16" />
@@ -106,19 +112,13 @@ export default function NewsPage() {
     data: searchData,
     isLoading: searchLoading,
     isFetching: searchFetching,
-  } = useSearchNewsQuery(
-    { query: trimmedSearch, page, size: 12 },
-    { skip: !isSearching }
-  )
+  } = useSearchNewsQuery({ query: trimmedSearch, page, size: 12 }, { skip: !isSearching })
 
   const {
     data: categoryData,
     isLoading: categoryLoading,
     isFetching: categoryFetching,
-  } = useGetNewsByCategoryQuery(
-    { categorySlug: category, page, size: 12 },
-    { skip: isSearching || !isCategoryFiltered }
-  )
+  } = useGetNewsByCategoryQuery({ categorySlug: category, page, size: 12 }, { skip: isSearching || !isCategoryFiltered })
 
   const {
     data: allNewsData,
@@ -134,16 +134,8 @@ export default function NewsPage() {
   )
 
   const data = isSearching ? searchData : isCategoryFiltered ? categoryData : allNewsData
-  const isLoading = isSearching
-    ? searchLoading
-    : isCategoryFiltered
-      ? categoryLoading
-      : allNewsLoading
-  const isFetching = isSearching
-    ? searchFetching
-    : isCategoryFiltered
-      ? categoryFetching
-      : allNewsFetching
+  const isLoading = isSearching ? searchLoading : isCategoryFiltered ? categoryLoading : allNewsLoading
+  const isFetching = isSearching ? searchFetching : isCategoryFiltered ? categoryFetching : allNewsFetching
 
   useEffect(() => {
     setPage(0)
@@ -155,13 +147,10 @@ export default function NewsPage() {
 
   return (
     <div className="space-y-6 animate-in">
-      {/* Page Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Haberler</h1>
-          <p className="text-muted-foreground">
-            Güncel finans ve ekonomi haberleri
-          </p>
+          <p className="text-muted-foreground">Guncel finans ve ekonomi haberleri</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -170,16 +159,21 @@ export default function NewsPage() {
               placeholder="Haberlerde ara..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 w-64"
+              className="w-64 pl-9"
             />
           </div>
         </div>
       </div>
 
-      {/* Category Tabs */}
-      <Tabs value={category} onValueChange={(value) => { setCategory(value); setPage(0); }}>
+      <Tabs
+        value={category}
+        onValueChange={(value) => {
+          setCategory(value)
+          setPage(0)
+        }}
+      >
         <TabsList className="w-full justify-start overflow-x-auto">
-          <TabsTrigger value="all">Tümü</TabsTrigger>
+          <TabsTrigger value="all">Tumu</TabsTrigger>
           {categoriesLoading ? (
             <Skeleton className="h-8 w-24" />
           ) : (
@@ -201,7 +195,7 @@ export default function NewsPage() {
           ) : news.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <p className="text-muted-foreground">Bu kategoride haber bulunamadı.</p>
+                <p className="text-muted-foreground">Bu kategoride haber bulunamadi.</p>
               </CardContent>
             </Card>
           ) : (
@@ -212,17 +206,16 @@ export default function NewsPage() {
                 ))}
               </div>
 
-              {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-8">
+                <div className="mt-8 flex items-center justify-center gap-2">
                   <Button
                     variant="outline"
                     onClick={() => setPage((p) => Math.max(0, p - 1))}
                     disabled={page === 0 || isFetching}
                   >
-                    Önceki
+                    Onceki
                   </Button>
-                  <span className="text-sm text-muted-foreground px-4">
+                  <span className="px-4 text-sm text-muted-foreground">
                     Sayfa {page + 1} / {totalPages}
                   </span>
                   <Button

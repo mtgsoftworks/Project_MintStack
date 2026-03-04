@@ -35,6 +35,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -234,6 +235,25 @@ class MarketDataServiceTest {
     }
 
     @Test
+    @DisplayName("getInstrumentsByType with pagination should fallback to simulation cache for stocks when DB is empty")
+    void getInstrumentsByType_WithPagination_ShouldFallbackToSimulationCacheForStocks() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Instrument> emptyPage = new PageImpl<>(List.of(), pageable, 0);
+        SimulatedStock simulatedStock = new SimulatedStock("Turk Hava Yollari", "BIST", 285.50, 0.025, "HAVACILIK");
+
+        when(simulationDataService.isSimulationEnabled()).thenReturn(true);
+        when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType.STOCK, true, pageable))
+            .thenReturn(emptyPage);
+        when(simulationDataService.getStocks()).thenReturn(Map.of("THYAO", simulatedStock));
+
+        Page<InstrumentResponse> result = marketDataService.getInstrumentsByType(InstrumentType.STOCK, pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent().get(0).getSymbol()).isEqualTo("THYAO");
+    }
+
+    @Test
     @DisplayName("getInstrument should return instrument by symbol")
     void getInstrument_ShouldReturnInstrumentBySymbol() {
         when(instrumentRepository.findBySymbolAndIsSimulated("THYAO", false))
@@ -256,6 +276,24 @@ class MarketDataServiceTest {
 
         assertThatThrownBy(() -> marketDataService.getInstrument("INVALID"))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("getInstrument should fallback to simulation cache when simulation DB row does not exist")
+    void getInstrument_ShouldFallbackToSimulationCache_WhenSimulationDbRowMissing() {
+        SimulatedStock simulatedStock = new SimulatedStock("Turk Hava Yollari", "BIST", 285.50, 0.025, "HAVACILIK");
+
+        when(simulationDataService.isSimulationEnabled()).thenReturn(true);
+        when(instrumentRepository.findBySymbolAndIsSimulated("THYAO", true)).thenReturn(Optional.empty());
+        when(instrumentRepository.findBySymbol("THYAO")).thenReturn(Optional.empty());
+        when(simulationDataService.getStock("THYAO")).thenReturn(simulatedStock);
+
+        InstrumentResponse result = marketDataService.getInstrument("THYAO");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getSymbol()).isEqualTo("THYAO");
+        assertThat(result.getType()).isEqualTo(InstrumentType.STOCK);
+        assertThat(result.getCurrentPrice()).isEqualByComparingTo("285.5");
     }
 
     @Test
@@ -298,6 +336,29 @@ class MarketDataServiceTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getSymbol()).isEqualTo("TRT120128T11");
+        assertThat(result.get(0).getType()).isEqualTo(InstrumentType.BOND);
+    }
+
+    @Test
+    @DisplayName("getInstrumentsByType should return simulated bonds from cache when simulation DB is empty")
+    void getInstrumentsByType_ShouldReturnSimulatedBondsFromCache_WhenSimulationDbEmpty() {
+        SimulatedStock simulatedBond = new SimulatedStock(
+            "Devlet Tahvili 2027",
+            "BIST",
+            98.20,
+            0.006,
+            "TAHVIL"
+        );
+
+        when(simulationDataService.isSimulationEnabled()).thenReturn(true);
+        when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType.BOND, true))
+            .thenReturn(List.of());
+        when(simulationDataService.getBonds()).thenReturn(Map.of("TRT150127T14", simulatedBond));
+
+        List<InstrumentResponse> result = marketDataService.getInstrumentsByType(InstrumentType.BOND);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getSymbol()).isEqualTo("TRT150127T14");
         assertThat(result.get(0).getType()).isEqualTo(InstrumentType.BOND);
     }
 

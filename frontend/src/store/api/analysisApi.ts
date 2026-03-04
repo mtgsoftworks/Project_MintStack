@@ -1,5 +1,13 @@
 import { baseApi } from './baseApi'
 
+const daysMap = { '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365 }
+
+const transformIndicatorResponse = (response) => ({
+  success: response?.success ?? false,
+  message: response?.message || '',
+  data: response?.data ?? null,
+})
+
 export const analysisApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // Get moving average analysis
@@ -14,8 +22,6 @@ export const analysisApi = baseApi.injectEndpoints({
     // Get trend analysis
     getTrendAnalysis: builder.query({
       query: ({ symbol, period = '1M' }) => {
-        // Convert period string to days
-        const daysMap = { '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365 }
         const days = daysMap[period] || 30
         return {
           url: `/analysis/trend/${symbol}`,
@@ -28,7 +34,6 @@ export const analysisApi = baseApi.injectEndpoints({
     // Get comparison data for multiple symbols
     getComparison: builder.query({
       query: ({ symbols, period = '1M' }) => {
-        const daysMap = { '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365 }
         const days = daysMap[period] || 30
         const endDate = new Date()
         const startDate = new Date(endDate)
@@ -49,31 +54,43 @@ export const analysisApi = baseApi.injectEndpoints({
       transformResponse: (response) => response.data?.instruments || [],
     }),
 
-    // Get technical indicators
-    getTechnicalIndicators: builder.query({
-      query: ({ symbol, indicators = ['RSI', 'MACD'] }) => ({
-        url: `/analysis/indicators/${symbol}`,
-        params: { indicators: indicators.join(',') },
-      }),
-      transformResponse: (response) => response.data,
-    }),
-
-    // Get volatility analysis
-    getVolatility: builder.query({
-      query: ({ symbol, period = '1M' }) => ({
-        url: `/analysis/volatility/${symbol}`,
+    getRsi: builder.query({
+      query: ({ symbol, period = 14 }) => ({
+        url: `/indicators/rsi/${symbol}`,
         params: { period },
       }),
-      transformResponse: (response) => response.data,
+      transformResponse: transformIndicatorResponse,
     }),
 
-    // Get correlation matrix
-    getCorrelation: builder.query({
-      query: ({ symbols, period = '1M' }) => ({
-        url: '/analysis/correlation',
-        params: { symbols: symbols.join(','), period },
+    getMacd: builder.query({
+      query: ({ symbol, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9 }) => ({
+        url: `/indicators/macd/${symbol}`,
+        params: { fastPeriod, slowPeriod, signalPeriod },
       }),
-      transformResponse: (response) => response.data,
+      transformResponse: transformIndicatorResponse,
+    }),
+
+    getBollingerBands: builder.query({
+      query: ({ symbol, period = 20, stdDev = 2.0 }) => ({
+        url: `/indicators/bollinger/${symbol}`,
+        params: { period, stdDev },
+      }),
+      transformResponse: transformIndicatorResponse,
+    }),
+
+    getStochastic: builder.query({
+      query: ({ symbol, kPeriod = 14, dPeriod = 3 }) => ({
+        url: `/indicators/stochastic/${symbol}`,
+        params: { kPeriod, dPeriod },
+      }),
+      transformResponse: transformIndicatorResponse,
+    }),
+
+    getAllTechnicalIndicators: builder.query({
+      query: ({ symbol }) => ({
+        url: `/indicators/all/${symbol}`,
+      }),
+      transformResponse: transformIndicatorResponse,
     }),
   }),
 })
@@ -82,7 +99,9 @@ export const {
   useGetMovingAverageQuery,
   useGetTrendAnalysisQuery,
   useGetComparisonQuery,
-  useGetTechnicalIndicatorsQuery,
-  useGetVolatilityQuery,
-  useGetCorrelationQuery,
+  useGetRsiQuery,
+  useGetMacdQuery,
+  useGetBollingerBandsQuery,
+  useGetStochasticQuery,
+  useGetAllTechnicalIndicatorsQuery,
 } = analysisApi

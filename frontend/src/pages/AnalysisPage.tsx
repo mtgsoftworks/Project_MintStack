@@ -10,11 +10,65 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import PriceChart from '@/components/charts/PriceChart'
 import { cn, formatCurrency, formatPercent } from '@/lib/utils'
 import {
+  useGetAllTechnicalIndicatorsQuery,
+  useGetBollingerBandsQuery,
   useGetComparisonQuery,
+  useGetMacdQuery,
   useGetMovingAverageQuery,
+  useGetRsiQuery,
+  useGetStochasticQuery,
   useGetTrendAnalysisQuery,
 } from '@/store/api/analysisApi'
 import { useGetStocksQuery } from '@/store/api/marketApi'
+
+const formatNumber = (value, digits = 2) => {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) {
+    return '-'
+  }
+  return numeric.toFixed(digits)
+}
+
+const getRsiStatus = (rsi) => {
+  if (!Number.isFinite(Number(rsi))) {
+    return { label: 'Veri Yok', variant: 'secondary' }
+  }
+  if (rsi < 30) {
+    return { label: 'Asiri Satim', variant: 'success' }
+  }
+  if (rsi > 70) {
+    return { label: 'Asiri Alim', variant: 'danger' }
+  }
+  return { label: 'Notr', variant: 'secondary' }
+}
+
+const getSignalBadge = (signal) => {
+  switch (signal) {
+    case 'BUY':
+    case 'BULLISH':
+      return { label: 'AL', variant: 'success' }
+    case 'SELL':
+    case 'BEARISH':
+      return { label: 'SAT', variant: 'danger' }
+    default:
+      return { label: signal || 'BEKLE', variant: 'secondary' }
+  }
+}
+
+const getStochasticSignal = (signal) => {
+  switch (signal) {
+    case 'OVERSOLD':
+      return { label: 'Asiri Satim', variant: 'success' }
+    case 'OVERBOUGHT':
+      return { label: 'Asiri Alim', variant: 'danger' }
+    case 'BULLISH':
+      return { label: 'Yukselis', variant: 'success' }
+    case 'BEARISH':
+      return { label: 'Dusus', variant: 'danger' }
+    default:
+      return { label: 'Notr', variant: 'secondary' }
+  }
+}
 
 export default function AnalysisPage() {
   const [symbol, setSymbol] = useState('')
@@ -22,6 +76,11 @@ export default function AnalysisPage() {
   const [maType, setMaType] = useState('SMA')
   const [maPeriod, setMaPeriod] = useState('20')
   const [compareInput, setCompareInput] = useState('')
+  const [rsiPeriod, setRsiPeriod] = useState('14')
+  const [bollingerPeriod, setBollingerPeriod] = useState('20')
+  const [bollingerStdDev, setBollingerStdDev] = useState('2.0')
+  const [stochasticKPeriod, setStochasticKPeriod] = useState('14')
+  const [stochasticDPeriod, setStochasticDPeriod] = useState('3')
 
   const {
     data: stocksResponse,
@@ -96,6 +155,50 @@ export default function AnalysisPage() {
     }
   )
 
+  const { data: allIndicatorsData, isLoading: allIndicatorsLoading, refetch: refetchAllIndicators } =
+    useGetAllTechnicalIndicatorsQuery(
+      {
+        symbol,
+      },
+      { skip: !symbol }
+    )
+
+  const { data: rsiData, isLoading: rsiLoading, refetch: refetchRsi } = useGetRsiQuery(
+    {
+      symbol,
+      period: Number.parseInt(rsiPeriod, 10),
+    },
+    { skip: !symbol }
+  )
+
+  const { data: macdData, isLoading: macdLoading, refetch: refetchMacd } = useGetMacdQuery(
+    {
+      symbol,
+      fastPeriod: 12,
+      slowPeriod: 26,
+      signalPeriod: 9,
+    },
+    { skip: !symbol }
+  )
+
+  const { data: bollingerData, isLoading: bollingerLoading, refetch: refetchBollinger } = useGetBollingerBandsQuery(
+    {
+      symbol,
+      period: Number.parseInt(bollingerPeriod, 10),
+      stdDev: Number.parseFloat(bollingerStdDev),
+    },
+    { skip: !symbol }
+  )
+
+  const { data: stochasticData, isLoading: stochasticLoading, refetch: refetchStochastic } = useGetStochasticQuery(
+    {
+      symbol,
+      kPeriod: Number.parseInt(stochasticKPeriod, 10),
+      dPeriod: Number.parseInt(stochasticDPeriod, 10),
+    },
+    { skip: !symbol }
+  )
+
   const trendDirection =
     trendData?.trend === 'UPTREND' ? 'UP' : trendData?.trend === 'DOWNTREND' ? 'DOWN' : 'SIDEWAYS'
 
@@ -119,10 +222,19 @@ export default function AnalysisPage() {
     })
     .filter(Boolean)
 
+  const overallSignal = getSignalBadge(allIndicatorsData?.data?.overallSignal)
+  const rsiStatus = getRsiStatus(rsiData?.data)
+  const stochasticSignal = getStochasticSignal(stochasticData?.data?.signal)
+
   const handleRefreshAll = () => {
     refetchStocks()
     refetchMa()
     refetchTrend()
+    refetchRsi()
+    refetchMacd()
+    refetchBollinger()
+    refetchStochastic()
+    refetchAllIndicators()
     if (compareSymbols.length >= 2) {
       refetchComparison()
     }
@@ -133,7 +245,7 @@ export default function AnalysisPage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Teknik Analiz</h1>
-          <p className="text-muted-foreground">Hareketli ortalama, trend ve karsilastirma</p>
+          <p className="text-muted-foreground">MA, trend, RSI, MACD, Bollinger, Stochastic ve karsilastirma</p>
         </div>
         <div className="flex items-center gap-2">
           <Input
@@ -166,10 +278,34 @@ export default function AnalysisPage() {
         </div>
       </div>
 
+      <Card className="border-dashed">
+        <CardHeader>
+          <CardTitle>Genel Teknik Sinyal</CardTitle>
+          <CardDescription>{symbol || '-'} icin tum indikatorlerin birlesik yorumu</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {allIndicatorsLoading ? (
+            <Skeleton className="h-16" />
+          ) : (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Toplam Sinyal</p>
+                <p className="text-sm text-muted-foreground">{allIndicatorsData?.message || 'Analiz bilgisi hazir'}</p>
+              </div>
+              <Badge variant={overallSignal.variant}>{overallSignal.label}</Badge>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="ma" className="space-y-6">
-        <TabsList>
+        <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="ma">Hareketli Ortalama</TabsTrigger>
           <TabsTrigger value="trend">Trend Analizi</TabsTrigger>
+          <TabsTrigger value="rsi">RSI</TabsTrigger>
+          <TabsTrigger value="macd">MACD</TabsTrigger>
+          <TabsTrigger value="bollinger">Bollinger</TabsTrigger>
+          <TabsTrigger value="stochastic">Stochastic</TabsTrigger>
           <TabsTrigger value="compare">Karsilastirma</TabsTrigger>
         </TabsList>
 
@@ -217,9 +353,7 @@ export default function AnalysisPage() {
               <CardContent className="space-y-4">
                 <div className="flex justify-between border-b py-2">
                   <span className="text-muted-foreground">Son Fiyat</span>
-                  <span className="font-semibold">
-                    {maData ? formatCurrency(maData.currentPrice, 'TRY') : '-'}
-                  </span>
+                  <span className="font-semibold">{maData ? formatCurrency(maData.currentPrice, 'TRY') : '-'}</span>
                 </div>
                 <div className="flex justify-between border-b py-2">
                   <span className="text-muted-foreground">{maType}</span>
@@ -271,15 +405,11 @@ export default function AnalysisPage() {
                 </div>
                 <div className="flex justify-between border-b py-2">
                   <span className="text-muted-foreground">Destek</span>
-                  <span className="font-semibold">
-                    {trendData ? formatCurrency(trendData.support, 'TRY') : '-'}
-                  </span>
+                  <span className="font-semibold">{trendData ? formatCurrency(trendData.support, 'TRY') : '-'}</span>
                 </div>
                 <div className="flex justify-between border-b py-2">
                   <span className="text-muted-foreground">Direnc</span>
-                  <span className="font-semibold">
-                    {trendData ? formatCurrency(trendData.resistance, 'TRY') : '-'}
-                  </span>
+                  <span className="font-semibold">{trendData ? formatCurrency(trendData.resistance, 'TRY') : '-'}</span>
                 </div>
                 <div className="flex justify-between py-2">
                   <span className="text-muted-foreground">Guc</span>
@@ -288,6 +418,194 @@ export default function AnalysisPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="rsi" className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <CardTitle>{symbol} - RSI</CardTitle>
+                <CardDescription>Relative Strength Index (0-100)</CardDescription>
+              </div>
+              <Select value={rsiPeriod} onValueChange={setRsiPeriod}>
+                <SelectTrigger className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">7 Gun</SelectItem>
+                  <SelectItem value="14">14 Gun</SelectItem>
+                  <SelectItem value="21">21 Gun</SelectItem>
+                </SelectContent>
+              </Select>
+            </CardHeader>
+            <CardContent>
+              {rsiLoading ? (
+                <Skeleton className="h-28" />
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">RSI Degeri</p>
+                      <p className="text-4xl font-bold">{formatNumber(rsiData?.data)}</p>
+                    </div>
+                    <Badge variant={rsiStatus.variant}>{rsiStatus.label}</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{rsiData?.message || 'RSI yorumu hazir'}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="macd" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>{symbol} - MACD</CardTitle>
+              <CardDescription>12-26-9 standart ayarlari ile momentum analizi</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {macdLoading ? (
+                <Skeleton className="h-36" />
+              ) : (
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="rounded-lg border p-4">
+                    <p className="text-xs text-muted-foreground">MACD Line</p>
+                    <p className="text-2xl font-semibold">{formatNumber(macdData?.data?.macdLine, 4)}</p>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <p className="text-xs text-muted-foreground">Signal Line</p>
+                    <p className="text-2xl font-semibold">{formatNumber(macdData?.data?.signalLine, 4)}</p>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <p className="text-xs text-muted-foreground">Histogram</p>
+                    <p className="text-2xl font-semibold">{formatNumber(macdData?.data?.histogram, 4)}</p>
+                    <Badge variant={Number(macdData?.data?.histogram) >= 0 ? 'success' : 'danger'} className="mt-2">
+                      {Number(macdData?.data?.histogram) >= 0 ? 'Yukselis Momentumu' : 'Dusus Momentumu'}
+                    </Badge>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="bollinger" className="space-y-6">
+          <div className="flex flex-wrap items-center gap-4">
+            <Select value={bollingerPeriod} onValueChange={setBollingerPeriod}>
+              <SelectTrigger className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10 Gun</SelectItem>
+                <SelectItem value="20">20 Gun</SelectItem>
+                <SelectItem value="50">50 Gun</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={bollingerStdDev} onValueChange={setBollingerStdDev}>
+              <SelectTrigger className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1.5">StdDev 1.5</SelectItem>
+                <SelectItem value="2.0">StdDev 2.0</SelectItem>
+                <SelectItem value="2.5">StdDev 2.5</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{symbol} - Bollinger Bands</CardTitle>
+              <CardDescription>Bant genisligi ve %B ile volatilite analizi</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {bollingerLoading ? (
+                <Skeleton className="h-36" />
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <div className="rounded-lg border p-4">
+                    <p className="text-xs text-muted-foreground">Ust Bant</p>
+                    <p className="text-xl font-semibold">{formatNumber(bollingerData?.data?.upperBand, 4)}</p>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <p className="text-xs text-muted-foreground">Orta Bant</p>
+                    <p className="text-xl font-semibold">{formatNumber(bollingerData?.data?.middleBand, 4)}</p>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <p className="text-xs text-muted-foreground">Alt Bant</p>
+                    <p className="text-xl font-semibold">{formatNumber(bollingerData?.data?.lowerBand, 4)}</p>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <p className="text-xs text-muted-foreground">Bandwidth</p>
+                    <p className="text-xl font-semibold">{formatNumber(bollingerData?.data?.bandwidth, 2)}</p>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <p className="text-xs text-muted-foreground">%B</p>
+                    <p className="text-xl font-semibold">{formatNumber(bollingerData?.data?.percentB, 2)}</p>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <p className="text-xs text-muted-foreground">Yorum</p>
+                    <p className="text-sm font-medium">{bollingerData?.message || 'Bant analizi hazir'}</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="stochastic" className="space-y-6">
+          <div className="flex flex-wrap items-center gap-4">
+            <Select value={stochasticKPeriod} onValueChange={setStochasticKPeriod}>
+              <SelectTrigger className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="9">K 9</SelectItem>
+                <SelectItem value="14">K 14</SelectItem>
+                <SelectItem value="21">K 21</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={stochasticDPeriod} onValueChange={setStochasticDPeriod}>
+              <SelectTrigger className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="3">D 3</SelectItem>
+                <SelectItem value="5">D 5</SelectItem>
+                <SelectItem value="7">D 7</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{symbol} - Stochastic</CardTitle>
+              <CardDescription>%K ve %D ile asiri alim/satim tespiti</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {stochasticLoading ? (
+                <Skeleton className="h-28" />
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="rounded-lg border p-4">
+                      <p className="text-xs text-muted-foreground">%K</p>
+                      <p className="text-2xl font-semibold">{formatNumber(stochasticData?.data?.percentK, 2)}</p>
+                    </div>
+                    <div className="rounded-lg border p-4">
+                      <p className="text-xs text-muted-foreground">%D</p>
+                      <p className="text-2xl font-semibold">{formatNumber(stochasticData?.data?.percentD, 2)}</p>
+                    </div>
+                    <div className="rounded-lg border p-4">
+                      <p className="text-xs text-muted-foreground">Sinyal</p>
+                      <Badge variant={stochasticSignal.variant}>{stochasticSignal.label}</Badge>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{stochasticData?.message || 'Stochastic yorumu hazir'}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="compare" className="space-y-6">

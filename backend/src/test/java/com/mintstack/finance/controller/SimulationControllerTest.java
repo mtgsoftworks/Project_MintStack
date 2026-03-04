@@ -192,6 +192,9 @@ class SimulationControllerTest {
         Map<String, SimulatedStock> stocks = new HashMap<>();
         stocks.put("THYAO", new SimulatedStock("THY", "BIST", 100.0, 0.02));
         when(simulationDataService.getStocks()).thenReturn(stocks);
+        when(simulationDataService.getBonds()).thenReturn(new HashMap<>());
+        when(simulationDataService.getFunds()).thenReturn(new HashMap<>());
+        when(simulationDataService.getViop()).thenReturn(new HashMap<>());
 
         Map<String, SimulatedCurrency> currencies = new HashMap<>();
         currencies.put("USD", new SimulatedCurrency("USD", 38.0, 38.5, 0.01));

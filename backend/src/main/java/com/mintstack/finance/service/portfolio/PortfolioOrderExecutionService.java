@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -35,6 +36,11 @@ public class PortfolioOrderExecutionService {
     private final PortfolioTransactionRepository portfolioTransactionRepository;
     private final PriceHistoryRepository priceHistoryRepository;
     private final PortfolioFinancialRulesService financialRulesService;
+    private Clock clock = Clock.system(BIST_ZONE);
+
+    void setClockForTesting(Clock clock) {
+        this.clock = clock != null ? clock.withZone(BIST_ZONE) : Clock.system(BIST_ZONE);
+    }
 
     public void tryFillOrder(Portfolio portfolio, PortfolioTransaction order, Instrument instrument) {
         if (order == null || instrument == null) {
@@ -220,7 +226,7 @@ public class PortfolioOrderExecutionService {
         BigDecimal remaining = order.getQuantity().subtract(newFilled);
         if (remaining.compareTo(MIN_ORDER_QUANTITY) < 0) {
             order.setOrderStatus(PortfolioTransaction.OrderStatus.FILLED);
-            order.setFilledAt(LocalDateTime.now(BIST_ZONE));
+            order.setFilledAt(LocalDateTime.now(clock));
         } else {
             order.setOrderStatus(PortfolioTransaction.OrderStatus.PARTIALLY_FILLED);
         }
@@ -229,13 +235,13 @@ public class PortfolioOrderExecutionService {
     private void markOrderRejected(PortfolioTransaction order, String reason) {
         order.setOrderStatus(PortfolioTransaction.OrderStatus.REJECTED);
         order.setCancelReason(reason);
-        order.setFilledAt(LocalDateTime.now(BIST_ZONE));
+        order.setFilledAt(LocalDateTime.now(clock));
     }
 
     private void markOrderFilledIfNeeded(PortfolioTransaction order) {
         if (order.getOrderStatus() != PortfolioTransaction.OrderStatus.FILLED) {
             order.setOrderStatus(PortfolioTransaction.OrderStatus.FILLED);
-            order.setFilledAt(LocalDateTime.now(BIST_ZONE));
+            order.setFilledAt(LocalDateTime.now(clock));
         }
     }
 
@@ -273,7 +279,7 @@ public class PortfolioOrderExecutionService {
         if (instrument.getType() == Instrument.InstrumentType.CRYPTO) {
             return true;
         }
-        LocalDateTime now = LocalDateTime.now(BIST_ZONE);
+        LocalDateTime now = LocalDateTime.now(clock);
         DayOfWeek day = now.getDayOfWeek();
         if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) {
             return false;

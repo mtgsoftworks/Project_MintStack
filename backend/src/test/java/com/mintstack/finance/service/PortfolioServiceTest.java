@@ -16,6 +16,7 @@ import com.mintstack.finance.repository.PortfolioItemRepository;
 import com.mintstack.finance.repository.PortfolioRepository;
 import com.mintstack.finance.repository.PortfolioTransactionRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
+import com.mintstack.finance.service.simulation.SimulationDataService;
 import com.mintstack.finance.service.portfolio.PortfolioFinancialRulesService;
 import com.mintstack.finance.service.portfolio.PortfolioOrderExecutionService;
 
@@ -66,6 +67,9 @@ class PortfolioServiceTest {
     @Mock
     private UserService userService;
 
+    @Mock
+    private SimulationDataService simulationDataService;
+
     private PortfolioService portfolioService;
 
     private User testUser;
@@ -89,6 +93,7 @@ class PortfolioServiceTest {
             instrumentRepository,
             portfolioTransactionRepository,
             userService,
+            simulationDataService,
             financialRulesService,
             orderExecutionService
         );

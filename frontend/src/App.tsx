@@ -49,6 +49,9 @@ const keycloakConfig = {
 const keycloak = new Keycloak(keycloakConfig)
 setKeycloakInstance(keycloak)
 setApiKeycloakInstance(keycloak)
+if (typeof window !== 'undefined') {
+  window.keycloak = keycloak
+}
 
 export { keycloak }
 

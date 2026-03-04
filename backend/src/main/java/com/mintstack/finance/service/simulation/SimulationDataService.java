@@ -2,6 +2,7 @@ package com.mintstack.finance.service.simulation;
 
 import com.mintstack.finance.dto.simulation.MarketEvent;
 import com.mintstack.finance.dto.simulation.NewsScenario;
+import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.News;
 import com.mintstack.finance.entity.NewsCategory;
 import com.mintstack.finance.entity.SimulationConfig;
@@ -36,6 +37,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 @RequiredArgsConstructor
 public class SimulationDataService {
+    private static final String SIMULATION_SOURCE_NAME = "Simulasyon";
+    private static final String SIMULATION_SOURCE_URL_PREFIX = "https://mintstack.local/simulation-news";
 
     private final SimulationConfigRepository configRepository;
     private final NewsRepository newsRepository;
@@ -49,6 +52,9 @@ public class SimulationDataService {
     private final SimulationPersistenceService persistenceService;
 
     private final Map<String, SimulatedStock> stockCache = new ConcurrentHashMap<>();
+    private final Map<String, SimulatedStock> bondCache = new ConcurrentHashMap<>();
+    private final Map<String, SimulatedStock> fundCache = new ConcurrentHashMap<>();
+    private final Map<String, SimulatedStock> viopCache = new ConcurrentHashMap<>();
     private final Map<String, SimulatedCurrency> currencyCache = new ConcurrentHashMap<>();
     private final Map<String, SimulatedIndex> indexCache = new ConcurrentHashMap<>();
     private final Map<String, SimulatedCrypto> cryptoCache = new ConcurrentHashMap<>();
@@ -60,7 +66,16 @@ public class SimulationDataService {
 
     @PostConstruct
     public void initializeMarketData() {
-        marketBootstrapService.initializeCaches(stockCache, currencyCache, indexCache, cryptoCache);
+        marketBootstrapService.initializeCaches(
+            stockCache,
+            bondCache,
+            fundCache,
+            viopCache,
+            currencyCache,
+            indexCache,
+            cryptoCache
+        );
+        normalizeLegacyScenarioNews();
         ensureBaseMockNewsIfEmpty();
     }
 
@@ -165,6 +180,9 @@ public class SimulationDataService {
         }
 
         simulateStocks(volatility, trend, intervalSeconds, eventMultiplier, newsImpacts, sectorMovements);
+        simulateBonds(volatility, intervalSeconds);
+        simulateFunds(volatility, trend, intervalSeconds);
+        simulateViop(volatility, trend, intervalSeconds, eventMultiplier);
         simulateCurrencies(volatility, intervalSeconds);
         simulateIndices(volatility, trend, intervalSeconds, eventMultiplier);
         simulateCryptos(volatility, trend, intervalSeconds, randomEvents);
@@ -223,7 +241,8 @@ public class SimulationDataService {
                 .title(scenario.getTitle())
                 .content(scenario.getContent())
                 .summary(scenario.getSummary())
-                .sourceName(scenario.getSource())
+                .sourceName(buildSimulationSourceName(scenario.getSource()))
+                .sourceUrl(buildScenarioSourceUrl(scenario))
                 .category(category)
                 .publishedAt(LocalDateTime.now())
                 .isPublished(true)
@@ -278,8 +297,8 @@ public class SimulationDataService {
                 changePercent,
                 direction
             ))
-            .sourceName("Simulasyon")
-            .sourceUrl(String.format("https://mintstack.local/simulation-news/xu100-%s", now))
+            .sourceName(SIMULATION_SOURCE_NAME)
+            .sourceUrl(String.format("%s/xu100-%s", SIMULATION_SOURCE_URL_PREFIX, now))
             .category(category)
             .publishedAt(now)
             .isPublished(true)
@@ -354,6 +373,96 @@ public class SimulationDataService {
             stock.updatePrice(newPrice);
 
             persistenceService.saveAndBroadcastStock(symbol, stock, previousClose, newPrice);
+        }
+    }
+
+    private void simulateBonds(VolatilityLevel volatility, int intervalSeconds) {
+        for (Map.Entry<String, SimulatedStock> entry : bondCache.entrySet()) {
+            String symbol = entry.getKey();
+            SimulatedStock bond = entry.getValue();
+
+            BigDecimal meanPrice = bond.getPreviousClose() != null ? bond.getPreviousClose() : bond.getCurrentPrice();
+            BigDecimal newPrice = priceEngine.simulateMeanReversion(
+                symbol,
+                bond.getCurrentPrice(),
+                meanPrice,
+                bond.getBaseVolatility(),
+                volatility,
+                0.18,
+                intervalSeconds
+            ).setScale(6, RoundingMode.HALF_UP);
+
+            BigDecimal previousClose = bond.getCurrentPrice();
+            bond.updatePrice(newPrice);
+            bond.updateVolume();
+
+            persistenceService.saveInstrumentQuote(
+                symbol,
+                Instrument.InstrumentType.BOND,
+                bond,
+                previousClose,
+                newPrice
+            );
+        }
+    }
+
+    private void simulateFunds(VolatilityLevel volatility, MarketTrend trend, int intervalSeconds) {
+        for (Map.Entry<String, SimulatedStock> entry : fundCache.entrySet()) {
+            String symbol = entry.getKey();
+            SimulatedStock fund = entry.getValue();
+
+            BigDecimal newPrice = priceEngine.simulateGBM(
+                symbol,
+                fund.getCurrentPrice(),
+                fund.getBaseVolatility(),
+                volatility,
+                trend,
+                intervalSeconds
+            ).setScale(6, RoundingMode.HALF_UP);
+
+            BigDecimal previousClose = fund.getCurrentPrice();
+            fund.updatePrice(newPrice);
+            fund.updateVolume();
+
+            persistenceService.saveInstrumentQuote(
+                symbol,
+                Instrument.InstrumentType.FUND,
+                fund,
+                previousClose,
+                newPrice
+            );
+        }
+    }
+
+    private void simulateViop(VolatilityLevel volatility, MarketTrend trend, int intervalSeconds, double eventMultiplier) {
+        for (Map.Entry<String, SimulatedStock> entry : viopCache.entrySet()) {
+            String symbol = entry.getKey();
+            SimulatedStock contract = entry.getValue();
+
+            BigDecimal basePrice = priceEngine.simulateGBM(
+                symbol,
+                contract.getCurrentPrice(),
+                contract.getBaseVolatility(),
+                volatility,
+                trend,
+                intervalSeconds
+            );
+
+            BigDecimal newPrice = basePrice
+                .multiply(BigDecimal.valueOf(eventMultiplier))
+                .setScale(6, RoundingMode.HALF_UP);
+
+            BigDecimal previousClose = contract.getCurrentPrice();
+            contract.updatePrice(newPrice);
+            contract.updateVolume();
+
+            persistenceService.saveInstrumentQuote(
+                symbol,
+                Instrument.InstrumentType.VIOP,
+                contract,
+                previousClose,
+                newPrice
+            );
         }
     }
 
@@ -460,6 +569,18 @@ public class SimulationDataService {
         return Collections.unmodifiableMap(stockCache);
     }
 
+    public Map<String, SimulatedStock> getBonds() {
+        return Collections.unmodifiableMap(bondCache);
+    }
+
+    public Map<String, SimulatedStock> getFunds() {
+        return Collections.unmodifiableMap(fundCache);
+    }
+
+    public Map<String, SimulatedStock> getViop() {
+        return Collections.unmodifiableMap(viopCache);
+    }
+
     public Map<String, SimulatedCurrency> getCurrencies() {
         return Collections.unmodifiableMap(currencyCache);
     }
@@ -474,6 +595,18 @@ public class SimulationDataService {
 
     public SimulatedStock getStock(String symbol) {
         return stockCache.get(symbol);
+    }
+
+    public SimulatedStock getBond(String symbol) {
+        return bondCache.get(symbol);
+    }
+
+    public SimulatedStock getFund(String symbol) {
+        return fundCache.get(symbol);
+    }
+
+    public SimulatedStock getViopContract(String symbol) {
+        return viopCache.get(symbol);
     }
 
     public SimulatedCurrency getCurrency(String code) {
@@ -496,6 +629,21 @@ public class SimulationDataService {
         for (SimulatedStock stock : stockCache.values()) {
             stock.setNewDayPreviousClose();
             stock.resetDailyOHLC(stock.getCurrentPrice());
+        }
+
+        for (SimulatedStock bond : bondCache.values()) {
+            bond.setNewDayPreviousClose();
+            bond.resetDailyOHLC(bond.getCurrentPrice());
+        }
+
+        for (SimulatedStock fund : fundCache.values()) {
+            fund.setNewDayPreviousClose();
+            fund.resetDailyOHLC(fund.getCurrentPrice());
+        }
+
+        for (SimulatedStock viop : viopCache.values()) {
+            viop.setNewDayPreviousClose();
+            viop.resetDailyOHLC(viop.getCurrentPrice());
         }
 
         for (SimulatedIndex index : indexCache.values()) {
@@ -625,7 +773,7 @@ public class SimulationDataService {
             .title(title)
             .summary(summary)
             .content(content)
-            .sourceName("Simulasyon")
+            .sourceName(SIMULATION_SOURCE_NAME)
             .sourceUrl(sourceUrl)
             .category(category)
             .publishedAt(publishedAt)
@@ -633,5 +781,40 @@ public class SimulationDataService {
             .isFeatured(featured)
             .viewCount(0L)
             .build();
+    }
+
+    private void normalizeLegacyScenarioNews() {
+        try {
+            List<News> legacyScenarioNews = newsRepository.findBySourceUrlIsNullAndSourceNameIn(NewsScenarioCatalog.SOURCES);
+            if (legacyScenarioNews.isEmpty()) {
+                return;
+            }
+
+            for (News news : legacyScenarioNews) {
+                String originalSource = news.getSourceName();
+                news.setSourceName(buildSimulationSourceName(originalSource));
+                String suffix = news.getId() != null ? news.getId().toString() : String.valueOf(System.currentTimeMillis());
+                news.setSourceUrl(String.format("%s/legacy-%s", SIMULATION_SOURCE_URL_PREFIX, suffix));
+            }
+
+            newsRepository.saveAll(legacyScenarioNews);
+            log.info("Normalized {} legacy simulation news records", legacyScenarioNews.size());
+        } catch (Exception error) {
+            log.warn("Legacy simulation news normalization failed: {}", error.getMessage());
+        }
+    }
+
+    private String buildSimulationSourceName(String externalSource) {
+        if (externalSource == null || externalSource.isBlank()) {
+            return SIMULATION_SOURCE_NAME;
+        }
+        return SIMULATION_SOURCE_NAME + " (" + externalSource.trim() + ")";
+    }
+
+    private String buildScenarioSourceUrl(NewsScenario scenario) {
+        String newsType = scenario != null && scenario.getType() != null
+            ? scenario.getType().name().toLowerCase()
+            : "scenario";
+        return String.format("%s/%s-%d", SIMULATION_SOURCE_URL_PREFIX, newsType, System.currentTimeMillis());
     }
 }

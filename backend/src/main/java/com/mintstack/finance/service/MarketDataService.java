@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -97,6 +99,13 @@ public class MarketDataService {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
         List<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(type, isSimulation);
 
+        if (isSimulation && instruments.isEmpty()) {
+            List<InstrumentResponse> simulated = getSimulatedInstrumentsFromCache(type);
+            if (!simulated.isEmpty()) {
+                return simulated;
+            }
+        }
+
         if (shouldFallbackToRealInstruments(type, isSimulation, instruments.isEmpty())) {
             instruments = instrumentRepository.findByTypeAndIsActiveTrue(type);
         }
@@ -111,6 +120,13 @@ public class MarketDataService {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
         Page<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(type, isSimulation, pageable);
 
+        if (isSimulation && instruments.isEmpty()) {
+            List<InstrumentResponse> simulated = getSimulatedInstrumentsFromCache(type);
+            if (!simulated.isEmpty()) {
+                return paginateResponses(simulated, pageable);
+            }
+        }
+
         if (shouldFallbackToRealInstruments(type, isSimulation, instruments.isEmpty())) {
             instruments = instrumentRepository.findByTypeAndIsActiveTrue(type, pageable);
         }
@@ -121,10 +137,22 @@ public class MarketDataService {
     @Transactional(readOnly = true)
     public InstrumentResponse getInstrument(String symbol) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
-        Instrument instrument = instrumentRepository.findBySymbolAndIsSimulated(symbol, isSimulation)
-            .orElseGet(() -> instrumentRepository.findBySymbol(symbol)
-                .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "sembol", symbol)));
-        return mapToInstrumentResponse(instrument);
+        String normalizedSymbol = symbol != null ? symbol.toUpperCase() : "";
+        Instrument instrument = instrumentRepository.findBySymbolAndIsSimulated(normalizedSymbol, isSimulation)
+            .orElseGet(() -> instrumentRepository.findBySymbol(normalizedSymbol).orElse(null));
+
+        if (instrument != null) {
+            return mapToInstrumentResponse(instrument);
+        }
+
+        if (isSimulation) {
+            Instrument cachedInstrument = resolveSimulatedInstrumentBySymbol(normalizedSymbol);
+            if (cachedInstrument != null) {
+                return mapToInstrumentResponse(cachedInstrument);
+            }
+        }
+
+        throw new ResourceNotFoundException("Enstrüman", "sembol", symbol);
     }
 
     @Transactional(readOnly = true)
@@ -136,6 +164,16 @@ public class MarketDataService {
     @Transactional(readOnly = true)
     public Page<InstrumentResponse> searchInstruments(InstrumentType type, String query, Pageable pageable) {
         Page<Instrument> instruments = instrumentRepository.searchByTypeAndQuery(type, query, pageable);
+
+        if (simulationDataService.isSimulationEnabled() && instruments.isEmpty()) {
+            List<InstrumentResponse> filtered = getSimulatedInstrumentsFromCache(type).stream()
+                .filter(item -> matchesInstrumentQuery(item, query))
+                .toList();
+            if (!filtered.isEmpty()) {
+                return paginateResponses(filtered, pageable);
+            }
+        }
+
         return instruments.map(this::mapToInstrumentResponse);
     }
 
@@ -324,6 +362,100 @@ public class MarketDataService {
         return null;
     }
 
+    private List<InstrumentResponse> getSimulatedInstrumentsFromCache(InstrumentType type) {
+        return resolveSimulationCache(type).entrySet().stream()
+            .map(entry -> mapToInstrumentResponse(buildSimulatedInstrument(type, entry.getKey(), entry.getValue())))
+            .sorted(Comparator.comparing(InstrumentResponse::getSymbol))
+            .collect(Collectors.toList());
+    }
+
+    private Map<String, SimulatedStock> resolveSimulationCache(InstrumentType type) {
+        if (type == null) {
+            return Map.of();
+        }
+        return switch (type) {
+            case STOCK -> safeSimulationMap(simulationDataService.getStocks());
+            case BOND -> safeSimulationMap(simulationDataService.getBonds());
+            case FUND -> safeSimulationMap(simulationDataService.getFunds());
+            case VIOP -> safeSimulationMap(simulationDataService.getViop());
+            default -> Map.of();
+        };
+    }
+
+    private Map<String, SimulatedStock> safeSimulationMap(Map<String, SimulatedStock> source) {
+        return source != null ? source : Map.of();
+    }
+
+    private Instrument resolveSimulatedInstrumentBySymbol(String symbol) {
+        if (symbol == null || symbol.isBlank()) {
+            return null;
+        }
+
+        SimulatedStock stock = simulationDataService.getStock(symbol);
+        if (stock != null) {
+            return buildSimulatedInstrument(InstrumentType.STOCK, symbol, stock);
+        }
+
+        SimulatedStock bond = simulationDataService.getBond(symbol);
+        if (bond != null) {
+            return buildSimulatedInstrument(InstrumentType.BOND, symbol, bond);
+        }
+
+        SimulatedStock fund = simulationDataService.getFund(symbol);
+        if (fund != null) {
+            return buildSimulatedInstrument(InstrumentType.FUND, symbol, fund);
+        }
+
+        SimulatedStock viop = simulationDataService.getViopContract(symbol);
+        if (viop != null) {
+            return buildSimulatedInstrument(InstrumentType.VIOP, symbol, viop);
+        }
+
+        for (InstrumentType type : List.of(InstrumentType.STOCK, InstrumentType.BOND, InstrumentType.FUND, InstrumentType.VIOP)) {
+            Map<String, SimulatedStock> cache = resolveSimulationCache(type);
+            SimulatedStock simulated = cache.get(symbol);
+            if (simulated != null) {
+                return buildSimulatedInstrument(type, symbol, simulated);
+            }
+        }
+        return null;
+    }
+
+    private Instrument buildSimulatedInstrument(InstrumentType type, String symbol, SimulatedStock simulatedStock) {
+        return Instrument.builder()
+            .symbol(symbol)
+            .name(simulatedStock.getName())
+            .type(type)
+            .exchange(simulatedStock.getExchange())
+            .currency("TRY")
+            .currentPrice(simulatedStock.getCurrentPrice())
+            .previousClose(simulatedStock.getPreviousClose())
+            .isActive(true)
+            .isSimulated(true)
+            .build();
+    }
+
+    private Page<InstrumentResponse> paginateResponses(List<InstrumentResponse> responses, Pageable pageable) {
+        int total = responses.size();
+        int start = (int) pageable.getOffset();
+        if (start >= total) {
+            return new PageImpl<>(List.of(), pageable, total);
+        }
+
+        int end = Math.min(start + pageable.getPageSize(), total);
+        return new PageImpl<>(responses.subList(start, end), pageable, total);
+    }
+
+    private boolean matchesInstrumentQuery(InstrumentResponse instrument, String query) {
+        if (query == null || query.isBlank()) {
+            return true;
+        }
+        String normalizedQuery = query.toLowerCase();
+        String symbol = instrument.getSymbol() != null ? instrument.getSymbol().toLowerCase() : "";
+        String name = instrument.getName() != null ? instrument.getName().toLowerCase() : "";
+        return symbol.contains(normalizedQuery) || name.contains(normalizedQuery);
+    }
+
     // Save methods
     @Transactional
     @CacheEvict(value = "currencyRates", allEntries = true)
@@ -435,6 +567,7 @@ public class MarketDataService {
             .build();
     }
 }
+
 
 
 

@@ -85,6 +85,44 @@ public class SimulationPersistenceService {
     }
 
     @Transactional
+    public void saveInstrumentQuote(
+        String symbol,
+        Instrument.InstrumentType type,
+        SimulatedStock quote,
+        BigDecimal previousClose,
+        BigDecimal newPrice
+    ) {
+        Optional<Instrument> existing = instrumentRepository.findBySymbolAndIsSimulated(symbol, true);
+        Instrument instrument;
+
+        if (existing.isPresent()) {
+            instrument = existing.get();
+            instrument.setType(type);
+            instrument.setExchange(quote.getExchange());
+            instrument.setName(quote.getName());
+            instrument.setPreviousClose(previousClose);
+            instrument.setCurrentPrice(newPrice);
+            instrument.setIsActive(true);
+            instrument.setIsSimulated(true);
+        } else {
+            instrument = Instrument.builder()
+                .symbol(symbol)
+                .name(quote.getName())
+                .type(type)
+                .exchange(quote.getExchange())
+                .currency("TRY")
+                .currentPrice(newPrice)
+                .previousClose(previousClose)
+                .isActive(true)
+                .isSimulated(true)
+                .build();
+        }
+
+        Instrument saved = instrumentRepository.save(instrument);
+        saveDailyPriceHistory(saved, quote);
+    }
+
+    @Transactional
     public void saveAndBroadcastStock(String symbol, SimulatedStock stock, BigDecimal previousClose, BigDecimal newPrice) {
         StockPriceData stockData = StockPriceData.builder()
             .symbol(symbol)
@@ -105,8 +143,14 @@ public class SimulationPersistenceService {
 
         if (existing.isPresent()) {
             instrument = existing.get();
+            instrument.setName(stock.getName());
+            instrument.setType(Instrument.InstrumentType.STOCK);
+            instrument.setExchange(stock.getExchange());
+            instrument.setCurrency("TRY");
             instrument.setPreviousClose(previousClose);
             instrument.setCurrentPrice(newPrice);
+            instrument.setIsActive(true);
+            instrument.setIsSimulated(true);
         } else {
             instrument = Instrument.builder()
                 .symbol(symbol)
@@ -125,7 +169,7 @@ public class SimulationPersistenceService {
 
         stock.updateVolume();
 
-        saveDailyPriceHistory(symbol, stock);
+        saveDailyPriceHistory(instrument, stock);
 
         BigDecimal change = newPrice.subtract(previousClose);
         BigDecimal changePercent = stock.getChangePercent();
@@ -191,7 +235,7 @@ public class SimulationPersistenceService {
         currencyRateRepository.deleteAll(simulatedRates);
 
         try {
-            newsRepository.deleteBySourceName("Simulasyon");
+            newsRepository.deleteBySourceNameStartingWith("Simulasyon");
         } catch (Exception error) {
             log.warn("Simulasyon haberleri silinemedi: {}", error.getMessage());
         }
@@ -209,10 +253,17 @@ public class SimulationPersistenceService {
     private void saveDailyPriceHistory(String symbol, SimulatedStock stock) {
         try {
             Instrument instrument = instrumentRepository.findBySymbolAndIsSimulated(symbol, true).orElse(null);
-            if (instrument == null) {
+            saveDailyPriceHistory(instrument, stock);
+        } catch (Exception error) {
+            log.warn("Price history kaydedilemedi: {}", error.getMessage());
+        }
+    }
+
+    private void saveDailyPriceHistory(Instrument instrument, SimulatedStock stock) {
+        try {
+            if (instrument == null || instrument.getId() == null) {
                 return;
             }
-
             LocalDate today = LocalDate.now();
 
             PriceHistory history = priceHistoryRepository.findByInstrumentIdAndPriceDate(instrument.getId(), today)

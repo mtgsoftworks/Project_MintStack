@@ -38,7 +38,11 @@ public interface NewsRepository extends JpaRepository<News, UUID> {
 
     boolean existsBySourceUrl(String sourceUrl);
 
+    List<News> findBySourceUrlIsNullAndSourceNameIn(List<String> sourceNames);
+
     void deleteByPublishedAtBefore(LocalDateTime date);
 
     void deleteBySourceName(String sourceName);
+
+    void deleteBySourceNameStartingWith(String sourceNamePrefix);
 }

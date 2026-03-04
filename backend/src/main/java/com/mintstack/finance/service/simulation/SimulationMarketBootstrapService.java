@@ -19,11 +19,17 @@ public class SimulationMarketBootstrapService {
 
     public void initializeCaches(
         Map<String, SimulatedStock> stockCache,
+        Map<String, SimulatedStock> bondCache,
+        Map<String, SimulatedStock> fundCache,
+        Map<String, SimulatedStock> viopCache,
         Map<String, SimulatedCurrency> currencyCache,
         Map<String, SimulatedIndex> indexCache,
         Map<String, SimulatedCrypto> cryptoCache
     ) {
         stockCache.clear();
+        bondCache.clear();
+        fundCache.clear();
+        viopCache.clear();
         currencyCache.clear();
         indexCache.clear();
         cryptoCache.clear();
@@ -32,22 +38,84 @@ public class SimulationMarketBootstrapService {
 
         if (!loadedFromRedis) {
             log.info("No data in Redis, initializing with default values");
-            initializeBistStocks(stockCache);
-            initializeCurrencies(currencyCache);
-            initializeIndices(indexCache);
-            initializeCryptos(cryptoCache);
         }
 
+        ensureMinimumDatasets(
+            stockCache,
+            bondCache,
+            fundCache,
+            viopCache,
+            currencyCache,
+            indexCache,
+            cryptoCache,
+            loadedFromRedis
+        );
         ensureBist100Alias(indexCache);
 
         log.info(
-            "Simulation market data initialized: {} stocks, {} currencies, {} indices, {} cryptos (from Redis: {})",
+            "Simulation market data initialized: {} stocks, {} bonds, {} funds, {} viop, {} currencies, {} indices, {} cryptos (from Redis: {})",
             stockCache.size(),
+            bondCache.size(),
+            fundCache.size(),
+            viopCache.size(),
             currencyCache.size(),
             indexCache.size(),
             cryptoCache.size(),
             loadedFromRedis
         );
+    }
+
+    private void ensureMinimumDatasets(
+        Map<String, SimulatedStock> stockCache,
+        Map<String, SimulatedStock> bondCache,
+        Map<String, SimulatedStock> fundCache,
+        Map<String, SimulatedStock> viopCache,
+        Map<String, SimulatedCurrency> currencyCache,
+        Map<String, SimulatedIndex> indexCache,
+        Map<String, SimulatedCrypto> cryptoCache,
+        boolean loadedFromRedis
+    ) {
+        if (stockCache.isEmpty()) {
+            log.warn("Simulation stock cache is empty{}; loading defaults",
+                loadedFromRedis ? " after Redis restore" : "");
+            initializeBistStocks(stockCache);
+        }
+
+        if (bondCache.isEmpty()) {
+            log.warn("Simulation bond cache is empty{}; loading defaults",
+                loadedFromRedis ? " after Redis restore" : "");
+            initializeBonds(bondCache);
+        }
+
+        if (fundCache.isEmpty()) {
+            log.warn("Simulation fund cache is empty{}; loading defaults",
+                loadedFromRedis ? " after Redis restore" : "");
+            initializeFunds(fundCache);
+        }
+
+        if (viopCache.isEmpty()) {
+            log.warn("Simulation viop cache is empty{}; loading defaults",
+                loadedFromRedis ? " after Redis restore" : "");
+            initializeViop(viopCache);
+        }
+
+        if (currencyCache.isEmpty()) {
+            log.warn("Simulation currency cache is empty{}; loading defaults",
+                loadedFromRedis ? " after Redis restore" : "");
+            initializeCurrencies(currencyCache);
+        }
+
+        if (indexCache.isEmpty()) {
+            log.warn("Simulation index cache is empty{}; loading defaults",
+                loadedFromRedis ? " after Redis restore" : "");
+            initializeIndices(indexCache);
+        }
+
+        if (cryptoCache.isEmpty()) {
+            log.warn("Simulation crypto cache is empty{}; loading defaults",
+                loadedFromRedis ? " after Redis restore" : "");
+            initializeCryptos(cryptoCache);
+        }
     }
 
     private boolean loadFromRedis(
@@ -151,6 +219,28 @@ public class SimulationMarketBootstrapService {
         stockCache.put("TTKOM", new SimulatedStock("Turk Telekom", "BIST", 48.90, 0.019, "TELEKOM"));
         stockCache.put("TAVHL", new SimulatedStock("TAV Havalimanlari", "BIST", 98.50, 0.024, "INSAAT"));
         stockCache.put("XU100", new SimulatedStock("BIST 100", "BIST", 9850.00, 0.015, "ENDEKS"));
+    }
+
+    private void initializeBonds(Map<String, SimulatedStock> bondCache) {
+        bondCache.put("TRT150127T14", new SimulatedStock("Devlet Tahvili 15.01.2027", "BIST", 98.20, 0.006, "TAHVIL"));
+        bondCache.put("TRT200329T16", new SimulatedStock("Devlet Tahvili 20.03.2029", "BIST", 92.45, 0.007, "TAHVIL"));
+        bondCache.put("TRT120731T18", new SimulatedStock("Devlet Tahvili 12.07.2031", "BIST", 87.10, 0.008, "TAHVIL"));
+        bondCache.put("TRT170533T20", new SimulatedStock("Devlet Tahvili 17.05.2033", "BIST", 82.35, 0.009, "TAHVIL"));
+    }
+
+    private void initializeFunds(Map<String, SimulatedStock> fundCache) {
+        fundCache.put("MAC", new SimulatedStock("Marmara Capital Hisse Senedi Fonu", "TEFAS", 15.40, 0.011, "FON"));
+        fundCache.put("TCD", new SimulatedStock("Teb Portfoy Degisken Fon", "TEFAS", 9.82, 0.010, "FON"));
+        fundCache.put("TI2", new SimulatedStock("Is Portfoy Bist 30 Endeks Fonu", "TEFAS", 24.15, 0.012, "FON"));
+        fundCache.put("AFT", new SimulatedStock("Ak Portfoy Yabanci Teknoloji Fonu", "TEFAS", 31.80, 0.014, "FON"));
+        fundCache.put("GSP", new SimulatedStock("Garanti Portfoy Birinci Fon Sepeti", "TEFAS", 7.55, 0.009, "FON"));
+    }
+
+    private void initializeViop(Map<String, SimulatedStock> viopCache) {
+        viopCache.put("XU0300426", new SimulatedStock("BIST 30 Nisan 2026 Vadeli", "VIOP", 11235.0, 0.028, "VIOP"));
+        viopCache.put("USDTRY0626", new SimulatedStock("USDTRY Haziran 2026 Vadeli", "VIOP", 39.75, 0.022, "VIOP"));
+        viopCache.put("XAUUSD0826", new SimulatedStock("Ons Altin Agustos 2026 Vadeli", "VIOP", 2945.0, 0.025, "VIOP"));
+        viopCache.put("THYAO0526", new SimulatedStock("THYAO Mayis 2026 Vadeli", "VIOP", 296.4, 0.032, "VIOP"));
     }
 
     private void initializeCurrencies(Map<String, SimulatedCurrency> currencyCache) {
