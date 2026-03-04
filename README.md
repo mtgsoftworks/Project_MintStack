@@ -1,8 +1,31 @@
 ﻿# MintStack Finance Portal
 
+**👤 Yazar / Bakım Yapan:** MintStack Geliştirme Ekibi
+**📅 Son Güncelleme:** 04 Mart 2026
+**🔖 Sürüm:** 1.0.0
+
 > **Türkiye Odaklı Finans Platformu** — Gerçek zamanlı piyasa izleme, portföy yönetimi, teknik analiz, simülasyon ve bildirim altyapısı.
+> *Bu doküman projenin profesyonel teknik haritasıdır. Projeyi araştıran veya projeye dahil olan kişiler için neyin nerede olduğu, proje yapısı ve çalışma prensipleri aşağıda detaylandırılmıştır.*
 
 ![Java 17](https://img.shields.io/badge/Java-17-orange) ![Spring Boot 3.4](https://img.shields.io/badge/Spring_Boot-3.4.2-green) ![React 18](https://img.shields.io/badge/React-18-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue) ![PostgreSQL 15](https://img.shields.io/badge/PostgreSQL-15-blue) ![Docker](https://img.shields.io/badge/Docker-Compose-blue) ![Keycloak 26](https://img.shields.io/badge/Keycloak-26-red)
+
+---
+
+## 📌 İçindekiler / Proje Haritası
+
+1. [Proje Tanımı ve Kapsam](#1-proje-tanımı)
+2. [Teknoloji Yığını](#2-teknoloji-yığını)
+3. [Sistem Mimarisi](#3-sistem-mimarisi)
+4. [Proje İçerikleri ve Dizin Yapısı (Nerede Ne Var?)](#4-proje-i̇çerikleri-ve-dizin-yapısı-nerede-ne-var)
+5. [Hızlı Başlangıç](#5-hızlı-başlangıç)
+6. [Çalışma Profilleri](#6-çalışma-profilleri)
+7. [Yerel Geliştirme](#7-yerel-geliştirme)
+8. [Komutlar ve Skriptler](#8-komutlar)
+9. [Code Style (Kodlama Standartları)](#9-code-style)
+10. [Ortam Değişkenleri (.env)](#10-ortam-değişkenleri)
+11. [Yaygın Sorunlar ve Çözümler](#11-yaygın-sorunlar)
+12. [Detaylı Dokümantasyon Haritası](#12-detaylı-dokümantasyon-haritası)
+13. [Lisans](#13-lisans)
 
 ---
 
@@ -184,7 +207,9 @@ MintStack Finance Portal, Türkiye finans piyasalarına (BIST, döviz, tahvil, f
 
 ---
 
-## 4. Proje Dizin Yapısı
+## 4. Proje İçerikleri ve Dizin Yapısı (Nerede Ne Var?)
+
+Bu bölüm, projeyi araştıran, kodu okuyan veya özellik eklemek isteyen geliştiricilerin, aradıkları servisleri, tasarımları ve dosyaları nerede bulacağını gösteren **Profesyonel İçerik Haritasıdır**. Mimarinin tam olarak nasıl yapılandırıldığı sistemin içerisinde aşağıda ifade edildiği gibidir:
 
 ```
 Project_MintStack/
@@ -525,7 +550,9 @@ Tüm değişkenler `.env.example` dosyasında tanımlıdır:
 
 ---
 
-## 12. Dokümantasyon
+## 12. Detaylı Dokümantasyon Haritası
+
+Projeye ait diğer tüm sistem ve operasyon notları, araştırma yapan takım üyeleri ve denetçiler için `docs/` klasöründe kategorilere ayrılmıştır:
 
 | Doküman | Açıklama |
 |---|---|
