@@ -95,7 +95,47 @@ flowchart LR
 | `service/event/` | Kafka event publisher ve consumer |
 | `service/strategy/` | Trading stratejileri (MovingAverageCrossover, RSI) |
 
-## 5. Temel Veri Akışları
+## 4. Veri Modeli ve Entity'ler
+
+### 4.1 ER Diyagramı (Mantıksal)
+
+```mermaid
+erDiagram
+    USER ||--o{ PORTFOLIO : "sahiptir"
+    USER ||--o{ WATCHLIST : "sahiptir"
+    USER ||--o{ PRICE_ALERT : "tanimlar"
+    USER ||--o{ USER_NOTIFICATION : "alir"
+    USER ||--o{ USER_API_CONFIG : "yapilandirir"
+    USER ||--o{ USER_DATA_PREFERENCE : "tercih eder"
+
+    PORTFOLIO ||--o{ PORTFOLIO_ITEM : "icerir"
+    PORTFOLIO ||--o{ PORTFOLIO_TRANSACTION : "islem gecmisine"
+
+    INSTRUMENT ||--o{ PORTFOLIO_ITEM : "referans verilir"
+    INSTRUMENT ||--o{ PRICE_HISTORY : "gecmis fiyatlari"
+    INSTRUMENT ||--o{ CURRENCY_RATE : "kur bilgisi"
+
+    WATCHLIST ||--o{ WATCHLIST_ITEM : "icerir"
+    WATCHLIST_ITEM }o--|| INSTRUMENT : "izler"
+
+    NEWS }o--|| NEWS_CATEGORY : "kategoriye aittir"
+    PRICE_ALERT }o--|| INSTRUMENT : "izler"
+    SIMULATION_CONFIG ||--|| USER : "yapilandirici"
+```
+
+### 4.2 Entity Grupları
+
+| Grup | Entity'ler | Sorumluluk |
+|---|---|---|
+| **Kimlik/Yetki** | User, UserApiConfig, UserDataPreference | Profil, API key'leri, veri tercihleri |
+| **Portföy** | Portfolio, PortfolioItem, PortfolioTransaction | Sanal portföy, pozisyonlar, emir/işlem geçmişi |
+| **Piyasa** | Instrument, PriceHistory, CurrencyRate | Enstrümanlar, geçmiş fiyatlar, döviz kurları |
+| **İzleme** | Watchlist, WatchlistItem, PriceAlert, UserNotification | İzleme listeleri, fiyat alarmları, bildirimler |
+| **İçerik** | News, NewsCategory | Haber aggregasyonu, kategoriler |
+
+---
+
+## 5. İletişim Protokolleri ve Veri Akışıları
 
 ### 5.1 Piyasa Verisi Toplama Akışı
 

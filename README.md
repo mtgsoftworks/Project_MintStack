@@ -307,7 +307,6 @@ Project_MintStack/
 │
 ├── docker-compose.yml                 # Varsayılan Dev ortamı (15 servis)
 ├── docker-compose.light.yml           # Hafif Dev (minimum altyapı)
-├── docker-compose.secure-dev.yml      # Güvenli Dev (TLS, HTTPS)
 ├── docker-compose.prod.yml            # Üretim ortamı
 │
 └── docs/                              # Proje dokümantasyonu
@@ -394,19 +393,15 @@ Tüm 15 servisi ayağa kaldırır: PostgreSQL, Redis, Keycloak, OpenLDAP, Kafka,
 docker compose -f docker-compose.light.yml up -d
 ```
 
-Yalnızca PostgreSQL, Redis, Keycloak, Backend, Frontend ve Nginx. Observability servisleri hariç.
-
-### Secure Dev (TLS aktif)
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.secure-dev.yml up -d
-```
+Yalnızca PostgreSQL, Redis, Keycloak, OpenLDAP, Backend, Frontend ve Nginx. Kafka, OpenSearch ve observability servisleri hariç. Düşük RAM'li makineler için idealdir (~4 GB yeterli).
 
 ### Production
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d
 ```
+
+Docker Secrets, ağ segmentasyonu (data, app, auth, obs katmanları ayrı network), kaynak limitleri, backend replica desteği.
 
 ---
 
@@ -445,22 +440,103 @@ cd frontend && npm run test:e2e
 
 ---
 
-## 8. Dokümantasyon
+## 8. Komutlar
 
-| Doküman | Açıklama |
-|---|---|
-| [Sistem Mimarisi](docs/ARCHITECTURE.md) | C4 container view, servis sorumlulukları, veri akışları |
-| [Tasarım ve Modelleme](docs/TASARIM_MIMARISI_VE_MODELLEME.md) | ER model, durum diyagramları, iş akışları |
-| [Mimari Karar Kayıtları](docs/ADR.md) | Teknoloji seçim gerekçeleri (8 ADR) |
-| [API Referansı](docs/api-docs.md) | Endpoint listesi ve kullanım örnekleri |
-| [Güvenlik Rehberi](docs/SECURITY.md) | Secret yönetimi, güvenlik kontrol listesi |
-| [Dağıtım Rehberi](docs/DEPLOYMENT.md) | Ortam kurulumu, backup/restore |
-| [Keycloak 2FA Kurulumu](docs/KEYCLOAK_2FA_SETUP.md) | OTP ve Remember Me yapılandırması |
-| [Toplantı 2 Sunum Akışı](docs/TOPLANTI_2_SUNUM_AKISI.md) | İzleme toplantısı sunum planı |
-| [Toplantı 2 Konuşma Notları](docs/TOPLANTI_2_KONUSMA_NOTLARI.md) | Sunum konuşma rehberi |
+### Lint
+
+```bash
+# Frontend (ESLint)
+cd frontend && npm run lint
+
+# Frontend type check
+cd frontend && npm run typecheck
+```
+
+### Build
+
+```bash
+# Frontend
+cd frontend && npm run build        # dist/ klasörüne üretir
+
+# Backend
+cd backend && ./mvnw clean package   # target/ klasörüne JAR üretir
+./mvnw clean package -DskipTests     # Testleri atlayarak
+```
+
+### Docker
+
+```bash
+docker compose up -d                 # Tüm servisleri başlat
+docker compose down                  # Servisleri durdur
+docker compose logs -f backend       # Backend loglarını izle
+docker compose up -d --build         # Yeniden build ve başlat
+```
 
 ---
 
-## 9. Lisans
+## 9. Code Style
+
+### Java (Backend)
+
+- **Java 17+** özellikleri kullanılır (records, pattern matching, text blocks)
+- **Lombok** (`@Slf4j`, `@RequiredArgsConstructor`, `@Builder`)
+- **MapStruct** DTO-Entity dönüşümleri için
+- Global exception handling: `GlobalExceptionHandler`
+- Rate limiting: `Bucket4j` ile controller seviyesinde
+- Log format: Structured JSON (Log4j2)
+
+### TypeScript/React (Frontend)
+
+- **Functional components** + **hooks**
+- **Redux Toolkit** global state, **RTK Query** API çağrıları
+- **Tailwind CSS** styling
+- **i18next** çoklu dil (TR/EN)
+
+### Git Conventions
+
+- **Branch:** `feature/`, `bugfix/`, `hotfix/`, `release/`
+- **Commit:** `type(scope): description` — örn: `feat(portfolio): add risk analysis endpoint`
+
+---
+
+## 10. Ortam Değişkenleri
+
+Tüm değişkenler `.env.example` dosyasında tanımlıdır:
+
+| Kategori | Değişkenler |
+|---|---|
+| Database | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` |
+| Redis | `REDIS_PASSWORD` |
+| Keycloak | `KEYCLOAK_ADMIN_PASSWORD`, `KEYCLOAK_FINANCE_BACKEND_SECRET` |
+| Kafka | `KAFKA_SASL_PASSWORD` |
+| OpenSearch | `OPENSEARCH_INITIAL_ADMIN_PASSWORD` |
+| External APIs | `ALPHA_VANTAGE_API_KEY`, `FINNHUB_API_KEY` |
+
+---
+
+## 11. Yaygın Sorunlar
+
+| Sorun | Çözüm |
+|---|---|
+| Backend başlamıyor | PostgreSQL çalışıyor mu? `docker compose ps postgres` |
+| Frontend API hatası | Backend sağlıklı mı? `curl http://localhost:8088/actuator/health` |
+| WebSocket bağlantı hatası | Nginx proxy + SockJS fallback kontrol edin |
+| Keycloak token geçersiz | Token süresi, realm ayarları ve CORS kontrol edin |
+
+---
+
+## 12. Dokümantasyon
+
+| Doküman | Açıklama |
+|---|---|
+| [Sistem Mimarisi](docs/ARCHITECTURE.md) | C4 container view, servis sorumlulukları, veri akışları, ER modeli |
+| [İşletim Rehberi](docs/OPERATIONS.md) | Güvenlik, dağıtım profilleri, secret yönetimi ve 2FA kurulumu |
+| [Mimari Karar Kayıtları](docs/ADR.md) | Teknoloji seçim gerekçeleri (10 ADR) |
+| [API Referansı](docs/api-docs.md) | Endpoint listesi ve kullanım örnekleri |
+| [Ön İzleme Sunum Notları](docs/SUNUM_NOTLARI.md) | Toplantı için demo senaryosu ve sistem açıklamaları |
+
+---
+
+## 13. Lisans
 
 MIT License — Detaylar için [LICENSE](LICENSE) dosyasına bakınız.
