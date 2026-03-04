@@ -425,7 +425,7 @@ export default function AnalysisPage() {
             <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <CardTitle>{symbol} - RSI</CardTitle>
-                <CardDescription>Relative Strength Index (0-100)</CardDescription>
+                <CardDescription>Goreceli Guc Endeksi (0-100)</CardDescription>
               </div>
               <Select value={rsiPeriod} onValueChange={setRsiPeriod}>
                 <SelectTrigger className="w-28">
@@ -469,11 +469,11 @@ export default function AnalysisPage() {
               ) : (
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="rounded-lg border p-4">
-                    <p className="text-xs text-muted-foreground">MACD Line</p>
+                    <p className="text-xs text-muted-foreground">MACD Cizgisi</p>
                     <p className="text-2xl font-semibold">{formatNumber(macdData?.data?.macdLine, 4)}</p>
                   </div>
                   <div className="rounded-lg border p-4">
-                    <p className="text-xs text-muted-foreground">Signal Line</p>
+                    <p className="text-xs text-muted-foreground">Sinyal Cizgisi</p>
                     <p className="text-2xl font-semibold">{formatNumber(macdData?.data?.signalLine, 4)}</p>
                   </div>
                   <div className="rounded-lg border p-4">
@@ -506,16 +506,16 @@ export default function AnalysisPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1.5">StdDev 1.5</SelectItem>
-                <SelectItem value="2.0">StdDev 2.0</SelectItem>
-                <SelectItem value="2.5">StdDev 2.5</SelectItem>
+                <SelectItem value="1.5">Std Sapma 1.5</SelectItem>
+                <SelectItem value="2.0">Std Sapma 2.0</SelectItem>
+                <SelectItem value="2.5">Std Sapma 2.5</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>{symbol} - Bollinger Bands</CardTitle>
+              <CardTitle>{symbol} - Bollinger Bantlari</CardTitle>
               <CardDescription>Bant genisligi ve %B ile volatilite analizi</CardDescription>
             </CardHeader>
             <CardContent>
@@ -536,7 +536,7 @@ export default function AnalysisPage() {
                     <p className="text-xl font-semibold">{formatNumber(bollingerData?.data?.lowerBand, 4)}</p>
                   </div>
                   <div className="rounded-lg border p-4">
-                    <p className="text-xs text-muted-foreground">Bandwidth</p>
+                    <p className="text-xs text-muted-foreground">Bant Genisligi</p>
                     <p className="text-xl font-semibold">{formatNumber(bollingerData?.data?.bandwidth, 2)}</p>
                   </div>
                   <div className="rounded-lg border p-4">

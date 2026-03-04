@@ -6,6 +6,7 @@ import com.mintstack.finance.exception.ExternalApiException;
 import com.mintstack.finance.repository.CurrencyRateRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Observed(name = "external.tcmb", contextualName = "tcmb-api-client")
 public class TcmbApiClient {
 
     private final WebClient tcmbWebClient;
@@ -39,6 +41,7 @@ public class TcmbApiClient {
      */
     @CircuitBreaker(name = "tcmbApi", fallbackMethod = "fetchTodayRatesFallback")
     @Retry(name = "externalApi")
+    @Observed(name = "external.tcmb.fetch-today-rates", contextualName = "fetch-tcmb-today-rates")
     public List<CurrencyRate> fetchTodayRates() {
         return fetchRates(LocalDate.now());
     }
@@ -59,6 +62,7 @@ public class TcmbApiClient {
      * If 404, tries previous days (TCMB doesn't publish on weekends/holidays)
      */
     @CircuitBreaker(name = "tcmbApi", fallbackMethod = "fetchRatesFallback")
+    @Observed(name = "external.tcmb.fetch-rates", contextualName = "fetch-tcmb-rates")
     public List<CurrencyRate> fetchRates(LocalDate date) {
         int maxRetries = 5; // Try up to 5 previous days
         LocalDate currentDate = date;

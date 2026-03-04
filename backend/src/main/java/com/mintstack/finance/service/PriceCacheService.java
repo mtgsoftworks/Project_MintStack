@@ -7,9 +7,11 @@ import com.mintstack.finance.dto.cache.StockPriceData;
 import com.mintstack.finance.entity.SimulationConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -26,6 +28,18 @@ public class PriceCacheService {
     private static final String INDEX_SYMBOLS_KEY = "simulation:index-symbols";
     private static final String SIMULATION_CONFIG_KEY = "simulation:config";
 
+    @Value("${app.cache.simulation.stock-ttl:300}")
+    private long simulationStockTtlSeconds;
+
+    @Value("${app.cache.simulation.currency-ttl:300}")
+    private long simulationCurrencyTtlSeconds;
+
+    @Value("${app.cache.simulation.index-ttl:300}")
+    private long simulationIndexTtlSeconds;
+
+    @Value("${app.cache.simulation.config-ttl:600}")
+    private long simulationConfigTtlSeconds;
+
     private final RedisTemplate<String, Object> redisTemplate;
 
     private boolean redisAvailable = true;
@@ -36,6 +50,8 @@ public class PriceCacheService {
             data.setTimestamp(LocalDateTime.now());
             redisTemplate.opsForHash().put(STOCK_PRICES_KEY, symbol, data);
             redisTemplate.opsForSet().add(STOCK_SYMBOLS_KEY, symbol);
+            refreshSimulationTtl(STOCK_PRICES_KEY, simulationStockTtlSeconds);
+            refreshSimulationTtl(STOCK_SYMBOLS_KEY, simulationStockTtlSeconds);
             log.debug("Saved stock price to Redis: {}", symbol);
         } catch (Exception e) {
             log.error("Failed to save stock price to Redis: {}", e.getMessage());
@@ -93,6 +109,8 @@ public class PriceCacheService {
             data.setTimestamp(LocalDateTime.now());
             redisTemplate.opsForHash().put(CURRENCY_RATES_KEY, code, data);
             redisTemplate.opsForSet().add(CURRENCY_CODES_KEY, code);
+            refreshSimulationTtl(CURRENCY_RATES_KEY, simulationCurrencyTtlSeconds);
+            refreshSimulationTtl(CURRENCY_CODES_KEY, simulationCurrencyTtlSeconds);
             log.debug("Saved currency rate to Redis: {}", code);
         } catch (Exception e) {
             log.error("Failed to save currency rate to Redis: {}", e.getMessage());
@@ -139,6 +157,8 @@ public class PriceCacheService {
             data.setTimestamp(LocalDateTime.now());
             redisTemplate.opsForHash().put(INDEX_VALUES_KEY, symbol, data);
             redisTemplate.opsForSet().add(INDEX_SYMBOLS_KEY, symbol);
+            refreshSimulationTtl(INDEX_VALUES_KEY, simulationIndexTtlSeconds);
+            refreshSimulationTtl(INDEX_SYMBOLS_KEY, simulationIndexTtlSeconds);
             log.debug("Saved index value to Redis: {}", symbol);
         } catch (Exception e) {
             log.error("Failed to save index value to Redis: {}", e.getMessage());
@@ -184,6 +204,7 @@ public class PriceCacheService {
         try {
             SimulationConfigData data = SimulationConfigData.fromEntity(config);
             redisTemplate.opsForValue().set(SIMULATION_CONFIG_KEY, data);
+            refreshSimulationTtl(SIMULATION_CONFIG_KEY, simulationConfigTtlSeconds);
             log.debug("Saved simulation config to Redis");
         } catch (Exception e) {
             log.error("Failed to save simulation config to Redis: {}", e.getMessage());
@@ -219,6 +240,8 @@ public class PriceCacheService {
                 redisTemplate.opsForSet().add(STOCK_SYMBOLS_KEY, entry.getKey());
             }
             redisTemplate.opsForHash().putAll(STOCK_PRICES_KEY, map);
+            refreshSimulationTtl(STOCK_PRICES_KEY, simulationStockTtlSeconds);
+            refreshSimulationTtl(STOCK_SYMBOLS_KEY, simulationStockTtlSeconds);
             log.info("Saved {} stock prices to Redis", prices.size());
         } catch (Exception e) {
             log.error("Failed to save all stock prices to Redis: {}", e.getMessage());
@@ -238,6 +261,8 @@ public class PriceCacheService {
                 redisTemplate.opsForSet().add(CURRENCY_CODES_KEY, entry.getKey());
             }
             redisTemplate.opsForHash().putAll(CURRENCY_RATES_KEY, map);
+            refreshSimulationTtl(CURRENCY_RATES_KEY, simulationCurrencyTtlSeconds);
+            refreshSimulationTtl(CURRENCY_CODES_KEY, simulationCurrencyTtlSeconds);
             log.info("Saved {} currency rates to Redis", rates.size());
         } catch (Exception e) {
             log.error("Failed to save all currency rates to Redis: {}", e.getMessage());
@@ -257,6 +282,8 @@ public class PriceCacheService {
                 redisTemplate.opsForSet().add(INDEX_SYMBOLS_KEY, entry.getKey());
             }
             redisTemplate.opsForHash().putAll(INDEX_VALUES_KEY, map);
+            refreshSimulationTtl(INDEX_VALUES_KEY, simulationIndexTtlSeconds);
+            refreshSimulationTtl(INDEX_SYMBOLS_KEY, simulationIndexTtlSeconds);
             log.info("Saved {} index values to Redis", indices.size());
         } catch (Exception e) {
             log.error("Failed to save all index values to Redis: {}", e.getMessage());
@@ -301,5 +328,12 @@ public class PriceCacheService {
     public void resetRedisAvailability() {
         this.redisAvailable = true;
         log.info("Redis availability reset to true");
+    }
+
+    private void refreshSimulationTtl(String key, long ttlSeconds) {
+        if (ttlSeconds <= 0) {
+            return;
+        }
+        redisTemplate.expire(key, Duration.ofSeconds(ttlSeconds));
     }
 }

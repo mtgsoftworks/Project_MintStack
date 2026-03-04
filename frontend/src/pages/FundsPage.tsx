@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import {
   Table,
   TableBody,
@@ -14,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { isSimulatedMarketData } from '@/lib/simulationData'
 import { cn, formatCurrency, formatPercent } from '@/lib/utils'
 import { useGetFundsQuery } from '@/store/api/marketApi'
 
@@ -107,7 +109,10 @@ export default function FundsPage() {
                           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10">
                             <Wallet className="h-5 w-5 text-info" />
                           </div>
-                          <span className="font-semibold">{fund.symbol}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">{fund.symbol}</span>
+                            {isSimulatedMarketData(fund) && <SimulationDataFlag className="h-4 px-1 text-[9px]" />}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>

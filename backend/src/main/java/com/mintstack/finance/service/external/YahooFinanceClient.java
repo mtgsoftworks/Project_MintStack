@@ -8,6 +8,7 @@ import com.mintstack.finance.exception.ExternalApiException;
 import com.mintstack.finance.repository.InstrumentRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Observed(name = "external.yahoo-finance", contextualName = "yahoo-finance-client")
 public class YahooFinanceClient {
 
     private final WebClient yahooFinanceWebClient;
@@ -43,6 +45,7 @@ public class YahooFinanceClient {
      */
     @CircuitBreaker(name = "yahooFinanceApi", fallbackMethod = "fetchStockPriceFallback")
     @Retry(name = "externalApi")
+    @Observed(name = "external.yahoo-finance.fetch-stock-price", contextualName = "fetch-yahoo-stock-price")
     public BigDecimal fetchStockPrice(String symbol, String apiKey, String baseUrl) {
         try {
             String yahooSymbol = symbol;
@@ -131,6 +134,7 @@ public class YahooFinanceClient {
      * Fetch historical data for a stock
      */
     @CircuitBreaker(name = "yahooFinanceApi", fallbackMethod = "fetchHistoricalDataFallback")
+    @Observed(name = "external.yahoo-finance.fetch-historical-data", contextualName = "fetch-yahoo-historical-data")
     public List<PriceHistory> fetchHistoricalData(String symbol, LocalDate startDate, LocalDate endDate, String apiKey, String baseUrl) {
         List<PriceHistory> history = new ArrayList<>();
         

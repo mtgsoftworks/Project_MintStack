@@ -552,6 +552,7 @@ public class MarketDataService {
             .week52Low(metrics.week52Low())
             .maturityDate(metrics.maturityDate())
             .isActive(instrument.getIsActive())
+            .isSimulated(Boolean.TRUE.equals(instrument.getIsSimulated()))
             .build();
     }
 

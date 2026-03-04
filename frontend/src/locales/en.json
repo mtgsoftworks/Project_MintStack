@@ -25,7 +25,10 @@
         "previous": "Previous",
         "next": "Next",
         "submit": "Submit",
-        "noData": "No data found"
+        "noData": "No data found",
+        "openMenu": "Open menu",
+        "closeMenu": "Close menu",
+        "simulatedShort": "Simulated"
     },
     "auth": {
         "login": "Login",
@@ -631,11 +634,39 @@
                 "quantity": "Quantity",
                 "price": "Price",
                 "total": "Total",
-                "note": "Note"
+                "note": "Note",
+                "order": "Order",
+                "status": "Status",
+                "filled": "Filled",
+                "gross": "Gross",
+                "commission": "Commission",
+                "net": "Net",
+                "action": "Action"
             },
             "types": {
                 "buy": "Buy",
                 "sell": "Sell"
+            },
+            "statusFilters": {
+                "all": "All",
+                "pending": "Pending",
+                "partiallyFilled": "Partially Filled",
+                "filled": "Filled",
+                "canceled": "Canceled",
+                "rejected": "Rejected"
+            },
+            "orderTypes": {
+                "market": "Market",
+                "limit": "Limit",
+                "stop": "Stop"
+            },
+            "statuses": {
+                "pending": "Pending",
+                "partiallyFilled": "Partially Filled",
+                "filled": "Filled",
+                "canceled": "Canceled",
+                "rejected": "Rejected",
+                "unknown": "Unknown"
             }
         },
         "export": {
@@ -648,6 +679,13 @@
             "pdfSuccess": "PDF file downloaded successfully",
             "pdfError": "PDF export failed",
             "authRequired": "Please login to export"
+        },
+        "tradeDialog": {
+            "orderTypes": {
+                "market": "Market",
+                "limit": "Limit",
+                "stop": "Stop"
+            }
         }
     },
     "settingsPage": {

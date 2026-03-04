@@ -25,7 +25,10 @@
         "previous": "Önceki",
         "next": "İleri",
         "submit": "Gönder",
-        "noData": "Veri bulunamadı"
+        "noData": "Veri bulunamadı",
+        "openMenu": "Menuyu ac",
+        "closeMenu": "Menuyu kapat",
+        "simulatedShort": "Simule"
     },
     "auth": {
         "login": "Giriş Yap",
@@ -605,11 +608,39 @@
                 "quantity": "Adet",
                 "price": "Fiyat",
                 "total": "Toplam",
-                "note": "Not"
+                "note": "Not",
+                "order": "Emir",
+                "status": "Durum",
+                "filled": "Gerceklesen",
+                "gross": "Brut",
+                "commission": "Komisyon",
+                "net": "Net",
+                "action": "Islem"
             },
             "types": {
                 "buy": "Alış",
                 "sell": "Satış"
+            },
+            "statusFilters": {
+                "all": "Tum",
+                "pending": "Beklemede",
+                "partiallyFilled": "Kismen Gerceklesti",
+                "filled": "Gerceklesti",
+                "canceled": "Iptal Edildi",
+                "rejected": "Reddedildi"
+            },
+            "orderTypes": {
+                "market": "Piyasa",
+                "limit": "Limit",
+                "stop": "Stop"
+            },
+            "statuses": {
+                "pending": "Beklemede",
+                "partiallyFilled": "Kismen Gerceklesti",
+                "filled": "Gerceklesti",
+                "canceled": "Iptal Edildi",
+                "rejected": "Reddedildi",
+                "unknown": "Bilinmiyor"
             }
         },
         "export": {
@@ -622,6 +653,13 @@
             "pdfSuccess": "PDF dosyası başarıyla indirildi",
             "pdfError": "PDF dışa aktarma başarısız",
             "authRequired": "Dışa aktarma için giriş yapmalısınız"
+        },
+        "tradeDialog": {
+            "orderTypes": {
+                "market": "Piyasa",
+                "limit": "Limit",
+                "stop": "Stop"
+            }
         }
     },
     "settingsPage": {

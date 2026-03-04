@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import {
@@ -17,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { isSimulatedMarketData } from '@/lib/simulationData'
 import { cn, formatCurrency, formatPercent } from '@/lib/utils'
 import { useGetStocksQuery } from '@/store/api/marketApi'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -50,7 +52,10 @@ function VirtualStockRow({ stock }) {
               <TrendingDown className="h-5 w-5 text-danger" />
             )}
           </div>
-          <span className="font-semibold">{stock.symbol}</span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">{stock.symbol}</span>
+            {isSimulatedMarketData(stock) && <SimulationDataFlag className="h-4 px-1 text-[9px]" />}
+          </div>
         </Link>
       </div>
       <div className="flex-1 min-w-0">
@@ -353,7 +358,12 @@ export default function StocksPage() {
                                 <TrendingDown className="h-5 w-5 text-danger" />
                               )}
                             </div>
-                            <span className="font-semibold">{stock.symbol}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold">{stock.symbol}</span>
+                              {isSimulatedMarketData(stock) && (
+                                <SimulationDataFlag className="h-4 px-1 text-[9px]" />
+                              )}
+                            </div>
                           </Link>
                         </TableCell>
                         <TableCell>

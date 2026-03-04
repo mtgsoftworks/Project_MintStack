@@ -13,6 +13,7 @@ import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.UserApiConfigRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Observed(name = "external.alpha-vantage", contextualName = "alpha-vantage-client")
 public class AlphaVantageClient {
 
     private final WebClient alphaVantageWebClient;
@@ -38,6 +40,7 @@ public class AlphaVantageClient {
      */
     @CircuitBreaker(name = "alphaVantageApi", fallbackMethod = "fetchExchangeRateFallback")
     @Retry(name = "externalApi")
+    @Observed(name = "external.alpha-vantage.fetch-exchange-rate", contextualName = "fetch-alpha-exchange-rate")
     public CurrencyRate fetchExchangeRate(String fromCurrency, String toCurrency) {
         List<UserApiConfig> configs = userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.ALPHA_VANTAGE);
         if (configs.isEmpty()) {
@@ -126,6 +129,7 @@ public class AlphaVantageClient {
      */
     @CircuitBreaker(name = "alphaVantageApi", fallbackMethod = "fetchGlobalQuoteFallback")
     @Retry(name = "externalApi")
+    @Observed(name = "external.alpha-vantage.fetch-global-quote", contextualName = "fetch-alpha-global-quote")
     public BigDecimal fetchGlobalQuote(String symbol) {
         List<UserApiConfig> configs = userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.ALPHA_VANTAGE);
         if (configs.isEmpty()) {

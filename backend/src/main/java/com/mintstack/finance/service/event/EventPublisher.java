@@ -1,6 +1,7 @@
 package com.mintstack.finance.service.event;
 
 import com.mintstack.finance.config.KafkaConfig;
+import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +27,7 @@ public class EventPublisher {
         this.kafkaTemplate = kafkaTemplate;
     }
 
+    @Observed(name = "kafka.publish.log", contextualName = "publish-log-event")
     public void publishLogEvent(String level, String message, String logger, Map<String, Object> context) {
         LogEvent event = LogEvent.builder()
                 .id(UUID.randomUUID().toString())
@@ -40,6 +42,7 @@ public class EventPublisher {
         send(KafkaConfig.TOPIC_LOGS, event.getId(), event);
     }
 
+    @Observed(name = "kafka.publish.market-data", contextualName = "publish-market-data-event")
     public void publishMarketDataEvent(String symbol, String type, Object data) {
         MarketDataEvent event = MarketDataEvent.builder()
                 .id(UUID.randomUUID().toString())
@@ -52,6 +55,7 @@ public class EventPublisher {
         send(KafkaConfig.TOPIC_MARKET_DATA, symbol, event);
     }
 
+    @Observed(name = "kafka.publish.notification", contextualName = "publish-notification-event")
     public void publishNotificationEvent(String userId, String type, String title, String message, Map<String, Object> metadata) {
         NotificationEvent event = NotificationEvent.builder()
                 .id(UUID.randomUUID().toString())

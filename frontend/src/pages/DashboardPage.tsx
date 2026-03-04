@@ -12,8 +12,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import { cn, formatCurrency, formatPercent, formatRelativeTime } from '@/lib/utils'
 import { getNewsDisplayTitle, getNewsSourceLabel, isSimulationNews } from '@/lib/news'
+import { isSimulatedMarketData } from '@/lib/simulationData'
 import { useGetCurrenciesQuery, useGetStocksQuery, useGetMarketIndexQuery } from '@/store/api/marketApi'
 import { useGetNewsQuery } from '@/store/api/newsApi'
 import { useGetPortfoliosQuery } from '@/store/api/portfolioApi'
@@ -109,7 +111,12 @@ function CurrencyWidget() {
                     </span>
                   </div>
                   <div>
-                    <p className="font-medium">{currency.currencyCode}/TRY</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{currency.currencyCode}/TRY</p>
+                      {isSimulatedMarketData(currency) && (
+                        <SimulationDataFlag className="h-4 px-1 text-[9px]" />
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">{currency.currencyName}</p>
                   </div>
                 </div>
@@ -230,7 +237,12 @@ function StocksWidget() {
                 className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
               >
                 <div>
-                  <p className="font-medium">{stock.symbol}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{stock.symbol}</p>
+                    {isSimulatedMarketData(stock) && (
+                      <SimulationDataFlag className="h-4 px-1 text-[9px]" />
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground truncate max-w-[150px]">
                     {stock.name}
                   </p>

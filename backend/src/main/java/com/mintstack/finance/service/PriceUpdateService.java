@@ -1,6 +1,7 @@
 package com.mintstack.finance.service;
 
 import com.mintstack.finance.dto.response.PriceUpdateMessage;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -34,6 +35,7 @@ public class PriceUpdateService {
     /**
      * Broadcast a currency rate update to all subscribers
      */
+    @Observed(name = "ws.broadcast.currency", contextualName = "broadcast-currency-update")
     public void broadcastCurrencyUpdate(String currencyCode, BigDecimal buyingRate, 
                                         BigDecimal sellingRate) {
         PriceUpdateMessage message = PriceUpdateMessage.builder()
@@ -65,6 +67,7 @@ public class PriceUpdateService {
     /**
      * Broadcast a stock price update to all subscribers
      */
+    @Observed(name = "ws.broadcast.stock", contextualName = "broadcast-stock-update")
     public void broadcastStockUpdate(String symbol, BigDecimal currentPrice, 
                                      BigDecimal previousClose, BigDecimal change,
                                      BigDecimal changePercent) {
@@ -98,6 +101,7 @@ public class PriceUpdateService {
     /**
      * Broadcast a cryptocurrency price update to all subscribers
      */
+    @Observed(name = "ws.broadcast.crypto", contextualName = "broadcast-crypto-update")
     public void broadcastCryptoUpdate(String symbol, BigDecimal currentPrice, 
                                        BigDecimal previousClose, BigDecimal changePercent24h,
                                        BigDecimal high24h, BigDecimal low24h, Long volume24h) {
@@ -132,6 +136,7 @@ public class PriceUpdateService {
     /**
      * Broadcast a general market update
      */
+    @Observed(name = "ws.broadcast.market", contextualName = "broadcast-market-update")
     public void broadcastMarketUpdate(String type, String symbol, BigDecimal price,
                                       Map<String, Object> additionalData) {
         PriceUpdateMessage message = PriceUpdateMessage.builder()
@@ -163,6 +168,7 @@ public class PriceUpdateService {
     /**
      * Send a private message to a specific user
      */
+    @Observed(name = "ws.broadcast.user", contextualName = "send-user-message")
     public void sendToUser(String userId, String destination, Object message) {
         try {
             messagingTemplate.convertAndSendToUser(userId, destination, message);

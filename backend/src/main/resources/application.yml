@@ -202,6 +202,16 @@ otel:
 
 # Application Custom Configuration
 app:
+  messaging:
+    enabled: ${APP_MESSAGING_ENABLED:true}
+    market-data-consumer:
+      enabled: ${APP_MARKET_DATA_CONSUMER_ENABLED:true}
+      group-id: ${APP_MARKET_DATA_CONSUMER_GROUP_ID:market-data-consumer}
+      dlt-enabled: ${APP_MARKET_DATA_CONSUMER_DLT_ENABLED:true}
+      retry:
+        max-attempts: ${APP_MARKET_DATA_CONSUMER_RETRY_MAX_ATTEMPTS:3}
+        backoff-ms: ${APP_MARKET_DATA_CONSUMER_RETRY_BACKOFF_MS:1000}
+
   cors:
     allowed-origins:
       - http://localhost:3000
@@ -242,10 +252,21 @@ app:
 
   # Cache TTL Configuration (in seconds)
   cache:
-    currency-rates-ttl: 300
-    stock-prices-ttl: 60
-    news-ttl: 600
-    portfolio-ttl: 120
+    currency-rates-ttl: ${APP_CACHE_CURRENCY_RATES_TTL:300}
+    instruments-ttl: ${APP_CACHE_INSTRUMENTS_TTL:120}
+    stock-prices-ttl: ${APP_CACHE_STOCK_PRICES_TTL:60}
+    historical-data-ttl: ${APP_CACHE_HISTORICAL_DATA_TTL:300}
+    index-values-ttl: ${APP_CACHE_INDEX_VALUES_TTL:300}
+    simulation-config-ttl: ${APP_CACHE_SIMULATION_CONFIG_LEGACY_TTL:600}
+    default-ttl: ${APP_CACHE_DEFAULT_TTL:300}
+    news-ttl: ${APP_CACHE_NEWS_TTL:600}
+    portfolio-ttl: ${APP_CACHE_PORTFOLIO_TTL:120}
+    users-ttl: ${APP_CACHE_USERS_TTL:600}
+    simulation:
+      stock-ttl: ${APP_CACHE_SIMULATION_STOCK_TTL:300}
+      currency-ttl: ${APP_CACHE_SIMULATION_CURRENCY_TTL:300}
+      index-ttl: ${APP_CACHE_SIMULATION_INDEX_TTL:300}
+      config-ttl: ${APP_CACHE_SIMULATION_CONFIG_TTL:600}
 
   # Scheduler Configuration
   # API Limits: Finnhub 60/min, Alpha Vantage 5/min

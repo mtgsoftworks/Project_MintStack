@@ -57,4 +57,6 @@ public class InstrumentResponse {
     private LocalDate maturityDate;
     
     private Boolean isActive;
+
+    private Boolean isSimulated;
 }

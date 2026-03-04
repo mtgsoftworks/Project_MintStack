@@ -13,6 +13,7 @@ import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.UserApiConfigRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Observed(name = "external.finnhub", contextualName = "finnhub-client")
 public class FinnhubClient {
 
     private final WebClient finnhubWebClient;
@@ -38,6 +40,7 @@ public class FinnhubClient {
      */
     @CircuitBreaker(name = "finnhubApi", fallbackMethod = "fetchStockQuoteFallback")
     @Retry(name = "externalApi")
+    @Observed(name = "external.finnhub.fetch-stock-quote", contextualName = "fetch-finnhub-stock-quote")
     public BigDecimal fetchStockQuote(String symbol) {
         List<UserApiConfig> configs = userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.FINNHUB);
         if (configs.isEmpty()) {
@@ -105,6 +108,7 @@ public class FinnhubClient {
      */
     @CircuitBreaker(name = "finnhubApi", fallbackMethod = "fetchForexRateFallback")
     @Retry(name = "externalApi")
+    @Observed(name = "external.finnhub.fetch-forex-rate", contextualName = "fetch-finnhub-forex-rate")
     public CurrencyRate fetchForexRate(String fromCurrency, String toCurrency) {
         List<UserApiConfig> configs = userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.FINNHUB);
         if (configs.isEmpty()) {
@@ -185,6 +189,7 @@ public class FinnhubClient {
      */
     @CircuitBreaker(name = "finnhubApi", fallbackMethod = "fetchCryptoPriceFallback")
     @Retry(name = "externalApi")
+    @Observed(name = "external.finnhub.fetch-crypto-price", contextualName = "fetch-finnhub-crypto-price")
     public BigDecimal fetchCryptoPrice(String symbol) {
         List<UserApiConfig> configs = userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.FINNHUB);
         if (configs.isEmpty()) {

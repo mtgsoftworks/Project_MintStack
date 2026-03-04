@@ -1,6 +1,9 @@
 import { cn } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
 
 export function HamburgerIcon({ isOpen, className, onClick }) {
+  const { t } = useTranslation()
+
   return (
     <button
       onClick={onClick}
@@ -8,7 +11,7 @@ export function HamburgerIcon({ isOpen, className, onClick }) {
         "relative w-6 h-5 flex flex-col justify-between items-center group",
         className
       )}
-      aria-label={isOpen ? "Close menu" : "Open menu"}
+      aria-label={isOpen ? t('common.closeMenu') : t('common.openMenu')}
     >
       <span
         className={cn(

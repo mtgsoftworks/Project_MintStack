@@ -11,6 +11,7 @@ import com.mintstack.finance.service.PriceUpdateService;
 import com.mintstack.finance.service.event.EventPublisher;
 import com.mintstack.finance.service.external.TcmbApiClient;
 import com.mintstack.finance.service.simulation.SimulationDataService;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -43,6 +44,7 @@ public class MarketDataScheduler {
     private final MarketDataInstrumentUpdateService instrumentUpdateService;
     private final MarketDataBootstrapService bootstrapService;
 
+    @Observed(name = "scheduler.market-data.tcmb", contextualName = "fetch-tcmb-rates")
     @Scheduled(cron = "${app.scheduler.tcmb-rates-cron}")
     public void fetchTcmbRates() {
         if (simulationDataService.isSimulationEnabled()) {
@@ -67,6 +69,7 @@ public class MarketDataScheduler {
         }
     }
 
+    @Observed(name = "scheduler.market-data.stock", contextualName = "fetch-stock-prices")
     @Scheduled(cron = "${app.scheduler.stock-prices-cron}")
     public void fetchStockPrices() {
         if (simulationDataService.isSimulationEnabled()) {
@@ -135,6 +138,7 @@ public class MarketDataScheduler {
         }
     }
 
+    @Observed(name = "scheduler.market-data.initial-load", contextualName = "initial-data-load")
     @Scheduled(initialDelay = 5000, fixedDelay = 60000)
     public void initialDataLoad() {
         if (simulationDataService.isSimulationEnabled()) {
@@ -172,6 +176,7 @@ public class MarketDataScheduler {
         }
     }
 
+    @Observed(name = "scheduler.market-data.forex", contextualName = "fetch-non-tcmb-forex-rates")
     @Scheduled(cron = "${app.scheduler.forex-rates-cron}")
     public void fetchNonTcmbForexRates() {
         if (simulationDataService.isSimulationEnabled()) {
@@ -216,6 +221,7 @@ public class MarketDataScheduler {
         log.info("Non-TCMB forex rates fetch completed.");
     }
 
+    @Observed(name = "scheduler.market-data.crypto", contextualName = "fetch-crypto-prices")
     @Scheduled(cron = "${app.scheduler.crypto-prices-cron}")
     public void fetchCryptoPrices() {
         if (simulationDataService.isSimulationEnabled()) {

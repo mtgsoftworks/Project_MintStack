@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import {
   Table,
   TableBody,
@@ -14,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { isSimulatedMarketData } from '@/lib/simulationData'
 import { cn, formatCurrency, formatNumber, formatPercent, formatDateTime } from '@/lib/utils'
 import { useGetCurrenciesQuery } from '@/store/api/marketApi'
 
@@ -48,13 +50,17 @@ export default function CurrencyPage() {
     currency.currencyCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
     currency.currencyName?.toLowerCase().includes(searchQuery.toLowerCase())
   ) || []
+  const hasSimulatedCurrencies = filteredCurrencies.some((currency) => isSimulatedMarketData(currency))
 
   return (
     <div className="space-y-6 animate-in">
       {/* Page Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{t('currencyPage.title')}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">{t('currencyPage.title')}</h1>
+            {hasSimulatedCurrencies && <SimulationDataFlag />}
+          </div>
           <p className="text-muted-foreground">
             {dataSource 
               ? t('currencyPage.subtitleWithSource', { source: getSourceLabel(dataSource), defaultValue: `${getSourceLabel(dataSource)} güncel döviz kurları` })
@@ -87,6 +93,7 @@ export default function CurrencyPage() {
         {['USD', 'EUR', 'GBP', 'CHF'].map((code) => {
           const currency = currencies?.find(c => c.currencyCode === code)
           const change = currency?.changePercent || 0
+          const simulatedCurrency = isSimulatedMarketData(currency)
 
           return (
             <Card key={code} className="card-hover">
@@ -108,7 +115,10 @@ export default function CurrencyPage() {
                       <p className="font-semibold">
                         {currency ? formatCurrency(currency.sellingRate, 'TRY') : '-'}
                       </p>
-                      <p className="text-xs text-muted-foreground">{code}/TRY</p>
+                      <div className="flex items-center gap-1">
+                        <p className="text-xs text-muted-foreground">{code}/TRY</p>
+                        {simulatedCurrency && <SimulationDataFlag className="h-4 px-1 text-[9px]" />}
+                      </div>
                     </div>
                   </div>
                   <Badge variant={change >= 0 ? 'success' : 'danger'}>
@@ -165,7 +175,12 @@ export default function CurrencyPage() {
                             </span>
                           </div>
                           <div>
-                            <p className="font-medium">{currency.currencyCode}/TRY</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{currency.currencyCode}/TRY</p>
+                              {isSimulatedMarketData(currency) && (
+                                <SimulationDataFlag className="h-4 px-1 text-[9px]" />
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground">
                               {currency.currencyName}
                             </p>

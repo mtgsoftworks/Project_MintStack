@@ -3,8 +3,9 @@ package com.mintstack.finance.config;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,6 +25,36 @@ import java.util.Map;
 @EnableCaching
 @ConditionalOnProperty(name = "app.redis.cache.enabled", havingValue = "true", matchIfMissing = true)
 public class RedisCacheConfig {
+
+    @Value("${app.cache.currency-rates-ttl:300}")
+    private long currencyRatesTtlSeconds;
+
+    @Value("${app.cache.instruments-ttl:120}")
+    private long instrumentsTtlSeconds;
+
+    @Value("${app.cache.stock-prices-ttl:60}")
+    private long stockPricesTtlSeconds;
+
+    @Value("${app.cache.historical-data-ttl:300}")
+    private long historicalDataTtlSeconds;
+
+    @Value("${app.cache.news-ttl:600}")
+    private long newsTtlSeconds;
+
+    @Value("${app.cache.portfolio-ttl:120}")
+    private long portfolioTtlSeconds;
+
+    @Value("${app.cache.users-ttl:600}")
+    private long usersTtlSeconds;
+
+    @Value("${app.cache.index-values-ttl:300}")
+    private long indexValuesTtlSeconds;
+
+    @Value("${app.cache.simulation-config-ttl:600}")
+    private long simulationConfigTtlSeconds;
+
+    @Value("${app.cache.default-ttl:300}")
+    private long defaultTtlSeconds;
 
     @Bean
     @Primary
@@ -45,20 +76,45 @@ public class RedisCacheConfig {
 
         Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
 
+        cacheConfigurations.put("currencyRates", defaultConfig
+                .entryTtl(Duration.ofSeconds(currencyRatesTtlSeconds)));
+
+        cacheConfigurations.put("instruments", defaultConfig
+                .entryTtl(Duration.ofSeconds(instrumentsTtlSeconds)));
+
+        cacheConfigurations.put("stockPrices", defaultConfig
+                .entryTtl(Duration.ofSeconds(stockPricesTtlSeconds)));
+
+        cacheConfigurations.put("historicalData", defaultConfig
+                .entryTtl(Duration.ofSeconds(historicalDataTtlSeconds)));
+
+        cacheConfigurations.put("news", defaultConfig
+                .entryTtl(Duration.ofSeconds(newsTtlSeconds)));
+
+        cacheConfigurations.put("userPortfolios", defaultConfig
+                .entryTtl(Duration.ofSeconds(portfolioTtlSeconds)));
+
+        cacheConfigurations.put("portfolios", defaultConfig
+                .entryTtl(Duration.ofSeconds(portfolioTtlSeconds)));
+
+        cacheConfigurations.put("users", defaultConfig
+                .entryTtl(Duration.ofSeconds(usersTtlSeconds)));
+
+        // Legacy cache names retained for backward compatibility
         cacheConfigurations.put("stock-prices", defaultConfig
-                .entryTtl(Duration.ofHours(24)));
+                .entryTtl(Duration.ofSeconds(stockPricesTtlSeconds)));
 
         cacheConfigurations.put("currency-rates", defaultConfig
-                .entryTtl(Duration.ofHours(24)));
+                .entryTtl(Duration.ofSeconds(currencyRatesTtlSeconds)));
 
         cacheConfigurations.put("index-values", defaultConfig
-                .entryTtl(Duration.ofHours(24)));
+                .entryTtl(Duration.ofSeconds(indexValuesTtlSeconds)));
 
         cacheConfigurations.put("simulation-config", defaultConfig
-                .entryTtl(Duration.ofHours(1)));
+                .entryTtl(Duration.ofSeconds(simulationConfigTtlSeconds)));
 
         return RedisCacheManager.builder(connectionFactory)
-                .cacheDefaults(defaultConfig.entryTtl(Duration.ofHours(1)))
+                .cacheDefaults(defaultConfig.entryTtl(Duration.ofSeconds(defaultTtlSeconds)))
                 .withInitialCacheConfigurations(cacheConfigurations)
                 .transactionAware()
                 .build();

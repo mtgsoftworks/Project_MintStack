@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import {
   Table,
   TableBody,
@@ -14,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { isSimulatedMarketData } from '@/lib/simulationData'
 import { cn, formatCurrency, formatPercent, formatDate } from '@/lib/utils'
 import { useGetViopQuery } from '@/store/api/marketApi'
 
@@ -114,7 +116,12 @@ export default function ViopPage() {
                               contract.changePercent >= 0 ? "text-success" : "text-danger"
                             )} />
                           </div>
-                          <span className="font-semibold">{contract.symbol}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">{contract.symbol}</span>
+                            {isSimulatedMarketData(contract) && (
+                              <SimulationDataFlag className="h-4 px-1 text-[9px]" />
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>

@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { isSimulatedMarketData } from '@/lib/simulationData'
 import { cn, formatCurrency, formatPercent, formatNumber } from '@/lib/utils'
 import { useGetStockQuery, useGetStockHistoryQuery } from '@/store/api/marketApi'
 import {
@@ -165,7 +167,10 @@ export default function StockDetailPage() {
             )}
           </div>
           <div>
-            <h1 className="text-2xl font-bold">{stock.symbol}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold">{stock.symbol}</h1>
+              {isSimulatedMarketData(stock) && <SimulationDataFlag />}
+            </div>
             <p className="text-muted-foreground">{stock.name}</p>
           </div>
         </div>

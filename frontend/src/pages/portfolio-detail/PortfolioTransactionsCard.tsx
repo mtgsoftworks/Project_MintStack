@@ -13,9 +13,18 @@ import {
 import { formatCurrency, formatDate, formatNumber } from '@/lib/utils'
 
 function getOrderTypeLabel(orderType) {
-    if (orderType === 'LIMIT') return 'LIMIT'
-    if (orderType === 'STOP') return 'STOP'
-    return 'MARKET'
+    if (orderType === 'LIMIT') return 'limit'
+    if (orderType === 'STOP') return 'stop'
+    return 'market'
+}
+
+function getOrderStatusLabel(orderStatus) {
+    if (orderStatus === 'PENDING') return 'pending'
+    if (orderStatus === 'PARTIALLY_FILLED') return 'partiallyFilled'
+    if (orderStatus === 'FILLED') return 'filled'
+    if (orderStatus === 'CANCELED') return 'canceled'
+    if (orderStatus === 'REJECTED') return 'rejected'
+    return 'unknown'
 }
 
 function getStatusVariant(orderStatus) {
@@ -28,12 +37,12 @@ function getStatusVariant(orderStatus) {
 }
 
 const ORDER_STATUS_OPTIONS = [
-    { value: 'ALL', label: 'Tum' },
-    { value: 'PENDING', label: 'Pending' },
-    { value: 'PARTIALLY_FILLED', label: 'Partial' },
-    { value: 'FILLED', label: 'Filled' },
-    { value: 'CANCELED', label: 'Canceled' },
-    { value: 'REJECTED', label: 'Rejected' },
+    { value: 'ALL', labelKey: 'portfolioDetailPage.transactions.statusFilters.all' },
+    { value: 'PENDING', labelKey: 'portfolioDetailPage.transactions.statusFilters.pending' },
+    { value: 'PARTIALLY_FILLED', labelKey: 'portfolioDetailPage.transactions.statusFilters.partiallyFilled' },
+    { value: 'FILLED', labelKey: 'portfolioDetailPage.transactions.statusFilters.filled' },
+    { value: 'CANCELED', labelKey: 'portfolioDetailPage.transactions.statusFilters.canceled' },
+    { value: 'REJECTED', labelKey: 'portfolioDetailPage.transactions.statusFilters.rejected' },
 ]
 
 export function PortfolioTransactionsCard({
@@ -69,7 +78,7 @@ export function PortfolioTransactionsCard({
                                 variant={orderStatus === option.value ? 'default' : 'outline'}
                                 onClick={() => onChangeOrderStatus(option.value)}
                             >
-                                {option.label}
+                                {t(option.labelKey)}
                             </Button>
                         ))}
                     </div>
@@ -93,16 +102,16 @@ export function PortfolioTransactionsCard({
                                 <TableRow>
                                     <TableHead>{t('portfolioDetailPage.transactions.headers.date')}</TableHead>
                                     <TableHead>{t('portfolioDetailPage.transactions.headers.type')}</TableHead>
-                                    <TableHead>Emir</TableHead>
-                                    <TableHead>Durum</TableHead>
+                                    <TableHead>{t('portfolioDetailPage.transactions.headers.order')}</TableHead>
+                                    <TableHead>{t('portfolioDetailPage.transactions.headers.status')}</TableHead>
                                     <TableHead>{t('portfolioDetailPage.transactions.headers.symbol')}</TableHead>
-                                    <TableHead className="text-right">Qty</TableHead>
-                                    <TableHead className="text-right">Filled</TableHead>
-                                    <TableHead className="text-right">Fiyat</TableHead>
-                                    <TableHead className="text-right">Brut</TableHead>
-                                    <TableHead className="text-right">Komisyon</TableHead>
-                                    <TableHead className="text-right">Net</TableHead>
-                                    <TableHead>Islem</TableHead>
+                                    <TableHead className="text-right">{t('portfolioDetailPage.transactions.headers.quantity')}</TableHead>
+                                    <TableHead className="text-right">{t('portfolioDetailPage.transactions.headers.filled')}</TableHead>
+                                    <TableHead className="text-right">{t('portfolioDetailPage.transactions.headers.price')}</TableHead>
+                                    <TableHead className="text-right">{t('portfolioDetailPage.transactions.headers.gross')}</TableHead>
+                                    <TableHead className="text-right">{t('portfolioDetailPage.transactions.headers.commission')}</TableHead>
+                                    <TableHead className="text-right">{t('portfolioDetailPage.transactions.headers.net')}</TableHead>
+                                    <TableHead>{t('portfolioDetailPage.transactions.headers.action')}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -119,10 +128,14 @@ export function PortfolioTransactionsCard({
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant="secondary">{getOrderTypeLabel(transaction.orderType)}</Badge>
+                                                <Badge variant="secondary">
+                                                    {t(`portfolioDetailPage.transactions.orderTypes.${getOrderTypeLabel(transaction.orderType)}`)}
+                                                </Badge>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant={getStatusVariant(transaction.orderStatus)}>{transaction.orderStatus}</Badge>
+                                                <Badge variant={getStatusVariant(transaction.orderStatus)}>
+                                                    {t(`portfolioDetailPage.transactions.statuses.${getOrderStatusLabel(transaction.orderStatus)}`)}
+                                                </Badge>
                                             </TableCell>
                                             <TableCell>
                                                 <div>
@@ -144,7 +157,7 @@ export function PortfolioTransactionsCard({
                                                         variant="outline"
                                                         onClick={() => onCancelOrder(transaction.id)}
                                                     >
-                                                        Iptal
+                                                        {t('common.cancel')}
                                                     </Button>
                                                 ) : (
                                                     <span className="text-xs text-muted-foreground">-</span>

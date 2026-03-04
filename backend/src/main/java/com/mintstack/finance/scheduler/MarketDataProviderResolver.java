@@ -10,6 +10,7 @@ import com.mintstack.finance.repository.UserDataPreferenceRepository;
 import com.mintstack.finance.service.external.AlphaVantageClient;
 import com.mintstack.finance.service.external.FinnhubClient;
 import com.mintstack.finance.service.external.YahooFinanceClient;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,7 @@ import java.util.EnumMap;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@Observed(name = "market-data.provider-resolver", contextualName = "market-data-provider-resolver")
 class MarketDataProviderResolver {
 
     private final YahooFinanceClient yahooFinanceClient;
@@ -28,7 +30,8 @@ class MarketDataProviderResolver {
     private final UserApiConfigRepository userApiConfigRepository;
     private final UserDataPreferenceRepository preferenceRepository;
 
-    EnumMap<DataType, ApiProvider> resolvePreferredProviders() {
+    @Observed(name = "market-data.resolve-preferred-providers", contextualName = "resolve-preferred-providers")
+    public EnumMap<DataType, ApiProvider> resolvePreferredProviders() {
         EnumMap<DataType, ApiProvider> map = new EnumMap<>(DataType.class);
         for (DataType dataType : DataType.values()) {
             preferenceRepository.findFirstByDataTypeAndIsEnabledTrueOrderByUpdatedAtDesc(dataType)
@@ -37,7 +40,7 @@ class MarketDataProviderResolver {
         return map;
     }
 
-    boolean hasStockProviderForDataType(
+    public boolean hasStockProviderForDataType(
         ApiProvider preferredProvider,
         UserApiConfig yahooConfig,
         UserApiConfig alphaConfig,
@@ -49,7 +52,7 @@ class MarketDataProviderResolver {
         return yahooConfig != null || alphaConfig != null || finnhubConfig != null;
     }
 
-    DataType resolveDataTypeForInstrument(Instrument.InstrumentType type, Instrument instrument) {
+    public DataType resolveDataTypeForInstrument(Instrument.InstrumentType type, Instrument instrument) {
         if (type == Instrument.InstrumentType.STOCK) {
             String exchange = instrument.getExchange();
             if (exchange != null && exchange.equalsIgnoreCase("BIST")) {
@@ -65,7 +68,8 @@ class MarketDataProviderResolver {
         return DataType.BIST_STOCKS;
     }
 
-    BigDecimal fetchInstrumentPrice(
+    @Observed(name = "market-data.fetch-instrument-price", contextualName = "fetch-instrument-price")
+    public BigDecimal fetchInstrumentPrice(
         Instrument instrument,
         DataType dataType,
         ApiProvider preferredProvider,
@@ -100,14 +104,15 @@ class MarketDataProviderResolver {
         return price;
     }
 
-    Long resolveLatestVolume(Instrument instrument) {
+    public Long resolveLatestVolume(Instrument instrument) {
         if (instrument == null || instrument.getSymbol() == null) {
             return null;
         }
         return yahooFinanceClient.getLatestVolume(instrument.getSymbol());
     }
 
-    CurrencyRate fetchForexRate(
+    @Observed(name = "market-data.fetch-forex-rate", contextualName = "fetch-forex-rate")
+    public CurrencyRate fetchForexRate(
         String fromCurrency,
         String toCurrency,
         ApiProvider preferredProvider,
@@ -125,7 +130,8 @@ class MarketDataProviderResolver {
         return rate;
     }
 
-    BigDecimal fetchCryptoPrice(String symbol, UserApiConfig finnhubConfig) {
+    @Observed(name = "market-data.fetch-crypto-price", contextualName = "fetch-crypto-price")
+    public BigDecimal fetchCryptoPrice(String symbol, UserApiConfig finnhubConfig) {
         if (finnhubConfig == null) {
             return null;
         }
@@ -137,7 +143,7 @@ class MarketDataProviderResolver {
         }
     }
 
-    UserApiConfig getActiveConfig(ApiProvider provider) {
+    public UserApiConfig getActiveConfig(ApiProvider provider) {
         return userApiConfigRepository.findByProviderAndIsActiveTrue(provider)
             .stream()
             .findFirst()

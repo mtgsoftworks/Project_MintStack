@@ -3,6 +3,7 @@ package com.mintstack.finance.config;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -18,8 +19,12 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.listener.CommonErrorHandler;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.util.backoff.FixedBackOff;
 import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
@@ -41,9 +46,19 @@ public class KafkaConfig {
     @Value("${spring.kafka.properties.sasl.jaas.config:}")
     private String saslJaasConfig;
 
+    @Value("${app.messaging.market-data-consumer.retry.max-attempts:3}")
+    private long marketDataRetryMaxAttempts;
+
+    @Value("${app.messaging.market-data-consumer.retry.backoff-ms:1000}")
+    private long marketDataRetryBackoffMs;
+
+    @Value("${app.messaging.market-data-consumer.dlt-enabled:true}")
+    private boolean marketDataDltEnabled;
+
     // Topic names
     public static final String TOPIC_LOGS = "mintstack-logs";
     public static final String TOPIC_MARKET_DATA = "mintstack-market-data";
+    public static final String TOPIC_MARKET_DATA_DLT = "mintstack-market-data-dlt";
     public static final String TOPIC_NOTIFICATIONS = "mintstack-notifications";
 
     @Bean
@@ -66,6 +81,15 @@ public class KafkaConfig {
     @Bean
     public NewTopic marketDataTopic() {
         return TopicBuilder.name(TOPIC_MARKET_DATA)
+            .partitions(3)
+            .replicas(1)
+            .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "app.messaging.market-data-consumer.dlt-enabled", havingValue = "true", matchIfMissing = true)
+    public NewTopic marketDataDltTopic() {
+        return TopicBuilder.name(TOPIC_MARKET_DATA_DLT)
             .partitions(3)
             .replicas(1)
             .build();
@@ -117,6 +141,39 @@ public class KafkaConfig {
         factory.setConsumerFactory(consumerFactory());
         factory.setConcurrency(3);
         return factory;
+    }
+
+    @Bean(name = "marketDataKafkaListenerContainerFactory")
+    public ConcurrentKafkaListenerContainerFactory<String, Object> marketDataKafkaListenerContainerFactory(
+            ConsumerFactory<String, Object> consumerFactory,
+            KafkaTemplate<String, Object> kafkaTemplate) {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory);
+        factory.setConcurrency(3);
+        factory.setCommonErrorHandler(marketDataErrorHandler(kafkaTemplate));
+        return factory;
+    }
+
+    @Bean
+    public CommonErrorHandler marketDataErrorHandler(KafkaTemplate<String, Object> kafkaTemplate) {
+        long retries = Math.max(marketDataRetryMaxAttempts - 1, 0);
+        FixedBackOff backOff = new FixedBackOff(marketDataRetryBackoffMs, retries);
+
+        if (!marketDataDltEnabled) {
+            DefaultErrorHandler errorHandler = new DefaultErrorHandler(backOff);
+            errorHandler.addNotRetryableExceptions(IllegalArgumentException.class);
+            return errorHandler;
+        }
+
+        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
+            kafkaTemplate,
+            (record, ex) -> new TopicPartition(TOPIC_MARKET_DATA_DLT, record.partition())
+        );
+
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, backOff);
+        errorHandler.addNotRetryableExceptions(IllegalArgumentException.class);
+        return errorHandler;
     }
 
     private void addSecurityProps(Map<String, Object> props) {

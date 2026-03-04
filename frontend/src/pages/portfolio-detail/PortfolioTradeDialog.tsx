@@ -33,6 +33,12 @@ const ORDER_TYPES = {
   STOP: 'STOP',
 }
 
+const ORDER_TYPE_LABEL_KEYS = {
+  [ORDER_TYPES.MARKET]: 'portfolioDetailPage.tradeDialog.orderTypes.market',
+  [ORDER_TYPES.LIMIT]: 'portfolioDetailPage.tradeDialog.orderTypes.limit',
+  [ORDER_TYPES.STOP]: 'portfolioDetailPage.tradeDialog.orderTypes.stop',
+}
+
 export function PortfolioTradeDialog({
   portfolioId,
   mode = 'BUY',
@@ -306,9 +312,15 @@ export function PortfolioTradeDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ORDER_TYPES.MARKET}>MARKET</SelectItem>
-                  <SelectItem value={ORDER_TYPES.LIMIT}>LIMIT</SelectItem>
-                  <SelectItem value={ORDER_TYPES.STOP}>STOP</SelectItem>
+                  <SelectItem value={ORDER_TYPES.MARKET}>
+                    {t(ORDER_TYPE_LABEL_KEYS[ORDER_TYPES.MARKET])}
+                  </SelectItem>
+                  <SelectItem value={ORDER_TYPES.LIMIT}>
+                    {t(ORDER_TYPE_LABEL_KEYS[ORDER_TYPES.LIMIT])}
+                  </SelectItem>
+                  <SelectItem value={ORDER_TYPES.STOP}>
+                    {t(ORDER_TYPE_LABEL_KEYS[ORDER_TYPES.STOP])}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -8,6 +8,7 @@ import com.mintstack.finance.entity.UserDataPreference.DataType;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.service.MarketDataService;
 import com.mintstack.finance.service.PriceUpdateService;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,7 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@Observed(name = "market-data.instrument-update", contextualName = "market-data-instrument-update")
 class MarketDataInstrumentUpdateService {
 
     private final InstrumentRepository instrumentRepository;
@@ -30,7 +32,8 @@ class MarketDataInstrumentUpdateService {
 
     private int currentStockOffset = 0;
 
-    void updatePricesForType(
+    @Observed(name = "market-data.update-prices-for-type", contextualName = "update-prices-for-type")
+    public void updatePricesForType(
         Instrument.InstrumentType type,
         UserApiConfig yahooConfig,
         UserApiConfig alphaConfig,
@@ -89,7 +92,8 @@ class MarketDataInstrumentUpdateService {
         }
     }
 
-    void updateInstrumentPrice(Instrument instrument, BigDecimal price, Long volume) {
+    @Observed(name = "market-data.update-instrument-price", contextualName = "update-instrument-price")
+    public void updateInstrumentPrice(Instrument instrument, BigDecimal price, Long volume) {
         BigDecimal previousClose = instrument.getCurrentPrice();
         instrument.setPreviousClose(previousClose);
         instrument.setCurrentPrice(price);
