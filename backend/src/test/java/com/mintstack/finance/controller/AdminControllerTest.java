@@ -165,4 +165,5 @@ class AdminControllerTest {
         mockMvc.perform(get("/api/v1/admin/dashboard"))
             .andExpect(status().isForbidden());
     }
+
 }

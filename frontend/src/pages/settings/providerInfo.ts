@@ -61,10 +61,5 @@ export const DATA_SOURCE_TYPES = [
         type: 'CRYPTO',
         label: 'Kripto Paralar',
         providers: ['YAHOO_FINANCE', 'ALPHA_VANTAGE', 'FINNHUB']
-    },
-    {
-        type: 'NEWS',
-        label: 'Haberler',
-        providers: ['YAHOO_FINANCE', 'ALPHA_VANTAGE', 'FINNHUB']
     }
 ]

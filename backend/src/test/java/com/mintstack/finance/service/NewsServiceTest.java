@@ -69,7 +69,7 @@ class NewsServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<News> newsPage = new PageImpl<>(List.of(testNews));
         
-        when(newsRepository.findAllByOrderByPublishedAtDesc(pageable))
+        when(newsRepository.findByIsPublishedTrueOrderByPublishedAtDesc(pageable))
             .thenReturn(newsPage);
 
         // When
@@ -79,6 +79,7 @@ class NewsServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).getTitle()).isEqualTo("Test Haber");
+        assertThat(result.getContent().get(0).getIsSimulated()).isFalse();
     }
 
     @Test
@@ -113,7 +114,7 @@ class NewsServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<News> newsPage = new PageImpl<>(List.of(testNews));
 
-        when(newsRepository.findByCategorySlugOrderByPublishedAtDesc(categorySlug, pageable))
+        when(newsRepository.findByCategorySlugAndIsPublishedTrueOrderByPublishedAtDesc(categorySlug, pageable))
             .thenReturn(newsPage);
 
         // When

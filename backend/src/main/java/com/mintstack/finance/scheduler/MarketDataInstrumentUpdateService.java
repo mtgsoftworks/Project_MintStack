@@ -11,6 +11,7 @@ import com.mintstack.finance.service.PriceUpdateService;
 import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -18,6 +19,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -30,7 +32,11 @@ class MarketDataInstrumentUpdateService {
     private final PriceUpdateService priceUpdateService;
     private final MarketDataProviderResolver providerResolver;
 
-    private int currentStockOffset = 0;
+    @Value("${app.scheduler.instrument-batch-size:5}")
+    private int configuredBatchSize;
+
+    private final Map<Instrument.InstrumentType, Integer> updateOffsets =
+        new EnumMap<>(Instrument.InstrumentType.class);
 
     @Observed(name = "market-data.update-prices-for-type", contextualName = "update-prices-for-type")
     public void updatePricesForType(
@@ -47,18 +53,20 @@ class MarketDataInstrumentUpdateService {
             return;
         }
 
-        if (currentStockOffset >= instruments.size()) {
-            currentStockOffset = 0;
+        int batchSize = resolveBatchSize();
+        int currentOffset = updateOffsets.getOrDefault(type, 0);
+        if (currentOffset >= instruments.size()) {
+            currentOffset = 0;
         }
 
-        int batchSize = 5;
-        int end = Math.min(currentStockOffset + batchSize, instruments.size());
-        List<Instrument> batch = instruments.subList(currentStockOffset, end);
+        int end = Math.min(currentOffset + batchSize, instruments.size());
+        List<Instrument> batch = instruments.subList(currentOffset, end);
 
         log.info(
-            "Round-Robin: Fetching batch {} instruments (Index {}-{} of {})",
+            "Round-Robin {}: Fetching batch {} instruments (Index {}-{} of {})",
+            type,
             batch.size(),
-            currentStockOffset,
+            currentOffset,
             end,
             instruments.size()
         );
@@ -85,11 +93,12 @@ class MarketDataInstrumentUpdateService {
             }
         }
 
-        currentStockOffset += batchSize;
-        if (currentStockOffset >= instruments.size()) {
-            currentStockOffset = 0;
-            log.info("Finished one full cycle of stock updates. Resetting to start.");
+        int nextOffset = currentOffset + batchSize;
+        if (nextOffset >= instruments.size()) {
+            nextOffset = 0;
+            log.info("Finished one full cycle of {} updates. Resetting to start.", type);
         }
+        updateOffsets.put(type, nextOffset);
     }
 
     @Observed(name = "market-data.update-instrument-price", contextualName = "update-instrument-price")
@@ -133,5 +142,9 @@ class MarketDataInstrumentUpdateService {
         } catch (Exception error) {
             log.warn("Failed to save daily history for {}", instrument.getSymbol());
         }
+    }
+
+    private int resolveBatchSize() {
+        return configuredBatchSize > 0 ? configuredBatchSize : 5;
     }
 }

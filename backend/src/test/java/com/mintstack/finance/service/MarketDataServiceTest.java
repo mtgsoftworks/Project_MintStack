@@ -13,6 +13,7 @@ import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.NewsRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
 import com.mintstack.finance.repository.UserApiConfigRepository;
+import com.mintstack.finance.repository.UserDataPreferenceRepository;
 import com.mintstack.finance.service.market.InstrumentMetricsService;
 import com.mintstack.finance.service.market.MarketDataMaintenanceService;
 import com.mintstack.finance.service.external.YahooFinanceClient;
@@ -71,6 +72,9 @@ class MarketDataServiceTest {
     private UserApiConfigRepository userApiConfigRepository;
 
     @Mock
+    private UserDataPreferenceRepository userDataPreferenceRepository;
+
+    @Mock
     private YahooFinanceClient yahooFinanceClient;
 
     @Mock
@@ -99,6 +103,7 @@ class MarketDataServiceTest {
             currencyRateRepository,
             priceHistoryRepository,
             userApiConfigRepository,
+            userDataPreferenceRepository,
             yahooFinanceClient,
             simulationDataService,
             marketDataMaintenanceService,
@@ -144,6 +149,8 @@ class MarketDataServiceTest {
 
         lenient().when(simulationDataService.isSimulationEnabled()).thenReturn(false);
         lenient().when(instrumentRepository.findBySymbol(anyString())).thenReturn(Optional.empty());
+        lenient().when(userDataPreferenceRepository.findFirstByDataTypeAndIsEnabledTrueOrderByUpdatedAtDesc(any()))
+            .thenReturn(Optional.empty());
     }
 
     // ===================== CURRENCY RATE TESTS =====================

@@ -235,7 +235,7 @@ public class SimulationPersistenceService {
         currencyRateRepository.deleteAll(simulatedRates);
 
         try {
-            newsRepository.deleteBySourceNameStartingWith("Simulasyon");
+            newsRepository.deleteByIsSimulatedTrue();
         } catch (Exception error) {
             log.warn("Simulasyon haberleri silinemedi: {}", error.getMessage());
         }

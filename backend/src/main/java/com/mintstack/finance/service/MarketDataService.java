@@ -13,8 +13,10 @@ import com.mintstack.finance.repository.CurrencyRateRepository;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
 import com.mintstack.finance.repository.UserApiConfigRepository;
+import com.mintstack.finance.repository.UserDataPreferenceRepository;
 import com.mintstack.finance.entity.UserApiConfig;
 import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
+import com.mintstack.finance.entity.UserDataPreference.DataType;
 import com.mintstack.finance.service.market.InstrumentMetricsService;
 import com.mintstack.finance.service.market.MarketDataMaintenanceService;
 import com.mintstack.finance.service.simulation.SimulatedIndex;
@@ -50,6 +52,7 @@ public class MarketDataService {
 
     private final PriceHistoryRepository priceHistoryRepository;
     private final UserApiConfigRepository userApiConfigRepository;
+    private final UserDataPreferenceRepository userDataPreferenceRepository;
     private final com.mintstack.finance.service.external.YahooFinanceClient yahooFinanceClient;
     private final com.mintstack.finance.service.simulation.SimulationDataService simulationDataService;
     private final MarketDataMaintenanceService marketDataMaintenanceService;
@@ -60,8 +63,11 @@ public class MarketDataService {
     @Transactional(readOnly = true)
     public List<CurrencyRateResponse> getLatestCurrencyRates() {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
-        RateSource source = isSimulation ? RateSource.MANUAL : RateSource.TCMB;
-        List<CurrencyRate> rates = currencyRateRepository.findLatestBySource(source);
+        RateSource preferredSource = resolveCurrencyRateSource(isSimulation);
+        List<CurrencyRate> rates = currencyRateRepository.findLatestBySource(preferredSource);
+        if (rates.isEmpty() && preferredSource != RateSource.TCMB) {
+            rates = currencyRateRepository.findLatestBySource(RateSource.TCMB);
+        }
         return rates.stream()
             .map(this::mapToRateResponse)
             .collect(Collectors.toList());
@@ -70,11 +76,15 @@ public class MarketDataService {
     @Transactional(readOnly = true)
     public CurrencyRateResponse getCurrencyRate(String currencyCode) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
-        RateSource source = isSimulation ? RateSource.MANUAL : RateSource.TCMB;
-        
+        RateSource source = resolveCurrencyRateSource(isSimulation);
+
         CurrencyRate rate = currencyRateRepository
             .findTopByCurrencyCodeAndSourceOrderByFetchedAtDesc(currencyCode, source)
-            .orElseThrow(() -> new ResourceNotFoundException("Kur", "kod", currencyCode));
+            .orElseGet(() -> resolveFallbackCurrencyRate(currencyCode, source));
+
+        if (rate == null) {
+            throw new ResourceNotFoundException("Kur", "kod", currencyCode);
+        }
         return mapToRateResponse(rate);
     }
 
@@ -90,6 +100,41 @@ public class MarketDataService {
         return rates.stream()
             .map(this::mapToRateResponse)
             .collect(Collectors.toList());
+    }
+
+    private RateSource resolveCurrencyRateSource(boolean simulationEnabled) {
+        if (simulationEnabled) {
+            return RateSource.MANUAL;
+        }
+        return userDataPreferenceRepository
+            .findFirstByDataTypeAndIsEnabledTrueOrderByUpdatedAtDesc(DataType.CURRENCY_RATES)
+            .map(preference -> mapProviderToRateSource(preference.getProvider()))
+            .orElse(RateSource.TCMB);
+    }
+
+    private CurrencyRate resolveFallbackCurrencyRate(String currencyCode, RateSource preferredSource) {
+        if (preferredSource != RateSource.TCMB) {
+            CurrencyRate fallbackTcmb = currencyRateRepository
+                .findTopByCurrencyCodeAndSourceOrderByFetchedAtDesc(currencyCode, RateSource.TCMB)
+                .orElse(null);
+            if (fallbackTcmb != null) {
+                return fallbackTcmb;
+            }
+        }
+        return currencyRateRepository.findTopByCurrencyCodeOrderByFetchedAtDesc(currencyCode).orElse(null);
+    }
+
+    private RateSource mapProviderToRateSource(ApiProvider provider) {
+        if (provider == null) {
+            return RateSource.TCMB;
+        }
+        return switch (provider) {
+            case TCMB -> RateSource.TCMB;
+            case YAHOO_FINANCE -> RateSource.YAHOO_FINANCE;
+            case ALPHA_VANTAGE -> RateSource.ALPHA_VANTAGE;
+            case FINNHUB -> RateSource.FINNHUB;
+            default -> RateSource.TCMB;
+        };
     }
 
     // Instruments

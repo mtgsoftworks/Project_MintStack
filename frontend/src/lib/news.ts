@@ -2,6 +2,7 @@ export type NewsLike = {
   title?: string | null
   sourceName?: string | null
   sourceUrl?: string | null
+  isSimulated?: boolean | null
 }
 
 const SIMULATION_SOURCE_KEYWORD = 'simulasyon'
@@ -11,6 +12,10 @@ const SIMULATION_TITLE_PREFIX = 'SIMULASYON'
 export const isSimulationNews = (news: NewsLike | null | undefined): boolean => {
   if (!news) {
     return false
+  }
+
+  if (typeof news.isSimulated === 'boolean') {
+    return news.isSimulated
   }
 
   const sourceName = (news.sourceName || '').toLowerCase()

@@ -1,6 +1,6 @@
 ﻿# MintStack Finance Portal
 
-**👤 Yazar / Bakım Yapan:** MintStack Geliştirme Ekibi
+**👤 Yazar / Bakım Yapan:** Mesut Taha Güven
 **📅 Son Güncelleme:** 04 Mart 2026
 **🔖 Sürüm:** 1.0.0
 
@@ -68,70 +68,71 @@ MintStack Finance Portal, Türkiye finans piyasalarına (BIST, döviz, tahvil, f
 |---|---|---|
 | **Java** | 17 | Ana programlama dili |
 | **Spring Boot** | 3.4.2 | Uygulama çatısı, REST API, güvenlik, scheduler |
-| **Spring Security + OAuth2** | — | JWT tabanlı kimlik doğrulama ve yetkilendirme |
-| **Spring Data JPA + Hibernate** | — | ORM, veri erişim katmanı |
-| **Spring WebSocket (STOMP)** | — | Gerçek zamanlı veri akışı |
-| **Spring Kafka** | — | Asenkron olay akışı ve log boru hattı |
-| **Spring Cache + Redis** | — | Sıcak veri cache, performans optimizasyonu |
-| **Spring WebFlux (WebClient)** | — | Dış API istemcisi (reaktif HTTP) |
-| **Flyway** | — | Veritabanı şema migrasyon yönetimi (18 migrasyon) |
-| **MapStruct** | 1.5.5 | DTO-Entity dönüşümleri |
+| **Spring Security (Config)** | 6.4.2 | JWT tabanlı kimlik doğrulama ve yetkilendirme |
+| **Spring Data JPA + Hibernate** | 3.4.2 | ORM, veri erişim katmanı |
+| **Spring WebSocket (STOMP)** | 6.2.2 | Gerçek zamanlı veri akışı |
+| **Spring Kafka** | 3.3.2 | Asenkron olay akışı ve log boru hattı |
+| **Spring Cache + Redis** | 3.4.2 | Sıcak veri cache, performans optimizasyonu |
+| **Spring WebFlux (WebClient)** | 6.2.2 | Dış API istemcisi (reaktif HTTP) |
+| **Flyway** | 10.20.1 | Veritabanı şema migrasyon yönetimi (19+ migrasyon) |
+| **MapStruct** | 1.5.5.Final | DTO-Entity dönüşümleri |
 | **Lombok** | 1.18.30 | Boilerplate kod azaltma |
 | **Bucket4j** | 8.7.0 | Rate limiting |
 | **Resilience4j** | 2.2.0 | Circuit breaker, hata toleransı |
 | **SpringDoc OpenAPI** | 2.3.0 | Swagger UI, API dokümantasyonu |
 | **Apache POI** | 5.2.5 | Excel dışa aktarım |
 | **iText** | 8.0.2 | PDF dışa aktarım |
-| **Quartz** | — | Zamanlanmış görevler (veri toplama, temizlik) |
-| **Log4j2 + JSON Layout** | — | Yapısal loglama |
+| **Quartz** | 2.3.2 | Zamanlanmış görevler (veri toplama, temizlik) |
+| **Log4j2 + JSON Layout** | 2.24.3 | Yapısal loglama |
+| **Micrometer Prometheus Registry** | 1.14.3 | Prometheus export metrikleri |
 
 ### 2.2 Frontend
 
 | Teknoloji | Versiyon | Kullanım Amacı |
 |---|---|---|
-| **React** | 18.2 | UI kütüphanesi |
-| **TypeScript** | 5.x | Tip güvenli geliştirme |
-| **Vite** | 5.x | Build aracı ve dev server |
-| **Redux Toolkit + RTK Query** | 2.x | State yönetimi ve API veri çekme |
-| **React Router** | 6.x | Sayfa yönlendirme |
-| **Tailwind CSS** | 3.4 | Utility-first CSS framework |
-| **Radix UI** | — | Erişilebilir headless UI bileşenleri |
-| **Recharts** | 2.10 | Grafik ve veri görselleştirme |
-| **Formik + Yup** | — | Form yönetimi ve doğrulama |
-| **Keycloak JS** | 26.x | Frontend tarafında kimlik doğrulama |
-| **STOMP.js + SockJS** | — | WebSocket istemcisi |
-| **i18next** | 23.x | Çoklu dil desteği (TR/EN) |
-| **Lucide React** | — | İkon kütüphanesi |
-| **Sonner** | — | Toast bildirimleri |
+| **React** | 18.3.1 | UI kütüphanesi |
+| **TypeScript** | 5.9.3 | Tip güvenli geliştirme |
+| **Vite** | 5.4.21 | Build aracı ve dev server |
+| **Redux Toolkit + RTK Query** | 2.11.2 | State yönetimi ve API veri çekme |
+| **React Router** | 6.30.3 | Sayfa yönlendirme |
+| **Tailwind CSS** | 3.4.19 | Utility-first CSS framework |
+| **Radix UI** | 1.x / 2.x (karma) | Erişilebilir headless UI bileşenleri |
+| **Recharts** | 2.15.4 | Grafik ve veri görselleştirme |
+| **Formik + Yup** | 2.4.9 / 1.7.1 | Form yönetimi ve doğrulama |
+| **Keycloak JS** | 26.2.3 | Frontend tarafında kimlik doğrulama |
+| **STOMP.js + SockJS** | 7.2.1 / 1.6.1 | WebSocket istemcisi |
+| **i18next** | 23.16.8 | Çoklu dil desteği (TR/EN) |
+| **Lucide React** | 0.303.0 | İkon kütüphanesi |
+| **Sonner** | 1.3.1 | Toast bildirimleri |
 
 ### 2.3 Altyapı ve DevOps
 
 | Teknoloji | Versiyon | Kullanım Amacı |
 |---|---|---|
-| **Docker Compose** | v2+ | Konteyner orkestrasyon |
-| **PostgreSQL** | 15 Alpine | İlişkisel veritabanı |
-| **Redis** | 7 Alpine | Cache ve oturum yönetimi |
-| **Keycloak** | 26.5 | OAuth2/OIDC kimlik sunucusu |
+| **Docker Compose** | v2.24+ | Konteyner orkestrasyon |
+| **PostgreSQL** | 15-alpine | İlişkisel veritabanı |
+| **Redis** | 7-alpine | Cache ve oturum yönetimi |
+| **Keycloak** | 26.5.4 | OAuth2/OIDC kimlik sunucusu |
 | **OpenLDAP** | 1.5.0 | Dizin hizmetleri, Keycloak federation |
 | **Kafka (KRaft)** | 7.5.0 | Olay akışı, SASL/PLAIN doğrulama |
-| **Nginx** | Alpine | API Gateway, reverse proxy |
-| **Prometheus** | 2.48 | Metrik toplama |
-| **Grafana** | 10.2 | Metrik görselleştirme ve alarm |
-| **AlertManager** | 0.26 | Alarm yönetimi |
-| **OpenSearch** | 2.13 | Log indeksleme ve arama |
-| **OpenSearch Dashboards** | 2.13 | Log görselleştirme |
-| **Logstash** | 8.9 | Log işleme pipeline |
-| **OTEL Collector** | 0.91 | Distributed tracing |
+| **Nginx** | alpine | API Gateway, reverse proxy |
+| **Prometheus** | 2.48.0 | Metrik toplama |
+| **Grafana** | 10.2.2 | Metrik görselleştirme ve alarm |
+| **AlertManager** | 0.26.0 | Alarm yönetimi |
+| **OpenSearch** | 2.13.0 | Log indeksleme ve arama |
+| **OpenSearch Dashboards** | 2.13.0 | Log görselleştirme |
+| **Logstash** | 8.9.0 | Log işleme pipeline |
+| **OTEL Collector** | 0.91.0 | Distributed tracing |
 
 ### 2.4 Test Altyapısı
 
 | Kategori | Araçlar |
 |---|---|
 | **Backend Unit Test** | JUnit 5, Mockito, Spring Boot Test (40 test sınıfı) |
-| **Backend Entegrasyon** | Testcontainers (PostgreSQL), H2 |
-| **Frontend Unit Test** | Vitest, Testing Library, MSW |
-| **Frontend E2E** | Playwright |
-| **Kod Kapsamı** | JaCoCo (minimum %50 satır, %40 branch) |
+| **Backend Entegrasyon** | Testcontainers 1.19.3, H2 |
+| **Frontend Unit Test** | Vitest 1.6.1, Testing Library 14.3.1, MSW 2.12.7 |
+| **Frontend E2E** | Playwright 1.57.0 |
+| **Kod Kapsamı** | JaCoCo 0.8.11 (minimum %50 satır, %40 branch) |
 
 ---
 
@@ -275,7 +276,7 @@ Project_MintStack/
 │   │       ├── strategy/                 # Trading stratejileri (RSI, MA)
 │   │       └── ...                       # Analysis, News, Alert, Email vb.
 │   ├── src/main/resources/
-│   │   └── db/migration/             # Flyway migrasyonları (V1-V18)
+│   │   └── db/migration/             # Flyway migrasyonları (V1-V19)
 │   └── src/test/                      # Test dosyaları (40 test sınıfı)
 │
 ├── frontend/                          # React SPA (TypeScript)
@@ -385,6 +386,7 @@ docker compose ps
 | **API Gateway** | http://localhost:8088 | Nginx reverse proxy |
 | **REST API** | http://localhost:8088/api/v1 | Backend API |
 | **Swagger UI** | http://localhost:8088/swagger-ui.html | API dokümantasyonu |
+| **OpenAPI JSON** | http://localhost:8088/api-docs | Makine okunur API sözleşmesi |
 | **WebSocket** | ws://localhost:8088/ws | Gerçek zamanlı veri |
 | **Keycloak** | http://localhost:8180 | Kimlik sunucusu |
 | **Grafana** | http://localhost:13030 | Metrik panelleri |

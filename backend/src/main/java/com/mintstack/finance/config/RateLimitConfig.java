@@ -91,6 +91,37 @@ public class RateLimitConfig {
         return ipBuckets.size() + userBuckets.size();
     }
 
+    /**
+     * Update runtime rate limit settings.
+     */
+    public synchronized void updateSettings(
+        Boolean enabledValue,
+        Integer anonymousPerMinute,
+        Integer authenticatedPerMinute,
+        Integer adminPerMinute,
+        boolean clearExistingBuckets
+    ) {
+        if (enabledValue != null) {
+            this.enabled = enabledValue;
+        }
+        if (anonymousPerMinute != null) {
+            validatePositive(anonymousPerMinute, "anonymousRequestsPerMinute");
+            this.anonymousRequestsPerMinute = anonymousPerMinute;
+        }
+        if (authenticatedPerMinute != null) {
+            validatePositive(authenticatedPerMinute, "authenticatedRequestsPerMinute");
+            this.authenticatedRequestsPerMinute = authenticatedPerMinute;
+        }
+        if (adminPerMinute != null) {
+            validatePositive(adminPerMinute, "adminRequestsPerMinute");
+            this.adminRequestsPerMinute = adminPerMinute;
+        }
+
+        if (clearExistingBuckets) {
+            clearBuckets();
+        }
+    }
+
     private Bucket resolveBucket(Map<String, BucketEntry> bucketMap, String key, int requestsPerMinute) {
         long now = System.currentTimeMillis();
         BucketEntry entry = bucketMap.compute(key, (k, existing) -> {
@@ -138,6 +169,12 @@ public class RateLimitConfig {
         return Bucket.builder()
             .addLimit(limit)
             .build();
+    }
+
+    private void validatePositive(int value, String fieldName) {
+        if (value < 1) {
+            throw new IllegalArgumentException(fieldName + " en az 1 olmalidir");
+        }
     }
 
     private record BucketEntry(Bucket bucket, long lastAccessEpochMillis) {

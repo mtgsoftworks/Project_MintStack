@@ -1,5 +1,6 @@
 package com.mintstack.finance.scheduler;
 
+import com.mintstack.finance.entity.CurrencyRate;
 import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.UserApiConfig;
 import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
@@ -97,5 +98,73 @@ class MarketDataProviderResolverTest {
         verify(yahooFinanceClient).fetchStockPrice("AKBNK", null, null);
         verify(alphaVantageClient, never()).fetchGlobalQuote("AKBNK.IS");
         verify(finnhubClient, never()).fetchStockQuote("AKBNK");
+    }
+
+    @Test
+    @DisplayName("fetchForexRate should fallback to Finnhub when preferred TCMB is unsupported")
+    void fetchForexRate_ShouldFallback_WhenPreferredProviderUnsupported() {
+        CurrencyRate finnhubRate = CurrencyRate.builder()
+            .currencyCode("USD")
+            .buyingRate(new BigDecimal("38.10"))
+            .sellingRate(new BigDecimal("38.20"))
+            .source(CurrencyRate.RateSource.FINNHUB)
+            .build();
+
+        when(finnhubClient.fetchForexRate("USD", "TRY")).thenReturn(finnhubRate);
+
+        CurrencyRate result = resolver.fetchForexRate(
+            "USD",
+            "TRY",
+            ApiProvider.TCMB,
+            null,
+            new UserApiConfig()
+        );
+
+        assertThat(result).isNotNull();
+        assertThat(result.getSource()).isEqualTo(CurrencyRate.RateSource.FINNHUB);
+        verify(finnhubClient).fetchForexRate("USD", "TRY");
+    }
+
+    @Test
+    @DisplayName("fetchForexRate should ignore zero-rate response and fallback to next provider")
+    void fetchForexRate_ShouldIgnoreZeroRatesAndFallback() {
+        CurrencyRate invalidAlphaRate = CurrencyRate.builder()
+            .currencyCode("USD")
+            .buyingRate(BigDecimal.ZERO)
+            .sellingRate(BigDecimal.ZERO)
+            .source(CurrencyRate.RateSource.ALPHA_VANTAGE)
+            .build();
+
+        CurrencyRate finnhubRate = CurrencyRate.builder()
+            .currencyCode("USD")
+            .buyingRate(new BigDecimal("38.30"))
+            .sellingRate(new BigDecimal("38.40"))
+            .source(CurrencyRate.RateSource.FINNHUB)
+            .build();
+
+        when(alphaVantageClient.fetchExchangeRate("USD", "TRY")).thenReturn(invalidAlphaRate);
+        when(finnhubClient.fetchForexRate("USD", "TRY")).thenReturn(finnhubRate);
+
+        CurrencyRate result = resolver.fetchForexRate(
+            "USD",
+            "TRY",
+            ApiProvider.ALPHA_VANTAGE,
+            new UserApiConfig(),
+            new UserApiConfig()
+        );
+
+        assertThat(result).isNotNull();
+        assertThat(result.getSource()).isEqualTo(CurrencyRate.RateSource.FINNHUB);
+    }
+
+    @Test
+    @DisplayName("fetchCryptoPrice should return null when provider returns non-positive value")
+    void fetchCryptoPrice_ShouldReturnNull_WhenProviderReturnsZero() {
+        when(finnhubClient.fetchCryptoPrice("BTC-USD")).thenReturn(BigDecimal.ZERO);
+
+        BigDecimal result = resolver.fetchCryptoPrice("BTC-USD", new UserApiConfig());
+
+        assertThat(result).isNull();
+        verify(finnhubClient).fetchCryptoPrice("BTC-USD");
     }
 }

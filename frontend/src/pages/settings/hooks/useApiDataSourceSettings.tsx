@@ -192,8 +192,8 @@ export function useApiDataSourceSettings({ t }) {
     }
 
     const handleRefreshDataSources = async () => {
-        const activeConfig = apiConfigs.find((config) => config.isActive)
-        if (!activeConfig) {
+        const activeConfigs = apiConfigs.filter((config) => config.isActive)
+        if (activeConfigs.length === 0) {
             return
         }
 
@@ -209,9 +209,22 @@ export function useApiDataSourceSettings({ t }) {
         )
 
         try {
-            await triggerDataFetch(activeConfig.id).unwrap()
+            let successCount = 0
+            for (const config of activeConfigs) {
+                try {
+                    await triggerDataFetch(config.id).unwrap()
+                    successCount += 1
+                } catch (error) {
+                    console.error('Provider refresh failed:', config.provider, error)
+                }
+            }
+
             toast.dismiss(loadingToastId)
-            toast.success(t('settings.dataSources.updateSuccess'))
+            if (successCount > 0) {
+                toast.success(`${t('settings.dataSources.updateSuccess')} (${successCount}/${activeConfigs.length})`)
+            } else {
+                toast.error(t('settings.dataSources.updateError'))
+            }
         } catch (error) {
             toast.dismiss(loadingToastId)
             toast.error(getApiErrorMessage(error, t('settings.dataSources.updateError')))

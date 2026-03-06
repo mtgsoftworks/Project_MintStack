@@ -120,14 +120,29 @@ class MarketDataProviderResolver {
         UserApiConfig finnhubConfig
     ) {
         if (preferredProvider != null) {
-            return fetchForexRateForProvider(preferredProvider, fromCurrency, toCurrency, alphaConfig, finnhubConfig);
+            CurrencyRate preferredRate = fetchForexRateForProvider(
+                preferredProvider,
+                fromCurrency,
+                toCurrency,
+                alphaConfig,
+                finnhubConfig
+            );
+            if (isValidForexRate(preferredRate)) {
+                return preferredRate;
+            }
+            log.warn(
+                "Preferred forex provider {} returned invalid/no rate for {}/{}. Falling back.",
+                preferredProvider,
+                fromCurrency,
+                toCurrency
+            );
         }
 
         CurrencyRate rate = fetchForexRateForProvider(ApiProvider.ALPHA_VANTAGE, fromCurrency, toCurrency, alphaConfig, finnhubConfig);
-        if (rate == null) {
+        if (!isValidForexRate(rate)) {
             rate = fetchForexRateForProvider(ApiProvider.FINNHUB, fromCurrency, toCurrency, alphaConfig, finnhubConfig);
         }
-        return rate;
+        return isValidForexRate(rate) ? rate : null;
     }
 
     @Observed(name = "market-data.fetch-crypto-price", contextualName = "fetch-crypto-price")
@@ -136,7 +151,16 @@ class MarketDataProviderResolver {
             return null;
         }
         try {
-            return finnhubClient.fetchCryptoPrice(symbol);
+            BigDecimal price = finnhubClient.fetchCryptoPrice(symbol);
+            if (price == null) {
+                log.debug("FINNHUB returned no crypto price for {}", symbol);
+                return null;
+            }
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                log.warn("FINNHUB crypto returned invalid price for {}: {}", symbol, price);
+                return null;
+            }
+            return price;
         } catch (Exception error) {
             log.warn("FINNHUB crypto fetch failed for {}: {}", symbol, error.getMessage());
             return null;
@@ -172,12 +196,20 @@ class MarketDataProviderResolver {
         UserApiConfig finnhubConfig
     ) {
         try {
-            return switch (provider) {
+            BigDecimal price = switch (provider) {
                 case YAHOO_FINANCE -> fetchFromYahoo(instrument, yahooConfig);
                 case ALPHA_VANTAGE -> fetchFromAlpha(instrument, alphaConfig);
                 case FINNHUB -> fetchFromFinnhub(instrument, finnhubConfig);
                 default -> null;
             };
+            if (price == null) {
+                return null;
+            }
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                log.warn("{} returned invalid price for {}: {}", provider, instrument.getSymbol(), price);
+                return null;
+            }
+            return price;
         } catch (Exception error) {
             log.warn("{} fetch failed for {}: {}", provider, instrument.getSymbol(), error.getMessage());
             return null;
@@ -201,6 +233,14 @@ class MarketDataProviderResolver {
             log.warn("{} forex fetch failed for {}/{}: {}", provider, fromCurrency, toCurrency, error.getMessage());
             return null;
         }
+    }
+
+    private boolean isValidForexRate(CurrencyRate rate) {
+        if (rate == null || rate.getBuyingRate() == null || rate.getSellingRate() == null) {
+            return false;
+        }
+        return rate.getBuyingRate().compareTo(BigDecimal.ZERO) > 0
+            && rate.getSellingRate().compareTo(BigDecimal.ZERO) > 0;
     }
 
     private BigDecimal fetchFromYahoo(Instrument instrument, UserApiConfig yahooConfig) {

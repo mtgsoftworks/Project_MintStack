@@ -45,9 +45,9 @@ public class DataSourceService {
     // Finnhub: https://finnhub.io/docs/api
     private static final Map<ApiProvider, Set<DataType>> PROVIDER_CAPABILITIES = Map.of(
         ApiProvider.TCMB, Set.of(DataType.CURRENCY_RATES),
-        ApiProvider.YAHOO_FINANCE, Set.of(DataType.CURRENCY_RATES, DataType.BIST_STOCKS, DataType.US_STOCKS, DataType.CRYPTO, DataType.NEWS),
-        ApiProvider.ALPHA_VANTAGE, Set.of(DataType.CURRENCY_RATES, DataType.US_STOCKS, DataType.CRYPTO, DataType.NEWS),
-        ApiProvider.FINNHUB, Set.of(DataType.CURRENCY_RATES, DataType.US_STOCKS, DataType.CRYPTO, DataType.NEWS)
+        ApiProvider.YAHOO_FINANCE, Set.of(DataType.CURRENCY_RATES, DataType.BIST_STOCKS, DataType.US_STOCKS, DataType.CRYPTO),
+        ApiProvider.ALPHA_VANTAGE, Set.of(DataType.CURRENCY_RATES, DataType.US_STOCKS, DataType.CRYPTO),
+        ApiProvider.FINNHUB, Set.of(DataType.CURRENCY_RATES, DataType.US_STOCKS, DataType.CRYPTO)
     );
 
     // Data type labels (Turkish)
@@ -99,6 +99,7 @@ public class DataSourceService {
         List<UserDataPreference> preferences = preferenceRepository.findByUserId(user.getId());
         
         return preferences.stream()
+            .filter(pref -> pref.getDataType() != DataType.NEWS)
             .map(this::toResponse)
             .toList();
     }
@@ -107,9 +108,14 @@ public class DataSourceService {
      * Set user's data preference for a specific data type
      */
     @Transactional
+    @CacheEvict(value = {"currencyRates", "instruments", "stockPrices"}, allEntries = true)
     public DataPreferenceResponse setPreference(String keycloakId, DataPreferenceRequest request) {
         User user = userRepository.findByKeycloakId(keycloakId)
             .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (request.getDataType() == DataType.NEWS) {
+            throw new IllegalArgumentException("Haber kaynagi RSS olarak sabittir; secim yapilamaz.");
+        }
 
         // Validate provider supports this data type
         Set<DataType> capabilities = PROVIDER_CAPABILITIES.get(request.getProvider());
@@ -199,6 +205,10 @@ public class DataSourceService {
             if (!hasYahoo) {
                 advisoryNotes.add("Daha tutarli BIST verisi icin Yahoo Finance veya Finnhub anahtari eklenmesi onerilir.");
             }
+        }
+
+        if (config.getProvider() == ApiProvider.FINNHUB) {
+            advisoryNotes.add("Finnhub anahtari gecerli olsa bile Forex endpoint erisimi plana gore kisitli olabilir.");
         }
 
         // FIX: Trigger data fetch ASYNCHRONOUSLY to prevent HTTP blocking

@@ -118,4 +118,20 @@ class DataSourceServiceTest {
         assertThatThrownBy(() -> dataSourceService.setPreference("test-keycloak-id", request))
             .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void setPreference_ShouldFail_WhenDataTypeIsNews() {
+        // Given
+        User user = createTestUser();
+        DataPreferenceRequest request = new DataPreferenceRequest();
+        request.setProvider(ApiProvider.YAHOO_FINANCE);
+        request.setDataType(DataType.NEWS);
+
+        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+
+        // When & Then
+        assertThatThrownBy(() -> dataSourceService.setPreference("test-keycloak-id", request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("RSS");
+    }
 }

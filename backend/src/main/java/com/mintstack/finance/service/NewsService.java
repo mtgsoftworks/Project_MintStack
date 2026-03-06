@@ -30,7 +30,7 @@ public class NewsService {
     @Cacheable(value = "news", key = "'latest'")
     @Transactional(readOnly = true)
     public List<NewsResponse> getLatestNews() {
-        List<News> news = newsRepository.findTop5ByOrderByPublishedAtDesc();
+        List<News> news = newsRepository.findTop5ByIsPublishedTrueOrderByPublishedAtDesc();
         return news.stream()
             .map(this::mapToResponse)
             .collect(Collectors.toList());
@@ -38,13 +38,13 @@ public class NewsService {
 
     @Transactional(readOnly = true)
     public Page<NewsResponse> getAllNews(Pageable pageable) {
-        Page<News> news = newsRepository.findAllByOrderByPublishedAtDesc(pageable);
+        Page<News> news = newsRepository.findByIsPublishedTrueOrderByPublishedAtDesc(pageable);
         return news.map(this::mapToResponse);
     }
 
     @Transactional(readOnly = true)
     public Page<NewsResponse> getNewsByCategory(String categorySlug, Pageable pageable) {
-        Page<News> news = newsRepository.findByCategorySlugOrderByPublishedAtDesc(categorySlug, pageable);
+        Page<News> news = newsRepository.findByCategorySlugAndIsPublishedTrueOrderByPublishedAtDesc(categorySlug, pageable);
         return news.map(this::mapToResponse);
     }
 
@@ -84,7 +84,9 @@ public class NewsService {
 
     @Transactional
     public void saveNews(News news) {
-        if (!newsRepository.existsBySourceUrl(news.getSourceUrl())) {
+        boolean existsByUrl = news.getSourceUrl() != null && newsRepository.existsBySourceUrl(news.getSourceUrl());
+        boolean existsByHash = news.getExternalHash() != null && newsRepository.existsByExternalHash(news.getExternalHash());
+        if (!existsByUrl && !existsByHash) {
             newsRepository.save(news);
             log.debug("Saved news: {}", news.getTitle());
         }
@@ -114,6 +116,7 @@ public class NewsService {
             .categorySlug(category != null ? category.getSlug() : null)
             .publishedAt(news.getPublishedAt())
             .isFeatured(news.getIsFeatured())
+            .isSimulated(Boolean.TRUE.equals(news.getIsSimulated()))
             .viewCount(news.getViewCount())
             .build();
     }

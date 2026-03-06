@@ -1,5 +1,6 @@
 package com.mintstack.finance.service.simulation;
 
+import com.mintstack.finance.config.NewsFeedProperties;
 import com.mintstack.finance.dto.simulation.MarketEvent;
 import com.mintstack.finance.dto.simulation.NewsScenario;
 import com.mintstack.finance.entity.Instrument;
@@ -50,6 +51,7 @@ public class SimulationDataService {
     private final NewsScenarioEngine newsScenarioEngine;
     private final SimulationMarketBootstrapService marketBootstrapService;
     private final SimulationPersistenceService persistenceService;
+    private final NewsFeedProperties newsFeedProperties;
 
     private final Map<String, SimulatedStock> stockCache = new ConcurrentHashMap<>();
     private final Map<String, SimulatedStock> bondCache = new ConcurrentHashMap<>();
@@ -76,7 +78,9 @@ public class SimulationDataService {
             cryptoCache
         );
         normalizeLegacyScenarioNews();
-        ensureBaseMockNewsIfEmpty();
+        if (newsFeedProperties.isSimulationNewsEnabled()) {
+            ensureBaseMockNewsIfEmpty();
+        }
     }
 
     public boolean isSimulationEnabled() {
@@ -186,7 +190,9 @@ public class SimulationDataService {
         simulateCurrencies(volatility, intervalSeconds);
         simulateIndices(volatility, trend, intervalSeconds, eventMultiplier);
         simulateCryptos(volatility, trend, intervalSeconds, randomEvents);
-        maybeGenerateSimulationHeadline(intervalSeconds);
+        if (newsFeedProperties.isSimulationNewsEnabled()) {
+            maybeGenerateSimulationHeadline(intervalSeconds);
+        }
     }
 
     private Map<String, Double> simulateNewsImpact() {
@@ -226,6 +232,9 @@ public class SimulationDataService {
     }
 
     private void saveScenarioNews(NewsScenario scenario) {
+        if (!newsFeedProperties.isSimulationNewsEnabled()) {
+            return;
+        }
         try {
             List<NewsCategory> categories = newsCategoryRepository.findAll();
             if (categories.isEmpty()) {
@@ -243,6 +252,7 @@ public class SimulationDataService {
                 .summary(scenario.getSummary())
                 .sourceName(buildSimulationSourceName(scenario.getSource()))
                 .sourceUrl(buildScenarioSourceUrl(scenario))
+                .isSimulated(true)
                 .category(category)
                 .publishedAt(LocalDateTime.now())
                 .isPublished(true)
@@ -256,6 +266,9 @@ public class SimulationDataService {
     }
 
     private void maybeGenerateSimulationHeadline(int updateIntervalSeconds) {
+        if (!newsFeedProperties.isSimulationNewsEnabled()) {
+            return;
+        }
         LocalDateTime now = LocalDateTime.now();
         long minInterval = Math.max(MIN_SIMULATION_NEWS_INTERVAL_SECONDS, updateIntervalSeconds * 8L);
 
@@ -299,6 +312,7 @@ public class SimulationDataService {
             ))
             .sourceName(SIMULATION_SOURCE_NAME)
             .sourceUrl(String.format("%s/xu100-%s", SIMULATION_SOURCE_URL_PREFIX, now))
+            .isSimulated(true)
             .category(category)
             .publishedAt(now)
             .isPublished(true)
@@ -656,6 +670,9 @@ public class SimulationDataService {
     }
 
     private void ensureBaseMockNewsIfEmpty() {
+        if (!newsFeedProperties.isSimulationNewsEnabled()) {
+            return;
+        }
         try {
             if (newsRepository.count() > 0) {
                 return;
@@ -775,6 +792,7 @@ public class SimulationDataService {
             .content(content)
             .sourceName(SIMULATION_SOURCE_NAME)
             .sourceUrl(sourceUrl)
+            .isSimulated(true)
             .category(category)
             .publishedAt(publishedAt)
             .isPublished(true)
@@ -795,6 +813,7 @@ public class SimulationDataService {
                 news.setSourceName(buildSimulationSourceName(originalSource));
                 String suffix = news.getId() != null ? news.getId().toString() : String.valueOf(System.currentTimeMillis());
                 news.setSourceUrl(String.format("%s/legacy-%s", SIMULATION_SOURCE_URL_PREFIX, suffix));
+                news.setIsSimulated(true);
             }
 
             newsRepository.saveAll(legacyScenarioNews);

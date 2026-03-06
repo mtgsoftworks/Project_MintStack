@@ -36,7 +36,7 @@ public class FinnhubClient {
     private final CurrencyRateRepository currencyRateRepository;
 
     /**
-     * Fetch stock quote for a symbol
+     * Fetch stock quote for a symbol.
      */
     @CircuitBreaker(name = "finnhubApi", fallbackMethod = "fetchStockQuoteFallback")
     @Retry(name = "externalApi")
@@ -44,67 +44,58 @@ public class FinnhubClient {
     public BigDecimal fetchStockQuote(String symbol) {
         List<UserApiConfig> configs = userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.FINNHUB);
         if (configs.isEmpty()) {
-            throw new ExternalApiException("Finnhub", "Finnhub API yapılandırması bulunamadı");
+            throw new ExternalApiException("Finnhub", "Finnhub API yapilandirmasi bulunamadi");
         }
-        
+
         String apiKey = configs.get(0).getApiKey();
         if (apiKey == null || apiKey.isEmpty()) {
             throw new ExternalApiException("Finnhub", "API key gerekli");
         }
-        
+
         try {
             String url = "?symbol=" + symbol + "&token=" + apiKey;
-            
             log.debug("Fetching Finnhub quote: {}", symbol);
-            
+
             String response = finnhubWebClient.get()
                 .uri(url)
                 .retrieve()
                 .bodyToMono(String.class)
                 .block();
-            
+
             if (response == null) {
-                throw new ExternalApiException("Finnhub", "Boş yanıt");
+                throw new ExternalApiException("Finnhub", "Bos yanit");
             }
-            
-            log.debug("Finnhub response for {}: {}", symbol, response.substring(0, Math.min(200, response.length())));
-            
+
             JsonNode root = objectMapper.readTree(response);
-            
-            // Check for error
             if (root.has("error")) {
                 String error = root.get("error").asText();
-                log.warn("Finnhub error: {}", error);
+                log.warn("Finnhub error for stock {}: {}", symbol, error);
                 throw new ExternalApiException("Finnhub", error);
             }
-            
-            if (!root.has("c")) {
-                throw new ExternalApiException("Finnhub", "Fiyat bilgisi bulunamadı: " + symbol);
-            }
-            
-            // c = current price
-            return new BigDecimal(root.get("c").asText());
-            
+
+            BigDecimal currentPrice = extractPositivePrice(root, "Fiyat bilgisi bulunamadi: " + symbol);
+            return currentPrice;
         } catch (ExternalApiException e) {
             throw e;
         } catch (Exception e) {
             log.error("Error fetching Finnhub quote for {}", symbol, e);
-            throw new ExternalApiException("Finnhub", "Fiyat bilgisi alınamadı: " + symbol, e);
+            throw new ExternalApiException("Finnhub", "Fiyat bilgisi alinamadi: " + symbol, e);
         }
     }
 
     /**
-     * Fallback for fetchStockQuote - returns last known price from DB
+     * Fallback for fetchStockQuote - returns last known valid price from DB.
      */
     public BigDecimal fetchStockQuoteFallback(String symbol, Exception e) {
         log.warn("Finnhub stock quote fallback for {}: {}", symbol, e.getMessage());
         return instrumentRepository.findBySymbol(symbol)
             .map(Instrument::getCurrentPrice)
-            .orElse(BigDecimal.ZERO);
+            .filter(price -> price != null && price.compareTo(BigDecimal.ZERO) > 0)
+            .orElse(null);
     }
 
     /**
-     * Fetch forex rate
+     * Fetch forex rate.
      */
     @CircuitBreaker(name = "finnhubApi", fallbackMethod = "fetchForexRateFallback")
     @Retry(name = "externalApi")
@@ -112,45 +103,39 @@ public class FinnhubClient {
     public CurrencyRate fetchForexRate(String fromCurrency, String toCurrency) {
         List<UserApiConfig> configs = userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.FINNHUB);
         if (configs.isEmpty()) {
-            throw new ExternalApiException("Finnhub", "Finnhub API yapılandırması bulunamadı");
+            throw new ExternalApiException("Finnhub", "Finnhub API yapilandirmasi bulunamadi");
         }
-        
+
         String apiKey = configs.get(0).getApiKey();
         if (apiKey == null || apiKey.isEmpty()) {
             throw new ExternalApiException("Finnhub", "API key gerekli");
         }
-        
+
         try {
             String symbol = fromCurrency + toCurrency;
             String url = "?symbol=" + symbol + "&token=" + apiKey;
-            
+
             log.debug("Fetching Finnhub forex rate: {}/{}", fromCurrency, toCurrency);
-            
             String response = finnhubWebClient.get()
                 .uri(url)
                 .retrieve()
                 .bodyToMono(String.class)
                 .block();
-            
+
             if (response == null) {
-                throw new ExternalApiException("Finnhub", "Boş yanıt");
+                throw new ExternalApiException("Finnhub", "Bos yanit");
             }
-            
+
             JsonNode root = objectMapper.readTree(response);
-            
-            // Check for error
             if (root.has("error")) {
                 String error = root.get("error").asText();
-                log.warn("Finnhub error: {}", error);
+                log.warn("Finnhub error for forex {}/{}: {}", fromCurrency, toCurrency, error);
                 throw new ExternalApiException("Finnhub", error);
             }
-            
-            if (!root.has("c")) {
-                throw new ExternalApiException("Finnhub", "Kur bilgisi bulunamadı");
-            }
-            
-            BigDecimal exchangeRate = new BigDecimal(root.get("c").asText());
-            
+
+            BigDecimal exchangeRate = extractPositivePrice(root,
+                "Gecersiz kur verisi dondu: " + fromCurrency + "/" + toCurrency);
+
             return CurrencyRate.builder()
                 .currencyCode(fromCurrency)
                 .currencyName(fromCurrency + "/" + toCurrency)
@@ -159,33 +144,30 @@ public class FinnhubClient {
                 .source(RateSource.FINNHUB)
                 .fetchedAt(LocalDateTime.now())
                 .build();
-            
+
         } catch (ExternalApiException e) {
             throw e;
         } catch (Exception e) {
             log.error("Error fetching Finnhub forex rate", e);
-            throw new ExternalApiException("Finnhub", "Kur bilgisi alınamadı", e);
+            throw new ExternalApiException("Finnhub", "Kur bilgisi alinamadi", e);
         }
     }
 
     /**
-     * Fallback for fetchForexRate - returns last known rate from DB
+     * Fallback for fetchForexRate - return last valid DB rate or null.
      */
     public CurrencyRate fetchForexRateFallback(String fromCurrency, String toCurrency, Exception e) {
         log.warn("Finnhub forex rate fallback for {}/{}: {}", fromCurrency, toCurrency, e.getMessage());
         return currencyRateRepository.findByCurrencyCodeAndSource(fromCurrency, RateSource.FINNHUB)
-            .orElse(CurrencyRate.builder()
-                .currencyCode(fromCurrency)
-                .currencyName(fromCurrency + "/" + toCurrency)
-                .buyingRate(BigDecimal.ZERO)
-                .sellingRate(BigDecimal.ZERO)
-                .source(RateSource.FINNHUB)
-                .fetchedAt(LocalDateTime.now())
-                .build());
+            .filter(rate -> rate.getBuyingRate() != null
+                && rate.getSellingRate() != null
+                && rate.getBuyingRate().compareTo(BigDecimal.ZERO) > 0
+                && rate.getSellingRate().compareTo(BigDecimal.ZERO) > 0)
+            .orElse(null);
     }
 
     /**
-     * Fetch crypto price
+     * Fetch crypto price.
      */
     @CircuitBreaker(name = "finnhubApi", fallbackMethod = "fetchCryptoPriceFallback")
     @Retry(name = "externalApi")
@@ -193,59 +175,65 @@ public class FinnhubClient {
     public BigDecimal fetchCryptoPrice(String symbol) {
         List<UserApiConfig> configs = userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.FINNHUB);
         if (configs.isEmpty()) {
-            throw new ExternalApiException("Finnhub", "Finnhub API yapılandırması bulunamadı");
+            throw new ExternalApiException("Finnhub", "Finnhub API yapilandirmasi bulunamadi");
         }
-        
+
         String apiKey = configs.get(0).getApiKey();
         if (apiKey == null || apiKey.isEmpty()) {
             throw new ExternalApiException("Finnhub", "API key gerekli");
         }
-        
+
         try {
             String url = "?symbol=" + symbol + "&token=" + apiKey;
-            
             log.debug("Fetching Finnhub crypto price: {}", symbol);
-            
+
             String response = finnhubWebClient.get()
                 .uri(url)
                 .retrieve()
                 .bodyToMono(String.class)
                 .block();
-            
+
             if (response == null) {
-                throw new ExternalApiException("Finnhub", "Boş yanıt");
+                throw new ExternalApiException("Finnhub", "Bos yanit");
             }
-            
+
             JsonNode root = objectMapper.readTree(response);
-            
-            // Check for error
             if (root.has("error")) {
                 String error = root.get("error").asText();
-                log.warn("Finnhub error: {}", error);
+                log.warn("Finnhub error for crypto {}: {}", symbol, error);
                 throw new ExternalApiException("Finnhub", error);
             }
-            
-            if (!root.has("c")) {
-                throw new ExternalApiException("Finnhub", "Kripto fiyatı bulunamadı: " + symbol);
-            }
-            
-            return new BigDecimal(root.get("c").asText());
-            
+
+            return extractPositivePrice(root, "Gecersiz kripto fiyat verisi dondu: " + symbol);
         } catch (ExternalApiException e) {
             throw e;
         } catch (Exception e) {
             log.error("Error fetching Finnhub crypto price for {}", symbol, e);
-            throw new ExternalApiException("Finnhub", "Kripto fiyatı alınamadı: " + symbol, e);
+            throw new ExternalApiException("Finnhub", "Kripto fiyati alinamadi: " + symbol, e);
         }
     }
 
     /**
-     * Fallback for fetchCryptoPrice - returns last known price from DB
+     * Fallback for fetchCryptoPrice - returns last known valid price from DB.
      */
     public BigDecimal fetchCryptoPriceFallback(String symbol, Exception e) {
         log.warn("Finnhub crypto price fallback for {}: {}", symbol, e.getMessage());
         return instrumentRepository.findBySymbol(symbol)
             .map(Instrument::getCurrentPrice)
-            .orElse(BigDecimal.ZERO);
+            .filter(price -> price != null && price.compareTo(BigDecimal.ZERO) > 0)
+            .orElse(null);
+    }
+
+    private BigDecimal extractPositivePrice(JsonNode root, String missingOrInvalidMessage) {
+        if (!root.has("c") || root.get("c").isNull()) {
+            throw new ExternalApiException("Finnhub", missingOrInvalidMessage);
+        }
+
+        BigDecimal price = new BigDecimal(root.get("c").asText());
+        if (price.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ExternalApiException("Finnhub", missingOrInvalidMessage);
+        }
+        return price;
     }
 }
+

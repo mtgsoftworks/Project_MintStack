@@ -26,17 +26,23 @@ public interface NewsRepository extends JpaRepository<News, UUID> {
 
     Page<News> findByCategorySlugOrderByPublishedAtDesc(String slug, Pageable pageable);
 
+    Page<News> findByCategorySlugAndIsPublishedTrueOrderByPublishedAtDesc(String slug, Pageable pageable);
+
     List<News> findTop5ByOrderByPublishedAtDesc();
+
+    List<News> findTop5ByIsPublishedTrueOrderByPublishedAtDesc();
 
     List<News> findTop10ByIsFeaturedTrueOrderByPublishedAtDesc();
 
-    @Query("SELECT n FROM News n WHERE " +
+    @Query("SELECT n FROM News n WHERE n.isPublished = TRUE AND (" +
            "LOWER(n.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(n.summary) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "LOWER(n.summary) LIKE LOWER(CONCAT('%', :query, '%'))) " +
            "ORDER BY n.publishedAt DESC")
     Page<News> searchByTitleOrSummary(@Param("query") String query, Pageable pageable);
 
     boolean existsBySourceUrl(String sourceUrl);
+
+    boolean existsByExternalHash(String externalHash);
 
     List<News> findBySourceUrlIsNullAndSourceNameIn(List<String> sourceNames);
 
@@ -45,4 +51,6 @@ public interface NewsRepository extends JpaRepository<News, UUID> {
     void deleteBySourceName(String sourceName);
 
     void deleteBySourceNameStartingWith(String sourceNamePrefix);
+
+    void deleteByIsSimulatedTrue();
 }

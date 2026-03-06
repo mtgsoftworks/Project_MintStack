@@ -35,6 +35,8 @@ public class NewsResponse {
     private LocalDateTime publishedAt;
     
     private Boolean isFeatured;
+
+    private Boolean isSimulated;
     
     private Long viewCount;
 }

@@ -6,12 +6,25 @@
 |---|---|
 | **Base URL (Gateway)** | `http://localhost:8088/api/v1` |
 | **Swagger UI** | `http://localhost:8088/swagger-ui.html` |
+| **OpenAPI JSON** | `http://localhost:8088/api-docs` |
+| **OpenAPI JSON (compat)** | `http://localhost:8088/v3/api-docs` |
 | **Kimlik Sunucusu** | `http://localhost:8180` |
 | **WebSocket** | `ws://localhost:8088/ws` |
 | **API Versiyonlama** | URL bazlı: `/api/v1/...` |
 | **Aktif Versiyon** | `v1` |
 | **İçerik Tipi** | `application/json` |
 | **Karakter Kodlaması** | `UTF-8` |
+
+### 1.1 Platform Sürümleri
+
+| Bileşen | Sürüm |
+|---|---|
+| Backend (Spring Boot) | `3.4.2` |
+| Frontend (React) | `18.3.1` |
+| Frontend (Vite) | `5.4.21` |
+| Kimlik Sunucusu (Keycloak) | `26.5.4` |
+| Veritabanı (PostgreSQL) | `15-alpine` |
+| Mesajlaşma (Kafka KRaft) | `7.5.0` |
 
 ## 2. Kimlik Doğrulama
 
@@ -152,8 +165,13 @@ grant_type=refresh_token
 | Metot | Endpoint | Açıklama |
 |---|---|---|
 | `GET` | `/data-sources/preferences` | Mevcut tercihler |
-| `PUT` | `/data-sources/preferences` | Tercihleri güncelle |
-| `GET` | `/data-sources/providers` | Mevcut sağlayıcılar ve yetenekleri |
+| `POST` | `/data-sources/preferences` | Tercihleri güncelle |
+| `GET` | `/data-sources/capabilities` | Mevcut sağlayıcılar ve yetenekleri |
+| `POST` | `/data-sources/trigger/{apiConfigId}` | Seçili API anahtarı için anlık veri çekimini tetikle |
+
+Not:
+- `Finnhub` anahtarı hisse/kripto için geçerli olsa bile `forex/rates` endpoint erişimi plan bazlı olabilir.
+- Uygulama bu durumda `0` değerli kuru geçerli veri olarak kabul etmez ve alternatif sağlayıcı fallback'i dener.
 
 ### Teknik Analiz
 
@@ -178,6 +196,8 @@ grant_type=refresh_token
 | `GET` | `/admin/dashboard` | Admin dashboard verileri |
 | `GET` | `/admin/users` | Tüm kullanıcılar |
 | `GET` | `/admin/stats` | Sistem istatistikleri |
+| `GET` | `/admin/rate-limit` | Aktif rate limit ayarları |
+| `PUT` | `/admin/rate-limit` | Runtime rate limit güncelle |
 | `POST` | `/simulation/start` | Simülasyonu başlat |
 | `POST` | `/simulation/stop` | Simülasyonu durdur |
 | `GET` | `/simulation/config` | Simülasyon konfigürasyonu |

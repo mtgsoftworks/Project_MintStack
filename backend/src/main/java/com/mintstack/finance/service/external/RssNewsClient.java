@@ -1,5 +1,6 @@
 package com.mintstack.finance.service.external;
 
+import com.mintstack.finance.config.NewsFeedProperties;
 import com.mintstack.finance.entity.News;
 import com.mintstack.finance.entity.NewsCategory;
 import com.mintstack.finance.repository.NewsCategoryRepository;
@@ -10,223 +11,364 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class RssNewsClient {
 
+    private static final DateTimeFormatter ALT_RSS_DATE = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH);
+
     private final NewsCategoryRepository categoryRepository;
     private final NewsRepository newsRepository;
+    private final NewsFeedProperties newsFeedProperties;
 
-    // RSS Feed URLs for Turkish financial news
-    private static final Map<String, String> RSS_FEEDS = Map.of(
-        "genel-ekonomi", "https://www.bloomberght.com/rss",
-        "hisse-senedi", "https://www.bloomberght.com/borsa/rss",
-        "doviz", "https://www.bloomberght.com/doviz/rss",
-        "dunya-ekonomisi", "https://www.bloomberght.com/piyasa/rss"
-    );
-
-    // Backup RSS feeds
-    private static final Map<String, String> BACKUP_RSS_FEEDS = Map.of(
-        "genel-ekonomi", "https://www.haberturk.com/rss/ekonomi.xml",
-        "hisse-senedi", "https://www.haberturk.com/rss/ekonomi.xml"
-    );
-
-    /**
-     * Fetch news from all RSS feeds
-     */
     @CircuitBreaker(name = "rssNewsApi", fallbackMethod = "fetchAllNewsFallback")
+    @Retry(name = "externalApi")
     public List<News> fetchAllNews() {
+        List<NewsFeedProperties.Feed> feeds = newsFeedProperties.getFeeds().stream()
+            .filter(NewsFeedProperties.Feed::isEnabled)
+            .filter(feed -> StringUtils.hasText(feed.getUrl()))
+            .sorted(Comparator.comparingInt(NewsFeedProperties.Feed::getPriority).thenComparing(feed -> defaultString(feed.getCode())))
+            .toList();
+
+        if (feeds.isEmpty()) {
+            log.warn("No active RSS feed configured. Returning cached DB news.");
+            return newsRepository.findByIsPublishedTrueOrderByPublishedAtDesc(PageRequest.of(0, 50)).getContent();
+        }
+
         List<News> allNews = new ArrayList<>();
-        
-        for (Map.Entry<String, String> entry : RSS_FEEDS.entrySet()) {
+        Set<String> seenKeys = new LinkedHashSet<>();
+
+        for (NewsFeedProperties.Feed feed : feeds) {
             try {
-                List<News> categoryNews = fetchNewsFromRss(entry.getValue(), entry.getKey());
-                allNews.addAll(categoryNews);
-                log.info("Fetched {} news from {} category", categoryNews.size(), entry.getKey());
-            } catch (Exception e) {
-                log.warn("Failed to fetch news from {}: {}", entry.getKey(), e.getMessage());
-                // Try backup feed
-                String backupUrl = BACKUP_RSS_FEEDS.get(entry.getKey());
-                if (backupUrl != null) {
-                    try {
-                        List<News> backupNews = fetchNewsFromRss(backupUrl, entry.getKey());
-                        allNews.addAll(backupNews);
-                        log.info("Fetched {} news from backup for {}", backupNews.size(), entry.getKey());
-                    } catch (Exception ex) {
-                        log.error("Backup feed also failed for {}", entry.getKey());
+                List<News> feedNews = fetchNewsFromFeed(feed);
+                int added = 0;
+                for (News news : feedNews) {
+                    String dedupKey = buildDedupKey(news);
+                    if (seenKeys.add(dedupKey)) {
+                        allNews.add(news);
+                        added++;
                     }
                 }
+                log.info("Fetched {} news ({} unique) from feed {}", feedNews.size(), added, feed.getCode());
+            } catch (Exception e) {
+                log.warn("Failed to fetch feed {} ({}): {}", feed.getCode(), feed.getUrl(), e.getMessage());
             }
         }
-        
+
         return allNews;
     }
 
-    /**
-     * Fallback for fetchAllNews - returns cached news from DB
-     */
     public List<News> fetchAllNewsFallback(Exception e) {
         log.warn("RSS News fallback triggered: {}", e.getMessage());
-        return newsRepository.findByIsPublishedTrueOrderByPublishedAtDesc(PageRequest.of(0, 50))
-            .getContent();
+        return newsRepository.findByIsPublishedTrueOrderByPublishedAtDesc(PageRequest.of(0, 50)).getContent();
     }
 
-    /**
-     * Fetch news from a specific RSS feed
-     */
-    @CircuitBreaker(name = "rssNewsApi", fallbackMethod = "fetchNewsFromRssFallback")
-    @Retry(name = "externalApi")
-    public List<News> fetchNewsFromRss(String rssUrl, String categorySlug) {
+    private List<News> fetchNewsFromFeed(NewsFeedProperties.Feed feed) {
         List<News> newsList = new ArrayList<>();
-        
-        try {
-            NewsCategory category = categoryRepository.findBySlug(categorySlug).orElse(null);
-            if (category == null) {
-                log.warn("Category not found: {}", categorySlug);
-                return newsList;
+        NewsCategory category = resolveCategory(feed.getCategorySlug());
+        if (category == null) {
+            log.warn("No category found for feed {} (slug={})", feed.getCode(), feed.getCategorySlug());
+            return newsList;
+        }
+
+        Document doc = fetchRssDocument(feed.getUrl());
+        NodeList items = resolveItems(doc);
+        int maxItems = Math.max(1, newsFeedProperties.getMaxItemsPerFeed());
+
+        for (int i = 0; i < Math.min(items.getLength(), maxItems); i++) {
+            Node node = items.item(i);
+            if (!(node instanceof Element item)) {
+                continue;
             }
 
-            Document doc = fetchRssDocument(rssUrl);
-            NodeList items = doc.getElementsByTagName("item");
-            
-            for (int i = 0; i < Math.min(items.getLength(), 10); i++) { // Max 10 news per category
-                Element item = (Element) items.item(i);
-                
-                News news = News.builder()
-                    .title(getElementText(item, "title"))
-                    .summary(cleanHtml(getElementText(item, "description")))
-                    .content(cleanHtml(getElementText(item, "description")))
-                    .sourceUrl(getElementText(item, "link"))
-                    .sourceName(extractSourceName(rssUrl))
-                    .imageUrl(extractImageUrl(item))
-                    .category(category)
-                    .publishedAt(parseDate(getElementText(item, "pubDate")))
-                    .isPublished(true)
-                    .viewCount(0L)
-                    .build();
-                
-                if (news.getTitle() != null && !news.getTitle().isEmpty()) {
-                    newsList.add(news);
-                }
+            String title = firstNonBlank(
+                getElementText(item, "title"),
+                getElementText(item, "media:title")
+            );
+            if (!StringUtils.hasText(title)) {
+                continue;
             }
-        } catch (Exception e) {
-            log.error("Error parsing RSS feed {}: {}", rssUrl, e.getMessage());
+
+            String summary = cleanHtml(firstNonBlank(
+                getElementText(item, "description"),
+                getElementText(item, "content:encoded"),
+                getElementText(item, "summary"),
+                getElementText(item, "content")
+            ));
+            String content = summary;
+            String sourceUrl = extractLink(item);
+            LocalDateTime publishedAt = parseDate(firstNonBlank(
+                getElementText(item, "pubDate"),
+                getElementText(item, "published"),
+                getElementText(item, "updated"),
+                getElementText(item, "dc:date")
+            ));
+            String sourceName = resolveSourceName(feed);
+
+            News news = News.builder()
+                .title(title.trim())
+                .summary(summary)
+                .content(content)
+                .sourceUrl(sourceUrl)
+                .sourceName(sourceName)
+                .imageUrl(extractImageUrl(item))
+                .category(category)
+                .publishedAt(publishedAt)
+                .isPublished(true)
+                .isSimulated(false)
+                .externalHash(buildExternalHash(title, sourceName, sourceUrl, publishedAt))
+                .viewCount(0L)
+                .build();
+
+            newsList.add(news);
         }
-        
+
         return newsList;
     }
 
-    private Document fetchRssDocument(String rssUrl) throws Exception {
-        URL url = new URL(rssUrl);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
-        connection.setRequestProperty("User-Agent", "MintStack Finance Bot/1.0");
-        connection.setConnectTimeout(10000);
-        connection.setReadTimeout(10000);
-        
-        try (InputStream inputStream = connection.getInputStream()) {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false);
-            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            return builder.parse(inputStream);
+    private NewsCategory resolveCategory(String categorySlug) {
+        if (StringUtils.hasText(categorySlug)) {
+            Optional<NewsCategory> bySlug = categoryRepository.findBySlug(categorySlug.trim());
+            if (bySlug.isPresent()) {
+                return bySlug.get();
+            }
+        }
+
+        List<NewsCategory> active = categoryRepository.findByIsActiveTrueOrderByDisplayOrderAsc();
+        if (!active.isEmpty()) {
+            return active.get(0);
+        }
+        return categoryRepository.findAll().stream().findFirst().orElse(null);
+    }
+
+    private NodeList resolveItems(Document doc) {
+        NodeList rssItems = doc.getElementsByTagName("item");
+        if (rssItems.getLength() > 0) {
+            return rssItems;
+        }
+        return doc.getElementsByTagName("entry");
+    }
+
+    private Document fetchRssDocument(String rssUrl) {
+        try {
+            URL url = new URL(rssUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("User-Agent", "MintStack Finance Bot/2.0");
+            connection.setConnectTimeout(newsFeedProperties.getConnectTimeoutMs());
+            connection.setReadTimeout(newsFeedProperties.getReadTimeoutMs());
+
+            try (InputStream inputStream = connection.getInputStream()) {
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+                factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+                factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+                factory.setXIncludeAware(false);
+                factory.setExpandEntityReferences(false);
+                DocumentBuilder builder = factory.newDocumentBuilder();
+                return builder.parse(inputStream);
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Error fetching RSS document from " + rssUrl, e);
         }
     }
 
     private String getElementText(Element parent, String tagName) {
         NodeList nodes = parent.getElementsByTagName(tagName);
-        if (nodes.getLength() > 0) {
-            return nodes.item(0).getTextContent().trim();
+        if (nodes.getLength() > 0 && nodes.item(0) != null) {
+            return defaultString(nodes.item(0).getTextContent()).trim();
         }
         return null;
     }
 
     private String cleanHtml(String html) {
-        if (html == null) return null;
-        // Remove HTML tags and decode entities
-        return html.replaceAll("<[^>]*>", "")
-                   .replaceAll("&nbsp;", " ")
-                   .replaceAll("&amp;", "&")
-                   .replaceAll("&lt;", "<")
-                   .replaceAll("&gt;", ">")
-                   .replaceAll("&quot;", "\"")
-                   .trim();
+        if (!StringUtils.hasText(html)) {
+            return null;
+        }
+        return html
+            .replaceAll("<[^>]*>", " ")
+            .replace("&nbsp;", " ")
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replaceAll("\\s+", " ")
+            .trim();
     }
 
-    private String extractSourceName(String url) {
-        if (url.contains("bloomberght")) return "Bloomberg HT";
-        if (url.contains("haberturk")) return "Habertürk";
-        if (url.contains("dunya")) return "Dünya Gazetesi";
-        if (url.contains("aa.com")) return "Anadolu Ajansı";
-        return "Finans Haberleri";
-    }
+    private String extractLink(Element item) {
+        String classic = firstNonBlank(getElementText(item, "link"), getElementText(item, "guid"));
+        if (StringUtils.hasText(classic)) {
+            return classic.trim();
+        }
 
-    private String extractImageUrl(Element item) {
-        // Try to get image from enclosure tag
-        NodeList enclosures = item.getElementsByTagName("enclosure");
-        if (enclosures.getLength() > 0) {
-            Element enclosure = (Element) enclosures.item(0);
-            String type = enclosure.getAttribute("type");
-            if (type != null && type.startsWith("image")) {
-                return enclosure.getAttribute("url");
+        NodeList links = item.getElementsByTagName("link");
+        for (int i = 0; i < links.getLength(); i++) {
+            Node node = links.item(i);
+            if (node instanceof Element linkEl) {
+                String href = linkEl.getAttribute("href");
+                if (StringUtils.hasText(href)) {
+                    return href.trim();
+                }
             }
         }
-        
-        // Try media:content
-        NodeList mediaContent = item.getElementsByTagName("media:content");
-        if (mediaContent.getLength() > 0) {
-            return ((Element) mediaContent.item(0)).getAttribute("url");
-        }
-        
-        // Try media:thumbnail
-        NodeList mediaThumbnail = item.getElementsByTagName("media:thumbnail");
-        if (mediaThumbnail.getLength() > 0) {
-            return ((Element) mediaThumbnail.item(0)).getAttribute("url");
-        }
-        
         return null;
     }
 
-    private LocalDateTime parseDate(String dateStr) {
-        if (dateStr == null) return LocalDateTime.now();
-        
-        try {
-            // RSS date format: "Mon, 06 Jan 2025 10:30:00 +0300"
-            DateTimeFormatter formatter = DateTimeFormatter.RFC_1123_DATE_TIME;
-            return LocalDateTime.parse(dateStr, formatter);
-        } catch (Exception e) {
-            try {
-                // Alternative format
-                DateTimeFormatter altFormatter = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH);
-                return LocalDateTime.parse(dateStr, altFormatter);
-            } catch (Exception ex) {
-                return LocalDateTime.now();
+    private String extractImageUrl(Element item) {
+        NodeList enclosures = item.getElementsByTagName("enclosure");
+        for (int i = 0; i < enclosures.getLength(); i++) {
+            Node node = enclosures.item(i);
+            if (node instanceof Element enclosure) {
+                String type = enclosure.getAttribute("type");
+                String url = enclosure.getAttribute("url");
+                if (StringUtils.hasText(url) && (!StringUtils.hasText(type) || type.startsWith("image"))) {
+                    return url;
+                }
             }
+        }
+
+        String mediaContent = getAttributeFromTag(item, "media:content", "url");
+        if (StringUtils.hasText(mediaContent)) {
+            return mediaContent;
+        }
+
+        String mediaThumbnail = getAttributeFromTag(item, "media:thumbnail", "url");
+        if (StringUtils.hasText(mediaThumbnail)) {
+            return mediaThumbnail;
+        }
+
+        return null;
+    }
+
+    private String getAttributeFromTag(Element item, String tagName, String attribute) {
+        NodeList nodes = item.getElementsByTagName(tagName);
+        if (nodes.getLength() > 0 && nodes.item(0) instanceof Element element) {
+            String value = element.getAttribute(attribute);
+            if (StringUtils.hasText(value)) {
+                return value.trim();
+            }
+        }
+        return null;
+    }
+
+    private LocalDateTime parseDate(String value) {
+        if (!StringUtils.hasText(value)) {
+            return LocalDateTime.now();
+        }
+
+        String input = value.trim();
+        try {
+            return ZonedDateTime.parse(input, DateTimeFormatter.RFC_1123_DATE_TIME).toLocalDateTime();
+        } catch (Exception ignored) {
+        }
+        try {
+            return ZonedDateTime.parse(input, ALT_RSS_DATE).toLocalDateTime();
+        } catch (Exception ignored) {
+        }
+        try {
+            return OffsetDateTime.parse(input, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toLocalDateTime();
+        } catch (Exception ignored) {
+        }
+        try {
+            return ZonedDateTime.parse(input, DateTimeFormatter.ISO_ZONED_DATE_TIME).toLocalDateTime();
+        } catch (Exception ignored) {
+        }
+        return LocalDateTime.now();
+    }
+
+    private String resolveSourceName(NewsFeedProperties.Feed feed) {
+        if (StringUtils.hasText(feed.getSourceName())) {
+            return feed.getSourceName().trim();
+        }
+
+        try {
+            URI uri = URI.create(feed.getUrl());
+            String host = defaultString(uri.getHost()).replace("www.", "");
+            if (StringUtils.hasText(host)) {
+                return host;
+            }
+        } catch (Exception ignored) {
+        }
+
+        return "Finans Haberleri";
+    }
+
+    private String buildExternalHash(String title, String sourceName, String sourceUrl, LocalDateTime publishedAt) {
+        String raw = String.join("|",
+            defaultString(title).trim().toLowerCase(Locale.ROOT),
+            defaultString(sourceName).trim().toLowerCase(Locale.ROOT),
+            defaultString(sourceUrl).trim().toLowerCase(Locale.ROOT),
+            publishedAt != null ? publishedAt.toString() : ""
+        );
+        return sha256(raw);
+    }
+
+    private String buildDedupKey(News news) {
+        if (StringUtils.hasText(news.getSourceUrl())) {
+            return "url:" + news.getSourceUrl().trim().toLowerCase(Locale.ROOT);
+        }
+        if (StringUtils.hasText(news.getExternalHash())) {
+            return "hash:" + news.getExternalHash();
+        }
+        return "title:" + defaultString(news.getTitle()).trim().toLowerCase(Locale.ROOT) + "|" + defaultString(news.getSourceName());
+    }
+
+    private String sha256(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+            StringBuilder builder = new StringBuilder(bytes.length * 2);
+            for (byte aByte : bytes) {
+                builder.append(String.format("%02x", aByte));
+            }
+            return builder.toString();
+        } catch (Exception e) {
+            return Integer.toHexString(value.hashCode());
         }
     }
 
-    /**
-     * Fallback for fetchNewsFromRss - returns cached news from DB for the category
-     */
-    public List<News> fetchNewsFromRssFallback(String rssUrl, String categorySlug, Exception e) {
-        log.warn("RSS News fallback for category {}: {}", categorySlug, e.getMessage());
-        return categoryRepository.findBySlug(categorySlug)
-            .map(category -> newsRepository.findByCategoryAndIsPublishedTrueOrderByPublishedAtDesc(
-                category, PageRequest.of(0, 10)).getContent())
-            .orElse(Collections.emptyList());
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (StringUtils.hasText(value)) {
+                return value.trim();
+            }
+        }
+        return null;
+    }
+
+    private String defaultString(String value) {
+        return value == null ? "" : value;
     }
 }
+

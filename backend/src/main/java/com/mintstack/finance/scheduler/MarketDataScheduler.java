@@ -72,70 +72,25 @@ public class MarketDataScheduler {
     @Observed(name = "scheduler.market-data.stock", contextualName = "fetch-stock-prices")
     @Scheduled(cron = "${app.scheduler.stock-prices-cron}")
     public void fetchStockPrices() {
-        if (simulationDataService.isSimulationEnabled()) {
-            log.debug("Simulation mode active. Skipping stock prices fetch.");
-            return;
-        }
+        updateInstrumentPricesByType(Instrument.InstrumentType.STOCK, true);
+    }
 
-        log.info("Starting market prices fetch job");
-        try {
-            UserApiConfig yahooConfig = providerResolver.getActiveConfig(ApiProvider.YAHOO_FINANCE);
-            UserApiConfig alphaConfig = providerResolver.getActiveConfig(ApiProvider.ALPHA_VANTAGE);
-            UserApiConfig finnhubConfig = providerResolver.getActiveConfig(ApiProvider.FINNHUB);
-            EnumMap<DataType, ApiProvider> preferredProviders = providerResolver.resolvePreferredProviders();
-            ApiProvider preferredBistProvider = preferredProviders.get(DataType.BIST_STOCKS);
+    @Observed(name = "scheduler.market-data.bond", contextualName = "fetch-bond-prices")
+    @Scheduled(cron = "${app.scheduler.bond-prices-cron}")
+    public void fetchBondPrices() {
+        updateInstrumentPricesByType(Instrument.InstrumentType.BOND, false);
+    }
 
-            long instrumentCount = instrumentRepository.countRealInstruments();
-            if (instrumentCount == 0) {
-                log.info("No instruments found. Bootstrapping before price updates.");
-                if (providerResolver.hasStockProviderForDataType(preferredBistProvider, yahooConfig, alphaConfig, finnhubConfig)) {
-                    bootstrapService.bootstrapStocksFromApi(preferredBistProvider, yahooConfig, alphaConfig, finnhubConfig);
-                } else {
-                    log.info("No suitable provider config found for BIST bootstrap. Skipping bootstrap.");
-                }
-                return;
-            }
+    @Observed(name = "scheduler.market-data.fund", contextualName = "fetch-fund-prices")
+    @Scheduled(cron = "${app.scheduler.fund-prices-cron}")
+    public void fetchFundPrices() {
+        updateInstrumentPricesByType(Instrument.InstrumentType.FUND, false);
+    }
 
-            instrumentUpdateService.updatePricesForType(
-                Instrument.InstrumentType.STOCK,
-                yahooConfig,
-                alphaConfig,
-                finnhubConfig,
-                preferredProviders
-            );
-            instrumentUpdateService.updatePricesForType(
-                Instrument.InstrumentType.BOND,
-                yahooConfig,
-                alphaConfig,
-                finnhubConfig,
-                preferredProviders
-            );
-            instrumentUpdateService.updatePricesForType(
-                Instrument.InstrumentType.FUND,
-                yahooConfig,
-                alphaConfig,
-                finnhubConfig,
-                preferredProviders
-            );
-            instrumentUpdateService.updatePricesForType(
-                Instrument.InstrumentType.VIOP,
-                yahooConfig,
-                alphaConfig,
-                finnhubConfig,
-                preferredProviders
-            );
-            instrumentUpdateService.updatePricesForType(
-                Instrument.InstrumentType.CRYPTO,
-                yahooConfig,
-                alphaConfig,
-                finnhubConfig,
-                preferredProviders
-            );
-
-            log.info("Market prices fetch completed.");
-        } catch (Exception error) {
-            log.error("Market prices fetch failed", error);
-        }
+    @Observed(name = "scheduler.market-data.viop", contextualName = "fetch-viop-prices")
+    @Scheduled(cron = "${app.scheduler.viop-prices-cron}")
+    public void fetchViopPrices() {
+        updateInstrumentPricesByType(Instrument.InstrumentType.VIOP, false);
     }
 
     @Observed(name = "scheduler.market-data.initial-load", contextualName = "initial-data-load")
@@ -281,6 +236,68 @@ public class MarketDataScheduler {
                 "date", rate.getFetchedAt() != null ? rate.getFetchedAt().toString() : LocalDateTime.now().toString()
             )
         );
+    }
+
+    private void updateInstrumentPricesByType(Instrument.InstrumentType type, boolean bootstrapStocksWhenEmpty) {
+        if (simulationDataService.isSimulationEnabled()) {
+            log.debug("Simulation mode active. Skipping {} prices fetch.", type);
+            return;
+        }
+
+        log.info("Starting {} prices fetch job", type);
+        try {
+            ProviderContext providerContext = resolveProviderContext();
+            ApiProvider preferredBistProvider = providerContext.preferredProviders().get(DataType.BIST_STOCKS);
+
+            if (bootstrapStocksWhenEmpty) {
+                long instrumentCount = instrumentRepository.countRealInstruments();
+                if (instrumentCount == 0) {
+                    log.info("No real instruments found. Bootstrapping stock universe before updates.");
+                    if (providerResolver.hasStockProviderForDataType(
+                        preferredBistProvider,
+                        providerContext.yahooConfig(),
+                        providerContext.alphaConfig(),
+                        providerContext.finnhubConfig())) {
+                        bootstrapService.bootstrapStocksFromApi(
+                            preferredBistProvider,
+                            providerContext.yahooConfig(),
+                            providerContext.alphaConfig(),
+                            providerContext.finnhubConfig()
+                        );
+                    } else {
+                        log.info("No suitable provider config found for stock bootstrap. Skipping bootstrap.");
+                    }
+                    return;
+                }
+            }
+
+            instrumentUpdateService.updatePricesForType(
+                type,
+                providerContext.yahooConfig(),
+                providerContext.alphaConfig(),
+                providerContext.finnhubConfig(),
+                providerContext.preferredProviders()
+            );
+            log.info("{} prices fetch completed.", type);
+        } catch (Exception error) {
+            log.error("{} prices fetch failed", type, error);
+        }
+    }
+
+    private ProviderContext resolveProviderContext() {
+        UserApiConfig yahooConfig = providerResolver.getActiveConfig(ApiProvider.YAHOO_FINANCE);
+        UserApiConfig alphaConfig = providerResolver.getActiveConfig(ApiProvider.ALPHA_VANTAGE);
+        UserApiConfig finnhubConfig = providerResolver.getActiveConfig(ApiProvider.FINNHUB);
+        EnumMap<DataType, ApiProvider> preferredProviders = providerResolver.resolvePreferredProviders();
+        return new ProviderContext(yahooConfig, alphaConfig, finnhubConfig, preferredProviders);
+    }
+
+    private record ProviderContext(
+        UserApiConfig yahooConfig,
+        UserApiConfig alphaConfig,
+        UserApiConfig finnhubConfig,
+        EnumMap<DataType, ApiProvider> preferredProviders
+    ) {
     }
 
 }

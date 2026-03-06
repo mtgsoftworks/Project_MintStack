@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @Component
@@ -68,7 +67,6 @@ class MarketDataBootstrapService {
                 }
 
                 Instrument stock = new Instrument();
-                stock.setId(UUID.randomUUID());
                 stock.setSymbol(symbol);
                 stock.setName(symbol + " (BIST)");
                 stock.setType(Instrument.InstrumentType.STOCK);
@@ -101,7 +99,6 @@ class MarketDataBootstrapService {
                 }
 
                 Instrument crypto = new Instrument();
-                crypto.setId(UUID.randomUUID());
                 crypto.setSymbol(symbol);
                 crypto.setName(symbol);
                 crypto.setType(Instrument.InstrumentType.CRYPTO);

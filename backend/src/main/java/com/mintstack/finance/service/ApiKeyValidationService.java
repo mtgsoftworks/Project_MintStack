@@ -241,29 +241,46 @@ public class ApiKeyValidationService {
                     .baseUrl(baseUrl)
                     .build();
 
-            String response = client.get()
+            String stockResponse = client.get()
                     .uri("/quote?symbol=AAPL&token=" + apiKey)
                     .retrieve()
                     .bodyToMono(String.class)
                     .timeout(Duration.ofSeconds(10))
                     .block();
 
-            if (response == null) {
+            if (stockResponse == null) {
                 return new ValidationResult(false, "Sunucudan yanıt alınamadı");
             }
 
-            JsonNode root = objectMapper.readTree(response);
-
-            if (root.has("error")) {
+            JsonNode stockRoot = objectMapper.readTree(stockResponse);
+            if (stockRoot.has("error")) {
                 return new ValidationResult(false, "Geçersiz API anahtarı");
             }
 
-            if (root.has("c") && root.get("c").asDouble() > 0) {
-                return new ValidationResult(true, "API anahtarı geçerli ✓");
+            if (!stockRoot.has("c") || stockRoot.get("c").asDouble() <= 0) {
+                return new ValidationResult(false, "Beklenmeyen yanıt formatı");
             }
 
-            return new ValidationResult(false, "Beklenmeyen yanıt formatı");
-            
+            String forexResponse = client.get()
+                    .uri("/forex/rates?base=USD&token=" + apiKey)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .timeout(Duration.ofSeconds(10))
+                    .block();
+
+            if (forexResponse != null) {
+                JsonNode forexRoot = objectMapper.readTree(forexResponse);
+                if (forexRoot.has("error")) {
+                    String error = forexRoot.get("error").asText("").toLowerCase();
+                    if (error.contains("don't have access") || error.contains("not have access")) {
+                        return new ValidationResult(true,
+                            "API anahtarı geçerli ✓, ancak Forex endpoint erişimi planınızda kapalı olabilir");
+                    }
+                }
+            }
+
+            return new ValidationResult(true, "API anahtarı geçerli ✓");
+
         } catch (Exception e) {
             log.warn("Finnhub validation error: {}", e.getMessage());
             return new ValidationResult(false, "Bağlantı hatası: " + e.getMessage());

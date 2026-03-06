@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 @Table(name = "news", indexes = {
     @Index(name = "idx_news_category", columnList = "category_id"),
     @Index(name = "idx_news_published_at", columnList = "published_at"),
-    @Index(name = "idx_news_source", columnList = "source_name")
+    @Index(name = "idx_news_source", columnList = "source_name"),
+    @Index(name = "idx_news_simulated", columnList = "is_simulated")
 })
 @Getter
 @Setter
@@ -39,6 +40,9 @@ public class News extends BaseEntity {
     @Column(name = "source_name")
     private String sourceName;
 
+    @Column(name = "external_hash", length = 64)
+    private String externalHash;
+
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
@@ -52,6 +56,10 @@ public class News extends BaseEntity {
     @Column(name = "is_published")
     @Builder.Default
     private Boolean isPublished = true;
+
+    @Column(name = "is_simulated")
+    @Builder.Default
+    private Boolean isSimulated = false;
 
     @Column(name = "view_count")
     @Builder.Default
