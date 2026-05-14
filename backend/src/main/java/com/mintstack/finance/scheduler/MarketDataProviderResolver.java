@@ -46,10 +46,12 @@ class MarketDataProviderResolver {
         UserApiConfig alphaConfig,
         UserApiConfig finnhubConfig
     ) {
-        if (preferredProvider != null) {
-            return isProviderConfigured(preferredProvider, yahooConfig, alphaConfig, finnhubConfig);
+        if (preferredProvider != null && isProviderConfigured(preferredProvider, yahooConfig, alphaConfig, finnhubConfig)) {
+            return true;
         }
-        return yahooConfig != null || alphaConfig != null || finnhubConfig != null;
+        return isProviderConfigured(ApiProvider.YAHOO_FINANCE, yahooConfig, alphaConfig, finnhubConfig)
+            || isProviderConfigured(ApiProvider.ALPHA_VANTAGE, yahooConfig, alphaConfig, finnhubConfig)
+            || isProviderConfigured(ApiProvider.FINNHUB, yahooConfig, alphaConfig, finnhubConfig);
     }
 
     public DataType resolveDataTypeForInstrument(Instrument.InstrumentType type, Instrument instrument) {
@@ -181,7 +183,7 @@ class MarketDataProviderResolver {
         UserApiConfig finnhubConfig
     ) {
         return switch (provider) {
-            case YAHOO_FINANCE -> yahooConfig != null;
+            case YAHOO_FINANCE -> true;
             case ALPHA_VANTAGE -> alphaConfig != null;
             case FINNHUB -> finnhubConfig != null;
             default -> false;

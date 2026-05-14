@@ -18,7 +18,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -37,11 +36,11 @@ public class YahooFinanceClient {
     private final Map<String, Long> latestVolumes = new ConcurrentHashMap<>();
 
     // Direct Yahoo Finance URL (no API key needed)
-    private static final String DIRECT_YAHOO_URL = "https://query1.finance.yahoo.com/v8";
+    private static final String DIRECT_YAHOO_URL = "https://query1.finance.yahoo.com/v8/finance";
     
     /**
      * Fetch stock quote for BIST stocks (symbol.IS format)
-     * Supports both RapidAPI (with key) and direct Yahoo Finance (no key)
+     * Uses direct Yahoo Finance public endpoints (keyless).
      */
     @CircuitBreaker(name = "yahooFinanceApi", fallbackMethod = "fetchStockPriceFallback")
     @Retry(name = "externalApi")
@@ -56,42 +55,36 @@ public class YahooFinanceClient {
             
             log.debug("Fetching Yahoo Finance quote: {}", yahooSymbol);
             
-            // Try with provided config first, then fallback to direct Yahoo
+            // Try configured/default client first, then fallback to direct Yahoo base URL.
             String response = null;
             Exception lastError = null;
-            
-            // Try RapidAPI if key provided
-            if (apiKey != null && !apiKey.isEmpty()) {
-                try {
-                    WebClient client = getClient(apiKey, baseUrl);
-                    response = client.get()
-                        .uri(url)
-                        .retrieve()
-                        .bodyToMono(String.class)
-                        .block();
-                } catch (Exception e) {
-                    log.warn("RapidAPI fetch failed for {}, trying direct Yahoo...", symbol);
-                    lastError = e;
-                }
+
+            try {
+                WebClient client = getClient(baseUrl);
+                response = client.get()
+                    .uri(url)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+            } catch (Exception e) {
+                lastError = e;
             }
-            
-            // Fallback to direct Yahoo Finance (no API key needed)
+
             if (response == null) {
                 try {
                     WebClient directClient = WebClient.builder()
                         .baseUrl(DIRECT_YAHOO_URL)
                         .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
                         .build();
-                    
+
                     response = directClient.get()
                         .uri(url)
                         .retrieve()
                         .bodyToMono(String.class)
                         .block();
-                    
                     log.debug("Direct Yahoo Finance fetch successful for {}", symbol);
                 } catch (Exception e) {
-                    log.error("Direct Yahoo Finance also failed for {}", symbol, e);
+                    log.error("Direct Yahoo Finance fetch failed for {}", symbol, e);
                     throw lastError != null ? lastError : e;
                 }
             }
@@ -150,13 +143,33 @@ public class YahooFinanceClient {
             
             log.info("Fetching Yahoo Finance historical data: {}", yahooSymbol);
             
-            WebClient client = getClient(apiKey, baseUrl);
-            
-            String response = client.get()
-                .uri(url)
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
+            String response;
+            Exception lastError = null;
+
+            try {
+                WebClient client = getClient(baseUrl);
+                response = client.get()
+                    .uri(url)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+            } catch (Exception e) {
+                lastError = e;
+                WebClient directClient = WebClient.builder()
+                    .baseUrl(DIRECT_YAHOO_URL)
+                    .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                    .build();
+
+                try {
+                    response = directClient.get()
+                        .uri(url)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .block();
+                } catch (Exception directError) {
+                    throw lastError != null ? lastError : directError;
+                }
+            }
             
             if (response == null) {
                 throw new ExternalApiException("Yahoo Finance", "Boş yanıt");
@@ -242,29 +255,10 @@ public class YahooFinanceClient {
         }
         return new BigDecimal(node.get(index).asText());
     }
-    private WebClient getClient(String apiKey, String baseUrl) {
+    private WebClient getClient(String baseUrl) {
         WebClient client = yahooFinanceWebClient;
         if (baseUrl != null && !baseUrl.isEmpty()) {
             client = client.mutate().baseUrl(baseUrl).build();
-        }
-        
-        if (apiKey != null && !apiKey.isEmpty()) {
-            // RapidAPI headers
-            client = client.mutate()
-                .defaultHeader("X-RapidAPI-Key", apiKey)
-                .build();
-                
-            if (baseUrl != null && !baseUrl.isEmpty()) {
-                try {
-                    URI uri = URI.create(baseUrl);
-                    String host = uri.getHost();
-                    if (host != null) {
-                         client = client.mutate().defaultHeader("X-RapidAPI-Host", host).build();
-                    }
-                } catch (Exception e) {
-                    log.warn("Could not parse host from base URL: {}", baseUrl);
-                }
-            }
         }
         return client;
     }

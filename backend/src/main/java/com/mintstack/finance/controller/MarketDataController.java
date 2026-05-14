@@ -98,6 +98,22 @@ public class MarketDataController {
         return ResponseEntity.ok(ApiResponse.success(history));
     }
 
+    @GetMapping("/crypto")
+    @Operation(summary = "Kripto varliklari listele")
+    public ResponseEntity<ApiResponse<List<InstrumentResponse>>> getCrypto(
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 20) Pageable pageable) {
+
+        Page<InstrumentResponse> crypto;
+        if (search != null && !search.isEmpty()) {
+            crypto = marketDataService.searchInstruments(InstrumentType.CRYPTO, search, pageable);
+        } else {
+            crypto = marketDataService.getInstrumentsByType(InstrumentType.CRYPTO, pageable);
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(crypto.getContent(), PaginationInfo.from(crypto)));
+    }
+
     // Bond Endpoints
     @GetMapping("/bonds")
     @Operation(summary = "Tahvil/bono listesini getir")

@@ -47,6 +47,14 @@ class MarketDataProviderResolverTest {
     private MarketDataProviderResolver resolver;
 
     @Test
+    @DisplayName("hasStockProviderForDataType should return true for Yahoo even without user config")
+    void hasStockProviderForDataType_ShouldReturnTrue_ForYahooWithoutConfig() {
+        boolean result = resolver.hasStockProviderForDataType(ApiProvider.YAHOO_FINANCE, null, null, null);
+
+        assertThat(result).isTrue();
+    }
+
+    @Test
     @DisplayName("fetchInstrumentPrice should fallback to Yahoo when preferred Alpha fails")
     void fetchInstrumentPrice_ShouldFallbackToYahoo_WhenPreferredAlphaFails() {
         Instrument instrument = Instrument.builder()

@@ -237,7 +237,7 @@ public class DataSourceService {
                 .findByUserIdAndProviderAndIsActiveTrue(user.getId(), ApiProvider.YAHOO_FINANCE)
                 .isEmpty();
             if (!hasYahoo) {
-                advisoryNotes.add("Daha tutarli BIST verisi icin Yahoo Finance veya Finnhub anahtari eklenmesi onerilir.");
+                advisoryNotes.add("Daha tutarli BIST verisi icin Yahoo Finance public kaynak veya Finnhub provider tercihi onerilir.");
             }
         }
         if (config.getProvider() == ApiProvider.FINNHUB) {

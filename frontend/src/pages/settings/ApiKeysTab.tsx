@@ -56,14 +56,32 @@ export function ApiKeysTab({
     onTestKey,
     onDelete
 }) {
-    const KEYLESS_PROVIDERS = new Set(['TCMB', 'TEFAS', 'RSS'])
+    const KEYLESS_PROVIDERS = new Set(['TCMB', 'TEFAS', 'RSS', 'YAHOO_FINANCE'])
     const capabilities = providerCapabilities || {}
     const isKeylessProvider = KEYLESS_PROVIDERS.has(formData.provider)
     const isCurrentProviderPolicyDisabled = Boolean(capabilities[formData.provider]) && capabilities[formData.provider].enabled === false
     const isFintablesPolicyDisabled = Boolean(capabilities.FINTABLES) && capabilities.FINTABLES.enabled === false
+    const usedProviders = new Set(apiConfigs.map((config) => config.provider))
+    const providerOptions = [
+        { value: 'ALPHA_VANTAGE', label: t('settings.apiKeys.providers.alphaVantage') },
+        { value: 'YAHOO_FINANCE', label: t('settings.apiKeys.providers.yahooFinance') },
+        { value: 'FINNHUB', label: t('settings.apiKeys.providers.finnhub') },
+        { value: 'TEFAS', label: t('settings.apiKeys.providers.tefas') },
+        { value: 'FINTABLES', label: t('settings.apiKeys.providers.fintables') },
+        { value: 'TCMB', label: t('settings.providers.info.TCMB.title') },
+        { value: 'LLM_ENRICHMENT', label: t('settings.apiKeys.providers.llmEnrichment') },
+        { value: 'OTHER', label: t('settings.apiKeys.providerOther') }
+    ]
+    const visibleProviderOptions = providerOptions.filter((option) => (
+        editingConfig
+        || option.value === formData.provider
+        || (
+            option.value !== 'YAHOO_FINANCE'
+            && !usedProviders.has(option.value)
+        )
+    ))
 
     const requiresValidation = !isKeylessProvider
-        && !(formData.provider === 'YAHOO_FINANCE' && !formData.apiKey.trim())
     const canSubmit = (isValidated || editingConfig || !requiresValidation) && !isCurrentProviderPolicyDisabled
     const apiKeyRequired = !editingConfig
         && !isKeylessProvider
@@ -104,18 +122,17 @@ export function ApiKeysTab({
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="ALPHA_VANTAGE">{t('settings.apiKeys.providers.alphaVantage')}</SelectItem>
-                                        <SelectItem value="YAHOO_FINANCE">{t('settings.apiKeys.providers.yahooFinance')}</SelectItem>
-                                        <SelectItem value="FINNHUB">{t('settings.apiKeys.providers.finnhub')}</SelectItem>
-                                        <SelectItem value="TEFAS">{t('settings.apiKeys.providers.tefas')}</SelectItem>
-                                        <SelectItem value="FINTABLES" disabled={isFintablesPolicyDisabled}>
-                                            {isFintablesPolicyDisabled
-                                                ? `${t('settings.apiKeys.providers.fintables')} (Policy Disabled)`
-                                                : t('settings.apiKeys.providers.fintables')}
-                                        </SelectItem>
-                                        <SelectItem value="LLM_ENRICHMENT">{t('settings.apiKeys.providers.llmEnrichment')}</SelectItem>
-                                        <SelectItem value="TCMB">{t('settings.providers.info.TCMB.title')}</SelectItem>
-                                        <SelectItem value="OTHER">{t('settings.apiKeys.providerOther')}</SelectItem>
+                                        {visibleProviderOptions.map((option) => (
+                                            <SelectItem
+                                                key={option.value}
+                                                value={option.value}
+                                                disabled={option.value === 'FINTABLES' && isFintablesPolicyDisabled}
+                                            >
+                                                {option.value === 'FINTABLES' && isFintablesPolicyDisabled
+                                                    ? `${option.label} (Policy Disabled)`
+                                                    : option.label}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
 
@@ -261,6 +278,10 @@ export function ApiKeysTab({
                 </Dialog>
             </CardHeader>
             <CardContent>
+                <div className="mb-4 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+                    <span className="font-semibold">Yahoo Finance (Public): </span>
+                    {t('settings.apiKeys.yahooReadonlyHint', { defaultValue: 'Bu saglayici keyless/public calisir. API key veya base URL girmeniz gerekmez.' })}
+                </div>
                 {isLoading ? (
                     <div className="flex items-center justify-center p-8 text-muted-foreground">
                         <RefreshCw className="h-6 w-6 animate-spin mr-2" />

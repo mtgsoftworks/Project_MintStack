@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { TrendingDown, TrendingUp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -19,7 +19,7 @@ import {
   useGetStochasticQuery,
   useGetTrendAnalysisQuery,
 } from '@/store/api/analysisApi'
-import { useGetStocksQuery } from '@/store/api/marketApi'
+import { useGetCryptoQuery, useGetFundsQuery, useGetStocksQuery } from '@/store/api/marketApi'
 
 const formatNumber = (value, digits = 2) => {
   const numeric = Number(value)
@@ -75,7 +75,8 @@ export default function AnalysisPage() {
   const [period, setPeriod] = useState('1M')
   const [maType, setMaType] = useState('SMA')
   const [maPeriod, setMaPeriod] = useState('20')
-  const [compareInput, setCompareInput] = useState('')
+  const [compareSymbols, setCompareSymbols] = useState<string[]>([])
+  const [compareCandidate, setCompareCandidate] = useState('')
   const [rsiPeriod, setRsiPeriod] = useState('14')
   const [bollingerPeriod, setBollingerPeriod] = useState('20')
   const [bollingerStdDev, setBollingerStdDev] = useState('2.0')
@@ -87,13 +88,43 @@ export default function AnalysisPage() {
     isFetching: stocksFetching,
     refetch: refetchStocks,
   } = useGetStocksQuery({ page: 0, size: 300, sort: 'symbol,asc' })
+  const {
+    data: fundsResponse,
+    isFetching: fundsFetching,
+    refetch: refetchFunds,
+  } = useGetFundsQuery({ page: 0, size: 300, sort: 'symbol,asc' })
+  const {
+    data: cryptoResponse,
+    isFetching: cryptoFetching,
+    refetch: refetchCrypto,
+  } = useGetCryptoQuery({ page: 0, size: 300, sort: 'symbol,asc' })
+
+  const availableInstruments = useMemo(() => {
+    const combined = [
+      ...(stocksResponse?.data || []),
+      ...(fundsResponse?.data || []),
+      ...(cryptoResponse?.data || []),
+    ]
+
+    const uniqueBySymbol = new Map()
+    for (const item of combined) {
+      const symbolValue = (item?.symbol || '').toUpperCase()
+      if (!symbolValue || uniqueBySymbol.has(symbolValue)) {
+        continue
+      }
+      uniqueBySymbol.set(symbolValue, {
+        symbol: symbolValue,
+        name: item?.name || symbolValue,
+        type: item?.type || '-',
+      })
+    }
+
+    return [...uniqueBySymbol.values()].sort((left, right) => left.symbol.localeCompare(right.symbol))
+  }, [stocksResponse, fundsResponse, cryptoResponse])
 
   const availableSymbols = useMemo(
-    () =>
-      (stocksResponse?.data || [])
-        .map((stock) => (stock.symbol || '').toUpperCase())
-        .filter(Boolean),
-    [stocksResponse]
+    () => availableInstruments.map((item) => item.symbol),
+    [availableInstruments]
   )
 
   useEffect(() => {
@@ -109,20 +140,24 @@ export default function AnalysisPage() {
     if (availableSymbols.length < 2) {
       return
     }
-    if (!compareInput.trim()) {
-      setCompareInput(`${availableSymbols[0]},${availableSymbols[1]}`)
+    if (compareSymbols.length === 0) {
+      setCompareSymbols([availableSymbols[0], availableSymbols[1]])
     }
-  }, [availableSymbols, compareInput])
+  }, [availableSymbols, compareSymbols.length])
 
-  const compareSymbols = useMemo(
-    () =>
-      compareInput
-        .split(/[\s,;]+/)
-        .map((value) => value.trim().toUpperCase())
-        .filter(Boolean)
-        .slice(0, 5),
-    [compareInput]
-  )
+  useEffect(() => {
+    const nextCandidate = availableSymbols.find((candidate) => !compareSymbols.includes(candidate)) || ''
+    if (!compareCandidate || !availableSymbols.includes(compareCandidate) || compareSymbols.includes(compareCandidate)) {
+      setCompareCandidate(nextCandidate)
+    }
+  }, [availableSymbols, compareCandidate, compareSymbols])
+
+  useEffect(() => {
+    setCompareSymbols((previous) => {
+      const filtered = previous.filter((item) => availableSymbols.includes(item)).slice(0, 5)
+      return filtered.length === previous.length ? previous : filtered
+    })
+  }, [availableSymbols])
 
   const { data: maData, isLoading: maLoading, isFetching: maFetching, refetch: refetchMa } = useGetMovingAverageQuery(
     {
@@ -228,6 +263,8 @@ export default function AnalysisPage() {
   const stochasticSignal = getStochasticSignal(stochasticData?.data?.signal)
   const isRefreshing =
     stocksFetching
+    || fundsFetching
+    || cryptoFetching
     || maFetching
     || trendFetching
     || comparisonFetching
@@ -239,6 +276,8 @@ export default function AnalysisPage() {
 
   const handleRefreshAll = () => {
     refetchStocks()
+    refetchFunds()
+    refetchCrypto()
     refetchMa()
     refetchTrend()
     refetchRsi()
@@ -251,6 +290,19 @@ export default function AnalysisPage() {
     }
   }
 
+  const canAddCompareSymbol = Boolean(compareCandidate) && compareSymbols.length < 5
+
+  const handleAddCompareSymbol = () => {
+    if (!compareCandidate || compareSymbols.includes(compareCandidate) || compareSymbols.length >= 5) {
+      return
+    }
+    setCompareSymbols((previous) => [...previous, compareCandidate])
+  }
+
+  const handleRemoveCompareSymbol = (value) => {
+    setCompareSymbols((previous) => previous.filter((item) => item !== value))
+  }
+
   return (
     <div className="space-y-6 animate-in">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -259,18 +311,18 @@ export default function AnalysisPage() {
           <p className="text-muted-foreground">MA, trend, RSI, MACD, Bollinger, Stochastic ve karsilastirma</p>
         </div>
         <div className="flex items-center gap-2">
-          <Input
-            value={symbol}
-            onChange={(event) => setSymbol(event.target.value.toUpperCase())}
-            list="analysis-symbols"
-            placeholder="Sembol secin"
-            className="w-32"
-          />
-          <datalist id="analysis-symbols">
-            {availableSymbols.map((itemSymbol) => (
-              <option key={itemSymbol} value={itemSymbol} />
-            ))}
-          </datalist>
+          <Select value={symbol} onValueChange={setSymbol} disabled={availableInstruments.length === 0}>
+            <SelectTrigger className="w-[280px]">
+              <SelectValue placeholder="Sembol secin" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableInstruments.map((instrument) => (
+                <SelectItem key={instrument.symbol} value={instrument.symbol}>
+                  {instrument.symbol} - {instrument.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-24">
               <SelectValue />
@@ -621,14 +673,44 @@ export default function AnalysisPage() {
           <Card>
             <CardHeader>
               <CardTitle>Sembol Secimi</CardTitle>
-              <CardDescription>Karsilastirma icin en az 2 sembol girin (virgul ile)</CardDescription>
+              <CardDescription>Karsilastirma icin en az 2, en fazla 5 sembol secin</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Input
-                value={compareInput}
-                onChange={(event) => setCompareInput(event.target.value)}
-                placeholder="THYAO,GARAN,AKBNK"
-              />
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={compareCandidate} onValueChange={setCompareCandidate} disabled={availableInstruments.length === 0}>
+                  <SelectTrigger className="w-[320px]">
+                    <SelectValue placeholder="Sembol secin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableInstruments
+                      .filter((instrument) => !compareSymbols.includes(instrument.symbol))
+                      .map((instrument) => (
+                        <SelectItem key={instrument.symbol} value={instrument.symbol}>
+                          {instrument.symbol} - {instrument.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <Button type="button" onClick={handleAddCompareSymbol} disabled={!canAddCompareSymbol}>
+                  Ekle
+                </Button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {compareSymbols.map((itemSymbol) => (
+                  <Badge key={itemSymbol} variant="secondary" className="flex items-center gap-2 py-1">
+                    {itemSymbol}
+                    <button
+                      type="button"
+                      className="text-muted-foreground transition-colors hover:text-foreground"
+                      onClick={() => handleRemoveCompareSymbol(itemSymbol)}
+                      aria-label={`${itemSymbol} kaldir`}
+                    >
+                      x
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">Secili: {compareSymbols.length}/5</p>
             </CardContent>
           </Card>
 

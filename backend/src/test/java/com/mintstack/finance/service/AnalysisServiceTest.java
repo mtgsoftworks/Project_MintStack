@@ -1,5 +1,6 @@
 package com.mintstack.finance.service;
 
+import com.mintstack.finance.dto.request.CompareInstrumentsRequest;
 import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.PriceHistory;
 import com.mintstack.finance.repository.InstrumentRepository;
@@ -13,11 +14,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -104,5 +107,56 @@ class AnalysisServiceTest {
 
         // Then
         assertThat(result).hasSize(3);
+    }
+
+    @Test
+    void getMovingAverage_ShouldCalculateSmaAndSignal() {
+        LocalDate endDate = LocalDate.now();
+        when(priceHistoryRepository.findBySymbolAndDateRange(eq("THYAO"), any(LocalDate.class), eq(endDate)))
+            .thenReturn(priceHistoryList);
+
+        Map<String, Object> result = analysisService.getMovingAverage("THYAO", 3, endDate, "SMA");
+
+        assertThat(result.get("symbol")).isEqualTo("THYAO");
+        assertThat(result.get("type")).isEqualTo("SMA");
+        assertThat(result.get("signal")).isEqualTo("BUY");
+        assertThat((BigDecimal) result.get("maValue")).isEqualByComparingTo("97.666667");
+    }
+
+    @Test
+    void getTrendAnalysis_ShouldReturnUptrend() {
+        when(priceHistoryRepository.findBySymbolAndDateRange(eq("THYAO"), any(LocalDate.class), any(LocalDate.class)))
+            .thenReturn(priceHistoryList);
+
+        Map<String, Object> result = analysisService.getTrendAnalysis("THYAO", 2);
+
+        assertThat(result.get("symbol")).isEqualTo("THYAO");
+        assertThat(result.get("trend")).isEqualTo("UPTREND");
+        assertThat(result.get("trendStrength")).isEqualTo("MODERATE");
+        assertThat(result.get("strength")).isEqualTo(55);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void compareInstruments_ShouldNormalizeSeries() {
+        CompareInstrumentsRequest request = CompareInstrumentsRequest.builder()
+            .symbols(List.of("THYAO"))
+            .startDate(LocalDate.now().minusDays(2))
+            .endDate(LocalDate.now())
+            .build();
+
+        when(priceHistoryRepository.findBySymbolAndDateRange(eq("THYAO"), any(LocalDate.class), any(LocalDate.class)))
+            .thenReturn(priceHistoryList);
+        when(instrumentRepository.findBySymbolAndIsSimulated("THYAO", true)).thenReturn(Optional.of(testInstrument));
+
+        Map<String, Object> result = analysisService.compareInstruments(request);
+
+        List<Map<String, Object>> instruments = (List<Map<String, Object>>) result.get("instruments");
+        assertThat(instruments).hasSize(1);
+        assertThat(instruments.get(0).get("symbol")).isEqualTo("THYAO");
+
+        List<Map<String, Object>> series = (List<Map<String, Object>>) instruments.get(0).get("data");
+        assertThat(series).hasSize(3);
+        assertThat((BigDecimal) series.get(0).get("value")).isEqualByComparingTo("0.000000");
     }
 }

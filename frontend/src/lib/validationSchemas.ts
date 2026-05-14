@@ -64,11 +64,11 @@ export const updateProfileSchema = Yup.object({
 // API Key schemas
 export const apiKeySchema = Yup.object({
   provider: Yup.string()
-    .oneOf(['ALPHA_VANTAGE', 'YAHOO_FINANCE', 'FINNHUB', 'FINTABLES', 'LLM_ENRICHMENT', 'TCMB', 'OTHER'])
+    .oneOf(['ALPHA_VANTAGE', 'YAHOO_FINANCE', 'FINNHUB', 'FINTABLES', 'LLM_ENRICHMENT', 'TCMB', 'TEFAS', 'RSS', 'OTHER'])
     .required('settings.apiKeys.validation.providerRequired'),
   apiKey: Yup.string()
     .when('provider', {
-      is: (provider) => provider !== 'TCMB',
+      is: (provider) => !['TCMB', 'TEFAS', 'RSS', 'YAHOO_FINANCE'].includes(provider),
       then: (schema) => schema.required('settings.apiKeys.validation.required'),
       otherwise: (schema) => schema
     }),

@@ -21,12 +21,18 @@ const DEFAULT_FORM_DATA = {
     isActive: true
 }
 
-const KEYLESS_PROVIDERS = new Set(['TCMB', 'TEFAS', 'RSS'])
+const KEYLESS_PROVIDERS = new Set(['TCMB', 'TEFAS', 'RSS', 'YAHOO_FINANCE'])
+const PROVIDER_ORDER_FOR_ADD = [
+    'ALPHA_VANTAGE',
+    'FINNHUB',
+    'TEFAS',
+    'FINTABLES',
+    'TCMB',
+    'LLM_ENRICHMENT',
+    'OTHER'
+]
 
-const requiresValidationForProvider = (provider, apiKey) => (
-    !KEYLESS_PROVIDERS.has(provider)
-    && !(provider === 'YAHOO_FINANCE' && !apiKey.trim())
-)
+const requiresValidationForProvider = (provider) => !KEYLESS_PROVIDERS.has(provider)
 
 const withProviderFallbackKey = (data) => {
     if ((data.provider === 'TCMB' || data.provider === 'TEFAS' || data.provider === 'YAHOO_FINANCE') && !data.apiKey.trim()) {
@@ -88,8 +94,16 @@ export function useApiDataSourceSettings({ t }) {
 
     const apiConfigs = configsData?.data || []
 
+    const getInitialProvider = () => {
+        const usedProviders = new Set(apiConfigs.map((config) => config.provider))
+        return PROVIDER_ORDER_FOR_ADD.find((provider) => !usedProviders.has(provider)) || PROVIDER_ORDER_FOR_ADD[0]
+    }
+
     const resetForm = () => {
-        setFormData(DEFAULT_FORM_DATA)
+        setFormData({
+            ...DEFAULT_FORM_DATA,
+            provider: getInitialProvider()
+        })
         setEditingConfig(null)
         setIsValidated(false)
     }
@@ -132,7 +146,7 @@ export function useApiDataSourceSettings({ t }) {
     }
 
     const handleTestKey = async () => {
-        const requiresValidation = requiresValidationForProvider(formData.provider, formData.apiKey)
+        const requiresValidation = requiresValidationForProvider(formData.provider)
         if (requiresValidation && !formData.apiKey.trim()) {
             toast.error(t('settings.apiKeys.validation.required'))
             return
@@ -160,7 +174,7 @@ export function useApiDataSourceSettings({ t }) {
         event.preventDefault()
 
         const payload = normalizePayload(formData)
-        const requiresValidation = requiresValidationForProvider(payload.provider, payload.apiKey)
+        const requiresValidation = requiresValidationForProvider(payload.provider)
 
         if (!isValidated && !editingConfig && requiresValidation) {
             toast.error(t('settings.apiKeys.validation.testRequired'))

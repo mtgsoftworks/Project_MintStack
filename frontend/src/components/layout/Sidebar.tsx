@@ -29,14 +29,19 @@ import {
   toggleSidebar,
   setMobileSidebarOpen
 } from '@/store/slices/uiSlice'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 function NavItem({ item, collapsed }) {
   const location = useLocation()
-  const [open, setOpen] = useState(
-    item.children?.some(child => location.pathname.startsWith(child.href))
-  )
+  const hasActiveChild = Boolean(item.children?.some(child => location.pathname.startsWith(child.href)))
+  const [open, setOpen] = useState(hasActiveChild)
+
+  useEffect(() => {
+    if (hasActiveChild) {
+      setOpen(true)
+    }
+  }, [hasActiveChild])
 
   if (item.children) {
     return (
@@ -46,7 +51,9 @@ function NavItem({ item, collapsed }) {
             className={cn(
               "flex w-full items-center rounded-lg py-2.5 text-sm font-medium transition-colors",
               collapsed ? "justify-center px-0" : "gap-3 px-3",
-              "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              hasActiveChild
+                ? "bg-white/10 text-blue-300"
+                : "text-slate-300 hover:text-white hover:bg-white/5"
             )}
           >
             <item.icon className={cn("shrink-0", collapsed ? "h-6 w-6" : "h-5 w-5")} />

@@ -93,7 +93,7 @@ function CurrencyWidget() {
       }
       return leftIndex - rightIndex
     })
-    .slice(0, 6)
+    .slice(0, 5)
 
   return (
     <Card>
