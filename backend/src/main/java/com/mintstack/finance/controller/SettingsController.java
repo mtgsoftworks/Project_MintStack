@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.CacheManager;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -118,6 +119,7 @@ public class SettingsController {
     }
 
     @DeleteMapping("/cache")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Tüm uygulama önbelleğini temizle (Redis cache)")
     public ResponseEntity<ApiResponse<Map<String, Object>>> clearCache(
             @AuthenticationPrincipal Jwt jwt) {
@@ -145,6 +147,7 @@ public class SettingsController {
     }
 
     @DeleteMapping("/market-data")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Tüm piyasa verilerini sil (döviz kurları, fiyat geçmişi)")
     public ResponseEntity<ApiResponse<Map<String, Object>>> deleteMarketData(
             @AuthenticationPrincipal Jwt jwt) {

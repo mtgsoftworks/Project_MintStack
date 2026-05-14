@@ -69,6 +69,14 @@ export default function ProfilePage() {
   }
 
   const handlePreferenceChange = async (key, value) => {
+    const previousState = {
+      emailNotifications,
+      pushNotifications,
+      priceAlerts,
+      portfolioUpdates,
+      compactView,
+    }
+
     try {
       // Optimistic update
       if (key === 'emailNotifications') setEmailNotifications(value)
@@ -85,8 +93,12 @@ export default function ProfilePage() {
 
       toast.success('Ayarlar güncellendi')
     } catch (_error) {
+      setEmailNotifications(previousState.emailNotifications)
+      setPushNotifications(previousState.pushNotifications)
+      setPriceAlerts(previousState.priceAlerts)
+      setPortfolioUpdates(previousState.portfolioUpdates)
+      setCompactView(previousState.compactView)
       toast.error('Ayarlar güncellenemedi')
-      // Revert state if needed (optional for simplicity)
     }
   }
 

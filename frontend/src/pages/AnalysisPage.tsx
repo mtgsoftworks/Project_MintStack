@@ -303,6 +303,11 @@ export default function AnalysisPage() {
     setCompareSymbols((previous) => previous.filter((item) => item !== value))
   }
 
+  const buildSymbolTitle = (title: string) => (symbol ? `${symbol} - ${title}` : title)
+  const combinedSignalDescription = symbol
+    ? `${symbol} icin tum indikatorlerin birlesik yorumu`
+    : 'Secili sembol icin tum indikatorlerin birlesik yorumu'
+
   return (
     <div className="space-y-6 animate-in">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -342,7 +347,7 @@ export default function AnalysisPage() {
       <Card className="border-dashed">
         <CardHeader>
           <CardTitle>Genel Teknik Sinyal</CardTitle>
-          <CardDescription>{symbol || '-'} icin tum indikatorlerin birlesik yorumu</CardDescription>
+          <CardDescription>{combinedSignalDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           {allIndicatorsLoading ? (
@@ -400,7 +405,7 @@ export default function AnalysisPage() {
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>
-                  {symbol} - {maType} ({maPeriod})
+                  {buildSymbolTitle(`${maType} (${maPeriod})`)}
                 </CardTitle>
                 <CardDescription>Fiyat ve hareketli ortalama</CardDescription>
               </CardHeader>
@@ -445,7 +450,7 @@ export default function AnalysisPage() {
           <div className="grid gap-6 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>{symbol} - Trend Analizi</CardTitle>
+                <CardTitle>{buildSymbolTitle('Trend Analizi')}</CardTitle>
                 <CardDescription>Destek/direnc seviyeleri ile trend yorumu</CardDescription>
               </CardHeader>
               <CardContent>
@@ -485,7 +490,7 @@ export default function AnalysisPage() {
           <Card>
             <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <CardTitle>{symbol} - RSI</CardTitle>
+                <CardTitle>{buildSymbolTitle('RSI')}</CardTitle>
                 <CardDescription>Goreceli Guc Endeksi (0-100)</CardDescription>
               </div>
               <Select value={rsiPeriod} onValueChange={setRsiPeriod}>
@@ -521,7 +526,7 @@ export default function AnalysisPage() {
         <TabsContent value="macd" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>{symbol} - MACD</CardTitle>
+              <CardTitle>{buildSymbolTitle('MACD')}</CardTitle>
               <CardDescription>12-26-9 standart ayarlari ile momentum analizi</CardDescription>
             </CardHeader>
             <CardContent>
@@ -576,7 +581,7 @@ export default function AnalysisPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>{symbol} - Bollinger Bantlari</CardTitle>
+              <CardTitle>{buildSymbolTitle('Bollinger Bantlari')}</CardTitle>
               <CardDescription>Bant genisligi ve %B ile volatilite analizi</CardDescription>
             </CardHeader>
             <CardContent>
@@ -640,7 +645,7 @@ export default function AnalysisPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>{symbol} - Stochastic</CardTitle>
+              <CardTitle>{buildSymbolTitle('Stochastic')}</CardTitle>
               <CardDescription>%K ve %D ile asiri alim/satim tespiti</CardDescription>
             </CardHeader>
             <CardContent>

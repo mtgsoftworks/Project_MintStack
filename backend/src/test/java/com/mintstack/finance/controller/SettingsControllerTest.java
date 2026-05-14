@@ -3,6 +3,7 @@ package com.mintstack.finance.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mintstack.finance.config.CorsProperties;
 import com.mintstack.finance.config.RateLimitConfig;
+import com.mintstack.finance.config.SecurityConfig;
 import com.mintstack.finance.dto.request.ApiConfigRequest;
 import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
 import com.mintstack.finance.dto.response.ApiConfigResponse;
@@ -17,10 +18,15 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.AutoConfigureDataJpa;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -35,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(SettingsController.class)
-@Import(CorsProperties.class)
+@Import({CorsProperties.class, SecurityConfig.class})
 @AutoConfigureDataJpa
 class SettingsControllerTest {
 
@@ -59,6 +65,9 @@ class SettingsControllerTest {
 
     @MockitoBean
     private SimulationDataService simulationDataService;
+
+    @MockitoBean
+    private CacheManager cacheManager;
 
     private static final String TEST_KEYCLOAK_ID = "test-keycloak-id-123";
     private static final UUID TEST_USER_ID = UUID.randomUUID();
@@ -169,5 +178,56 @@ class SettingsControllerTest {
         // When & Then
         mockMvc.perform(get("/api/v1/settings/api-keys"))
             .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void clearCache_ShouldReturnForbidden_WhenNotAdmin() throws Exception {
+        mockMvc.perform(delete("/api/v1/settings/cache")
+                .with(jwt()
+                    .jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID))
+                    .authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void clearCache_ShouldReturnSuccess_WhenAdmin() throws Exception {
+        Cache cache = org.mockito.Mockito.mock(Cache.class);
+        when(cacheManager.getCacheNames()).thenReturn(Set.of("currencies"));
+        when(cacheManager.getCache("currencies")).thenReturn(cache);
+
+        mockMvc.perform(delete("/api/v1/settings/cache")
+                .with(jwt()
+                    .jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID))
+                    .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void deleteMarketData_ShouldReturnForbidden_WhenNotAdmin() throws Exception {
+        mockMvc.perform(delete("/api/v1/settings/market-data")
+                .with(jwt()
+                    .jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID))
+                    .authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void deleteMarketData_ShouldReturnSuccess_WhenAdmin() throws Exception {
+        when(marketDataService.deleteAllMarketData()).thenReturn(Map.of("deletedCurrencyRates", 3L));
+        when(simulationDataService.isSimulationEnabled()).thenReturn(false);
+        when(simulationDataService.deleteSimulationData()).thenReturn(Map.of(
+            "deletedInstruments", 0L,
+            "deactivatedInstruments", 0L,
+            "deletedCurrencyRates", 0L
+        ));
+        when(cacheManager.getCacheNames()).thenReturn(Set.of());
+
+        mockMvc.perform(delete("/api/v1/settings/market-data")
+                .with(jwt()
+                    .jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID))
+                    .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
     }
 }

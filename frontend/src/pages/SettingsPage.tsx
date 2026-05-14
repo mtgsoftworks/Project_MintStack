@@ -58,6 +58,7 @@ export default function SettingsPage() {
                         refreshRate={generalSettings.refreshRate}
                         notificationSettings={generalSettings.notificationSettings}
                         isClearingCache={generalSettings.isClearingCache}
+                        isSavingSettings={generalSettings.isSavingSettings}
                         onThemeChange={generalSettings.handleThemeChange}
                         onLanguageChange={generalSettings.handleLanguageChange}
                         onCurrencyChange={generalSettings.handleCurrencyChange}

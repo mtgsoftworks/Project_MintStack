@@ -66,6 +66,10 @@ public class SecurityConfig {
 
                 // Data source endpoints - authenticated users only
                 .requestMatchers("/api/v1/data-sources/**").authenticated()
+
+                // Destructive settings operations - admin only
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/settings/cache").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/settings/market-data").hasRole("ADMIN")
                 
                 // Admin endpoints
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")

@@ -15,6 +15,7 @@ import {
     SelectValue
 } from '@/components/ui/select'
 import {
+    DialogClose,
     Dialog,
     DialogContent,
     DialogDescription,
@@ -36,6 +37,7 @@ export function GeneralSettingsTab({
     refreshRate,
     notificationSettings,
     isClearingCache,
+    isSavingSettings,
     onThemeChange,
     onLanguageChange,
     onCurrencyChange,
@@ -195,8 +197,8 @@ export function GeneralSettingsTab({
                         </div>
                     </div>
 
-                    <Button className="w-full mt-4" onClick={onSaveSettings}>
-                        {t('common.save')}
+                    <Button className="w-full mt-4" onClick={onSaveSettings} disabled={isSavingSettings}>
+                        {isSavingSettings ? t('common.loading') : t('common.save')}
                     </Button>
                 </CardContent>
             </Card>
@@ -239,7 +241,9 @@ export function GeneralSettingsTab({
                                     </div>
                                 </div>
                                 <DialogFooter className="gap-2">
-                                    <Button variant="outline">{t('common.cancel')}</Button>
+                                    <DialogClose asChild>
+                                        <Button variant="outline">{t('common.cancel')}</Button>
+                                    </DialogClose>
                                     <Button variant="destructive" onClick={onFullReset}>
                                         <Trash2 className="h-4 w-4 mr-2" />
                                         {t('settingsPage.dangerZone.reset.confirmButton')}

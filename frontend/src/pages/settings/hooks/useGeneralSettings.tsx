@@ -47,6 +47,7 @@ export function useGeneralSettings({ t, i18n }) {
     const [deleteAlert] = useDeleteAlertMutation()
 
     const [notificationSettings, setNotificationSettings] = useState(DEFAULT_NOTIFICATION_SETTINGS)
+    const [isSavingSettings, setIsSavingSettings] = useState(false)
 
     useEffect(() => {
         if (!profile) {
@@ -191,7 +192,31 @@ export function useGeneralSettings({ t, i18n }) {
         setTimeout(() => window.location.reload(), 1500)
     }
 
-    const handleSaveSettings = () => toast.success(t('success.saved'))
+    const handleSaveSettings = async () => {
+        setIsSavingSettings(true)
+
+        try {
+            await updateProfile({
+                priceAlerts: notificationSettings.priceAlerts,
+                portfolioUpdates: notificationSettings.portfolioUpdates,
+                emailNotifications: notificationSettings.emailNotifications,
+                pushNotifications: notificationSettings.pushNotifications
+            }).unwrap()
+
+            localStorage.setItem('theme', theme)
+            localStorage.setItem('currency', currency)
+            localStorage.setItem('timezone', timezone)
+            localStorage.setItem('autoUpdate', String(autoUpdate))
+            localStorage.setItem('refreshRate', String(refreshRate))
+            localStorage.setItem('language', i18n.language?.split('-')[0] || 'tr')
+
+            toast.success(t('success.saved'))
+        } catch {
+            toast.error(t('common.error'))
+        } finally {
+            setIsSavingSettings(false)
+        }
+    }
 
     return {
         theme,
@@ -201,6 +226,7 @@ export function useGeneralSettings({ t, i18n }) {
         refreshRate,
         notificationSettings,
         isClearingCache,
+        isSavingSettings,
         handleThemeChange,
         handleLanguageChange,
         handleCurrencyChange,
