@@ -27,7 +27,6 @@ const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
 const WatchlistPage = lazy(() => import('@/pages/WatchlistPage'))
 const AlertsPage = lazy(() => import('@/pages/AlertsPage'))
-const GlossaryPage = lazy(() => import('@/pages/GlossaryPage'))
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'))
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
@@ -321,15 +320,6 @@ function App() {
             element={
               <ProtectedRoute>
                 <AlertsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/glossary"
-            element={
-              <ProtectedRoute>
-                <GlossaryPage />
               </ProtectedRoute>
             }
           />

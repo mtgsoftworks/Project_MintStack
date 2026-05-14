@@ -55,6 +55,7 @@ test_auth.js
 # Generated test artifacts
 frontend/playwright-report/
 frontend/test-results/
+frontend/coverage/
 
 # Local backups
 backups/
