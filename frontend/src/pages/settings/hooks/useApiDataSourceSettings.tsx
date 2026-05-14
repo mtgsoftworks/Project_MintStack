@@ -21,9 +21,10 @@ const DEFAULT_FORM_DATA = {
     isActive: true
 }
 
+const KEYLESS_PROVIDERS = new Set(['TCMB', 'TEFAS', 'RSS'])
+
 const requiresValidationForProvider = (provider, apiKey) => (
-    provider !== 'TCMB'
-    && provider !== 'TEFAS'
+    !KEYLESS_PROVIDERS.has(provider)
     && !(provider === 'YAHOO_FINANCE' && !apiKey.trim())
 )
 
@@ -44,6 +45,15 @@ const withProviderFallbackKey = (data) => {
 
 const normalizePayload = (data) => {
     const payload = withProviderFallbackKey(data)
+
+    if (KEYLESS_PROVIDERS.has(payload.provider)) {
+        return {
+            ...payload,
+            baseUrl: '',
+            secretKey: '',
+            modelName: undefined
+        }
+    }
 
     if (payload.provider === 'LLM_ENRICHMENT') {
         return {
@@ -67,7 +77,7 @@ export function useApiDataSourceSettings({ t }) {
     const [triggerDataFetch] = useTriggerDataFetchMutation()
     const [setDataPreference] = useSetDataPreferenceMutation()
 
-    useGetDataSourceCapabilitiesQuery()
+    const { data: capabilitiesData } = useGetDataSourceCapabilitiesQuery()
     const { data: preferencesData, refetch: refetchPreferences } = useGetDataPreferencesQuery()
 
     const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -263,6 +273,7 @@ export function useApiDataSourceSettings({ t }) {
 
     return {
         apiConfigs,
+        providerCapabilities: capabilitiesData?.data || {},
         preferencesData,
         isLoading,
         isAdding,

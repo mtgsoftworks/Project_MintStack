@@ -39,6 +39,7 @@ import { CheckCircle, Key, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 export function ApiKeysTab({
     t,
     apiConfigs,
+    providerCapabilities,
     isLoading,
     isDialogOpen,
     editingConfig,
@@ -55,13 +56,17 @@ export function ApiKeysTab({
     onTestKey,
     onDelete
 }) {
-    const requiresValidation = formData.provider !== 'TCMB'
-        && formData.provider !== 'TEFAS'
+    const KEYLESS_PROVIDERS = new Set(['TCMB', 'TEFAS', 'RSS'])
+    const capabilities = providerCapabilities || {}
+    const isKeylessProvider = KEYLESS_PROVIDERS.has(formData.provider)
+    const isCurrentProviderPolicyDisabled = Boolean(capabilities[formData.provider]) && capabilities[formData.provider].enabled === false
+    const isFintablesPolicyDisabled = Boolean(capabilities.FINTABLES) && capabilities.FINTABLES.enabled === false
+
+    const requiresValidation = !isKeylessProvider
         && !(formData.provider === 'YAHOO_FINANCE' && !formData.apiKey.trim())
-    const canSubmit = isValidated || editingConfig || !requiresValidation
+    const canSubmit = (isValidated || editingConfig || !requiresValidation) && !isCurrentProviderPolicyDisabled
     const apiKeyRequired = !editingConfig
-        && formData.provider !== 'TCMB'
-        && formData.provider !== 'TEFAS'
+        && !isKeylessProvider
         && formData.provider !== 'YAHOO_FINANCE'
     const isLlmProvider = formData.provider === 'LLM_ENRICHMENT'
 
@@ -103,7 +108,11 @@ export function ApiKeysTab({
                                         <SelectItem value="YAHOO_FINANCE">{t('settings.apiKeys.providers.yahooFinance')}</SelectItem>
                                         <SelectItem value="FINNHUB">{t('settings.apiKeys.providers.finnhub')}</SelectItem>
                                         <SelectItem value="TEFAS">{t('settings.apiKeys.providers.tefas')}</SelectItem>
-                                        <SelectItem value="FINTABLES">{t('settings.apiKeys.providers.fintables')}</SelectItem>
+                                        <SelectItem value="FINTABLES" disabled={isFintablesPolicyDisabled}>
+                                            {isFintablesPolicyDisabled
+                                                ? `${t('settings.apiKeys.providers.fintables')} (Policy Disabled)`
+                                                : t('settings.apiKeys.providers.fintables')}
+                                        </SelectItem>
                                         <SelectItem value="LLM_ENRICHMENT">{t('settings.apiKeys.providers.llmEnrichment')}</SelectItem>
                                         <SelectItem value="TCMB">{t('settings.providers.info.TCMB.title')}</SelectItem>
                                         <SelectItem value="OTHER">{t('settings.apiKeys.providerOther')}</SelectItem>
@@ -137,50 +146,62 @@ export function ApiKeysTab({
                                         </div>
                                     </div>
                                 )}
-                            </div>
 
-                            <div className="space-y-2">
-                                <Label>{t('settings.apiKeys.apiKey')}</Label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        value={formData.apiKey}
-                                        onChange={(event) => onFormFieldChange('apiKey', event.target.value, true)}
-                                        placeholder={editingConfig
-                                            ? t('settings.apiKeys.placeholder.unchanged')
-                                            : (isLlmProvider
-                                                ? t('settings.apiKeys.placeholder.githubToken', { defaultValue: 'GitHub token (GITHUB_TOKEN)' })
-                                                : formData.provider === 'TCMB' || formData.provider === 'TEFAS' || formData.provider === 'YAHOO_FINANCE'
-                                                ? t('settings.apiKeys.placeholder.optional')
-                                                : t('settings.apiKeys.placeholder.key'))}
-                                        required={apiKeyRequired}
-                                        className={isValidated ? 'border-green-500' : ''}
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant={isValidated ? 'success' : 'outline'}
-                                        onClick={onTestKey}
-                                        disabled={isTesting || (requiresValidation && !formData.apiKey.trim())}
-                                    >
-                                        {isTesting ? (
-                                            <RefreshCw className="h-4 w-4 animate-spin" />
-                                        ) : isValidated ? (
-                                            <>
-                                                <CheckCircle className="h-4 w-4 mr-1" />
-                                                {t('settings.apiKeys.valid')}
-                                            </>
-                                        ) : (
-                                            t('settings.apiKeys.test')
-                                        )}
-                                    </Button>
-                                </div>
-                                {!isValidated && !editingConfig && (
-                                    <p className="text-xs text-muted-foreground">
-                                        {formData.provider === 'TCMB' || formData.provider === 'TEFAS' || formData.provider === 'YAHOO_FINANCE'
-                                            ? t('settings.apiKeys.validation.optionalInfo')
-                                            : t('settings.apiKeys.validation.testRequired')}
+                                {isCurrentProviderPolicyDisabled && (
+                                    <p className="text-xs font-medium text-warning-dark">
+                                        {t('settings.dataSources.policyDisabledHint', { defaultValue: 'Bu saglayici policy geregi pasif durumda.' })}
                                     </p>
                                 )}
                             </div>
+
+                            {!isKeylessProvider ? (
+                                <div className="space-y-2">
+                                    <Label>{t('settings.apiKeys.apiKey')}</Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            value={formData.apiKey}
+                                            onChange={(event) => onFormFieldChange('apiKey', event.target.value, true)}
+                                            placeholder={editingConfig
+                                                ? t('settings.apiKeys.placeholder.unchanged')
+                                                : (isLlmProvider
+                                                    ? t('settings.apiKeys.placeholder.githubToken', { defaultValue: 'GitHub token (GITHUB_TOKEN)' })
+                                                    : formData.provider === 'YAHOO_FINANCE'
+                                                    ? t('settings.apiKeys.placeholder.optional')
+                                                    : t('settings.apiKeys.placeholder.key'))}
+                                            required={apiKeyRequired}
+                                            className={isValidated ? 'border-green-500' : ''}
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant={isValidated ? 'success' : 'outline'}
+                                            onClick={onTestKey}
+                                            disabled={isCurrentProviderPolicyDisabled || isTesting || (requiresValidation && !formData.apiKey.trim())}
+                                        >
+                                            {isTesting ? (
+                                                <RefreshCw className="h-4 w-4 animate-spin" />
+                                            ) : isValidated ? (
+                                                <>
+                                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                                    {t('settings.apiKeys.valid')}
+                                                </>
+                                            ) : (
+                                                t('settings.apiKeys.test')
+                                            )}
+                                        </Button>
+                                    </div>
+                                    {!isValidated && !editingConfig && (
+                                        <p className="text-xs text-muted-foreground">
+                                            {formData.provider === 'YAHOO_FINANCE'
+                                                ? t('settings.apiKeys.validation.optionalInfo')
+                                                : t('settings.apiKeys.validation.testRequired')}
+                                        </p>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="rounded-md border border-muted bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                                    {t('settings.apiKeys.validation.optionalInfo')}
+                                </div>
+                            )}
 
                             {isLlmProvider && (
                                 <div className="space-y-2">
@@ -193,7 +214,7 @@ export function ApiKeysTab({
                                 </div>
                             )}
 
-                            {!isLlmProvider && (
+                            {!isLlmProvider && !isKeylessProvider && (
                                 <div className="space-y-2">
                                     <Label>{t('settings.apiKeys.secretKey')}</Label>
                                     <Input
@@ -205,16 +226,18 @@ export function ApiKeysTab({
                                 </div>
                             )}
 
-                            <div className="space-y-2">
-                                <Label>{t('settings.apiKeys.baseUrl')}</Label>
-                                <Input
-                                    value={formData.baseUrl}
-                                    onChange={(event) => onFormFieldChange('baseUrl', event.target.value)}
-                                    placeholder={isLlmProvider
-                                        ? t('settings.apiKeys.placeholder.llmBaseUrl', { defaultValue: 'https://models.github.ai/inference' })
-                                        : t('settings.apiKeys.placeholder.baseUrl')}
-                                />
-                            </div>
+                            {!isKeylessProvider && (
+                                <div className="space-y-2">
+                                    <Label>{t('settings.apiKeys.baseUrl')}</Label>
+                                    <Input
+                                        value={formData.baseUrl}
+                                        onChange={(event) => onFormFieldChange('baseUrl', event.target.value)}
+                                        placeholder={isLlmProvider
+                                            ? t('settings.apiKeys.placeholder.llmBaseUrl', { defaultValue: 'https://models.github.ai/inference' })
+                                            : t('settings.apiKeys.placeholder.baseUrl')}
+                                    />
+                                </div>
+                            )}
 
                             <div className="flex items-center space-x-2 pt-2">
                                 <Switch

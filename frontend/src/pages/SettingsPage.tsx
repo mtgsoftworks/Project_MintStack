@@ -75,6 +75,7 @@ export default function SettingsPage() {
                     <ApiKeysTab
                         t={t}
                         apiConfigs={apiDataSourceSettings.apiConfigs}
+                        providerCapabilities={apiDataSourceSettings.providerCapabilities}
                         isLoading={apiDataSourceSettings.isLoading}
                         isDialogOpen={apiDataSourceSettings.isDialogOpen}
                         editingConfig={apiDataSourceSettings.editingConfig}
