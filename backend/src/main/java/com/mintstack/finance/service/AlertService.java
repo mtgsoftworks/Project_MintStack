@@ -17,8 +17,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -64,8 +67,9 @@ public class AlertService {
             throw new BusinessException("Maksimum aktif alarm sayısına ulaştınız (" + MAX_ACTIVE_ALERTS_PER_USER + ")");
         }
 
-        Instrument instrument = instrumentRepository.findBySymbol(request.getSymbol())
-                .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "symbol", request.getSymbol()));
+        String normalizedSymbol = normalizeSymbol(request.getSymbol());
+        Instrument instrument = resolveInstrument(normalizedSymbol)
+                .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "symbol", normalizedSymbol));
 
         PriceAlert alert = PriceAlert.builder()
                 .user(user)
@@ -78,7 +82,7 @@ public class AlertService {
 
         alert = alertRepository.save(alert);
         log.info("Created {} alert for {} at {} for user {}", 
-                request.getAlertType(), request.getSymbol(), request.getTargetValue(), keycloakId);
+                request.getAlertType(), normalizedSymbol, request.getTargetValue(), keycloakId);
         
         return mapToResponse(alert);
     }
@@ -173,6 +177,41 @@ public class AlertService {
         };
     }
 
+    private String normalizeSymbol(String symbol) {
+        return symbol != null ? symbol.trim().toUpperCase() : "";
+    }
+
+    private Optional<Instrument> resolveInstrument(String normalizedSymbol) {
+        if (normalizedSymbol.isBlank()) {
+            return Optional.empty();
+        }
+
+        List<String> candidates = buildSymbolCandidates(normalizedSymbol);
+        for (String candidate : candidates) {
+            Optional<Instrument> instrument = instrumentRepository.findBySymbol(candidate)
+                .or(() -> instrumentRepository.findBySymbolAndIsSimulated(candidate, true));
+
+            if (instrument.isPresent()) {
+                return instrument;
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private List<String> buildSymbolCandidates(String normalizedSymbol) {
+        LinkedHashSet<String> candidates = new LinkedHashSet<>();
+        candidates.add(normalizedSymbol);
+
+        if (normalizedSymbol.endsWith(".IS")) {
+            candidates.add(normalizedSymbol.substring(0, normalizedSymbol.length() - 3));
+        } else {
+            candidates.add(normalizedSymbol + ".IS");
+        }
+
+        return new ArrayList<>(candidates);
+    }
+
 
 
     private AlertResponse mapToResponse(PriceAlert alert) {
@@ -193,3 +232,4 @@ public class AlertService {
                 .build();
     }
 }
+

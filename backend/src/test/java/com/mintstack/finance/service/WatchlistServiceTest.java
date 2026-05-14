@@ -9,6 +9,7 @@ import com.mintstack.finance.exception.BusinessException;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.WatchlistRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,6 +25,9 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,6 +45,13 @@ class WatchlistServiceTest {
 
     @InjectMocks
     private WatchlistService watchlistService;
+
+    @BeforeEach
+    void setupDefaults() {
+        lenient().when(instrumentRepository.findBySymbol(anyString())).thenReturn(Optional.empty());
+        lenient().when(instrumentRepository.findBySymbolAndIsSimulated(anyString(), anyBoolean()))
+                .thenReturn(Optional.empty());
+    }
 
     private User createTestUser() {
         User user = new User();
@@ -222,6 +233,25 @@ class WatchlistServiceTest {
         watchlistService.addInstrument("test-keycloak-id", watchlist.getId(), "THYAO");
 
         // Then
+        verify(watchlistRepository).save(watchlist);
+    }
+
+    @Test
+    void addInstrument_ShouldFallbackToSimulatedInstrument() {
+        User user = createTestUser();
+        Watchlist watchlist = createTestWatchlist(user);
+        Instrument instrument = createTestInstrument();
+
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
+        when(watchlistRepository.findByIdAndUserIdWithItems(watchlist.getId(), user.getId()))
+            .thenReturn(Optional.of(watchlist));
+        when(instrumentRepository.findBySymbol("THYAO")).thenReturn(Optional.empty());
+        when(instrumentRepository.findBySymbolAndIsSimulated("THYAO", true)).thenReturn(Optional.of(instrument));
+        when(watchlistRepository.save(any(Watchlist.class))).thenReturn(watchlist);
+
+        watchlistService.addInstrument("test-keycloak-id", watchlist.getId(), "THYAO");
+
+        verify(instrumentRepository).findBySymbolAndIsSimulated("THYAO", true);
         verify(watchlistRepository).save(watchlist);
     }
 

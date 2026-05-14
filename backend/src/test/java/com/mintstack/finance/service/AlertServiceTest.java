@@ -10,6 +10,7 @@ import com.mintstack.finance.exception.BusinessException;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PriceAlertRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,6 +25,9 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -47,6 +51,13 @@ class AlertServiceTest {
 
     @InjectMocks
     private AlertService alertService;
+
+    @BeforeEach
+    void setupDefaults() {
+        lenient().when(instrumentRepository.findBySymbol(anyString())).thenReturn(Optional.empty());
+        lenient().when(instrumentRepository.findBySymbolAndIsSimulated(anyString(), anyBoolean()))
+                .thenReturn(Optional.empty());
+    }
 
     private User createTestUser() {
         User user = new User();
@@ -142,6 +153,29 @@ class AlertServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getSymbol()).isEqualTo("USD/TRY");
         verify(alertRepository).save(any(PriceAlert.class));
+    }
+
+    @Test
+    void createAlert_ShouldFallbackToSimulatedInstrument() {
+        User user = createTestUser();
+        Instrument instrument = createTestInstrument();
+        instrument.setSymbol("TTKOM");
+
+        CreateAlertRequest request = new CreateAlertRequest();
+        request.setSymbol("TTKOM");
+        request.setAlertType(AlertType.PRICE_ABOVE);
+        request.setTargetValue(BigDecimal.valueOf(55.00));
+
+        when(userService.getUserByKeycloakId("test-keycloak-id")).thenReturn(user);
+        when(alertRepository.countByUserIdAndIsActiveTrue(user.getId())).thenReturn(1L);
+        when(instrumentRepository.findBySymbol("TTKOM")).thenReturn(Optional.empty());
+        when(instrumentRepository.findBySymbolAndIsSimulated("TTKOM", true)).thenReturn(Optional.of(instrument));
+        when(alertRepository.save(any(PriceAlert.class))).thenAnswer(i -> i.getArgument(0));
+
+        AlertResponse result = alertService.createAlert("test-keycloak-id", request);
+
+        assertThat(result.getSymbol()).isEqualTo("TTKOM");
+        verify(instrumentRepository).findBySymbolAndIsSimulated("TTKOM", true);
     }
 
     @Test

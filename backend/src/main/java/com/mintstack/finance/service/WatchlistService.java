@@ -15,7 +15,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -110,12 +113,13 @@ public class WatchlistService {
             throw new BusinessException("Watchlist'e maksimum " + MAX_ITEMS_PER_WATCHLIST + " enstrüman ekleyebilirsiniz");
         }
 
-        Instrument instrument = instrumentRepository.findBySymbol(symbol)
-                .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "symbol", symbol));
+        String normalizedSymbol = normalizeSymbol(symbol);
+        Instrument instrument = resolveInstrument(normalizedSymbol)
+                .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "symbol", normalizedSymbol));
 
         // Check if already in watchlist
         boolean exists = watchlist.getItems().stream()
-                .anyMatch(item -> item.getInstrument().getSymbol().equals(symbol));
+                .anyMatch(item -> item.getInstrument().getSymbol().equals(normalizedSymbol));
         if (exists) {
             throw new BusinessException("Bu enstrüman zaten watchlist'te mevcut");
         }
@@ -123,7 +127,7 @@ public class WatchlistService {
         watchlist.addItem(instrument);
         watchlist = watchlistRepository.save(watchlist);
         
-        log.info("Added {} to watchlist {} for user {}", symbol, watchlist.getName(), keycloakId);
+        log.info("Added {} to watchlist {} for user {}", normalizedSymbol, watchlist.getName(), keycloakId);
         return mapToResponse(watchlist);
     }
 
@@ -133,14 +137,50 @@ public class WatchlistService {
         Watchlist watchlist = watchlistRepository.findByIdAndUserIdWithItems(watchlistId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Watchlist", "id", watchlistId));
 
-        Instrument instrument = instrumentRepository.findBySymbol(symbol)
-                .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "symbol", symbol));
+        String normalizedSymbol = normalizeSymbol(symbol);
+        Instrument instrument = resolveInstrument(normalizedSymbol)
+                .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "symbol", normalizedSymbol));
 
         watchlist.removeItem(instrument);
         watchlist = watchlistRepository.save(watchlist);
         
-        log.info("Removed {} from watchlist {} for user {}", symbol, watchlist.getName(), keycloakId);
+        log.info("Removed {} from watchlist {} for user {}", normalizedSymbol, watchlist.getName(), keycloakId);
         return mapToResponse(watchlist);
+    }
+
+    private String normalizeSymbol(String symbol) {
+        return symbol != null ? symbol.trim().toUpperCase() : "";
+    }
+
+    private Optional<Instrument> resolveInstrument(String normalizedSymbol) {
+        if (normalizedSymbol.isBlank()) {
+            return Optional.empty();
+        }
+
+        List<String> candidates = buildSymbolCandidates(normalizedSymbol);
+        for (String candidate : candidates) {
+            Optional<Instrument> instrument = instrumentRepository.findBySymbol(candidate)
+                .or(() -> instrumentRepository.findBySymbolAndIsSimulated(candidate, true));
+
+            if (instrument.isPresent()) {
+                return instrument;
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private List<String> buildSymbolCandidates(String normalizedSymbol) {
+        LinkedHashSet<String> candidates = new LinkedHashSet<>();
+        candidates.add(normalizedSymbol);
+
+        if (normalizedSymbol.endsWith(".IS")) {
+            candidates.add(normalizedSymbol.substring(0, normalizedSymbol.length() - 3));
+        } else {
+            candidates.add(normalizedSymbol + ".IS");
+        }
+
+        return new ArrayList<>(candidates);
     }
 
 
@@ -173,3 +213,4 @@ public class WatchlistService {
                 .build();
     }
 }
+

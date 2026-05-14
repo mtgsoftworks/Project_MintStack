@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Trash2, Bell, BellOff, TrendingUp, TrendingDown } from 'lucide-react'
+import { Plus, Trash2, Bell, BellOff, TrendingUp, TrendingDown, AlertTriangle, RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
 import {
     useCreateAlertMutation,
     useDeactivateAlertMutation,
     useDeleteAlertMutation,
     useGetAlertsQuery
 } from '@/store/api/alertsApi'
+import { getApiErrorMessage } from '@/pages/settings/getApiErrorMessage'
 
 const ALERT_TYPES = [
     { value: 'PRICE_ABOVE', labelKey: 'alerts.priceAbove', icon: TrendingUp },
@@ -17,7 +19,7 @@ const ALERT_TYPES = [
 
 export default function AlertsPage() {
     const { t } = useTranslation()
-    const { data: alerts = [], isLoading } = useGetAlertsQuery()
+    const { data: alerts = [], isLoading, isFetching, error: alertsError, refetch } = useGetAlertsQuery()
     const [createAlert, { isLoading: creating }] = useCreateAlertMutation()
     const [deleteAlert, { isLoading: deleting }] = useDeleteAlertMutation()
     const [deactivateAlert, { isLoading: deactivating }] = useDeactivateAlertMutation()
@@ -31,20 +33,29 @@ export default function AlertsPage() {
     })
 
     const mutating = creating || deleting || deactivating
+    const alertsErrorMessage = alertsError ? getApiErrorMessage(alertsError, t('common.error')) : null
 
     const handleCreateAlert = async () => {
-        if (!newAlert.symbol || !newAlert.targetValue) return
+        const symbol = newAlert.symbol.trim().toUpperCase()
+        const targetValue = Number(newAlert.targetValue)
+
+        if (!symbol || Number.isNaN(targetValue) || targetValue <= 0) {
+            toast.error(t('common.error'))
+            return
+        }
+
         try {
             await createAlert({
-                symbol: newAlert.symbol.toUpperCase(),
+                symbol,
                 alertType: newAlert.alertType,
-                targetValue: parseFloat(newAlert.targetValue),
+                targetValue,
                 notes: newAlert.notes,
             }).unwrap()
             setNewAlert({ symbol: '', alertType: 'PRICE_ABOVE', targetValue: '', notes: '' })
             setShowCreateModal(false)
+            toast.success(t('success.saved'))
         } catch (error) {
-            console.error('Error creating alert:', error)
+            toast.error(getApiErrorMessage(error, t('common.error')))
         }
     }
 
@@ -52,16 +63,18 @@ export default function AlertsPage() {
         if (!window.confirm(t('common.confirm'))) return
         try {
             await deleteAlert(id).unwrap()
+            toast.success(t('success.deleted'))
         } catch (error) {
-            console.error('Error deleting alert:', error)
+            toast.error(getApiErrorMessage(error, t('common.error')))
         }
     }
 
     const handleDeactivate = async (id) => {
         try {
             await deactivateAlert(id).unwrap()
+            toast.success(t('success.updated'))
         } catch (error) {
-            console.error('Error deactivating alert:', error)
+            toast.error(getApiErrorMessage(error, t('common.error')))
         }
     }
 
@@ -70,7 +83,7 @@ export default function AlertsPage() {
         return alertType ? t(alertType.labelKey) : type
     }
 
-    if (isLoading) {
+    if (isLoading || isFetching) {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
@@ -84,12 +97,29 @@ export default function AlertsPage() {
                 <h1 className="text-2xl font-bold text-foreground">{t('alerts.title')}</h1>
                 <button
                     onClick={() => setShowCreateModal(true)}
+                    disabled={mutating}
                     className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
                 >
                     <Plus className="w-4 h-4" />
                     {t('alerts.create')}
                 </button>
             </div>
+
+            {alertsError && (
+                <div className="mb-6 rounded-xl border border-danger/40 bg-danger/5 p-4 text-danger shadow-sm">
+                    <div className="mb-3 flex items-center gap-2 font-medium">
+                        <AlertTriangle className="h-4 w-4" />
+                        {alertsErrorMessage || t('common.error')}
+                    </div>
+                    <button
+                        onClick={() => refetch()}
+                        className="inline-flex items-center gap-2 rounded-lg border border-danger/40 px-3 py-2 text-sm font-medium transition-colors hover:bg-danger/10"
+                    >
+                        <RefreshCw className="h-4 w-4" />
+                        {t('common.refresh')}
+                    </button>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="rounded-xl border border-border bg-card p-4 shadow-sm">

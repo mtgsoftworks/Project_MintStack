@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Trash2, Star, TrendingUp, TrendingDown } from 'lucide-react'
+import { Plus, Trash2, Star, TrendingUp, TrendingDown, AlertTriangle, RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
 import {
     useCreateWatchlistMutation,
     useDeleteWatchlistMutation,
@@ -8,6 +9,7 @@ import {
     useGetWatchlistsQuery,
     useRemoveWatchlistInstrumentMutation
 } from '@/store/api/watchlistApi'
+import { getApiErrorMessage } from '@/pages/settings/getApiErrorMessage'
 
 export default function WatchlistPage() {
     const { t } = useTranslation()
@@ -15,8 +17,19 @@ export default function WatchlistPage() {
     const [showCreateModal, setShowCreateModal] = useState(false)
     const [newWatchlistName, setNewWatchlistName] = useState('')
 
-    const { data: watchlists = [], isLoading: watchlistsLoading } = useGetWatchlistsQuery()
-    const { data: selectedWatchlist, isLoading: watchlistDetailLoading } = useGetWatchlistQuery(selectedWatchlistId, {
+    const {
+        data: watchlists = [],
+        isLoading: watchlistsLoading,
+        error: watchlistsError,
+        refetch: refetchWatchlists
+    } = useGetWatchlistsQuery()
+    const {
+        data: selectedWatchlist,
+        isLoading: watchlistDetailLoading,
+        isFetching: watchlistDetailFetching,
+        error: watchlistDetailError,
+        refetch: refetchWatchlistDetail
+    } = useGetWatchlistQuery(selectedWatchlistId, {
         skip: !selectedWatchlistId
     })
 
@@ -25,13 +38,18 @@ export default function WatchlistPage() {
     const [removeWatchlistInstrument, { isLoading: removingItem }] = useRemoveWatchlistInstrumentMutation()
 
     const mutating = creating || deleting || removingItem
+    const watchlistsErrorMessage = watchlistsError ? getApiErrorMessage(watchlistsError, t('common.error')) : null
+    const watchlistDetailErrorMessage = watchlistDetailError ? getApiErrorMessage(watchlistDetailError, t('common.error')) : null
 
     useEffect(() => {
-        if (watchlists.length > 0 && !selectedWatchlistId) {
-            setSelectedWatchlistId(watchlists[0].id)
-        }
         if (watchlists.length === 0) {
             setSelectedWatchlistId(null)
+            return
+        }
+
+        const selectionExists = watchlists.some((list) => list.id === selectedWatchlistId)
+        if (!selectedWatchlistId || !selectionExists) {
+            setSelectedWatchlistId(watchlists[0].id)
         }
     }, [watchlists, selectedWatchlistId])
 
@@ -45,7 +63,7 @@ export default function WatchlistPage() {
                 setSelectedWatchlistId(created.id)
             }
         } catch (error) {
-            console.error('Error creating watchlist:', error)
+            toast.error(getApiErrorMessage(error, t('common.error')))
         }
     }
 
@@ -57,7 +75,7 @@ export default function WatchlistPage() {
                 setSelectedWatchlistId(null)
             }
         } catch (error) {
-            console.error('Error deleting watchlist:', error)
+            toast.error(getApiErrorMessage(error, t('common.error')))
         }
     }
 
@@ -66,7 +84,7 @@ export default function WatchlistPage() {
         try {
             await removeWatchlistInstrument({ watchlistId: selectedWatchlistId, symbol }).unwrap()
         } catch (error) {
-            console.error('Error removing item:', error)
+            toast.error(getApiErrorMessage(error, t('common.error')))
         }
     }
 
@@ -74,6 +92,26 @@ export default function WatchlistPage() {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
+            </div>
+        )
+    }
+
+    if (watchlistsError) {
+        return (
+            <div className="p-6">
+                <div className="rounded-xl border border-danger/40 bg-danger/5 p-6 text-danger shadow-sm">
+                    <div className="mb-3 flex items-center gap-2 font-semibold">
+                        <AlertTriangle className="h-4 w-4" />
+                        {watchlistsErrorMessage || t('common.error')}
+                    </div>
+                    <button
+                        onClick={() => refetchWatchlists()}
+                        className="inline-flex items-center gap-2 rounded-lg border border-danger/40 px-3 py-2 text-sm font-medium transition-colors hover:bg-danger/10"
+                    >
+                        <RefreshCw className="h-4 w-4" />
+                        {t('common.refresh')}
+                    </button>
+                </div>
             </div>
         )
     }
@@ -187,9 +225,23 @@ export default function WatchlistPage() {
                                 </table>
                             </div>
                         </div>
-                    ) : watchlistDetailLoading ? (
+                    ) : watchlistDetailLoading || watchlistDetailFetching ? (
                         <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground shadow-sm">
                             {t('common.loading')}
+                        </div>
+                    ) : watchlistDetailError ? (
+                        <div className="rounded-xl border border-danger/40 bg-danger/5 p-8 text-center text-danger shadow-sm">
+                            <div className="mb-3 flex items-center justify-center gap-2 font-medium">
+                                <AlertTriangle className="h-4 w-4" />
+                                {watchlistDetailErrorMessage || t('common.error')}
+                            </div>
+                            <button
+                                onClick={() => refetchWatchlistDetail()}
+                                className="inline-flex items-center gap-2 rounded-lg border border-danger/40 px-3 py-2 text-sm font-medium transition-colors hover:bg-danger/10"
+                            >
+                                <RefreshCw className="h-4 w-4" />
+                                {t('common.refresh')}
+                            </button>
                         </div>
                     ) : (
                         <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground shadow-sm">
