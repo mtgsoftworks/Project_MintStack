@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Users, BarChart3, Bell, Wallet, RefreshCw, UserCheck, UserX, Search } from 'lucide-react'
+import RefreshButton from '@/components/common/RefreshButton'
 import {
     useActivateAdminUserMutation,
     useDeactivateAdminUserMutation,
@@ -84,32 +85,33 @@ export default function AdminDashboard() {
     return (
         <div className="p-6">
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">{t('admin.dashboard')}</h1>
-                <button
-                    onClick={handleRefresh}
-                    disabled={loading || mutating}
-                    className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-50"
+                <h1 className="text-2xl font-bold text-foreground">{t('admin.dashboard')}</h1>
+                <RefreshButton
+                    variant="ghost"
+                    className="px-4 py-2 text-muted-foreground hover:bg-muted"
+                    onRefresh={handleRefresh}
+                    isLoading={loading || mutating}
+                    disabled={mutating}
                 >
-                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                     {t('common.refresh')}
-                </button>
+                </RefreshButton>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
                 {stats.map((stat, index) => (
-                    <div key={index} className="bg-white rounded-xl p-4 shadow-sm">
+                    <div key={index} className="rounded-xl border border-border bg-card p-4 shadow-sm">
                         <div className={`w-10 h-10 ${stat.color} rounded-lg flex items-center justify-center mb-3`}>
                             <stat.icon className="w-5 h-5 text-white" />
                         </div>
-                        <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                        <div className="text-sm text-gray-500">{stat.label}</div>
+                        <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+                        <div className="text-sm text-muted-foreground">{stat.label}</div>
                     </div>
                 ))}
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm">
+            <div className="rounded-xl border border-border bg-card shadow-sm">
                 <div className="p-4 border-b flex items-center justify-between">
-                    <h2 className="font-semibold text-gray-900">{t('admin.users')}</h2>
+                    <h2 className="font-semibold text-foreground">{t('admin.users')}</h2>
                     <div className="flex items-center gap-2">
                         <div className="relative">
                             <input
@@ -118,9 +120,9 @@ export default function AdminDashboard() {
                                 onChange={(event) => setSearchInput(event.target.value)}
                                 onKeyPress={(event) => event.key === 'Enter' && handleSearch()}
                                 placeholder={t('common.search')}
-                                className="pl-10 pr-4 py-2 border rounded-lg w-64"
+                                className="w-64 rounded-lg border border-input bg-background py-2 pl-10 pr-4 text-foreground placeholder:text-muted-foreground"
                             />
-                            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         </div>
                         <button
                             onClick={handleSearch}
@@ -133,43 +135,43 @@ export default function AdminDashboard() {
 
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-muted/50">
                             <tr>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('admin.table.user')}</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('admin.table.email')}</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('admin.table.portfolios')}</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('admin.table.status')}</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('admin.table.registered')}</th>
-                                <th className="px-4 py-3 text-right text-sm font-medium text-gray-600"></th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('admin.table.user')}</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('admin.table.email')}</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('admin.table.portfolios')}</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('admin.table.status')}</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('admin.table.registered')}</th>
+                                <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y">
                             {users.map((user) => (
-                                <tr key={user.id} className="hover:bg-gray-50">
+                                <tr key={user.id} className="hover:bg-muted/40">
                                     <td className="px-4 py-3">
                                         <div>
-                                            <div className="font-medium text-gray-900">
+                                            <div className="font-medium text-foreground">
                                                 {user.firstName} {user.lastName}
                                             </div>
-                                            <div className="text-sm text-gray-500">@{user.username}</div>
+                                            <div className="text-sm text-muted-foreground">@{user.username}</div>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 text-gray-600">{user.email}</td>
+                                    <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
                                     <td className="px-4 py-3">{user.portfolioCount}</td>
                                     <td className="px-4 py-3">
                                         {user.isActive ? (
-                                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-1 text-sm text-success">
                                                 <UserCheck className="w-3 h-3" />
                                                 {t('admin.status.active')}
                                             </span>
                                         ) : (
-                                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-sm">
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-danger/15 px-2 py-1 text-sm text-danger">
                                                 <UserX className="w-3 h-3" />
                                                 {t('admin.status.inactive')}
                                             </span>
                                         )}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-500">
+                                    <td className="px-4 py-3 text-sm text-muted-foreground">
                                         {user.createdAt && new Date(user.createdAt).toLocaleDateString('tr-TR')}
                                     </td>
                                     <td className="px-4 py-3 text-right">
@@ -195,7 +197,7 @@ export default function AdminDashboard() {
                             ))}
                             {users.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                                         {t('common.noData')}
                                     </td>
                                 </tr>

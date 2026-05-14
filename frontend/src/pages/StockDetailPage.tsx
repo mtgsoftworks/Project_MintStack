@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, TrendingDown, RefreshCw, Plus } from 'lucide-react'
+import { ArrowLeft, TrendingUp, TrendingDown, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import SimulationDataFlag from '@/components/common/SimulationDataFlag'
+import RefreshButton from '@/components/common/RefreshButton'
 import {
   Dialog,
   DialogContent,
@@ -41,7 +42,7 @@ export default function StockDetailPage() {
   const [selectedPortfolioId, setSelectedPortfolioId] = useState('')
   const [quantity, setQuantity] = useState('1')
 
-  const { data: stock, isLoading: stockLoading, refetch } = useGetStockQuery(symbol)
+  const { data: stock, isLoading: stockLoading, isFetching: stockFetching, refetch } = useGetStockQuery(symbol)
   const { data: history, isLoading: historyLoading } = useGetStockHistoryQuery({ symbol, period })
   const { data: portfolios = [], isLoading: portfoliosLoading } = useGetPortfoliosQuery()
   const [executeTrade, { isLoading: isSubmittingTrade }] = useExecutePortfolioTradeMutation()
@@ -175,10 +176,9 @@ export default function StockDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="mr-2 h-4 w-4" />
+          <RefreshButton variant="outline" isLoading={stockFetching} onRefresh={refetch}>
             Yenile
-          </Button>
+          </RefreshButton>
           <Button onClick={openAddDialog}>
             <Plus className="mr-2 h-4 w-4" />
             Portfoye Ekle

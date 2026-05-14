@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Play, Pause, RefreshCw, Zap, Activity, Database, Wifi, Clock } from 'lucide-react'
+import RefreshButton from '@/components/common/RefreshButton'
 import api from '../../services/api'
 
 export function SimulationDebugPanel() {
@@ -12,6 +13,7 @@ export function SimulationDebugPanel() {
     const [volatility, setVolatility] = useState(null)
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState(false)
+    const [refreshing, setRefreshing] = useState(false)
     
     useEffect(() => {
         fetchAllData()
@@ -37,6 +39,15 @@ export function SimulationDebugPanel() {
             console.error('Failed to fetch debug data:', error)
         } finally {
             setLoading(false)
+        }
+    }
+
+    const handleRefresh = async () => {
+        try {
+            setRefreshing(true)
+            await fetchAllData()
+        } finally {
+            setRefreshing(false)
         }
     }
     
@@ -114,18 +125,19 @@ export function SimulationDebugPanel() {
         <div className="space-y-6 p-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">{t('simulation.debugPanel')}</h2>
-                    <p className="text-sm text-gray-500">{t('simulation.debugPanelDesc')}</p>
+                    <h2 className="text-2xl font-bold text-foreground">{t('simulation.debugPanel')}</h2>
+                    <p className="text-sm text-muted-foreground">{t('simulation.debugPanelDesc')}</p>
                 </div>
                 <div className="flex gap-2">
-                    <button
-                        onClick={fetchAllData}
+                    <RefreshButton
+                        variant="ghost"
+                        className="px-4 py-2 text-muted-foreground hover:bg-muted"
+                        onRefresh={handleRefresh}
+                        isLoading={refreshing}
                         disabled={updating}
-                        className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-50"
                     >
-                        <RefreshCw className={`w-4 h-4 ${updating ? 'animate-spin' : ''}`} />
                         {t('common.refresh')}
-                    </button>
+                    </RefreshButton>
                     <button
                         onClick={toggleSimulation}
                         disabled={updating}
@@ -174,18 +186,18 @@ export function SimulationDebugPanel() {
                 />
             </div>
             
-            <div className="bg-white rounded-xl shadow-sm p-4">
-                <h3 className="font-semibold mb-4 text-gray-900">{t('simulation.config.title')}</h3>
+            <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <h3 className="mb-4 font-semibold text-foreground">{t('simulation.config.title')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="mb-1 block text-sm font-medium text-foreground">
                             {t('simulation.config.volatility')}
                         </label>
                         <select 
                             value={config?.volatilityLevel || 'MEDIUM'}
                             onChange={(e) => updateConfig({ volatilityLevel: e.target.value })}
                             disabled={updating}
-                            className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            className="w-full rounded-lg border border-input bg-background p-2 text-foreground focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500"
                         >
                             <option value="LOW">{t('simulation.config.volatilityLow')}</option>
                             <option value="MEDIUM">{t('simulation.config.volatilityMedium')}</option>
@@ -194,14 +206,14 @@ export function SimulationDebugPanel() {
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="mb-1 block text-sm font-medium text-foreground">
                             {t('simulation.config.trend')}
                         </label>
                         <select 
                             value={config?.marketTrend || 'NEUTRAL'}
                             onChange={(e) => updateConfig({ marketTrend: e.target.value })}
                             disabled={updating}
-                            className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            className="w-full rounded-lg border border-input bg-background p-2 text-foreground focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500"
                         >
                             <option value="BULLISH">{t('simulation.config.trendBullish')}</option>
                             <option value="NEUTRAL">{t('simulation.config.trendNeutral')}</option>
@@ -209,7 +221,7 @@ export function SimulationDebugPanel() {
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="mb-1 block text-sm font-medium text-foreground">
                             {t('simulation.config.updateInterval')}
                         </label>
                         <input 
@@ -217,7 +229,7 @@ export function SimulationDebugPanel() {
                             value={config?.updateIntervalSeconds || 1}
                             onChange={(e) => updateConfig({ updateIntervalSeconds: parseInt(e.target.value) })}
                             disabled={updating}
-                            className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            className="w-full rounded-lg border border-input bg-background p-2 text-foreground focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500"
                             min="1"
                             max="60"
                         />
@@ -225,8 +237,8 @@ export function SimulationDebugPanel() {
                 </div>
             </div>
             
-            <div className="bg-white rounded-xl shadow-sm p-4">
-                <h3 className="font-semibold mb-4 text-gray-900">{t('simulation.events.trigger')}</h3>
+            <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <h3 className="mb-4 font-semibold text-foreground">{t('simulation.events.trigger')}</h3>
                 <div className="flex flex-wrap gap-2">
                     {['CIRCUIT_BREAKER', 'SHORT_SQUEEZE', 'WHALE_ACTIVITY', 'RALLY', 'FLASH_CRASH', 'VOLATILITY_SPIKE'].map(type => (
                         <button
@@ -242,13 +254,13 @@ export function SimulationDebugPanel() {
             </div>
             
             {events.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm p-4">
-                    <h3 className="font-semibold mb-4 text-gray-900">{t('simulation.events.active')}</h3>
+                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                    <h3 className="mb-4 font-semibold text-foreground">{t('simulation.events.active')}</h3>
                     <div className="space-y-2">
                         {events.map(event => (
                             <div key={event.id} className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                                 <div className="flex justify-between items-start">
-                                    <div className="font-medium text-gray-900">{event.type}</div>
+                                    <div className="font-medium text-foreground">{event.type}</div>
                                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                                         event.severity === 'CRITICAL' ? 'bg-red-100 text-red-700' :
                                         event.severity === 'HIGH' ? 'bg-orange-100 text-orange-700' :
@@ -258,8 +270,8 @@ export function SimulationDebugPanel() {
                                         {event.severity}
                                     </span>
                                 </div>
-                                <div className="text-sm text-gray-600 mt-1">{event.description}</div>
-                                <div className="text-xs text-gray-400 mt-2">
+                                <div className="mt-1 text-sm text-muted-foreground">{event.description}</div>
+                                <div className="mt-2 text-xs text-muted-foreground">
                                     {t('simulation.events.remaining')}: {event.remainingDurationTicks} tick
                                 </div>
                             </div>
@@ -269,8 +281,8 @@ export function SimulationDebugPanel() {
             )}
             
             {volatility && (
-                <div className="bg-white rounded-xl shadow-sm p-4">
-                    <h3 className="font-semibold mb-4 text-gray-900">{t('simulation.volatility.distribution')}</h3>
+                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                    <h3 className="mb-4 font-semibold text-foreground">{t('simulation.volatility.distribution')}</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {Object.entries(volatility.regimeDistribution || {}).map(([regime, count]) => (
                             <div 
@@ -281,8 +293,8 @@ export function SimulationDebugPanel() {
                                     regime === 'NORMAL' ? 'bg-green-100' : 'bg-blue-100'
                                 }`}
                             >
-                                <div className="font-medium text-gray-700">{regime}</div>
-                                <div className="text-2xl font-bold text-gray-900">{String(count)}</div>
+                                <div className="font-medium text-foreground">{regime}</div>
+                                <div className="text-2xl font-bold text-foreground">{String(count)}</div>
                             </div>
                         ))}
                     </div>
@@ -305,12 +317,12 @@ export function SimulationDebugPanel() {
 
 function StatusCard({ title, value, icon: Icon, highlight = false, valueClassName = '' }: any) {
     return (
-        <div className={`bg-white rounded-xl p-4 shadow-sm ${highlight ? 'ring-2 ring-yellow-400' : ''}`}>
+        <div className={`rounded-xl border border-border bg-card p-4 shadow-sm ${highlight ? 'ring-2 ring-yellow-400' : ''}`}>
             <div className="flex items-center gap-2 mb-2">
-                {Icon && <Icon className="w-4 h-4 text-gray-400" />}
-                <div className="text-sm text-gray-500">{title}</div>
+                {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+                <div className="text-sm text-muted-foreground">{title}</div>
             </div>
-            <div className={`text-2xl font-bold ${valueClassName || 'text-gray-900'}`}>{value}</div>
+            <div className={`text-2xl font-bold ${valueClassName || 'text-foreground'}`}>{value}</div>
         </div>
     )
 }

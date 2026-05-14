@@ -81,7 +81,7 @@ export default function WatchlistPage() {
     return (
         <div className="p-6">
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">{t('watchlist.title')}</h1>
+                <h1 className="text-2xl font-bold text-foreground">{t('watchlist.title')}</h1>
                 <button
                     onClick={() => setShowCreateModal(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
@@ -93,8 +93,8 @@ export default function WatchlistPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 <div className="lg:col-span-1">
-                    <div className="bg-white rounded-xl shadow-sm p-4">
-                        <h2 className="font-semibold text-gray-700 mb-4">{t('watchlist.title')}</h2>
+                    <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                        <h2 className="mb-4 font-semibold text-foreground">{t('watchlist.title')}</h2>
                         <div className="space-y-2">
                             {watchlists.map((list) => (
                                 <button
@@ -102,19 +102,19 @@ export default function WatchlistPage() {
                                     onClick={() => setSelectedWatchlistId(list.id)}
                                     className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
                                         selectedWatchlistId === list.id
-                                            ? 'bg-emerald-50 text-emerald-600'
-                                            : 'hover:bg-gray-50'
+                                            ? 'bg-emerald-500/10 text-emerald-600'
+                                            : 'text-foreground hover:bg-muted/50'
                                     }`}
                                 >
                                     <div className="flex items-center gap-2">
                                         {list.isDefault && <Star className="w-4 h-4 text-yellow-500" />}
                                         <span>{list.name}</span>
                                     </div>
-                                    <span className="text-sm text-gray-500">{list.itemCount}</span>
+                                    <span className="text-sm text-muted-foreground">{list.itemCount}</span>
                                 </button>
                             ))}
                             {watchlists.length === 0 && (
-                                <p className="text-gray-500 text-sm text-center py-4">{t('watchlist.empty')}</p>
+                                <p className="py-4 text-center text-sm text-muted-foreground">{t('watchlist.empty')}</p>
                             )}
                         </div>
                     </div>
@@ -122,9 +122,9 @@ export default function WatchlistPage() {
 
                 <div className="lg:col-span-3">
                     {selectedWatchlist ? (
-                        <div className="bg-white rounded-xl shadow-sm">
+                        <div className="rounded-xl border border-border bg-card shadow-sm">
                             <div className="flex items-center justify-between p-4 border-b">
-                                <h2 className="font-semibold text-gray-900">{selectedWatchlist.name}</h2>
+                                <h2 className="font-semibold text-foreground">{selectedWatchlist.name}</h2>
                                 <button
                                     onClick={() => handleDeleteWatchlist(selectedWatchlist.id)}
                                     disabled={mutating}
@@ -135,21 +135,21 @@ export default function WatchlistPage() {
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full">
-                                    <thead className="bg-gray-50">
+                                    <thead className="bg-muted/50">
                                         <tr>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('portfolio.symbol')}</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('market.currentPrice')}</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('market.change')}</th>
-                                            <th className="px-4 py-3 text-right text-sm font-medium text-gray-600"></th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('portfolio.symbol')}</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('market.currentPrice')}</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('market.change')}</th>
+                                            <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground"></th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y">
                                         {selectedWatchlist.items?.map((item) => (
-                                            <tr key={item.id} className="hover:bg-gray-50">
+                                            <tr key={item.id} className="hover:bg-muted/40">
                                                 <td className="px-4 py-3">
                                                     <div>
-                                                        <div className="font-medium text-gray-900">{item.symbol}</div>
-                                                        <div className="text-sm text-gray-500">{item.name}</div>
+                                                        <div className="font-medium text-foreground">{item.symbol}</div>
+                                                        <div className="text-sm text-muted-foreground">{item.name}</div>
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 font-medium">
@@ -169,7 +169,7 @@ export default function WatchlistPage() {
                                                     <button
                                                         onClick={() => handleRemoveItem(item.symbol)}
                                                         disabled={mutating}
-                                                        className="text-gray-400 hover:text-red-500 disabled:opacity-50"
+                                                        className="text-muted-foreground hover:text-red-500 disabled:opacity-50"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
@@ -178,7 +178,7 @@ export default function WatchlistPage() {
                                         ))}
                                         {(!selectedWatchlist.items || selectedWatchlist.items.length === 0) && (
                                             <tr>
-                                                <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
+                                                <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
                                                     {t('watchlist.empty')}
                                                 </td>
                                             </tr>
@@ -188,11 +188,11 @@ export default function WatchlistPage() {
                             </div>
                         </div>
                     ) : watchlistDetailLoading ? (
-                        <div className="bg-white rounded-xl shadow-sm p-8 text-center text-gray-500">
+                        <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground shadow-sm">
                             {t('common.loading')}
                         </div>
                     ) : (
-                        <div className="bg-white rounded-xl shadow-sm p-8 text-center text-gray-500">
+                        <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground shadow-sm">
                             {t('watchlist.empty')}
                         </div>
                     )}
@@ -201,19 +201,19 @@ export default function WatchlistPage() {
 
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-6 w-full max-w-md">
+                    <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-foreground">
                         <h3 className="text-lg font-semibold mb-4">{t('watchlist.create')}</h3>
                         <input
                             type="text"
                             value={newWatchlistName}
                             onChange={(event) => setNewWatchlistName(event.target.value)}
                             placeholder={t('watchlist.title')}
-                            className="w-full px-4 py-2 border rounded-lg mb-4"
+                            className="mb-4 w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground placeholder:text-muted-foreground"
                         />
                         <div className="flex gap-3 justify-end">
                             <button
                                 onClick={() => setShowCreateModal(false)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                                className="rounded-lg px-4 py-2 text-muted-foreground hover:bg-muted"
                             >
                                 {t('common.cancel')}
                             </button>

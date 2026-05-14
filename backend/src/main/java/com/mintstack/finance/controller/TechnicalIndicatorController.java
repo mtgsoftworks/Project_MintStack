@@ -120,6 +120,90 @@ public class TechnicalIndicatorController {
         return ResponseEntity.ok(ApiResponse.success(stochastic, interpretation));
     }
 
+
+    @GetMapping("/atr/{symbol}")
+    @Operation(summary = "ATR hesapla", description = "Average True Range volatilite gostergesini hesaplar")
+    public ResponseEntity<ApiResponse<Double>> calculateATR(
+            @PathVariable @Parameter(description = "Enstruman sembolu") String symbol,
+            @RequestParam(defaultValue = "14") int period) {
+        Double atr = technicalIndicatorService.calculateATR(symbol, period);
+        if (atr == null) {
+            return ResponseEntity.ok(ApiResponse.error("ATR hesaplanamadi - yeterli veri yok"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(atr, period + " periyot ATR"));
+    }
+
+    @GetMapping("/adx/{symbol}")
+    @Operation(summary = "ADX hesapla", description = "Trend gucu gostergesini hesaplar")
+    public ResponseEntity<ApiResponse<Double>> calculateADX(
+            @PathVariable @Parameter(description = "Enstruman sembolu") String symbol,
+            @RequestParam(defaultValue = "14") int period) {
+        Double adx = technicalIndicatorService.calculateADX(symbol, period);
+        if (adx == null) {
+            return ResponseEntity.ok(ApiResponse.error("ADX hesaplanamadi - yeterli veri yok"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(adx, period + " periyot ADX"));
+    }
+
+    @GetMapping("/obv/{symbol}")
+    @Operation(summary = "OBV hesapla", description = "On-Balance Volume hesaplar")
+    public ResponseEntity<ApiResponse<Long>> calculateOBV(
+            @PathVariable @Parameter(description = "Enstruman sembolu") String symbol,
+            @RequestParam(defaultValue = "90") int limit) {
+        Long obv = technicalIndicatorService.calculateOBV(symbol, limit);
+        if (obv == null) {
+            return ResponseEntity.ok(ApiResponse.error("OBV hesaplanamadi - yeterli veri yok"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(obv, "OBV"));
+    }
+
+    @GetMapping("/vwap/{symbol}")
+    @Operation(summary = "VWAP hesapla", description = "Volume Weighted Average Price hesaplar")
+    public ResponseEntity<ApiResponse<Double>> calculateVWAP(
+            @PathVariable @Parameter(description = "Enstruman sembolu") String symbol,
+            @RequestParam(defaultValue = "20") int period) {
+        Double vwap = technicalIndicatorService.calculateVWAP(symbol, period);
+        if (vwap == null) {
+            return ResponseEntity.ok(ApiResponse.error("VWAP hesaplanamadi - hacim verisi yok veya yetersiz"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(vwap, period + " periyot VWAP"));
+    }
+
+    @GetMapping("/cci/{symbol}")
+    @Operation(summary = "CCI hesapla", description = "Commodity Channel Index hesaplar")
+    public ResponseEntity<ApiResponse<Double>> calculateCCI(
+            @PathVariable @Parameter(description = "Enstruman sembolu") String symbol,
+            @RequestParam(defaultValue = "20") int period) {
+        Double cci = technicalIndicatorService.calculateCCI(symbol, period);
+        if (cci == null) {
+            return ResponseEntity.ok(ApiResponse.error("CCI hesaplanamadi - yeterli veri yok"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(cci, period + " periyot CCI"));
+    }
+
+    @GetMapping("/mfi/{symbol}")
+    @Operation(summary = "MFI hesapla", description = "Money Flow Index hesaplar")
+    public ResponseEntity<ApiResponse<Double>> calculateMFI(
+            @PathVariable @Parameter(description = "Enstruman sembolu") String symbol,
+            @RequestParam(defaultValue = "14") int period) {
+        Double mfi = technicalIndicatorService.calculateMFI(symbol, period);
+        if (mfi == null) {
+            return ResponseEntity.ok(ApiResponse.error("MFI hesaplanamadi - yeterli veri yok"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(mfi, period + " periyot MFI"));
+    }
+
+    @GetMapping("/williams-r/{symbol}")
+    @Operation(summary = "Williams %R hesapla", description = "Williams Percent Range hesaplar")
+    public ResponseEntity<ApiResponse<Double>> calculateWilliamsR(
+            @PathVariable @Parameter(description = "Enstruman sembolu") String symbol,
+            @RequestParam(defaultValue = "14") int period) {
+        Double williamsR = technicalIndicatorService.calculateWilliamsR(symbol, period);
+        if (williamsR == null) {
+            return ResponseEntity.ok(ApiResponse.error("Williams %R hesaplanamadi - yeterli veri yok"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(williamsR, period + " periyot Williams %R"));
+    }
     @GetMapping("/all/{symbol}")
     @Operation(summary = "Tüm göstergeleri hesapla", 
                description = "RSI, MACD, Bollinger, SMA, EMA, Stochastic - hepsini tek seferde")
@@ -172,3 +256,4 @@ public class TechnicalIndicatorController {
         };
     }
 }
+

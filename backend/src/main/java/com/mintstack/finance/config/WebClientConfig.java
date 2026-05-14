@@ -41,6 +41,12 @@ public class WebClientConfig {
     @Value("${app.external-api.finnhub.timeout}")
     private int finnhubTimeout;
 
+    @Value("${app.external-api.tefas.base-url:https://www.tefas.gov.tr/api/funds}")
+    private String tefasBaseUrl;
+
+    @Value("${app.external-api.tefas.timeout:60000}")
+    private int tefasTimeout;
+
     @Bean
     public WebClient tcmbWebClient() {
         return createWebClient(tcmbBaseUrl, tcmbTimeout);
@@ -59,6 +65,17 @@ public class WebClientConfig {
     @Bean
     public WebClient finnhubWebClient() {
         return createWebClient(finnhubBaseUrl, finnhubTimeout);
+    }
+
+    @Bean
+    public WebClient tefasWebClient() {
+        return createWebClient(tefasBaseUrl, tefasTimeout)
+            .mutate()
+            .defaultHeader("Accept", "*/*")
+            .defaultHeader("Content-Type", "application/json")
+            .defaultHeader("Origin", "https://www.tefas.gov.tr")
+            .defaultHeader("Referer", "https://www.tefas.gov.tr/tr/fon-verileri")
+            .build();
     }
 
     private WebClient createWebClient(String baseUrl, int timeoutMs) {

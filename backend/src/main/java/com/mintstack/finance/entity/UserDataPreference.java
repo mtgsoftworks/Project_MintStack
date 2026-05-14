@@ -53,10 +53,14 @@ public class UserDataPreference {
     private LocalDateTime updatedAt;
 
     public enum DataType {
-        CURRENCY_RATES,    // Döviz kurları
-        BIST_STOCKS,       // BIST hisse senetleri
-        US_STOCKS,         // ABD hisse senetleri
-        CRYPTO,            // Kripto paralar
-        NEWS               // Haberler
+        CURRENCY_RATES,
+        BIST_STOCKS,
+        BIST_INDICES,
+        US_STOCKS,
+        FUNDS,
+        CRYPTO,
+        NEWS,
+        TECHNICAL_INDICATORS,
+        GLOSSARY
     }
 }

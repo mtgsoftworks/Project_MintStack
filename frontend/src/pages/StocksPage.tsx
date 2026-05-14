@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Search, RefreshCw, TrendingUp, TrendingDown, ArrowUpDown, List, LayoutGrid } from 'lucide-react'
+import { Search, TrendingUp, TrendingDown, ArrowUpDown, List, LayoutGrid } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import SimulationDataFlag from '@/components/common/SimulationDataFlag'
+import RefreshButton from '@/components/common/RefreshButton'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import {
@@ -175,14 +176,12 @@ export default function StocksPage() {
               className="pl-9 w-64"
             />
           </div>
-          <Button
+          <RefreshButton
             variant="outline"
             size="icon"
-            onClick={() => refetch()}
-            disabled={isFetching}
-          >
-            <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
-          </Button>
+            isLoading={isFetching}
+            onRefresh={refetch}
+          />
         </div>
       </div>
 

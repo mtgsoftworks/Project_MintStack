@@ -145,6 +145,22 @@ export function sleep(ms: number) {
 }
 
 /**
+ * Format large numbers with K, M, B suffixes
+ */
+export function formatShortNumber(num: number) {
+  if (num >= 1e9) {
+    return (num / 1e9).toFixed(1) + 'B'
+  }
+  if (num >= 1e6) {
+    return (num / 1e6).toFixed(1) + 'M'
+  }
+  if (num >= 1e3) {
+    return (num / 1e3).toFixed(1) + 'K'
+  }
+  return num.toString()
+}
+
+/**
  * Debounce function
  */
 export function debounce(func: (...args: any[]) => void, wait: number) {

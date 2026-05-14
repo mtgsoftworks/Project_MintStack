@@ -15,6 +15,10 @@ import {
   Menu,
   X,
   Settings,
+  Eye,
+  BellRing,
+  Bell,
+  BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -155,6 +159,26 @@ export function Sidebar() {
       name: t('nav.analysis'),
       href: '/analysis',
       icon: BarChart3
+    },
+    {
+      name: t('nav.watchlist'),
+      href: '/watchlist',
+      icon: Eye
+    },
+    {
+      name: t('nav.alerts'),
+      href: '/alerts',
+      icon: BellRing
+    },
+    {
+      name: t('nav.glossary'),
+      href: '/glossary',
+      icon: BookOpen
+    },
+    {
+      name: t('nav.notifications'),
+      href: '/notifications',
+      icon: Bell
     },
     {
       name: t('nav.settings'),

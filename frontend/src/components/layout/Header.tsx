@@ -35,7 +35,7 @@ import {
 import { logout, selectUser, selectIsAuthenticated } from '@/store/slices/authSlice'
 import { getInitials } from '@/lib/utils'
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher'
-import { useGetNotificationsQuery } from '@/store/api/userApi'
+import { useGetNotificationsQuery, useMarkNotificationReadMutation } from '@/store/api/userApi'
 import websocketService from '@/services/websocketService'
 import { baseApi } from '@/store/api/baseApi'
 
@@ -54,6 +54,8 @@ export function Header() {
     { skip: !isAuthenticated }
   )
   
+  const [markAsRead] = useMarkNotificationReadMutation()
+
   const notifications = useMemo(() => {
     return notificationsData?.data || []
   }, [notificationsData])
@@ -61,6 +63,17 @@ export function Header() {
   const notificationCount = useMemo(() => {
     return notifications.filter(n => !n.isRead).length
   }, [notifications])
+
+  const handleNotificationClick = async (notification) => {
+    if (!notification.isRead) {
+      try {
+        await markAsRead(notification.id).unwrap()
+      } catch (error) {
+        console.error('Failed to mark notification as read:', error)
+      }
+    }
+    navigate('/notifications')
+  }
 
   const clearLocalSession = () => {
     websocketService.disconnect()
@@ -193,7 +206,14 @@ export function Header() {
                 </div>
               ) : (
                 notifications.slice(0, 5).map((item) => (
-                  <DropdownMenuItem key={item.id} className="flex flex-col items-start gap-1 py-3 cursor-pointer">
+                  <DropdownMenuItem
+                    key={item.id}
+                    className={cn(
+                      "flex flex-col items-start gap-1 py-3 cursor-pointer",
+                      !item.isRead && "bg-primary/5"
+                    )}
+                    onClick={() => handleNotificationClick(item)}
+                  >
                     <span className="font-medium">{item.title}</span>
                     <span className="text-xs text-muted-foreground">{item.message}</span>
                   </DropdownMenuItem>

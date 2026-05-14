@@ -12,6 +12,7 @@ public class ApiConfigRequest {
     private String apiKey;
 
     private String secretKey;
+    private String modelName;
     private String baseUrl;
     private Boolean isActive = true;
 }

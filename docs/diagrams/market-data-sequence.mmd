@@ -1,0 +1,21 @@
+sequenceDiagram
+    autonumber
+    participant SCH as Scheduler
+    participant MDS as MarketDataService
+    participant EXT as Dis Saglayici
+    participant DB as PostgreSQL
+    participant RED as Redis
+    participant WS as WebSocket
+    participant UI as Frontend
+    participant EVT as EventPublisher
+
+    SCH->>MDS: Periyodik guncelleme tetiklenir
+    MDS->>EXT: Piyasa verisi cek
+    EXT-->>MDS: Ham veri
+    MDS->>MDS: Normalizasyon ve validasyon
+    MDS->>DB: Kalici veri guncelle
+    MDS->>RED: Cache yenile
+    MDS->>WS: Anlik fiyat yayini
+    WS-->>UI: topic/prices/*
+    MDS->>EVT: Market data event yayinla
+    Note over EVT: Topic = mintstack-market-data

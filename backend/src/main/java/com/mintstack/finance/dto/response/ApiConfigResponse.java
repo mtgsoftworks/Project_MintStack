@@ -14,6 +14,7 @@ public class ApiConfigResponse {
     private UserApiConfig.ApiProvider provider;
     private String apiKey; // Masked in production ideally
     private String baseUrl;
+    private String modelName;
     private Boolean isActive;
     private LocalDateTime createdAt;
 }

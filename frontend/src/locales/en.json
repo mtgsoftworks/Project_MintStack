@@ -47,7 +47,9 @@
         "analysis": "Analysis",
         "settings": "Settings",
         "profile": "Profile",
-        "admin": "Admin"
+        "notifications": "Notifications",
+        "admin": "Admin",
+        "glossary": "Glossary"
     },
     "app": {
         "tagline": "Finance Portal"
@@ -172,9 +174,13 @@
             "providers": {
                 "alphaVantage": "Alpha Vantage",
                 "yahooFinance": "Yahoo Finance",
-                "finnhub": "Finnhub"
+                "finnhub": "Finnhub",
+                "tefas": "TEFAS",
+                "fintables": "Fintables",
+                "llmEnrichment": "LLM Enrichment"
             },
             "apiKey": "API Key",
+            "modelName": "Model Name",
             "secretKey": "Secret Key (Optional)",
             "baseUrl": "Base URL (Optional)",
             "active": "Active",
@@ -197,10 +203,13 @@
             },
             "placeholder": {
                 "key": "Paste your key here",
+                "githubToken": "GitHub token (GITHUB_TOKEN)",
                 "tcmb": "Not required for TCMB (can leave empty)",
                 "optional": "Not required (can leave empty)",
+                "modelName": "openai/gpt-5",
                 "secretKey": "Enter your secret key",
-                "baseUrl": "https://api.example.com"
+                "baseUrl": "https://api.example.com",
+                "llmBaseUrl": "https://models.github.ai/inference"
             },
             "validation": {
                 "required": "Please enter an API key",
@@ -249,6 +258,48 @@
                     "missing": [
                         "BIST Indices",
                         "Turkish Funds"
+                    ]
+                },
+                "TEFAS": {
+                    "title": "TEFAS (Fund Data)",
+                    "desc": "Public/no-key provider for TEFAS fund data.",
+                    "supported": [
+                        "Mutual Funds",
+                        "Fund NAV/Price",
+                        "Outstanding Shares",
+                        "Portfolio Size"
+                    ],
+                    "missing": [
+                        "No hard 24/7 realtime guarantee",
+                        "Adapter updates may be needed when site contract changes"
+                    ]
+                },
+                "FINTABLES": {
+                    "title": "Fintables",
+                    "desc": "Turkey-focused provider for BIST, fund and technical analytics data.",
+                    "supported": [
+                        "BIST Stocks",
+                        "BIST Indices",
+                        "Funds",
+                        "Technical Indicators"
+                    ],
+                    "missing": [
+                        "No 24/7 realtime requirement",
+                        "Depends on API plan and quota"
+                    ]
+                },
+                "LLM_ENRICHMENT": {
+                    "title": "LLM News Enrichment",
+                    "desc": "Enriches RSS news with summary, sentiment and keywords (GitHub Models/OpenAI-compatible).",
+                    "supported": [
+                        "News Summary",
+                        "Sentiment",
+                        "Keywords",
+                        "Model selection from UI"
+                    ],
+                    "missing": [
+                        "Requires provider token",
+                        "Provider-specific quota limits"
                     ]
                 },
                 "TCMB": {

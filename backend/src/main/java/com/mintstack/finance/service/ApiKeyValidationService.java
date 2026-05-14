@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -22,12 +23,19 @@ public class ApiKeyValidationService {
 
     private final ObjectMapper objectMapper;
 
+    @Value("${app.external-api.fintables.enabled:false}")
+    private boolean fintablesEnabled;
+
     // Default URLs for each provider - user doesn't need to enter these
     private static final Map<ApiProvider, String> DEFAULT_URLS = new HashMap<>() {{
         put(ApiProvider.ALPHA_VANTAGE, "https://www.alphavantage.co/query");
         put(ApiProvider.YAHOO_FINANCE, "https://query1.finance.yahoo.com/v8");
         put(ApiProvider.FINNHUB, "https://finnhub.io/api/v1");
         put(ApiProvider.TCMB, "https://www.tcmb.gov.tr/kurlar");
+        put(ApiProvider.TEFAS, "https://www.tefas.gov.tr/api/funds");
+        put(ApiProvider.FINTABLES, "https://api.fintables.com");
+        put(ApiProvider.RSS, null);
+        put(ApiProvider.LLM_ENRICHMENT, "https://models.github.ai/inference");
         put(ApiProvider.OTHER, null);
     }};
 
@@ -50,14 +58,16 @@ public class ApiKeyValidationService {
      * @return ValidationResult with success status and message
      */
     public ValidationResult validateApiKey(ApiProvider provider, String apiKey, String baseUrl) {
-        // Check for empty key (allowed for Yahoo Finance as it has a direct fallback)
+        // Check for empty key (allowed for public/no-key providers)
         if (apiKey == null || apiKey.trim().isEmpty()) {
-            if (provider == ApiProvider.YAHOO_FINANCE) {
-                return new ValidationResult(true, "Yahoo Finance (Direct) - API anahtarı olmadan kullanım aktif ✓");
+            if (provider == ApiProvider.YAHOO_FINANCE
+                || provider == ApiProvider.TCMB
+                || provider == ApiProvider.TEFAS
+                || provider == ApiProvider.RSS) {
+                return new ValidationResult(true, provider + " - public/no-key usage enabled");
             }
-            return new ValidationResult(false, "API anahtarı boş olamaz");
+            return new ValidationResult(false, "API anahtari bos olamaz");
         }
-
         String effectiveUrl = (baseUrl != null && !baseUrl.isEmpty()) ? baseUrl : getDefaultUrl(provider);
         
         if (effectiveUrl == null) {
@@ -73,8 +83,15 @@ public class ApiKeyValidationService {
                 case FINNHUB:
                     return validateFinnhub(apiKey, effectiveUrl);
                 case TCMB:
-                    // TCMB is free public API, no key validation needed
-                    return new ValidationResult(true, "TCMB - ücretsiz API, doğrulama gerekmiyor ✓");
+                    return new ValidationResult(true, "TCMB - public API, validation not required");
+                case TEFAS:
+                    return new ValidationResult(true, "TEFAS - public API, validation not required");
+                case RSS:
+                    return new ValidationResult(true, "RSS - feed URLs are validated during ingestion");
+                case FINTABLES:
+                    return validateFintables(apiKey, effectiveUrl);
+                case LLM_ENRICHMENT:
+                    return new ValidationResult(true, "LLM key accepted; model provider runtime validation will run during enrichment");
                 case OTHER:
                     return new ValidationResult(true, "Custom API - test atlandı");
                 default:
@@ -287,6 +304,22 @@ public class ApiKeyValidationService {
         }
     }
 
+    private ValidationResult validateFintables(String apiKey, String baseUrl) {
+        if (!fintablesEnabled) {
+            return new ValidationResult(false,
+                "Fintables provider policy geregi pasif. APP_EXTERNAL_API_FINTABLES_ENABLED=true olmadan aktif edilemez.");
+        }
+        String trimmedKey = apiKey == null ? "" : apiKey.trim();
+        if (trimmedKey.length() < 16) {
+            return new ValidationResult(false, "Fintables API anahtari en az 16 karakter olmali");
+        }
+        if (baseUrl == null || baseUrl.isBlank()) {
+            return new ValidationResult(false, "Fintables base URL zorunludur");
+        }
+        return new ValidationResult(true,
+            "Fintables key format accepted; live validation is disabled until endpoint contract is configured");
+    }
+
     /**
      * Result of API key validation
      */
@@ -308,3 +341,4 @@ public class ApiKeyValidationService {
         }
     }
 }
+

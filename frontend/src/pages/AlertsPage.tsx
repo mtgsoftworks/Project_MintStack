@@ -81,7 +81,7 @@ export default function AlertsPage() {
     return (
         <div className="p-6">
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">{t('alerts.title')}</h1>
+                <h1 className="text-2xl font-bold text-foreground">{t('alerts.title')}</h1>
                 <button
                     onClick={() => setShowCreateModal(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
@@ -92,48 +92,48 @@ export default function AlertsPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-white rounded-xl p-4 shadow-sm">
-                    <div className="text-sm text-gray-500">{t('alerts.active')}</div>
+                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                    <div className="text-sm text-muted-foreground">{t('alerts.active')}</div>
                     <div className="text-2xl font-bold text-emerald-600">
                         {alerts.filter((alert) => alert.isActive).length}
                     </div>
                 </div>
-                <div className="bg-white rounded-xl p-4 shadow-sm">
-                    <div className="text-sm text-gray-500">{t('alerts.triggered')}</div>
+                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                    <div className="text-sm text-muted-foreground">{t('alerts.triggered')}</div>
                     <div className="text-2xl font-bold text-orange-600">
                         {alerts.filter((alert) => alert.isTriggered).length}
                     </div>
                 </div>
-                <div className="bg-white rounded-xl p-4 shadow-sm">
-                    <div className="text-sm text-gray-500">{t('alerts.inactive')}</div>
-                    <div className="text-2xl font-bold text-gray-400">
+                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                    <div className="text-sm text-muted-foreground">{t('alerts.inactive')}</div>
+                    <div className="text-2xl font-bold text-muted-foreground">
                         {alerts.filter((alert) => !alert.isActive && !alert.isTriggered).length}
                     </div>
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
                 <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-muted/50">
                         <tr>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('portfolio.symbol')}</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('alertsPage.table.type')}</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('alerts.targetPrice')}</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">{t('alertsPage.table.status')}</th>
-                            <th className="px-4 py-3 text-right text-sm font-medium text-gray-600"></th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('portfolio.symbol')}</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('alertsPage.table.type')}</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('alerts.targetPrice')}</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('alertsPage.table.status')}</th>
+                            <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground"></th>
                         </tr>
                     </thead>
                     <tbody className="divide-y">
                         {alerts.map((alert) => (
-                            <tr key={alert.id} className="hover:bg-gray-50">
+                            <tr key={alert.id} className="hover:bg-muted/40">
                                 <td className="px-4 py-3">
                                     <div>
-                                        <div className="font-medium text-gray-900">{alert.symbol}</div>
-                                        <div className="text-sm text-gray-500">{alert.instrumentName}</div>
+                                        <div className="font-medium text-foreground">{alert.symbol}</div>
+                                        <div className="text-sm text-muted-foreground">{alert.instrumentName}</div>
                                     </div>
                                 </td>
                                 <td className="px-4 py-3">
-                                    <span className="px-2 py-1 bg-gray-100 rounded text-sm">
+                                    <span className="rounded bg-muted px-2 py-1 text-sm text-foreground">
                                         {getAlertTypeLabel(alert.alertType)}
                                     </span>
                                 </td>
@@ -154,7 +154,7 @@ export default function AlertsPage() {
                                             {t('alerts.active')}
                                         </span>
                                     ) : (
-                                        <span className="flex items-center gap-1 text-gray-400">
+                                        <span className="flex items-center gap-1 text-muted-foreground">
                                             <BellOff className="w-4 h-4" />
                                             {t('alerts.inactive')}
                                         </span>
@@ -166,7 +166,7 @@ export default function AlertsPage() {
                                             <button
                                                 onClick={() => handleDeactivate(alert.id)}
                                                 disabled={mutating}
-                                                className="text-gray-400 hover:text-orange-500 disabled:opacity-50"
+                                                className="text-muted-foreground hover:text-orange-500 disabled:opacity-50"
                                                 title={t('alertsPage.actions.deactivate')}
                                             >
                                                 <BellOff className="w-4 h-4" />
@@ -175,7 +175,7 @@ export default function AlertsPage() {
                                         <button
                                             onClick={() => handleDeleteAlert(alert.id)}
                                             disabled={mutating}
-                                            className="text-gray-400 hover:text-red-500 disabled:opacity-50"
+                                            className="text-muted-foreground hover:text-red-500 disabled:opacity-50"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -185,7 +185,7 @@ export default function AlertsPage() {
                         ))}
                         {alerts.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                                     {t('common.noData')}
                                 </td>
                             </tr>
@@ -196,12 +196,12 @@ export default function AlertsPage() {
 
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-6 w-full max-w-md">
+                    <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-foreground">
                         <h3 className="text-lg font-semibold mb-4">{t('alerts.create')}</h3>
 
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="mb-1 block text-sm font-medium text-foreground">
                                     {t('portfolio.symbol')}
                                 </label>
                                 <input
@@ -209,18 +209,18 @@ export default function AlertsPage() {
                                     value={newAlert.symbol}
                                     onChange={(event) => setNewAlert({ ...newAlert, symbol: event.target.value })}
                                     placeholder={t('alertsPage.placeholders.symbol')}
-                                    className="w-full px-4 py-2 border rounded-lg"
+                                    className="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground placeholder:text-muted-foreground"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="mb-1 block text-sm font-medium text-foreground">
                                     {t('alertsPage.form.alertType')}
                                 </label>
                                 <select
                                     value={newAlert.alertType}
                                     onChange={(event) => setNewAlert({ ...newAlert, alertType: event.target.value })}
-                                    className="w-full px-4 py-2 border rounded-lg"
+                                    className="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground"
                                 >
                                     {ALERT_TYPES.map((type) => (
                                         <option key={type.value} value={type.value}>
@@ -231,7 +231,7 @@ export default function AlertsPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="mb-1 block text-sm font-medium text-foreground">
                                     {t('alerts.targetPrice')}
                                 </label>
                                 <input
@@ -239,19 +239,19 @@ export default function AlertsPage() {
                                     value={newAlert.targetValue}
                                     onChange={(event) => setNewAlert({ ...newAlert, targetValue: event.target.value })}
                                     placeholder={t('alertsPage.placeholders.targetValue')}
-                                    className="w-full px-4 py-2 border rounded-lg"
+                                    className="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground placeholder:text-muted-foreground"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="mb-1 block text-sm font-medium text-foreground">
                                     {t('alertsPage.form.notes')}
                                 </label>
                                 <input
                                     type="text"
                                     value={newAlert.notes}
                                     onChange={(event) => setNewAlert({ ...newAlert, notes: event.target.value })}
-                                    className="w-full px-4 py-2 border rounded-lg"
+                                    className="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground"
                                 />
                             </div>
                         </div>
@@ -259,7 +259,7 @@ export default function AlertsPage() {
                         <div className="flex gap-3 justify-end mt-6">
                             <button
                                 onClick={() => setShowCreateModal(false)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                                className="rounded-lg px-4 py-2 text-muted-foreground hover:bg-muted"
                             >
                                 {t('common.cancel')}
                             </button>

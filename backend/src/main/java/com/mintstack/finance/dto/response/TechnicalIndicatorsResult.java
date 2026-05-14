@@ -12,5 +12,13 @@ public record TechnicalIndicatorsResult(
     Double sma200,
     Double ema20,
     StochasticResult stochastic,
+    Double atr14,
+    Double adx14,
+    Long obv,
+    Double vwap20,
+    Double cci20,
+    Double mfi14,
+    Double williamsR14,
+    String dataQuality,
     String overallSignal // BULLISH, BEARISH, NEUTRAL
 ) {}

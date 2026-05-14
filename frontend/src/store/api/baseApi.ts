@@ -38,6 +38,9 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
         }
       } catch (_error) {
         api.dispatch({ type: 'auth/logout' })
+        if (keycloakInstance?.login) {
+          keycloakInstance.login()
+        }
       }
     }
   }
@@ -68,6 +71,7 @@ export const baseApi = createApi({
     'Watchlists',
     'AdminDashboard',
     'AdminUsers',
+    'Glossary',
   ],
   endpoints: () => ({}),
 }) as any

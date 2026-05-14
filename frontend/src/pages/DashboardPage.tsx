@@ -6,13 +6,13 @@
   Wallet,
   ArrowUpRight,
   ArrowDownRight,
-  RefreshCw,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import SimulationDataFlag from '@/components/common/SimulationDataFlag'
+import RefreshButton from '@/components/common/RefreshButton'
 import { cn, formatCurrency, formatPercent, formatRelativeTime } from '@/lib/utils'
 import { getNewsDisplayTitle, getNewsSourceLabel, isSimulationNews } from '@/lib/news'
 import { isSimulatedMarketData } from '@/lib/simulationData'
@@ -76,9 +76,24 @@ function CurrencyWidget() {
   const { t } = useTranslation()
   const { data: currencies, isLoading } = useGetCurrenciesQuery()
 
-  const mainCurrencies = currencies?.filter(c =>
-    ['USD', 'EUR', 'GBP'].includes(c.currencyCode)
-  ) || []
+  const priorityCurrencyCodes = ['USD', 'EUR', 'GBP', 'CHF', 'JPY', 'SAR', 'CAD', 'AUD']
+  const mainCurrencies = [...(currencies || [])]
+    .sort((a, b) => {
+      const leftIndex = priorityCurrencyCodes.indexOf(a.currencyCode)
+      const rightIndex = priorityCurrencyCodes.indexOf(b.currencyCode)
+
+      if (leftIndex === -1 && rightIndex === -1) {
+        return a.currencyCode.localeCompare(b.currencyCode, 'tr')
+      }
+      if (leftIndex === -1) {
+        return 1
+      }
+      if (rightIndex === -1) {
+        return -1
+      }
+      return leftIndex - rightIndex
+    })
+    .slice(0, 6)
 
   return (
     <Card>
@@ -93,7 +108,7 @@ function CurrencyWidget() {
       <CardContent>
         {isLoading ? (
           <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <Skeleton key={i} className="h-12 w-full" />
             ))}
           </div>
@@ -357,14 +372,13 @@ export default function DashboardPage() {
             {t('dashboard.subtitle')}
           </p>
         </div>
-        <Button
+        <RefreshButton
           variant="outline"
-          onClick={handleRefresh}
-          disabled={isRefreshing}
+          isLoading={isRefreshing}
+          onRefresh={handleRefresh}
         >
-          <RefreshCw className={cn('h-4 w-4 mr-2', isRefreshing && 'animate-spin')} />
           {t('common.refresh')}
-        </Button>
+        </RefreshButton>
       </div>
 
       {/* Stats Grid */}

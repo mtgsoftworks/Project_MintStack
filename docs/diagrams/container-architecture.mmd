@@ -1,0 +1,45 @@
+flowchart TB
+    user["Kullanici / Tarayici"]
+    nginx["Nginx<br/>Tek Giris Noktasi :8088"]
+    frontend["Frontend<br/>React + Vite :3002"]
+    backend["Backend API<br/>Spring Boot :8080"]
+
+    subgraph data["Veri ve Mesaj Katmani"]
+        postgres["PostgreSQL :5432"]
+        redis["Redis :6379"]
+        kafka["Kafka KRaft :9092"]
+    end
+
+    subgraph identity["Kimlik ve Yetki"]
+        keycloak["Keycloak :8180"]
+        ldap["OpenLDAP :389"]
+    end
+
+    subgraph observability["Izleme ve Loglama"]
+        otel["OTEL Collector"]
+        prometheus["Prometheus"]
+        grafana["Grafana"]
+        logstash["Logstash"]
+        opensearch["OpenSearch"]
+        dashboards["OpenSearch Dashboards"]
+    end
+
+    subgraph external["Dis Saglayicilar"]
+        providers["TCMB / Yahoo / Alpha Vantage / Finnhub / RSS"]
+    end
+
+    user --> nginx --> frontend
+    nginx --> backend
+    frontend --> backend
+
+    backend --> postgres
+    backend --> redis
+    backend --> kafka
+    backend --> keycloak
+    keycloak --> ldap
+
+    backend --> providers
+    backend --> otel
+    backend --> prometheus
+    kafka --> logstash --> opensearch --> dashboards
+    prometheus --> grafana

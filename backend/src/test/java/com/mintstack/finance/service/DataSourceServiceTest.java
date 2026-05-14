@@ -134,4 +134,41 @@ class DataSourceServiceTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("RSS");
     }
+
+    @Test
+    void setPreference_ShouldFail_WhenFintablesPolicyDisabled() {
+        // Given
+        User user = createTestUser();
+        DataPreferenceRequest request = new DataPreferenceRequest();
+        request.setProvider(ApiProvider.FINTABLES);
+        request.setDataType(DataType.FUNDS);
+        request.setIsEnabled(true);
+
+        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+
+        // When & Then
+        assertThatThrownBy(() -> dataSourceService.setPreference("test-keycloak-id", request))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("pasif");
+    }
+
+    @Test
+    void triggerDataFetch_ShouldFail_WhenFintablesPolicyDisabled() {
+        // Given
+        User user = createTestUser();
+        UUID configId = UUID.randomUUID();
+        UserApiConfig config = new UserApiConfig();
+        config.setId(configId);
+        config.setUser(user);
+        config.setProvider(ApiProvider.FINTABLES);
+        config.setIsActive(true);
+
+        when(userRepository.findByKeycloakId("test-keycloak-id")).thenReturn(Optional.of(user));
+        when(apiConfigRepository.findById(configId)).thenReturn(Optional.of(config));
+
+        // When & Then
+        assertThatThrownBy(() -> dataSourceService.triggerDataFetch("test-keycloak-id", configId))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("pasif");
+    }
 }

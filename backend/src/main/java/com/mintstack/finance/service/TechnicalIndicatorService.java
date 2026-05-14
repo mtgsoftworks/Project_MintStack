@@ -236,7 +236,8 @@ public class TechnicalIndicatorService {
             }
             
             double currentClose = priceHistory.get(i).getClosePrice().doubleValue();
-            double k = ((currentClose - lowestLow) / (highestHigh - lowestLow)) * 100;
+            double range = highestHigh - lowestLow;
+            double k = range == 0 ? 50.0 : ((currentClose - lowestLow) / range) * 100;
             kValues.add(k);
         }
 
@@ -281,6 +282,147 @@ public class TechnicalIndicatorService {
         return calculateStochastic(symbol, 14, 3);
     }
 
+    public Double calculateATR(String symbol, int period) {
+        List<PriceHistory> history = getPriceHistory(symbol, period + 1);
+        if (history.size() < period + 1) {
+            return null;
+        }
+
+        double totalTrueRange = 0;
+        for (int i = 1; i < history.size(); i++) {
+            PriceHistory current = history.get(i);
+            double high = safeHigh(current);
+            double low = safeLow(current);
+            double previousClose = history.get(i - 1).getClosePrice().doubleValue();
+            totalTrueRange += Math.max(high - low, Math.max(Math.abs(high - previousClose), Math.abs(low - previousClose)));
+        }
+        return round(totalTrueRange / period);
+    }
+
+    public Double calculateADX(String symbol, int period) {
+        List<PriceHistory> history = getPriceHistory(symbol, period + 1);
+        if (history.size() < period + 1) {
+            return null;
+        }
+
+        double positiveDm = 0;
+        double negativeDm = 0;
+        double trueRangeSum = 0;
+        for (int i = 1; i < history.size(); i++) {
+            PriceHistory current = history.get(i);
+            PriceHistory previous = history.get(i - 1);
+            double upMove = safeHigh(current) - safeHigh(previous);
+            double downMove = safeLow(previous) - safeLow(current);
+            if (upMove > downMove && upMove > 0) {
+                positiveDm += upMove;
+            }
+            if (downMove > upMove && downMove > 0) {
+                negativeDm += downMove;
+            }
+            double previousClose = previous.getClosePrice().doubleValue();
+            trueRangeSum += Math.max(
+                safeHigh(current) - safeLow(current),
+                Math.max(Math.abs(safeHigh(current) - previousClose), Math.abs(safeLow(current) - previousClose))
+            );
+        }
+        if (trueRangeSum == 0) {
+            return 0.0;
+        }
+        double positiveDi = 100 * (positiveDm / trueRangeSum);
+        double negativeDi = 100 * (negativeDm / trueRangeSum);
+        double denominator = positiveDi + negativeDi;
+        return denominator == 0 ? 0.0 : round(100 * Math.abs(positiveDi - negativeDi) / denominator);
+    }
+
+    public Long calculateOBV(String symbol, int limit) {
+        List<PriceHistory> history = getPriceHistory(symbol, limit);
+        if (history.size() < 2) {
+            return null;
+        }
+
+        long obv = 0L;
+        for (int i = 1; i < history.size(); i++) {
+            long volume = history.get(i).getVolume() != null ? history.get(i).getVolume() : 0L;
+            int comparison = history.get(i).getClosePrice().compareTo(history.get(i - 1).getClosePrice());
+            if (comparison > 0) {
+                obv += volume;
+            } else if (comparison < 0) {
+                obv -= volume;
+            }
+        }
+        return obv;
+    }
+
+    public Double calculateVWAP(String symbol, int period) {
+        List<PriceHistory> history = getPriceHistory(symbol, period);
+        if (history.isEmpty()) {
+            return null;
+        }
+
+        double priceVolume = 0;
+        double volumeSum = 0;
+        for (PriceHistory item : history) {
+            long volume = item.getVolume() != null ? item.getVolume() : 0L;
+            priceVolume += typicalPrice(item) * volume;
+            volumeSum += volume;
+        }
+        return volumeSum == 0 ? null : round(priceVolume / volumeSum);
+    }
+
+    public Double calculateCCI(String symbol, int period) {
+        List<PriceHistory> history = getPriceHistory(symbol, period);
+        if (history.size() < period) {
+            return null;
+        }
+
+        double[] typicalPrices = history.stream().mapToDouble(this::typicalPrice).toArray();
+        double sma = java.util.Arrays.stream(typicalPrices).average().orElse(0);
+        double meanDeviation = java.util.Arrays.stream(typicalPrices)
+            .map(value -> Math.abs(value - sma))
+            .average()
+            .orElse(0);
+        return meanDeviation == 0 ? 0.0 : round((typicalPrices[typicalPrices.length - 1] - sma) / (0.015 * meanDeviation));
+    }
+
+    public Double calculateMFI(String symbol, int period) {
+        List<PriceHistory> history = getPriceHistory(symbol, period + 1);
+        if (history.size() < period + 1) {
+            return null;
+        }
+
+        double positiveFlow = 0;
+        double negativeFlow = 0;
+        for (int i = 1; i < history.size(); i++) {
+            double currentTypical = typicalPrice(history.get(i));
+            double previousTypical = typicalPrice(history.get(i - 1));
+            long volume = history.get(i).getVolume() != null ? history.get(i).getVolume() : 0L;
+            double moneyFlow = currentTypical * volume;
+            if (currentTypical > previousTypical) {
+                positiveFlow += moneyFlow;
+            } else if (currentTypical < previousTypical) {
+                negativeFlow += moneyFlow;
+            }
+        }
+        if (negativeFlow == 0) {
+            return positiveFlow == 0 ? 50.0 : 100.0;
+        }
+        double ratio = positiveFlow / negativeFlow;
+        return round(100 - (100 / (1 + ratio)));
+    }
+
+    public Double calculateWilliamsR(String symbol, int period) {
+        List<PriceHistory> history = getPriceHistory(symbol, period);
+        if (history.size() < period) {
+            return null;
+        }
+
+        double highestHigh = history.stream().mapToDouble(this::safeHigh).max().orElse(0);
+        double lowestLow = history.stream().mapToDouble(this::safeLow).min().orElse(0);
+        double close = history.get(history.size() - 1).getClosePrice().doubleValue();
+        double range = highestHigh - lowestLow;
+        return range == 0 ? 0.0 : round(((highestHigh - close) / range) * -100);
+    }
+
     /**
      * Tüm göstergeleri tek seferde hesapla
      */
@@ -292,6 +434,14 @@ public class TechnicalIndicatorService {
         Double sma200 = calculateSMA(symbol, 200);
         Double ema20 = calculateEMA(symbol, 20);
         StochasticResult stochastic = calculateStochastic(symbol);
+        Double atr14 = calculateATR(symbol, 14);
+        Double adx14 = calculateADX(symbol, 14);
+        Long obv = calculateOBV(symbol, 90);
+        Double vwap20 = calculateVWAP(symbol, 20);
+        Double cci20 = calculateCCI(symbol, 20);
+        Double mfi14 = calculateMFI(symbol, 14);
+        Double williamsR14 = calculateWilliamsR(symbol, 14);
+        String dataQuality = evaluateDataQuality(symbol);
 
         // Genel sinyal değerlendirmesi
         String overallSignal = evaluateOverallSignal(rsi, macd, stochastic);
@@ -305,6 +455,14 @@ public class TechnicalIndicatorService {
                 sma200,
                 ema20,
                 stochastic,
+                atr14,
+                adx14,
+                obv,
+                vwap20,
+                cci20,
+                mfi14,
+                williamsR14,
+                dataQuality,
                 overallSignal
         );
     }
@@ -433,6 +591,32 @@ public class TechnicalIndicatorService {
             return "BEARISH";
         }
         return "NEUTRAL";
+    }
+
+    private String evaluateDataQuality(String symbol) {
+        int sampleSize = getPriceHistory(symbol, 220).size();
+        if (sampleSize >= 200) {
+            return "COMPLETE";
+        }
+        if (sampleSize >= 50) {
+            return "PARTIAL";
+        }
+        if (sampleSize > 0) {
+            return "LIMITED";
+        }
+        return "NO_DATA";
+    }
+
+    private double typicalPrice(PriceHistory item) {
+        return (safeHigh(item) + safeLow(item) + item.getClosePrice().doubleValue()) / 3;
+    }
+
+    private double safeHigh(PriceHistory item) {
+        return item.getHighPrice() != null ? item.getHighPrice().doubleValue() : item.getClosePrice().doubleValue();
+    }
+
+    private double safeLow(PriceHistory item) {
+        return item.getLowPrice() != null ? item.getLowPrice().doubleValue() : item.getClosePrice().doubleValue();
     }
 
     private double round(double value) {

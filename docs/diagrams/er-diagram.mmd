@@ -1,0 +1,130 @@
+erDiagram
+    USERS ||--o{ PORTFOLIOS : "sahiptir"
+    PORTFOLIOS ||--o{ PORTFOLIO_ITEMS : "pozisyon barindirir"
+    PORTFOLIOS ||--o{ PORTFOLIO_TRANSACTIONS : "islem kaydi uretir"
+    INSTRUMENTS ||--o{ PORTFOLIO_ITEMS : "varlik referansi"
+    INSTRUMENTS ||--o{ PORTFOLIO_TRANSACTIONS : "islem enstrumani"
+    USERS ||--o{ WATCHLISTS : "takip listesi olusturur"
+    WATCHLISTS ||--o{ WATCHLIST_ITEMS : "madde icerir"
+    INSTRUMENTS ||--o{ WATCHLIST_ITEMS : "izlenir"
+    USERS ||--o{ PRICE_ALERTS : "alarm tanimlar"
+    INSTRUMENTS ||--o{ PRICE_ALERTS : "alarm konusu olur"
+    USERS ||--o{ USER_NOTIFICATIONS : "bildirim alir"
+    USERS ||--o{ USER_API_CONFIGS : "api ayari yapar"
+    USERS ||--o{ USER_DATA_PREFERENCES : "veri kaynagi secer"
+    NEWS_CATEGORIES ||--o{ NEWS : "haber kategorisi"
+    INSTRUMENTS ||--o{ PRICE_HISTORY : "fiyat gecmisi"
+    INSTRUMENTS ||--o{ CURRENCY_RATES : "doviz eslesmesi"
+
+    USERS {
+        bigint id PK
+        string username
+        string email
+        string role
+    }
+    PORTFOLIOS {
+        bigint id PK
+        bigint user_id FK
+        string name
+        decimal cash_balance
+    }
+    PORTFOLIO_ITEMS {
+        bigint id PK
+        bigint portfolio_id FK
+        bigint instrument_id FK
+        decimal quantity
+        decimal average_cost
+    }
+    PORTFOLIO_TRANSACTIONS {
+        bigint id PK
+        bigint portfolio_id FK
+        bigint instrument_id FK
+        string order_type
+        decimal price
+        decimal quantity
+    }
+    INSTRUMENTS {
+        bigint id PK
+        string symbol
+        string instrument_type
+        string exchange
+        string currency
+        boolean is_simulated
+        decimal current_price
+    }
+    PRICE_HISTORY {
+        bigint id PK
+        bigint instrument_id FK
+        date price_date
+        decimal open_price
+        decimal close_price
+        bigint volume
+    }
+    CURRENCY_RATES {
+        bigint id PK
+        string currency_code
+        decimal buying_rate
+        decimal selling_rate
+        string source
+        timestamp rate_date
+    }
+    WATCHLISTS {
+        bigint id PK
+        bigint user_id FK
+        string name
+    }
+    WATCHLIST_ITEMS {
+        bigint id PK
+        bigint watchlist_id FK
+        bigint instrument_id FK
+    }
+    PRICE_ALERTS {
+        bigint id PK
+        bigint user_id FK
+        bigint instrument_id FK
+        string condition_type
+        decimal target_price
+    }
+    USER_NOTIFICATIONS {
+        bigint id PK
+        bigint user_id FK
+        string channel
+        boolean is_read
+    }
+    USER_API_CONFIGS {
+        bigint id PK
+        bigint user_id FK
+        string provider_name
+        boolean active
+    }
+    USER_DATA_PREFERENCES {
+        bigint id PK
+        bigint user_id FK
+        string data_type
+        string provider
+        boolean is_enabled
+    }
+    NEWS_CATEGORIES {
+        bigint id PK
+        string name
+        string slug
+    }
+    NEWS {
+        bigint id PK
+        bigint category_id FK
+        string title
+        string source_name
+        string source_url
+    }
+    GLOSSARY_TERMS {
+        bigint id PK
+        string term
+        string slug
+        string category
+        string source_name
+    }
+    RUNTIME_SETTINGS {
+        bigint id PK
+        string setting_key
+        string setting_value
+    }

@@ -134,7 +134,7 @@ export function SimulationTab({
                                     </SelectItem>
                                     <SelectItem value="NEUTRAL">
                                         <span className="flex items-center gap-2">
-                                            <Minus className="h-4 w-4 text-gray-500" />
+                                            <Minus className="h-4 w-4 text-muted-foreground" />
                                             {t('settings.simulation.trend.neutral', { defaultValue: 'Notr' })}
                                         </span>
                                     </SelectItem>

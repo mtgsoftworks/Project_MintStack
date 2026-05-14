@@ -193,6 +193,25 @@ class SettingsServiceTest {
     }
 
     @Test
+    void addApiConfig_ShouldRejectFintables_WhenProviderPolicyDisabled() {
+        // Given
+        User user = createTestUser();
+        ApiConfigRequest request = new ApiConfigRequest();
+        request.setProvider(ApiProvider.FINTABLES);
+        request.setApiKey("abcdefghijklmnop");
+        request.setIsActive(true);
+
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(userApiConfigRepository.findByUserIdAndProvider(user.getId(), ApiProvider.FINTABLES))
+            .thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> settingsService.addApiConfig(user.getId(), request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("pasif");
+    }
+
+    @Test
     void deleteApiConfig_ShouldDeleteConfig() {
         // Given
         User user = createTestUser();

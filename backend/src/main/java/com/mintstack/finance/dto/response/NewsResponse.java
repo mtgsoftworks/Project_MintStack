@@ -37,6 +37,16 @@ public class NewsResponse {
     private Boolean isFeatured;
 
     private Boolean isSimulated;
+
+    private String llmSummary;
+
+    private String llmSentiment;
+
+    private String llmKeywords;
+
+    private String llmModel;
+
+    private LocalDateTime llmEnrichedAt;
     
     private Long viewCount;
 }

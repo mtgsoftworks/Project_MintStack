@@ -61,6 +61,21 @@ public class News extends BaseEntity {
     @Builder.Default
     private Boolean isSimulated = false;
 
+    @Column(name = "llm_summary", length = 1000)
+    private String llmSummary;
+
+    @Column(name = "llm_sentiment", length = 32)
+    private String llmSentiment;
+
+    @Column(name = "llm_keywords", length = 500)
+    private String llmKeywords;
+
+    @Column(name = "llm_model", length = 120)
+    private String llmModel;
+
+    @Column(name = "llm_enriched_at")
+    private LocalDateTime llmEnrichedAt;
+
     @Column(name = "view_count")
     @Builder.Default
     private Long viewCount = 0L;

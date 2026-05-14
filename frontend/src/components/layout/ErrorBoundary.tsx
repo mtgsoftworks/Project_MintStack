@@ -1,7 +1,7 @@
 import { Component } from 'react'
 import { withTranslation } from 'react-i18next'
-import { AlertTriangle, RefreshCw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { AlertTriangle } from 'lucide-react'
+import RefreshButton from '@/components/common/RefreshButton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export class ErrorBoundary extends Component<any, any> {
@@ -18,8 +18,11 @@ export class ErrorBoundary extends Component<any, any> {
     console.error('Error caught by boundary:', error, errorInfo)
   }
 
-  handleReset = () => {
+  handleReset = async () => {
     this.setState({ hasError: false, error: null })
+    await new Promise((resolve) => {
+      setTimeout(resolve, 250)
+    })
     window.location.reload()
   }
 
@@ -46,10 +49,9 @@ export class ErrorBoundary extends Component<any, any> {
                   </p>
                 </div>
               )}
-              <Button onClick={this.handleReset} className="w-full">
-                <RefreshCw className="mr-2 h-4 w-4" />
+              <RefreshButton onRefresh={this.handleReset} className="w-full">
                 {t('common.refreshPage')}
-              </Button>
+              </RefreshButton>
             </CardContent>
           </Card>
         </div>

@@ -45,6 +45,10 @@ public class UserApiConfig extends BaseEntity {
         ALPHA_VANTAGE,
         FINNHUB,
         TCMB,
+        TEFAS,
+        FINTABLES,
+        RSS,
+        LLM_ENRICHMENT,
         OTHER
     }
 }

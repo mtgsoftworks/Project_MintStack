@@ -67,7 +67,7 @@ public class Portfolio extends BaseEntity {
     }
 
     public BigDecimal getTotalValue() {
-        return getPositionValue();
+        return getPositionValue().add(cashBalance != null ? cashBalance : BigDecimal.ZERO);
     }
 
     public BigDecimal getTotalCost() {

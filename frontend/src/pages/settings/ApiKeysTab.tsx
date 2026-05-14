@@ -55,9 +55,15 @@ export function ApiKeysTab({
     onTestKey,
     onDelete
 }) {
-    const requiresValidation = formData.provider !== 'TCMB' && !(formData.provider === 'YAHOO_FINANCE' && !formData.apiKey.trim())
+    const requiresValidation = formData.provider !== 'TCMB'
+        && formData.provider !== 'TEFAS'
+        && !(formData.provider === 'YAHOO_FINANCE' && !formData.apiKey.trim())
     const canSubmit = isValidated || editingConfig || !requiresValidation
-    const apiKeyRequired = !editingConfig && formData.provider !== 'TCMB' && formData.provider !== 'YAHOO_FINANCE'
+    const apiKeyRequired = !editingConfig
+        && formData.provider !== 'TCMB'
+        && formData.provider !== 'TEFAS'
+        && formData.provider !== 'YAHOO_FINANCE'
+    const isLlmProvider = formData.provider === 'LLM_ENRICHMENT'
 
     return (
         <Card>
@@ -96,6 +102,9 @@ export function ApiKeysTab({
                                         <SelectItem value="ALPHA_VANTAGE">{t('settings.apiKeys.providers.alphaVantage')}</SelectItem>
                                         <SelectItem value="YAHOO_FINANCE">{t('settings.apiKeys.providers.yahooFinance')}</SelectItem>
                                         <SelectItem value="FINNHUB">{t('settings.apiKeys.providers.finnhub')}</SelectItem>
+                                        <SelectItem value="TEFAS">{t('settings.apiKeys.providers.tefas')}</SelectItem>
+                                        <SelectItem value="FINTABLES">{t('settings.apiKeys.providers.fintables')}</SelectItem>
+                                        <SelectItem value="LLM_ENRICHMENT">{t('settings.apiKeys.providers.llmEnrichment')}</SelectItem>
                                         <SelectItem value="TCMB">{t('settings.providers.info.TCMB.title')}</SelectItem>
                                         <SelectItem value="OTHER">{t('settings.apiKeys.providerOther')}</SelectItem>
                                     </SelectContent>
@@ -138,7 +147,9 @@ export function ApiKeysTab({
                                         onChange={(event) => onFormFieldChange('apiKey', event.target.value, true)}
                                         placeholder={editingConfig
                                             ? t('settings.apiKeys.placeholder.unchanged')
-                                            : (formData.provider === 'TCMB' || formData.provider === 'YAHOO_FINANCE'
+                                            : (isLlmProvider
+                                                ? t('settings.apiKeys.placeholder.githubToken', { defaultValue: 'GitHub token (GITHUB_TOKEN)' })
+                                                : formData.provider === 'TCMB' || formData.provider === 'TEFAS' || formData.provider === 'YAHOO_FINANCE'
                                                 ? t('settings.apiKeys.placeholder.optional')
                                                 : t('settings.apiKeys.placeholder.key'))}
                                         required={apiKeyRequired}
@@ -164,29 +175,44 @@ export function ApiKeysTab({
                                 </div>
                                 {!isValidated && !editingConfig && (
                                     <p className="text-xs text-muted-foreground">
-                                        {formData.provider === 'TCMB' || formData.provider === 'YAHOO_FINANCE'
+                                        {formData.provider === 'TCMB' || formData.provider === 'TEFAS' || formData.provider === 'YAHOO_FINANCE'
                                             ? t('settings.apiKeys.validation.optionalInfo')
                                             : t('settings.apiKeys.validation.testRequired')}
                                     </p>
                                 )}
                             </div>
 
-                            <div className="space-y-2">
-                                <Label>{t('settings.apiKeys.secretKey')}</Label>
-                                <Input
-                                    type="password"
-                                    value={formData.secretKey}
-                                    onChange={(event) => onFormFieldChange('secretKey', event.target.value)}
-                                    placeholder={t('settings.apiKeys.placeholder.secretKey')}
-                                />
-                            </div>
+                            {isLlmProvider && (
+                                <div className="space-y-2">
+                                    <Label>{t('settings.apiKeys.modelName', { defaultValue: 'Model Name' })}</Label>
+                                    <Input
+                                        value={formData.modelName || ''}
+                                        onChange={(event) => onFormFieldChange('modelName', event.target.value)}
+                                        placeholder={t('settings.apiKeys.placeholder.modelName', { defaultValue: 'openai/gpt-5' })}
+                                    />
+                                </div>
+                            )}
+
+                            {!isLlmProvider && (
+                                <div className="space-y-2">
+                                    <Label>{t('settings.apiKeys.secretKey')}</Label>
+                                    <Input
+                                        type="password"
+                                        value={formData.secretKey}
+                                        onChange={(event) => onFormFieldChange('secretKey', event.target.value)}
+                                        placeholder={t('settings.apiKeys.placeholder.secretKey')}
+                                    />
+                                </div>
+                            )}
 
                             <div className="space-y-2">
                                 <Label>{t('settings.apiKeys.baseUrl')}</Label>
                                 <Input
                                     value={formData.baseUrl}
                                     onChange={(event) => onFormFieldChange('baseUrl', event.target.value)}
-                                    placeholder={t('settings.apiKeys.placeholder.baseUrl')}
+                                    placeholder={isLlmProvider
+                                        ? t('settings.apiKeys.placeholder.llmBaseUrl', { defaultValue: 'https://models.github.ai/inference' })
+                                        : t('settings.apiKeys.placeholder.baseUrl')}
                                 />
                             </div>
 

@@ -1,10 +1,10 @@
 # Alertmanager Configuration for MintStack Finance Portal
 global:
-  # Global SMTP settings (update with your SMTP server)
   smtp_smarthost: 'smtp.gmail.com:587'
   smtp_from: 'alertmanager@mintstack.com'
-  # smtp_auth_username: 'your-email@gmail.com'
-  # smtp_auth_password: 'your-app-password'
+  smtp_auth_username: ''
+  smtp_auth_password: ''
+  smtp_require_tls: true
 
 # Route tree
 route:
@@ -42,29 +42,24 @@ route:
 # Receivers
 receivers:
   - name: 'default-receiver'
-    # Webhook receiver (can integrate with Slack, Teams, etc.)
-    # webhook_configs:
-    #   - url: 'http://your-webhook-endpoint/alerts'
-    #     send_resolved: true
+    webhook_configs:
+      - url: 'http://backend:8080/api/v1/admin/webhooks/alerts'
+        send_resolved: true
 
   - name: 'critical-receiver'
-    # Email notifications for critical alerts
-    # email_configs:
-    #   - to: 'ops-team@mintstack.com'
-    #     send_resolved: true
-    #     headers:
-    #       subject: '[CRITICAL] MintStack Alert: {{ .GroupLabels.alertname }}'
-    
-    # Webhook for Slack/Teams
-    # webhook_configs:
-    #   - url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
-    #     send_resolved: true
+    email_configs:
+      - to: 'ops-team@mintstack.com'
+        send_resolved: true
+        headers:
+          subject: '[CRITICAL] MintStack Alert: {{ .GroupLabels.alertname }}'
+    webhook_configs:
+      - url: 'http://backend:8080/api/v1/admin/webhooks/alerts'
+        send_resolved: true
 
   - name: 'warning-receiver'
-    # Email notifications for warnings
-    # email_configs:
-    #   - to: 'dev-team@mintstack.com'
-    #     send_resolved: true
+    email_configs:
+      - to: 'dev-team@mintstack.com'
+        send_resolved: true
 
 # Inhibition rules - prevent notification floods
 inhibit_rules:

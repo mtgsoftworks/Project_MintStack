@@ -8,6 +8,7 @@ public record RateLimitConfigResponse(
     int anonymousRequestsPerMinute,
     int authenticatedRequestsPerMinute,
     int adminRequestsPerMinute,
+    String store,
     int bucketCount
 ) {
 }

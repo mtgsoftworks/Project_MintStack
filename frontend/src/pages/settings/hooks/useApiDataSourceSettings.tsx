@@ -16,23 +16,47 @@ const DEFAULT_FORM_DATA = {
     provider: 'ALPHA_VANTAGE',
     apiKey: '',
     secretKey: '',
+    modelName: '',
     baseUrl: '',
     isActive: true
 }
 
 const requiresValidationForProvider = (provider, apiKey) => (
-    provider !== 'TCMB' && !(provider === 'YAHOO_FINANCE' && !apiKey.trim())
+    provider !== 'TCMB'
+    && provider !== 'TEFAS'
+    && !(provider === 'YAHOO_FINANCE' && !apiKey.trim())
 )
 
 const withProviderFallbackKey = (data) => {
-    if ((data.provider === 'TCMB' || data.provider === 'YAHOO_FINANCE') && !data.apiKey.trim()) {
+    if ((data.provider === 'TCMB' || data.provider === 'TEFAS' || data.provider === 'YAHOO_FINANCE') && !data.apiKey.trim()) {
         return {
             ...data,
-            apiKey: data.provider === 'TCMB' ? 'TCMB_PUBLIC' : 'YAHOO_DIRECT'
+            apiKey: data.provider === 'TCMB'
+                ? 'TCMB_PUBLIC'
+                : data.provider === 'TEFAS'
+                    ? 'TEFAS_PUBLIC'
+                    : 'YAHOO_DIRECT'
         }
     }
 
     return data
+}
+
+const normalizePayload = (data) => {
+    const payload = withProviderFallbackKey(data)
+
+    if (payload.provider === 'LLM_ENRICHMENT') {
+        return {
+            ...payload,
+            secretKey: '',
+            modelName: payload.modelName?.trim() || ''
+        }
+    }
+
+    return {
+        ...payload,
+        modelName: undefined
+    }
 }
 
 export function useApiDataSourceSettings({ t }) {
@@ -49,6 +73,7 @@ export function useApiDataSourceSettings({ t }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingConfig, setEditingConfig] = useState(null)
     const [isValidated, setIsValidated] = useState(false)
+    const [isRefreshingDataSources, setIsRefreshingDataSources] = useState(false)
     const [formData, setFormData] = useState(DEFAULT_FORM_DATA)
 
     const apiConfigs = configsData?.data || []
@@ -66,6 +91,7 @@ export function useApiDataSourceSettings({ t }) {
                 provider: config.provider,
                 apiKey: '',
                 secretKey: '',
+                modelName: config.modelName || '',
                 baseUrl: config.baseUrl || '',
                 isActive: config.isActive
             })
@@ -102,7 +128,7 @@ export function useApiDataSourceSettings({ t }) {
             return
         }
 
-        const payload = withProviderFallbackKey(formData)
+        const payload = normalizePayload(formData)
 
         try {
             const result = await testApiKey(payload).unwrap()
@@ -123,7 +149,7 @@ export function useApiDataSourceSettings({ t }) {
     const handleAddSubmit = async (event) => {
         event.preventDefault()
 
-        const payload = withProviderFallbackKey(formData)
+        const payload = normalizePayload(formData)
         const requiresValidation = requiresValidationForProvider(payload.provider, payload.apiKey)
 
         if (!isValidated && !editingConfig && requiresValidation) {
@@ -197,6 +223,8 @@ export function useApiDataSourceSettings({ t }) {
             return
         }
 
+        setIsRefreshingDataSources(true)
+
         const loadingToastId = toast(
             <div className="flex items-center gap-3">
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
@@ -228,6 +256,8 @@ export function useApiDataSourceSettings({ t }) {
         } catch (error) {
             toast.dismiss(loadingToastId)
             toast.error(getApiErrorMessage(error, t('settings.dataSources.updateError')))
+        } finally {
+            setIsRefreshingDataSources(false)
         }
     }
 
@@ -241,6 +271,7 @@ export function useApiDataSourceSettings({ t }) {
         editingConfig,
         formData,
         isValidated,
+        isRefreshingDataSources,
         handleOpenDialog,
         handleDialogOpenChange,
         handleFormFieldChange,

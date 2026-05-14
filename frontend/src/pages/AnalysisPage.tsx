@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { RefreshCw, TrendingDown, TrendingUp } from 'lucide-react'
+import { TrendingDown, TrendingUp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import PriceChart from '@/components/charts/PriceChart'
+import RefreshButton from '@/components/common/RefreshButton'
 import { cn, formatCurrency, formatPercent } from '@/lib/utils'
 import {
   useGetAllTechnicalIndicatorsQuery,
@@ -124,7 +124,7 @@ export default function AnalysisPage() {
     [compareInput]
   )
 
-  const { data: maData, isLoading: maLoading, refetch: refetchMa } = useGetMovingAverageQuery(
+  const { data: maData, isLoading: maLoading, isFetching: maFetching, refetch: refetchMa } = useGetMovingAverageQuery(
     {
       symbol,
       maType,
@@ -133,7 +133,7 @@ export default function AnalysisPage() {
     { skip: !symbol }
   )
 
-  const { data: trendData, isLoading: trendLoading, refetch: refetchTrend } = useGetTrendAnalysisQuery(
+  const { data: trendData, isLoading: trendLoading, isFetching: trendFetching, refetch: refetchTrend } = useGetTrendAnalysisQuery(
     {
       symbol,
       period,
@@ -144,6 +144,7 @@ export default function AnalysisPage() {
   const {
     data: comparisonData,
     isLoading: comparisonLoading,
+    isFetching: comparisonFetching,
     refetch: refetchComparison,
   } = useGetComparisonQuery(
     {
@@ -155,7 +156,7 @@ export default function AnalysisPage() {
     }
   )
 
-  const { data: allIndicatorsData, isLoading: allIndicatorsLoading, refetch: refetchAllIndicators } =
+  const { data: allIndicatorsData, isLoading: allIndicatorsLoading, isFetching: allIndicatorsFetching, refetch: refetchAllIndicators } =
     useGetAllTechnicalIndicatorsQuery(
       {
         symbol,
@@ -163,7 +164,7 @@ export default function AnalysisPage() {
       { skip: !symbol }
     )
 
-  const { data: rsiData, isLoading: rsiLoading, refetch: refetchRsi } = useGetRsiQuery(
+  const { data: rsiData, isLoading: rsiLoading, isFetching: rsiFetching, refetch: refetchRsi } = useGetRsiQuery(
     {
       symbol,
       period: Number.parseInt(rsiPeriod, 10),
@@ -171,7 +172,7 @@ export default function AnalysisPage() {
     { skip: !symbol }
   )
 
-  const { data: macdData, isLoading: macdLoading, refetch: refetchMacd } = useGetMacdQuery(
+  const { data: macdData, isLoading: macdLoading, isFetching: macdFetching, refetch: refetchMacd } = useGetMacdQuery(
     {
       symbol,
       fastPeriod: 12,
@@ -181,7 +182,7 @@ export default function AnalysisPage() {
     { skip: !symbol }
   )
 
-  const { data: bollingerData, isLoading: bollingerLoading, refetch: refetchBollinger } = useGetBollingerBandsQuery(
+  const { data: bollingerData, isLoading: bollingerLoading, isFetching: bollingerFetching, refetch: refetchBollinger } = useGetBollingerBandsQuery(
     {
       symbol,
       period: Number.parseInt(bollingerPeriod, 10),
@@ -190,7 +191,7 @@ export default function AnalysisPage() {
     { skip: !symbol }
   )
 
-  const { data: stochasticData, isLoading: stochasticLoading, refetch: refetchStochastic } = useGetStochasticQuery(
+  const { data: stochasticData, isLoading: stochasticLoading, isFetching: stochasticFetching, refetch: refetchStochastic } = useGetStochasticQuery(
     {
       symbol,
       kPeriod: Number.parseInt(stochasticKPeriod, 10),
@@ -225,6 +226,16 @@ export default function AnalysisPage() {
   const overallSignal = getSignalBadge(allIndicatorsData?.data?.overallSignal)
   const rsiStatus = getRsiStatus(rsiData?.data)
   const stochasticSignal = getStochasticSignal(stochasticData?.data?.signal)
+  const isRefreshing =
+    stocksFetching
+    || maFetching
+    || trendFetching
+    || comparisonFetching
+    || allIndicatorsFetching
+    || rsiFetching
+    || macdFetching
+    || bollingerFetching
+    || stochasticFetching
 
   const handleRefreshAll = () => {
     refetchStocks()
@@ -272,9 +283,7 @@ export default function AnalysisPage() {
               <SelectItem value="1Y">1 Yil</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="icon" onClick={handleRefreshAll}>
-            <RefreshCw className={cn('h-4 w-4', stocksFetching && 'animate-spin')} />
-          </Button>
+          <RefreshButton variant="outline" size="icon" onRefresh={handleRefreshAll} isLoading={isRefreshing} />
         </div>
       </div>
 

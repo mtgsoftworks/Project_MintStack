@@ -276,7 +276,8 @@ public class PortfolioOrderExecutionService {
         if (instrument == null) {
             return true;
         }
-        if (instrument.getType() == Instrument.InstrumentType.CRYPTO) {
+        if (instrument.getType() == Instrument.InstrumentType.CRYPTO
+            || instrument.getType() == Instrument.InstrumentType.CURRENCY) {
             return true;
         }
         LocalDateTime now = LocalDateTime.now(clock);

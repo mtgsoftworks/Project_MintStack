@@ -1,0 +1,42 @@
+flowchart TB
+    admin["Admin UI"]
+
+    subgraph control["Kontrol"]
+        direction LR
+        ac["AdminController"]
+        sc["SimulationController"]
+        oc["ObservabilityController"]
+        rc["RateLimitAdminController"]
+        gc["GlossaryController"]
+        rsc["RuntimeSettingsController"]
+        awc["AlertWebhookController"]
+    end
+
+    subgraph service["Servis"]
+        direction LR
+        as["AdminService"]
+        ss["SimulationDataService"]
+        os["OpenSearchService"]
+        rs["RateLimitConfig"]
+        gs["GlossaryService"]
+        rts["RuntimeSettingsService"]
+    end
+
+    subgraph managed["Kaynaklar"]
+        direction LR
+        users["Kullanici / Rol Verisi"]
+        sim["simulation_config"]
+        search["OpenSearch"]
+        buckets["Redis / Bucket4j Rate Buckets"]
+        glossary["glossary_terms"]
+        runtime["runtime_settings"]
+        alerts["Prometheus Alertmanager Webhook"]
+    end
+
+    admin --> ac --> as --> users
+    admin --> sc --> ss --> sim
+    admin --> oc --> os --> search
+    admin --> rc --> rs --> buckets
+    admin --> gc --> gs --> glossary
+    admin --> rsc --> rts --> runtime
+    alerts --> awc

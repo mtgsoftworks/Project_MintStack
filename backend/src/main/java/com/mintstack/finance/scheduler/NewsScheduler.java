@@ -3,6 +3,7 @@ package com.mintstack.finance.scheduler;
 import com.mintstack.finance.config.NewsFeedProperties;
 import com.mintstack.finance.entity.News;
 import com.mintstack.finance.repository.NewsRepository;
+import com.mintstack.finance.service.NewsEnrichmentService;
 import com.mintstack.finance.service.external.RssNewsClient;
 import com.mintstack.finance.service.simulation.SimulationDataService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class NewsScheduler {
 
     private final RssNewsClient rssNewsClient;
     private final NewsRepository newsRepository;
+    private final NewsEnrichmentService newsEnrichmentService;
     private final SimulationDataService simulationDataService;
     private final NewsFeedProperties newsFeedProperties;
 
@@ -37,13 +39,18 @@ public class NewsScheduler {
         try {
             List<News> newsList = rssNewsClient.fetchAllNews();
             int saved = 0;
+            int enriched = 0;
             for (News news : newsList) {
                 if (shouldSave(news)) {
-                    newsRepository.save(news);
+                    News prepared = newsEnrichmentService.enrichIfEnabled(news);
+                    if (prepared.getLlmEnrichedAt() != null) {
+                        enriched++;
+                    }
+                    newsRepository.save(prepared);
                     saved++;
                 }
             }
-            log.info("News fetch completed: {} new articles saved out of {} fetched", saved, newsList.size());
+            log.info("News fetch completed: {} new articles saved out of {} fetched (llmEnriched={})", saved, newsList.size(), enriched);
         } catch (Exception e) {
             log.error("News fetch failed", e);
         }
@@ -60,27 +67,20 @@ public class NewsScheduler {
         try {
             List<News> newsList = rssNewsClient.fetchAllNews();
             int saved = 0;
+            int enriched = 0;
             for (News news : newsList) {
                 if (shouldSave(news)) {
-                    newsRepository.save(news);
+                    News prepared = newsEnrichmentService.enrichIfEnabled(news);
+                    if (prepared.getLlmEnrichedAt() != null) {
+                        enriched++;
+                    }
+                    newsRepository.save(prepared);
                     saved++;
                 }
             }
-            log.info("Initial news load completed: {} articles saved", saved);
+            log.info("Initial news load completed: {} articles saved (llmEnriched={})", saved, enriched);
         } catch (Exception e) {
             log.warn("Initial news load failed: {}", e.getMessage());
-        }
-    }
-
-    @Scheduled(cron = "${app.scheduler.cleanup-cron}")
-    public void cleanupOldNews() {
-        log.info("Starting news cleanup job");
-        try {
-            LocalDateTime cutoffDate = LocalDateTime.now().minusDays(30);
-            newsRepository.deleteByPublishedAtBefore(cutoffDate);
-            log.info("News cleanup completed");
-        } catch (Exception e) {
-            log.error("News cleanup failed", e);
         }
     }
 
@@ -90,4 +90,3 @@ public class NewsScheduler {
         return !existsByUrl && !existsByHash;
     }
 }
-

@@ -10,6 +10,7 @@ import com.mintstack.finance.service.MarketDataService;
 import com.mintstack.finance.service.PriceUpdateService;
 import com.mintstack.finance.service.event.EventPublisher;
 import com.mintstack.finance.service.external.TcmbApiClient;
+import com.mintstack.finance.service.market.TefasFundDataService;
 import com.mintstack.finance.service.simulation.SimulationDataService;
 import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,7 @@ public class MarketDataScheduler {
     private final MarketDataProviderResolver providerResolver;
     private final MarketDataInstrumentUpdateService instrumentUpdateService;
     private final MarketDataBootstrapService bootstrapService;
+    private final TefasFundDataService tefasFundDataService;
 
     @Observed(name = "scheduler.market-data.tcmb", contextualName = "fetch-tcmb-rates")
     @Scheduled(cron = "${app.scheduler.tcmb-rates-cron}")
@@ -84,6 +86,13 @@ public class MarketDataScheduler {
     @Observed(name = "scheduler.market-data.fund", contextualName = "fetch-fund-prices")
     @Scheduled(cron = "${app.scheduler.fund-prices-cron}")
     public void fetchFundPrices() {
+        if (!simulationDataService.isSimulationEnabled()) {
+            try {
+                tefasFundDataService.refreshFundPrices();
+            } catch (Exception error) {
+                log.warn("TEFAS fund refresh failed, falling back to configured provider updater: {}", error.getMessage());
+            }
+        }
         updateInstrumentPricesByType(Instrument.InstrumentType.FUND, false);
     }
 

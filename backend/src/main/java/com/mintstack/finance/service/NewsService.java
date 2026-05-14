@@ -117,6 +117,11 @@ public class NewsService {
             .publishedAt(news.getPublishedAt())
             .isFeatured(news.getIsFeatured())
             .isSimulated(Boolean.TRUE.equals(news.getIsSimulated()))
+            .llmSummary(news.getLlmSummary())
+            .llmSentiment(news.getLlmSentiment())
+            .llmKeywords(news.getLlmKeywords())
+            .llmModel(news.getLlmModel())
+            .llmEnrichedAt(news.getLlmEnrichedAt())
             .viewCount(news.getViewCount())
             .build();
     }

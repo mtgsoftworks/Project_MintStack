@@ -91,6 +91,7 @@ public class PortfolioFinancialRulesService {
             case CRYPTO -> new BigDecimal("1.50");
             case FUND -> new BigDecimal("0.80");
             case BOND -> new BigDecimal("0.60");
+            case CURRENCY -> new BigDecimal("0.50");
             default -> BigDecimal.ONE;
         };
     }

@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import RefreshButton from '@/components/common/RefreshButton'
 import {
     Bell,
     BellOff,
@@ -56,7 +57,7 @@ export default function NotificationsPage() {
     const { t } = useTranslation()
     const [activeTab, setActiveTab] = useState('all')
     
-    const { data: notificationsData, isLoading, refetch } = useGetNotificationsQuery({ page: 0, size: 50 })
+    const { data: notificationsData, isLoading, isFetching, refetch } = useGetNotificationsQuery({ page: 0, size: 50 })
     const [markAsRead] = useMarkNotificationReadMutation()
     const [markAllAsRead] = useMarkAllNotificationsReadMutation()
     
@@ -122,15 +123,14 @@ export default function NotificationsPage() {
                         <CheckCheck className="h-4 w-4 mr-2" />
                         {t('notificationsPage.actions.markAllRead')}
                     </Button>
-                    <Button
+                    <RefreshButton
                         variant="outline"
                         size="sm"
-                        onClick={() => refetch()}
-                        disabled={isLoading}
+                        onRefresh={refetch}
+                        isLoading={isFetching}
                     >
-                        <Loader2 className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
                         {t('common.refresh')}
-                    </Button>
+                    </RefreshButton>
                 </div>
             </div>
 

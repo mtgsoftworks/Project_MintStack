@@ -35,6 +35,7 @@ public class MarketDataMaintenanceService {
     @Transactional
     public void saveCurrencyRates(List<CurrencyRate> rates) {
         currencyRateRepository.saveAll(rates);
+        rates.forEach(this::upsertCurrencyInstrument);
         log.info("Saved {} currency rates - cache invalidated", rates.size());
     }
 
@@ -124,6 +125,65 @@ public class MarketDataMaintenanceService {
 
     private boolean isRealInstrument(Instrument instrument) {
         return instrument != null && !Boolean.TRUE.equals(instrument.getIsSimulated());
+    }
+
+    private void upsertCurrencyInstrument(CurrencyRate rate) {
+        if (rate == null || rate.getCurrencyCode() == null || rate.getSellingRate() == null
+            || rate.getSellingRate().compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        String currencyCode = rate.getCurrencyCode().trim().toUpperCase();
+        if ("TRY".equals(currencyCode)) {
+            return;
+        }
+
+        String symbol = currencyCode + "TRY";
+        Instrument instrument = instrumentRepository.findBySymbol(symbol)
+            .orElseGet(() -> Instrument.builder()
+                .symbol(symbol)
+                .name(currencyCode + "/TRY")
+                .type(InstrumentType.CURRENCY)
+                .exchange(rate.getSource() != null ? rate.getSource().name() : "FX")
+                .currency("TRY")
+                .isActive(true)
+                .isSimulated(false)
+                .build());
+
+        instrument.setName(rate.getCurrencyName() != null && !rate.getCurrencyName().isBlank()
+            ? rate.getCurrencyName() + " / TRY"
+            : currencyCode + "/TRY");
+        instrument.setType(InstrumentType.CURRENCY);
+        instrument.setExchange(rate.getSource() != null ? rate.getSource().name() : "FX");
+        instrument.setCurrency("TRY");
+        instrument.setIsActive(true);
+        instrument.setIsSimulated(false);
+        instrument.setPreviousClose(instrument.getCurrentPrice());
+        instrument.setCurrentPrice(rate.getSellingRate());
+        Instrument saved = instrumentRepository.save(instrument);
+        if (saved == null) {
+            saved = instrument;
+        }
+        if (saved.getId() == null) {
+            return;
+        }
+        Instrument savedInstrument = saved;
+
+        LocalDate priceDate = rate.getRateDate() != null
+            ? rate.getRateDate().toLocalDate()
+            : rate.getFetchedAt() != null ? rate.getFetchedAt().toLocalDate() : LocalDate.now();
+        PriceHistory history = priceHistoryRepository.findByInstrumentIdAndPriceDate(savedInstrument.getId(), priceDate)
+            .orElseGet(() -> PriceHistory.builder()
+                .instrument(savedInstrument)
+                .priceDate(priceDate)
+                .build());
+        BigDecimal buyingRate = rate.getBuyingRate() != null ? rate.getBuyingRate() : rate.getSellingRate();
+        history.setOpenPrice(buyingRate);
+        history.setLowPrice(buyingRate.min(rate.getSellingRate()));
+        history.setHighPrice(buyingRate.max(rate.getSellingRate()));
+        history.setClosePrice(rate.getSellingRate());
+        history.setAdjustedClose(rate.getSellingRate());
+        priceHistoryRepository.save(history);
     }
 
     private record InstrumentDeactivationSummary(long total, long indices) {

@@ -1,0 +1,17 @@
+sequenceDiagram
+    autonumber
+    participant JOB as Scheduler / PriceUpdate
+    participant ALS as AlertService
+    participant REP as PriceAlertRepository
+    participant EVT as Kafka
+    participant MAIL as EmailService
+    participant UI as Frontend
+
+    JOB->>ALS: checkAlertsForSymbol(symbol, currentPrice)
+    ALS->>REP: Aktif alarmlari getir
+    REP-->>ALS: Alarm listesi
+    ALS->>ALS: shouldTrigger kurallari
+    ALS->>REP: Trigger + persist
+    ALS->>EVT: Notification event publish
+    ALS->>MAIL: E-posta gonder
+    ALS-->>UI: Anlik bildirim

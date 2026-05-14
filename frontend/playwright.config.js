@@ -44,6 +44,6 @@ export default defineConfig({
       ...process.env,
       VITE_E2E_BYPASS_AUTH: process.env.VITE_E2E_BYPASS_AUTH || 'true',
     },
-    reuseExistingServer: false,
+    reuseExistingServer: !process.env.CI,
   },
 });

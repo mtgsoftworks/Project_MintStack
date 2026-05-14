@@ -47,7 +47,9 @@
         "analysis": "Analiz",
         "settings": "Ayarlar",
         "profile": "Profil",
-        "admin": "Yönetim"
+        "notifications": "Bildirimler",
+        "admin": "Yönetim",
+        "glossary": "Kavram Sozlugu"
     },
     "app": {
         "tagline": "Finans Portalı"
@@ -173,10 +175,14 @@
                 "alphaVantage": "Alpha Vantage",
                 "yahooFinance": "Yahoo Finance",
                 "finnhub": "Finnhub",
+                "tefas": "TEFAS",
+                "fintables": "Fintables",
+                "llmEnrichment": "LLM Zenginlestirme",
                 "tcmb": "TCMB (Merkez Bankası)",
                 "other": "Diğer"
             },
             "apiKey": "API Anahtarı",
+            "modelName": "Model Adı",
             "secretKey": "Gizli Anahtar (Opsiyonel)",
             "baseUrl": "Base URL (Opsiyonel)",
             "active": "Aktif",
@@ -199,10 +205,13 @@
             },
             "placeholder": {
                 "key": "Anahtarınızı buraya yapıştırın",
+                "githubToken": "GitHub token (GITHUB_TOKEN)",
                 "tcmb": "TCMB için gerekmez (boş bırakabilirsiniz)",
                 "optional": "Gerekli değil (boş bırakabilirsiniz)",
+                "modelName": "openai/gpt-5",
                 "secretKey": "Gizli anahtarınızı girin",
-                "baseUrl": "https://api.example.com"
+                "baseUrl": "https://api.example.com",
+                "llmBaseUrl": "https://models.github.ai/inference"
             },
             "validation": {
                 "required": "Lütfen API anahtarı girin",
@@ -251,6 +260,48 @@
                     "missing": [
                         "BIST Endeksleri",
                         "Türk Yatırım Fonları"
+                    ]
+                },
+                "TEFAS": {
+                    "title": "TEFAS (Fon Verisi)",
+                    "desc": "TEFAS fon verisi için public/no-key provider.",
+                    "supported": [
+                        "Yatırım Fonları",
+                        "Fon Fiyatı",
+                        "Tedavüldeki Pay",
+                        "Portföy Büyüklüğü"
+                    ],
+                    "missing": [
+                        "Anlık 7/24 veri garantisi yok",
+                        "Site kontratı değişirse adapter güncellenir"
+                    ]
+                },
+                "FINTABLES": {
+                    "title": "Fintables",
+                    "desc": "BIST, fon ve teknik analiz odakli yerel veri saglayicisidir.",
+                    "supported": [
+                        "BIST Hisseleri",
+                        "BIST Endeksleri",
+                        "Fon Verisi",
+                        "Teknik Gostergeler"
+                    ],
+                    "missing": [
+                        "Gercek zaman 7/24 zorunlu degil",
+                        "Plan/kota sinirlari olabilir"
+                    ]
+                },
+                "LLM_ENRICHMENT": {
+                    "title": "LLM Haber Zenginlestirme",
+                    "desc": "RSS haberlerini ozet, duygu ve anahtar kelime ile zenginlestirir (GitHub Models/OpenAI uyumlu).",
+                    "supported": [
+                        "Haber Ozetleri",
+                        "Sentiment",
+                        "Anahtar Kelimeler",
+                        "UI uzerinden model secimi"
+                    ],
+                    "missing": [
+                        "Saglayici token zorunlu",
+                        "Saglayici kota/limitleri uygulanir"
                     ]
                 },
                 "TCMB": {

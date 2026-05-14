@@ -18,6 +18,7 @@ public class NewsFeedProperties {
     private int connectTimeoutMs = 10000;
     private int readTimeoutMs = 10000;
     private List<Feed> feeds = new ArrayList<>();
+    private Llm llm = new Llm();
 
     @Data
     public static class Feed {
@@ -28,5 +29,18 @@ public class NewsFeedProperties {
         private boolean enabled = true;
         private int priority = 100;
     }
-}
 
+    @Data
+    public static class Llm {
+        private boolean enabled = false;
+        private String baseUrl = "";
+        private String endpoint = "/v1/chat/completions";
+        private String model = "gpt-4.1-mini";
+        private String apiKey = "";
+        private String apiKeyHeader = "Authorization";
+        private String apiKeyPrefix = "Bearer ";
+        private int timeoutMs = 15000;
+        private int maxInputChars = 4000;
+        private double temperature = 0.2d;
+    }
+}

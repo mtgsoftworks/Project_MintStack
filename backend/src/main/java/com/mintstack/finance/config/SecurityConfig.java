@@ -58,6 +58,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/market/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/news/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/news").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/glossary/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/admin/webhooks/alerts").permitAll()
                 
                 // Simulation endpoints - admin only
                 .requestMatchers("/api/v1/simulation/**").hasRole("ADMIN")

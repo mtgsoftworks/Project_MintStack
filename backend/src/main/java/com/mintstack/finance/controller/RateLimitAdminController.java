@@ -45,6 +45,9 @@ public class RateLimitAdminController {
             request.getAdminRequestsPerMinute(),
             Boolean.TRUE.equals(request.getClearBuckets())
         );
+        if (request.getStore() != null && !request.getStore().isBlank()) {
+            rateLimitConfig.setStore(request.getStore().toLowerCase());
+        }
 
         return ResponseEntity.ok(
             ApiResponse.success(toResponse(), "Rate limit ayarlari guncellendi")
@@ -57,6 +60,7 @@ public class RateLimitAdminController {
             .anonymousRequestsPerMinute(rateLimitConfig.getAnonymousRequestsPerMinute())
             .authenticatedRequestsPerMinute(rateLimitConfig.getAuthenticatedRequestsPerMinute())
             .adminRequestsPerMinute(rateLimitConfig.getAdminRequestsPerMinute())
+            .store(rateLimitConfig.getStore())
             .bucketCount(rateLimitConfig.getBucketCount())
             .build();
     }

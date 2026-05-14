@@ -3,6 +3,7 @@ package com.mintstack.finance.scheduler;
 import com.mintstack.finance.config.NewsFeedProperties;
 import com.mintstack.finance.entity.News;
 import com.mintstack.finance.repository.NewsRepository;
+import com.mintstack.finance.service.NewsEnrichmentService;
 import com.mintstack.finance.service.external.RssNewsClient;
 import com.mintstack.finance.service.simulation.SimulationDataService;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +30,9 @@ class NewsSchedulerTest {
     private NewsRepository newsRepository;
 
     @Mock
+    private NewsEnrichmentService newsEnrichmentService;
+
+    @Mock
     private SimulationDataService simulationDataService;
 
     @Mock
@@ -41,6 +45,7 @@ class NewsSchedulerTest {
         newsScheduler = new NewsScheduler(
             rssNewsClient,
             newsRepository,
+            newsEnrichmentService,
             simulationDataService,
             newsFeedProperties
         );
@@ -83,6 +88,7 @@ class NewsSchedulerTest {
             .build();
 
         when(rssNewsClient.fetchAllNews()).thenReturn(List.of(existingByUrl, existingByHash, unique));
+        when(newsEnrichmentService.enrichIfEnabled(unique)).thenReturn(unique);
         when(newsRepository.existsBySourceUrl("https://example.com/news/1")).thenReturn(true);
         when(newsRepository.existsByExternalHash("hash-url")).thenReturn(false);
         when(newsRepository.existsBySourceUrl("https://example.com/news/2")).thenReturn(false);

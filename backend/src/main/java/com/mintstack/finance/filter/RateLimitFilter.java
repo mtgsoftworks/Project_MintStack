@@ -2,9 +2,8 @@ package com.mintstack.finance.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mintstack.finance.config.RateLimitConfig;
+import com.mintstack.finance.config.RateLimitConfig.RateLimitDecision;
 import com.mintstack.finance.dto.response.ApiResponse;
-import io.github.bucket4j.Bucket;
-import io.github.bucket4j.ConsumptionProbe;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,7 +22,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Rate limiting filter using Bucket4j.
@@ -56,30 +54,29 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Get the appropriate bucket based on authentication status
-        Bucket bucket = resolveBucket(request);
-        
-        // Try to consume a token
-        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
+        RateLimitTarget target = resolveTarget(request);
+        RateLimitDecision decision = rateLimitConfig.tryConsume(target.scope(), target.key(), target.requestsPerMinute());
 
-        if (probe.isConsumed()) {
-            // Add rate limit headers to response
-            addRateLimitHeaders(response, probe);
+        if (decision == null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        if (decision.allowed()) {
+            addRateLimitHeaders(response, decision);
             filterChain.doFilter(request, response);
         } else {
-            // Rate limit exceeded
-            long waitForRefillSeconds = TimeUnit.NANOSECONDS.toSeconds(probe.getNanosToWaitForRefill());
             log.warn("Rate limit exceeded for {} from IP: {}. Retry after: {} seconds",
-                    request.getRequestURI(), getClientIP(request), waitForRefillSeconds);
+                    request.getRequestURI(), getClientIP(request), decision.retryAfterSeconds());
             
-            sendRateLimitResponse(response, waitForRefillSeconds);
+            sendRateLimitResponse(response, decision.retryAfterSeconds());
         }
     }
 
     /**
      * Resolve the appropriate bucket based on authentication status
      */
-    private Bucket resolveBucket(HttpServletRequest request) {
+    private RateLimitTarget resolveTarget(HttpServletRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         
         if (authentication != null && authentication.isAuthenticated() 
@@ -93,14 +90,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
             String userId = getUserId(authentication);
             
             if (isAdmin) {
-                return rateLimitConfig.resolveAdminBucket(userId);
-            } else {
-                return rateLimitConfig.resolveUserBucket(userId);
+                return new RateLimitTarget("admin", userId, rateLimitConfig.getAdminRequestsPerMinute());
             }
+            return new RateLimitTarget("user", userId, rateLimitConfig.getAuthenticatedRequestsPerMinute());
         }
         
-        // Anonymous user - use IP-based rate limiting
-        return rateLimitConfig.resolveAnonymousBucket(getClientIP(request));
+        return new RateLimitTarget("anonymous", getClientIP(request), rateLimitConfig.getAnonymousRequestsPerMinute());
     }
 
     /**
@@ -147,10 +142,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
     /**
      * Add rate limit information headers to response
      */
-    private void addRateLimitHeaders(HttpServletResponse response, ConsumptionProbe probe) {
-        response.setHeader("X-RateLimit-Remaining", String.valueOf(probe.getRemainingTokens()));
-        response.setHeader("X-RateLimit-Reset", 
-                String.valueOf(TimeUnit.NANOSECONDS.toSeconds(probe.getNanosToWaitForRefill())));
+    private void addRateLimitHeaders(HttpServletResponse response, RateLimitDecision decision) {
+        response.setHeader("X-RateLimit-Remaining", String.valueOf(decision.remainingTokens()));
+        response.setHeader("X-RateLimit-Reset", String.valueOf(decision.resetSeconds()));
+        response.setHeader("X-RateLimit-Store", decision.store());
     }
 
     /**
@@ -173,5 +168,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
         ApiResponse<?> errorResponse = ApiResponse.error(error);
         
         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
+    }
+
+    private record RateLimitTarget(String scope, String key, int requestsPerMinute) {
     }
 }

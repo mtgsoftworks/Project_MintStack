@@ -22,6 +22,9 @@ public class OpenApiConfig {
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
     private String issuerUri;
 
+    @Value("${app.public-base-url:http://localhost:8088}")
+    private String publicBaseUrl;
+
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
@@ -69,8 +72,8 @@ public class OpenApiConfig {
                     .url("https://opensource.org/licenses/MIT")))
             .servers(List.of(
                 new Server()
-                    .url("http://localhost:8080")
-                    .description("Development Server"),
+                    .url(publicBaseUrl)
+                    .description("Public/API gateway URL"),
                 new Server()
                     .url("http://backend:8080")
                     .description("Docker Container")))

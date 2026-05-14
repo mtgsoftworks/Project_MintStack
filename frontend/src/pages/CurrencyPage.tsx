@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { TrendingUp, TrendingDown, Search, RefreshCw } from 'lucide-react'
+import { TrendingUp, TrendingDown, Search } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import SimulationDataFlag from '@/components/common/SimulationDataFlag'
+import RefreshButton from '@/components/common/RefreshButton'
 import {
   Table,
   TableBody,
@@ -18,6 +20,7 @@ import {
 import { isSimulatedMarketData } from '@/lib/simulationData'
 import { cn, formatCurrency, formatNumber, formatPercent, formatDateTime } from '@/lib/utils'
 import { useGetCurrenciesQuery } from '@/store/api/marketApi'
+import { useExecutePortfolioTradeMutation, useGetPortfoliosQuery } from '@/store/api/portfolioApi'
 
 function CurrencyTableSkeleton() {
   return (
@@ -32,7 +35,18 @@ function CurrencyTableSkeleton() {
 export default function CurrencyPage() {
   const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedPortfolioId, setSelectedPortfolioId] = useState('')
+  const [tradeQuantities, setTradeQuantities] = useState({})
   const { data: currencies, isLoading, isFetching, refetch } = useGetCurrenciesQuery()
+  const { data: portfolios = [] } = useGetPortfoliosQuery()
+  const [executeTrade, { isLoading: isSubmittingTrade }] = useExecutePortfolioTradeMutation()
+
+  useEffect(() => {
+    if (!selectedPortfolioId && portfolios.length > 0) {
+      const defaultPortfolio = portfolios.find((portfolio) => portfolio.isDefault) || portfolios[0]
+      setSelectedPortfolioId(defaultPortfolio?.id || '')
+    }
+  }, [portfolios, selectedPortfolioId])
 
   // Get data source from first currency (all should have same source)
   const dataSource = currencies?.[0]?.source || null
@@ -52,6 +66,41 @@ export default function CurrencyPage() {
   ) || []
   const hasSimulatedCurrencies = filteredCurrencies.some((currency) => isSimulatedMarketData(currency))
 
+  const handleQuantityChange = (code, value) => {
+    setTradeQuantities((current) => ({ ...current, [code]: value }))
+  }
+
+  const handleCurrencyTrade = async (currency, transactionType) => {
+    const quantity = Number(tradeQuantities[currency.currencyCode])
+    if (!selectedPortfolioId) {
+      toast.error('Once bir portfoy secin veya olusturun')
+      return
+    }
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      toast.error('Gecerli doviz miktari girin')
+      return
+    }
+
+    const executionPrice = transactionType === 'BUY' ? currency.sellingRate : currency.buyingRate
+    try {
+      await executeTrade({
+        portfolioId: selectedPortfolioId,
+        instrumentSymbol: `${currency.currencyCode}TRY`,
+        transactionType,
+        orderType: 'MARKET',
+        quantity,
+        price: executionPrice,
+        transactionDate: new Date().toISOString().slice(0, 10),
+        notes: `${currency.currencyCode}/TRY doviz ${transactionType === 'BUY' ? 'alim' : 'satis'} islemi`,
+      }).unwrap()
+      toast.success(transactionType === 'BUY' ? 'Doviz portfoye eklendi' : 'Doviz satis emri islendi')
+      handleQuantityChange(currency.currencyCode, '')
+    } catch (error) {
+      const message = error?.data?.message || error?.data?.error?.message || 'Doviz islemi basarisiz oldu'
+      toast.error(message)
+    }
+  }
+
   return (
     <div className="space-y-6 animate-in">
       {/* Page Header */}
@@ -68,6 +117,19 @@ export default function CurrencyPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {portfolios.length > 0 && (
+            <select
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              value={selectedPortfolioId}
+              onChange={(event) => setSelectedPortfolioId(event.target.value)}
+            >
+              {portfolios.map((portfolio) => (
+                <option key={portfolio.id} value={portfolio.id}>
+                  {portfolio.name}
+                </option>
+              ))}
+            </select>
+          )}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -77,14 +139,12 @@ export default function CurrencyPage() {
               className="pl-9 w-64"
             />
           </div>
-          <Button
+          <RefreshButton
             variant="outline"
             size="icon"
-            onClick={() => refetch()}
-            disabled={isFetching}
-          >
-            <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
-          </Button>
+            isLoading={isFetching}
+            onRefresh={refetch}
+          />
         </div>
       </div>
 
@@ -155,12 +215,13 @@ export default function CurrencyPage() {
                   <TableHead className="text-right">{t('currencyPage.table.headers.effectiveBuying')}</TableHead>
                   <TableHead className="text-right">{t('currencyPage.table.headers.effectiveSelling')}</TableHead>
                   <TableHead className="text-right">{t('currencyPage.table.headers.change')}</TableHead>
+                  <TableHead className="text-right">Portfoy</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCurrencies.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       {t('currencyPage.empty')}
                     </TableCell>
                   </TableRow>
@@ -203,6 +264,35 @@ export default function CurrencyPage() {
                         <Badge variant={currency.changePercent >= 0 ? 'success' : 'danger'}>
                           {formatPercent(currency.changePercent || 0)}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Input
+                            className="h-9 w-24 text-right"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="Miktar"
+                            value={tradeQuantities[currency.currencyCode] || ''}
+                            onChange={(event) => handleQuantityChange(currency.currencyCode, event.target.value)}
+                          />
+                          <Button
+                            size="sm"
+                            variant="success"
+                            disabled={isSubmittingTrade}
+                            onClick={() => handleCurrencyTrade(currency, 'BUY')}
+                          >
+                            Al
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isSubmittingTrade}
+                            onClick={() => handleCurrencyTrade(currency, 'SELL')}
+                          >
+                            Sat
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

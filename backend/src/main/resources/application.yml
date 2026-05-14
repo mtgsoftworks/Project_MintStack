@@ -291,6 +291,17 @@ app:
         source-name: T24 Ekonomi
         enabled: false
         priority: 120
+    llm:
+      enabled: ${APP_NEWS_LLM_ENABLED:false}
+      base-url: ${APP_NEWS_LLM_BASE_URL:}
+      endpoint: ${APP_NEWS_LLM_ENDPOINT:/v1/chat/completions}
+      model: ${APP_NEWS_LLM_MODEL:gpt-4.1-mini}
+      api-key: ${APP_NEWS_LLM_API_KEY:}
+      api-key-header: ${APP_NEWS_LLM_API_KEY_HEADER:Authorization}
+      api-key-prefix: ${APP_NEWS_LLM_API_KEY_PREFIX:Bearer }
+      timeout-ms: ${APP_NEWS_LLM_TIMEOUT_MS:15000}
+      max-input-chars: ${APP_NEWS_LLM_MAX_INPUT_CHARS:4000}
+      temperature: ${APP_NEWS_LLM_TEMPERATURE:0.2}
 
   cors:
     allowed-origins:
@@ -329,6 +340,18 @@ app:
       base-url: https://finnhub.io/api/v1
       api-key: ${FINNHUB_API_KEY:}
       timeout: 15000
+    tefas:
+      enabled: ${APP_EXTERNAL_API_TEFAS_ENABLED:true}
+      base-url: https://www.tefas.gov.tr/api/funds
+      fund-list-endpoint: ${APP_EXTERNAL_API_TEFAS_FUND_LIST_ENDPOINT:/fonGnlBlgSiraliGetir}
+      timeout: ${APP_EXTERNAL_API_TEFAS_TIMEOUT:60000}
+      default-fund-kinds: ${APP_EXTERNAL_API_TEFAS_DEFAULT_FUND_KINDS:YAT,BYF}
+      fund-codes: ${APP_EXTERNAL_API_TEFAS_FUND_CODES:}
+    fintables:
+      enabled: ${APP_EXTERNAL_API_FINTABLES_ENABLED:false}
+      base-url: ${FINTABLES_BASE_URL:https://api.fintables.com}
+      api-key: ${FINTABLES_API_KEY:}
+      timeout: ${APP_EXTERNAL_API_FINTABLES_TIMEOUT:15000}
 
   # Cache TTL Configuration (in seconds)
   cache:
@@ -377,9 +400,20 @@ app:
   # Rate Limiting Configuration
   rate-limit:
     enabled: ${APP_RATE_LIMIT_ENABLED:true}
+    store: ${APP_RATE_LIMIT_STORE:redis}
     anonymous-requests-per-minute: ${APP_RATE_LIMIT_ANONYMOUS_REQUESTS_PER_MINUTE:100}
     authenticated-requests-per-minute: ${APP_RATE_LIMIT_AUTHENTICATED_REQUESTS_PER_MINUTE:200}
     admin-requests-per-minute: ${APP_RATE_LIMIT_ADMIN_REQUESTS_PER_MINUTE:500}
+
+  alert-webhook:
+    enabled: ${APP_ALERT_WEBHOOK_ENABLED:true}
+    require-signature: ${APP_ALERT_WEBHOOK_REQUIRE_SIGNATURE:false}
+    secret: ${APP_ALERT_WEBHOOK_SECRET:}
+    signature-header: ${APP_ALERT_WEBHOOK_SIGNATURE_HEADER:X-Alert-Signature}
+    signature-prefix: ${APP_ALERT_WEBHOOK_SIGNATURE_PREFIX:sha256=}
+    trust-forwarded-for: ${APP_ALERT_WEBHOOK_TRUST_FORWARDED_FOR:false}
+    trusted-proxy-cidrs: ${APP_ALERT_WEBHOOK_TRUSTED_PROXY_CIDRS:}
+    allowed-cidrs: ${APP_ALERT_WEBHOOK_ALLOWED_CIDRS:}
 
   # Email Configuration
   email:

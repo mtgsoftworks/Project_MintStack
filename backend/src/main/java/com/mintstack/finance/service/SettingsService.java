@@ -9,8 +9,10 @@ import com.mintstack.finance.repository.UserApiConfigRepository;
 import com.mintstack.finance.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,9 @@ public class SettingsService {
     private final UserApiConfigRepository userApiConfigRepository;
     private final UserRepository userRepository;
     private final ApiKeyValidationService apiKeyValidationService;
+
+    @Value("${app.external-api.fintables.enabled:false}")
+    private boolean fintablesEnabled;
 
     @Transactional(readOnly = true)
     public List<ApiConfigResponse> getApiConfigs(UUID userId) {
@@ -65,15 +70,24 @@ public class SettingsService {
                 : userApiConfigRepository.findByProviderAndIsActiveTrue(request.getProvider()).stream().findFirst().orElse(null);
 
         boolean isUpdate = existingConfig != null;
-        boolean apiKeyChanged = request.getApiKey() != null && !request.getApiKey().isEmpty();
+        String effectiveApiKey = normalizeApiKey(request.getProvider(), request.getApiKey());
+        boolean apiKeyChanged = effectiveApiKey != null && !effectiveApiKey.isEmpty();
         boolean requestedActive = request.getIsActive() == null || Boolean.TRUE.equals(request.getIsActive());
+
+        if (requestedActive
+            && request.getProvider() == UserApiConfig.ApiProvider.FINTABLES
+            && !fintablesEnabled) {
+            throw new IllegalArgumentException(
+                "Fintables provider policy geregi pasif. APP_EXTERNAL_API_FINTABLES_ENABLED=true olmadan aktif edilemez."
+            );
+        }
 
         // 1. Validate API key only for active configs.
         // Deactivation should never require API key validation.
         if (requestedActive && (!isUpdate || apiKeyChanged)) {
             ApiKeyValidationService.ValidationResult validation = apiKeyValidationService.validateApiKey(
                     request.getProvider(),
-                    request.getApiKey(),
+                    effectiveApiKey,
                     request.getBaseUrl()
             );
 
@@ -98,12 +112,19 @@ public class SettingsService {
 
         // Only update API key if provided (for edit mode, keep existing if empty)
         if (apiKeyChanged) {
-            config.setApiKey(request.getApiKey());
+            config.setApiKey(effectiveApiKey);
         }
 
         // Update secret key only if provided
         if (request.getSecretKey() != null && !request.getSecretKey().isEmpty()) {
             config.setSecretKey(request.getSecretKey());
+        }
+
+        // LLM provider specific mapping:
+        // modelName in request is persisted in secretKey field to avoid schema change.
+        if (request.getProvider() == UserApiConfig.ApiProvider.LLM_ENRICHMENT
+            && StringUtils.hasText(request.getModelName())) {
+            config.setSecretKey(request.getModelName().trim());
         }
 
         config.setBaseUrl(effectiveUrl);
@@ -134,6 +155,9 @@ public class SettingsService {
                 .provider(config.getProvider())
                 .apiKey(maskApiKey(config.getApiKey()))
                 .baseUrl(config.getBaseUrl())
+                .modelName(config.getProvider() == UserApiConfig.ApiProvider.LLM_ENRICHMENT
+                    ? config.getSecretKey()
+                    : null)
                 .isActive(config.getIsActive())
                 .createdAt(config.getCreatedAt())
                 .build();
@@ -142,6 +166,16 @@ public class SettingsService {
     private String maskApiKey(String apiKey) {
         if (apiKey == null || apiKey.length() < 8) return "****";
         return apiKey.substring(0, 4) + "****" + apiKey.substring(apiKey.length() - 4);
+    }
+
+    private String normalizeApiKey(UserApiConfig.ApiProvider provider, String apiKey) {
+        if (apiKey != null && !apiKey.isBlank()) {
+            return apiKey;
+        }
+        return switch (provider) {
+            case YAHOO_FINANCE, TCMB, TEFAS, RSS -> "PUBLIC";
+            default -> apiKey;
+        };
     }
 }
 

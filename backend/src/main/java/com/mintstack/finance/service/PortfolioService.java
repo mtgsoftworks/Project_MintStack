@@ -532,13 +532,23 @@ public class PortfolioService {
             if (simulationEnabled) {
                 return instrumentRepository.findBySymbolAndIsSimulated(symbol, true)
                     .or(() -> instrumentRepository.findBySymbol(symbol))
+                    .or(() -> resolveCurrencyAlias(symbol))
                     .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "symbol", symbol));
             }
             return instrumentRepository.findBySymbol(symbol)
+                .or(() -> resolveCurrencyAlias(symbol))
                 .or(() -> instrumentRepository.findBySymbolAndIsSimulated(symbol, true))
                 .orElseThrow(() -> new ResourceNotFoundException("Enstrüman", "symbol", symbol));
         }
         throw new BadRequestException("Enstrüman ID veya sembolü zorunludur");
+    }
+
+    private java.util.Optional<Instrument> resolveCurrencyAlias(String symbol) {
+        if (symbol == null || symbol.length() != 3 || "TRY".equals(symbol)) {
+            return java.util.Optional.empty();
+        }
+        return instrumentRepository.findBySymbol(symbol + "TRY")
+            .filter(instrument -> instrument.getType() == Instrument.InstrumentType.CURRENCY);
     }
 
     private BigDecimal firstPositive(BigDecimal... values) {

@@ -15,13 +15,15 @@ import {
     SelectValue
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Database, Key, RefreshCw, Zap } from 'lucide-react'
+import RefreshButton from '@/components/common/RefreshButton'
+import { Database, Key, Zap } from 'lucide-react'
 import { DATA_SOURCE_TYPES } from './providerInfo'
 
 export function DataSourcesTab({
     t,
     apiConfigs,
     preferencesData,
+    isRefreshing,
     getProviderLabel,
     onSelectDataPreference,
     onRefreshData,
@@ -101,15 +103,15 @@ export function DataSourcesTab({
                         })}
 
                         <div className="pt-4 border-t">
-                            <Button
+                            <RefreshButton
                                 variant="outline"
-                                onClick={onRefreshData}
+                                onRefresh={onRefreshData}
+                                isLoading={isRefreshing}
                                 disabled={!apiConfigs.some((config) => config.isActive)}
                                 className="group"
                             >
-                                <RefreshCw className="h-4 w-4 mr-2 group-hover:animate-spin transition-transform" />
                                 {t('settings.dataSources.refreshNow', { defaultValue: 'Verileri Simdi Guncelle' })}
-                            </Button>
+                            </RefreshButton>
                         </div>
                     </div>
                 )}

@@ -98,6 +98,7 @@ export default function SettingsPage() {
                         t={t}
                         apiConfigs={apiDataSourceSettings.apiConfigs}
                         preferencesData={apiDataSourceSettings.preferencesData}
+                        isRefreshing={apiDataSourceSettings.isRefreshingDataSources}
                         getProviderLabel={getProviderLabel}
                         onSelectDataPreference={apiDataSourceSettings.handleSelectDataPreference}
                         onRefreshData={apiDataSourceSettings.handleRefreshDataSources}

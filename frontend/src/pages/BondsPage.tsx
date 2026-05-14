@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Search, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react'
+import { Search, TrendingUp, TrendingDown } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import SimulationDataFlag from '@/components/common/SimulationDataFlag'
+import RefreshButton from '@/components/common/RefreshButton'
 import {
   Table,
   TableBody,
@@ -61,14 +61,12 @@ export default function BondsPage() {
               className="pl-9 w-64"
             />
           </div>
-          <Button
+          <RefreshButton
             variant="outline"
             size="icon"
-            onClick={() => refetch()}
-            disabled={isFetching}
-          >
-            <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
-          </Button>
+            isLoading={isFetching}
+            onRefresh={refetch}
+          />
         </div>
       </div>
 
