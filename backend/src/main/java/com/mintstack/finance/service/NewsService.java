@@ -48,15 +48,11 @@ public class NewsService {
         return news.map(this::mapToResponse);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public NewsResponse getNewsById(UUID id) {
         News news = newsRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Haber", "id", id));
-        
-        // Increment view count
-        news.setViewCount(news.getViewCount() + 1);
-        newsRepository.save(news);
-        
+
         return mapToResponse(news);
     }
 
@@ -94,11 +90,10 @@ public class NewsService {
 
     @Transactional
     public void incrementViewCount(UUID newsId) {
-        newsRepository.findById(newsId).ifPresent(news -> {
-            news.setViewCount(news.getViewCount() + 1);
-            newsRepository.save(news);
+        int updated = newsRepository.incrementViewCount(newsId);
+        if (updated > 0) {
             log.debug("Incremented view count for news: {}", newsId);
-        });
+        }
     }
 
     private NewsResponse mapToResponse(News news) {

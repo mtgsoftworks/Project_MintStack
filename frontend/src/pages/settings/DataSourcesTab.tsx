@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import RefreshButton from '@/components/common/RefreshButton'
-import { Database, History, Key, Zap } from 'lucide-react'
+import { Database, History, Key, Loader2, Zap } from 'lucide-react'
 import { DATA_SOURCE_TYPES } from './providerInfo'
 
 const BACKFILL_TYPES = [
@@ -53,7 +53,10 @@ export function DataSourcesTab({
         }
 
         return (
-            <div className="mt-6 rounded-xl border border-dashed bg-muted/20 p-4">
+            <div
+                className="mt-6 rounded-xl border border-dashed bg-muted/20 p-4"
+                aria-busy={isBackfillingMarketData}
+            >
                 <div className="mb-4 flex items-start gap-3">
                     <div className="rounded-lg bg-primary/10 p-2 text-primary">
                         <History className="h-5 w-5" />
@@ -72,6 +75,7 @@ export function DataSourcesTab({
                         <Select
                             value={backfillForm.days}
                             onValueChange={(value) => onBackfillFormChange('days', value)}
+                            disabled={isBackfillingMarketData}
                         >
                             <SelectTrigger>
                                 <SelectValue />
@@ -92,6 +96,7 @@ export function DataSourcesTab({
                             max="500"
                             value={backfillForm.maxInstruments}
                             onChange={(event) => onBackfillFormChange('maxInstruments', event.target.value)}
+                            disabled={isBackfillingMarketData}
                         />
                     </div>
                     <div className="space-y-2">
@@ -100,6 +105,7 @@ export function DataSourcesTab({
                             value={backfillForm.symbols}
                             onChange={(event) => onBackfillFormChange('symbols', event.target.value)}
                             placeholder="THYAO,ASELS,USDTRY"
+                            disabled={isBackfillingMarketData}
                         />
                     </div>
                 </div>
@@ -110,6 +116,7 @@ export function DataSourcesTab({
                             <Checkbox
                                 checked={backfillForm.instrumentTypes.includes(type.value)}
                                 onCheckedChange={(checked) => onToggleBackfillType(type.value, Boolean(checked))}
+                                disabled={isBackfillingMarketData}
                             />
                             {type.label}
                         </label>
@@ -120,16 +127,36 @@ export function DataSourcesTab({
                     <Checkbox
                         checked={backfillForm.includeSyntheticFallback}
                         onCheckedChange={(checked) => onBackfillFormChange('includeSyntheticFallback', Boolean(checked))}
+                        disabled={isBackfillingMarketData}
                     />
                     Kaynak eksikse sentetik fallback ile grafik/analiz bos kalmasin
                 </label>
+
+                {isBackfillingMarketData && (
+                    <div className="mt-4 flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <div>
+                            <p className="font-medium">Gecmis veri dolduruluyor</p>
+                            <p className="text-xs text-muted-foreground">
+                                Secilen kaynaklardan fiyat gecmisi cekiliyor; bu islem bir kac dakika surebilir.
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 <div className="mt-4 flex justify-end">
                     <Button
                         onClick={onBackfillMarketData}
                         disabled={isBackfillingMarketData}
                     >
-                        {isBackfillingMarketData ? 'Backfill calisiyor...' : 'Gecmis Veriyi Doldur'}
+                        {isBackfillingMarketData ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Dolduruluyor...
+                            </>
+                        ) : (
+                            'Gecmis Veriyi Doldur'
+                        )}
                     </Button>
                 </div>
             </div>

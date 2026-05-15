@@ -14,6 +14,8 @@ import com.mintstack.finance.service.external.TefasFundClient.TefasFundPrice;
 import com.mintstack.finance.service.external.YahooFinanceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -144,9 +146,16 @@ public class HistoricalDataBackfillService {
                 if (instrument == null) {
                     continue;
                 }
-                upsertFundPrice(instrument, price);
-                saved++;
-                savedBySymbol.merge(instrument.getSymbol(), 1, Integer::sum);
+                try {
+                    upsertFundPrice(instrument, price);
+                    saved++;
+                    savedBySymbol.merge(instrument.getSymbol(), 1, Integer::sum);
+                } catch (OptimisticLockingFailureException | DataIntegrityViolationException error) {
+                    String warning = instrument.getSymbol() + " " + date
+                        + " fiyat satiri es zamanli guncelleme nedeniyle atlandi.";
+                    stats.warnings.add(warning);
+                    log.warn("{} {}", warning, error.getMessage());
+                }
             }
         }
 
@@ -210,10 +219,36 @@ public class HistoricalDataBackfillService {
             if (item.getInstrument() == null || item.getPriceDate() == null || item.getClosePrice() == null) {
                 continue;
             }
-            marketDataService.savePriceHistory(item);
-            saved++;
+            if (savePriceHistoryWithRetry(item)) {
+                saved++;
+            }
         }
         return saved;
+    }
+
+    private boolean savePriceHistoryWithRetry(PriceHistory item) {
+        RuntimeException lastFailure = null;
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                marketDataService.savePriceHistory(item);
+                return true;
+            } catch (OptimisticLockingFailureException error) {
+                lastFailure = error;
+                log.debug("Retrying historical row save for {} on {} after optimistic lock conflict",
+                    item.getInstrument().getSymbol(), item.getPriceDate());
+            } catch (DataIntegrityViolationException error) {
+                lastFailure = error;
+                log.warn("Skipping historical row for {} on {} because of data conflict: {}",
+                    item.getInstrument().getSymbol(), item.getPriceDate(), error.getMessage());
+                return false;
+            }
+        }
+
+        log.warn("Skipping historical row for {} on {} after concurrent update conflict: {}",
+            item.getInstrument().getSymbol(),
+            item.getPriceDate(),
+            lastFailure != null ? lastFailure.getMessage() : "unknown");
+        return false;
     }
 
     private List<PriceHistory> generateSyntheticHistory(Instrument instrument, BackfillWindow window) {
