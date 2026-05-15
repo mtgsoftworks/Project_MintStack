@@ -27,6 +27,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -547,16 +548,20 @@ public class MarketDataService {
     // Mapping methods
     private CurrencyRateResponse mapToRateResponse(CurrencyRate rate) {
         BigDecimal changePercent = calculateChangePercent(rate);
+        BigDecimal buyingRate = positiveOrFallback(rate.getBuyingRate(), rate.getSellingRate());
+        BigDecimal sellingRate = positiveOrFallback(rate.getSellingRate(), buyingRate);
+        BigDecimal effectiveBuyingRate = positiveOrFallback(rate.getEffectiveBuyingRate(), buyingRate);
+        BigDecimal effectiveSellingRate = positiveOrFallback(rate.getEffectiveSellingRate(), sellingRate);
         
         return CurrencyRateResponse.builder()
             .id(rate.getId())
             .currencyCode(rate.getCurrencyCode())
             .currencyName(rate.getCurrencyName())
-            .buyingRate(rate.getBuyingRate())
-            .sellingRate(rate.getSellingRate())
-            .effectiveBuyingRate(rate.getEffectiveBuyingRate())
-            .effectiveSellingRate(rate.getEffectiveSellingRate())
-            .averageRate(rate.getAverageRate())
+            .buyingRate(buyingRate)
+            .sellingRate(sellingRate)
+            .effectiveBuyingRate(effectiveBuyingRate)
+            .effectiveSellingRate(effectiveSellingRate)
+            .averageRate(buyingRate.add(sellingRate).divide(new BigDecimal("2"), 6, RoundingMode.HALF_UP))
             .changePercent(changePercent)
             .source(rate.getSource().name())
             .fetchedAt(rate.getFetchedAt())
@@ -566,24 +571,49 @@ public class MarketDataService {
     
     private BigDecimal calculateChangePercent(CurrencyRate currentRate) {
         try {
-            return currencyRateRepository.findPreviousRate(
-                currentRate.getCurrencyCode(), 
-                currentRate.getFetchedAt()
-            ).map(previousRate -> {
-                BigDecimal current = currentRate.getSellingRate();
-                BigDecimal previous = previousRate.getSellingRate();
-                if (previous.compareTo(BigDecimal.ZERO) == 0) {
-                    return BigDecimal.ZERO;
-                }
-                return current.subtract(previous)
-                    .divide(previous, 6, RoundingMode.HALF_UP)
-                    .multiply(new BigDecimal("100"));
-            }).orElse(BigDecimal.ZERO);
+            if (currentRate.getRateDate() == null) {
+                return BigDecimal.ZERO;
+            }
+            List<CurrencyRate> previousRates = currencyRateRepository
+                .findPreviousRatesByRateDate(
+                    currentRate.getCurrencyCode(),
+                    currentRate.getSource(),
+                    currentRate.getRateDate(),
+                    BigDecimal.ZERO,
+                    PageRequest.of(0, 1)
+                );
+            if (previousRates.isEmpty()) {
+                return BigDecimal.ZERO;
+            }
+
+            CurrencyRate previousRate = previousRates.get(0);
+            BigDecimal current = positiveOrFallback(currentRate.getSellingRate(), currentRate.getBuyingRate());
+            BigDecimal previous = positiveOrFallback(previousRate.getSellingRate(), previousRate.getBuyingRate());
+            if (!isPositive(current) || !isPositive(previous)) {
+                return BigDecimal.ZERO;
+            }
+            return current.subtract(previous)
+                .divide(previous, 6, RoundingMode.HALF_UP)
+                .multiply(new BigDecimal("100"));
         } catch (Exception e) {
             log.warn("Error calculating change percent for {}: {}", 
                 currentRate.getCurrencyCode(), e.getMessage());
             return BigDecimal.ZERO;
         }
+    }
+
+    private BigDecimal positiveOrFallback(BigDecimal value, BigDecimal fallback) {
+        if (isPositive(value)) {
+            return value;
+        }
+        if (isPositive(fallback)) {
+            return fallback;
+        }
+        return BigDecimal.ZERO;
+    }
+
+    private boolean isPositive(BigDecimal value) {
+        return value != null && value.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private InstrumentResponse mapToInstrumentResponse(Instrument instrument) {

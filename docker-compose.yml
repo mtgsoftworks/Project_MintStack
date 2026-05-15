@@ -207,6 +207,32 @@ services:
           cpus: '0.5'
           memory: 512M
 
+  opensearch-init:
+    image: opensearchproject/opensearch:2.13.0
+    container_name: mintstack-opensearch-init
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    environment:
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -euo pipefail
+        AUTH="admin:$${OPENSEARCH_INITIAL_ADMIN_PASSWORD}"
+        curl --fail-with-body -k -sS -u "$${AUTH}" -X PUT "https://opensearch:9200/_index_template/mintstack-single-node-default" \
+          -H 'Content-Type: application/json' \
+          -d '{"index_patterns":["*"],"priority":1,"template":{"settings":{"index.number_of_replicas":"0"}}}'
+        curl --fail-with-body -k -sS -u "$${AUTH}" -X PUT "https://opensearch:9200/mintstack-*/_settings?allow_no_indices=true&ignore_unavailable=true&expand_wildcards=open,hidden" \
+          -H 'Content-Type: application/json' \
+          -d '{"index":{"number_of_replicas":"0"}}'
+        curl --fail-with-body -k -sS -u "$${AUTH}" -X PUT "https://opensearch:9200/security-auditlog-*/_settings?allow_no_indices=true&ignore_unavailable=true&expand_wildcards=open,hidden" \
+          -H 'Content-Type: application/json' \
+          -d '{"index":{"number_of_replicas":"0"}}'
+        curl --fail-with-body -k -sS -u "$${AUTH}" "https://opensearch:9200/_cluster/health?wait_for_status=green&timeout=60s"
+    networks:
+      - mintstack-network
+
   opensearch-dashboards:
     image: opensearchproject/opensearch-dashboards:2.13.0
     container_name: mintstack-opensearch-dashboards

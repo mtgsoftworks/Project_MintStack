@@ -66,7 +66,18 @@ groups:
     rules:
       # External API slow response
       - alert: ExternalAPISlowResponse
-        expr: rate(external_api_call_duration_seconds_sum[5m]) / rate(external_api_call_duration_seconds_count[5m]) > 5
+        expr: |
+          (
+            sum by (client, method) (rate(external_api_call_duration_seconds_sum{client!="RssNewsClient"}[5m]))
+            /
+            clamp_min(sum by (client, method) (rate(external_api_call_duration_seconds_count{client!="RssNewsClient"}[5m])), 0.001)
+          ) > 5
+          or
+          (
+            sum by (client, method) (rate(external_api_call_duration_seconds_sum{client="RssNewsClient"}[5m]))
+            /
+            clamp_min(sum by (client, method) (rate(external_api_call_duration_seconds_count{client="RssNewsClient"}[5m])), 0.001)
+          ) > 15
         for: 3m
         labels:
           severity: warning
@@ -76,7 +87,7 @@ groups:
 
       # External API high failure rate
       - alert: ExternalAPIHighFailureRate
-        expr: rate(external_api_call_duration_seconds_count{status="error"}[5m]) / rate(external_api_call_duration_seconds_count[5m]) > 0.3
+        expr: sum by (client, method) (rate(external_api_call_duration_seconds_count{status="error"}[5m])) / clamp_min(sum by (client, method) (rate(external_api_call_duration_seconds_count[5m])), 0.001) > 0.3
         for: 5m
         labels:
           severity: warning

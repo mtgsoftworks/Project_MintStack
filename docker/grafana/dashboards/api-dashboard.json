@@ -116,7 +116,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[1m]))",
+          "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[1m])) or vector(0)",
           "legendFormat": "5xx/s",
           "refId": "D"
         }
@@ -212,8 +212,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))",
-          "legendFormat": "p50",
+          "expr": "sum(rate(http_server_requests_seconds_sum[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 0.001)",
+          "legendFormat": "avg",
           "refId": "A"
         },
         {
@@ -221,8 +221,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.90, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))",
-          "legendFormat": "p90",
+          "expr": "max(http_server_requests_seconds_max)",
+          "legendFormat": "max",
           "refId": "B"
         },
         {
@@ -230,8 +230,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))",
-          "legendFormat": "p95",
+          "expr": "max(http_server_requests_seconds_max)",
+          "legendFormat": "max",
           "refId": "C"
         },
         {
@@ -239,12 +239,12 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))",
-          "legendFormat": "p99",
+          "expr": "max(http_server_requests_seconds_max)",
+          "legendFormat": "max",
           "refId": "D"
         }
       ],
-      "title": "Response Time Percentiles",
+      "title": "Response Time Summary",
       "type": "timeseries"
     },
     {
@@ -392,7 +392,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count[5m]))",
+          "expr": "(sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 0.001)",
           "legendFormat": "Error Rate",
           "refId": "A"
         }
@@ -457,12 +457,12 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) * 1000",
-          "legendFormat": "p95 Latency",
+          "expr": "max(http_server_requests_seconds_max) * 1000",
+          "legendFormat": "Max Latency",
           "refId": "A"
         }
       ],
-      "title": "P95 Latency",
+      "title": "Max Latency",
       "type": "stat"
     },
     {

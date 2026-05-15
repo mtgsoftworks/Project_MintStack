@@ -151,6 +151,8 @@ class MarketDataServiceTest {
         lenient().when(instrumentRepository.findBySymbol(anyString())).thenReturn(Optional.empty());
         lenient().when(userDataPreferenceRepository.findFirstByDataTypeAndIsEnabledTrueOrderByUpdatedAtDesc(any()))
             .thenReturn(Optional.empty());
+        lenient().when(currencyRateRepository.findPreviousRatesByRateDate(anyString(), any(), any(), any(), any()))
+            .thenReturn(List.of());
     }
 
     // ===================== CURRENCY RATE TESTS =====================
@@ -183,6 +185,49 @@ class MarketDataServiceTest {
         assertThat(result.getCurrencyCode()).isEqualTo("USD");
         assertThat(result.getCurrencyName()).isEqualTo("US Dollar");
         assertThat(result.getBuyingRate()).isEqualTo(new BigDecimal("32.50"));
+    }
+
+    @Test
+    @DisplayName("getCurrencyRate should fallback missing effective rates to forex rates")
+    void getCurrencyRate_ShouldFallbackMissingEffectiveRates() {
+        eurRate.setEffectiveBuyingRate(BigDecimal.ZERO);
+        eurRate.setEffectiveSellingRate(BigDecimal.ZERO);
+        when(currencyRateRepository.findTopByCurrencyCodeAndSourceOrderByFetchedAtDesc("EUR", RateSource.TCMB))
+                .thenReturn(Optional.of(eurRate));
+
+        CurrencyRateResponse result = marketDataService.getCurrencyRate("EUR");
+
+        assertThat(result.getEffectiveBuyingRate()).isEqualTo(new BigDecimal("35.20"));
+        assertThat(result.getEffectiveSellingRate()).isEqualTo(new BigDecimal("35.50"));
+    }
+
+    @Test
+    @DisplayName("getCurrencyRate should calculate change from previous distinct rate date")
+    void getCurrencyRate_ShouldCalculateChangeFromPreviousRateDate() {
+        LocalDateTime currentRateDate = LocalDateTime.of(2026, 5, 15, 0, 0);
+        LocalDateTime previousRateDate = LocalDateTime.of(2026, 5, 14, 0, 0);
+        usdRate.setRateDate(currentRateDate);
+        usdRate.setSellingRate(new BigDecimal("33.00"));
+
+        CurrencyRate previousRate = CurrencyRate.builder()
+                .currencyCode("USD")
+                .currencyName("US Dollar")
+                .buyingRate(new BigDecimal("31.80"))
+                .sellingRate(new BigDecimal("32.00"))
+                .source(RateSource.TCMB)
+                .fetchedAt(previousRateDate.plusHours(10))
+                .rateDate(previousRateDate)
+                .build();
+
+        when(currencyRateRepository.findTopByCurrencyCodeAndSourceOrderByFetchedAtDesc("USD", RateSource.TCMB))
+                .thenReturn(Optional.of(usdRate));
+        when(currencyRateRepository.findPreviousRatesByRateDate(
+                eq("USD"), eq(RateSource.TCMB), eq(currentRateDate), eq(BigDecimal.ZERO), any(Pageable.class)))
+                .thenReturn(List.of(previousRate));
+
+        CurrencyRateResponse result = marketDataService.getCurrencyRate("USD");
+
+        assertThat(result.getChangePercent()).isEqualByComparingTo(new BigDecimal("3.125000"));
     }
 
     @Test

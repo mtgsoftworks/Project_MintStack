@@ -32,6 +32,15 @@ function CurrencyTableSkeleton() {
   )
 }
 
+function getDisplayRate(primaryRate, fallbackRate) {
+  const primary = Number(primaryRate)
+  if (Number.isFinite(primary) && primary > 0) {
+    return primaryRate
+  }
+  const fallback = Number(fallbackRate)
+  return Number.isFinite(fallback) && fallback > 0 ? fallbackRate : null
+}
+
 export default function CurrencyPage() {
   const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
@@ -255,10 +264,10 @@ export default function CurrencyPage() {
                         {formatNumber(currency.sellingRate, 4)}
                       </TableCell>
                       <TableCell className="text-right">
-                        {currency.effectiveBuyingRate ? formatNumber(currency.effectiveBuyingRate, 4) : '-'}
+                        {formatNumber(getDisplayRate(currency.effectiveBuyingRate, currency.buyingRate), 4)}
                       </TableCell>
                       <TableCell className="text-right">
-                        {currency.effectiveSellingRate ? formatNumber(currency.effectiveSellingRate, 4) : '-'}
+                        {formatNumber(getDisplayRate(currency.effectiveSellingRate, currency.sellingRate), 4)}
                       </TableCell>
                       <TableCell className="text-right">
                         <Badge variant={currency.changePercent >= 0 ? 'success' : 'danger'}>

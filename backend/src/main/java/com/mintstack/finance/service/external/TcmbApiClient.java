@@ -141,19 +141,27 @@ public class TcmbApiClient {
                 String forexSelling = getElementText(currency, "ForexSelling");
                 String banknoteBuying = getElementText(currency, "BanknoteBuying");
                 String banknoteSelling = getElementText(currency, "BanknoteSelling");
+                BigDecimal buyingRate = parsePositiveBigDecimal(forexBuying);
+                BigDecimal sellingRate = parsePositiveBigDecimal(forexSelling);
                 
                 // Skip if no rates available
-                if (forexBuying == null || forexBuying.isEmpty()) {
+                if (buyingRate == null) {
                     continue;
                 }
+                if (sellingRate == null) {
+                    sellingRate = buyingRate;
+                }
+
+                BigDecimal effectiveBuyingRate = parsePositiveBigDecimal(banknoteBuying);
+                BigDecimal effectiveSellingRate = parsePositiveBigDecimal(banknoteSelling);
                 
                 CurrencyRate rate = CurrencyRate.builder()
                     .currencyCode(currencyCode)
                     .currencyName(currencyName)
-                    .buyingRate(parseBigDecimal(forexBuying))
-                    .sellingRate(parseBigDecimal(forexSelling))
-                    .effectiveBuyingRate(parseBigDecimal(banknoteBuying))
-                    .effectiveSellingRate(parseBigDecimal(banknoteSelling))
+                    .buyingRate(buyingRate)
+                    .sellingRate(sellingRate)
+                    .effectiveBuyingRate(effectiveBuyingRate != null ? effectiveBuyingRate : buyingRate)
+                    .effectiveSellingRate(effectiveSellingRate != null ? effectiveSellingRate : sellingRate)
                     .source(RateSource.TCMB)
                     .fetchedAt(fetchedAt)
                     .rateDate(rateDate.atStartOfDay())
@@ -179,14 +187,15 @@ public class TcmbApiClient {
         return null;
     }
 
-    private BigDecimal parseBigDecimal(String value) {
-        if (value == null || value.isEmpty()) {
-            return BigDecimal.ZERO;
+    private BigDecimal parsePositiveBigDecimal(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
         }
         try {
-            return new BigDecimal(value.replace(",", "."));
+            BigDecimal parsed = new BigDecimal(value.trim().replace(",", "."));
+            return parsed.compareTo(BigDecimal.ZERO) > 0 ? parsed : null;
         } catch (NumberFormatException e) {
-            return BigDecimal.ZERO;
+            return null;
         }
     }
 }

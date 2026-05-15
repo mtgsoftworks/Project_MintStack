@@ -1,10 +1,8 @@
 # Alertmanager Configuration for MintStack Finance Portal
-global:
-  smtp_smarthost: 'smtp.gmail.com:587'
-  smtp_from: 'alertmanager@mintstack.com'
-  smtp_auth_username: ''
-  smtp_auth_password: ''
-  smtp_require_tls: true
+#
+# Development/demo profile is webhook-only. Do not enable email receivers here
+# unless SMTP credentials are also supplied; otherwise Alertmanager retries Gmail
+# forever and pollutes the runtime logs with authentication failures.
 
 # Route tree
 route:
@@ -47,18 +45,13 @@ receivers:
         send_resolved: true
 
   - name: 'critical-receiver'
-    email_configs:
-      - to: 'ops-team@mintstack.com'
-        send_resolved: true
-        headers:
-          subject: '[CRITICAL] MintStack Alert: {{ .GroupLabels.alertname }}'
     webhook_configs:
       - url: 'http://backend:8080/api/v1/admin/webhooks/alerts'
         send_resolved: true
 
   - name: 'warning-receiver'
-    email_configs:
-      - to: 'dev-team@mintstack.com'
+    webhook_configs:
+      - url: 'http://backend:8080/api/v1/admin/webhooks/alerts'
         send_resolved: true
 
 # Inhibition rules - prevent notification floods
