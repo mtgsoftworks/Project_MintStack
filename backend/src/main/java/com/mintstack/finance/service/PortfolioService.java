@@ -246,8 +246,10 @@ public class PortfolioService {
         PortfolioTransaction.OrderType orderType = request.getOrderType() != null
             ? request.getOrderType()
             : PortfolioTransaction.OrderType.MARKET;
+        BigDecimal referencePrice = resolveOrderReferencePrice(orderType, request, instrument);
 
         validateOrderRequest(orderType, request);
+        validateTradeCapacity(portfolio, instrument, request, referencePrice);
 
         PortfolioTransaction order = PortfolioTransaction.builder()
             .portfolio(portfolio)
@@ -257,7 +259,7 @@ public class PortfolioService {
             .orderStatus(PortfolioTransaction.OrderStatus.PENDING)
             .quantity(request.getQuantity())
             .filledQuantity(BigDecimal.ZERO)
-            .price(resolveOrderReferencePrice(orderType, request, instrument))
+            .price(referencePrice)
             .limitPrice(request.getLimitPrice())
             .stopPrice(request.getStopPrice())
             .commissionAmount(BigDecimal.ZERO)
@@ -506,6 +508,37 @@ public class PortfolioService {
         }
         if (orderType == PortfolioTransaction.OrderType.STOP && firstPositive(request.getStopPrice(), request.getPrice()) == null) {
             throw new BadRequestException("Stop emir icin stop fiyat zorunludur");
+        }
+    }
+
+    private void validateTradeCapacity(
+            Portfolio portfolio,
+            Instrument instrument,
+            ExecutePortfolioTradeRequest request,
+            BigDecimal referencePrice) {
+        if (referencePrice == null || referencePrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException("Islem fiyati bulunamadi");
+        }
+
+        BigDecimal quantity = request.getQuantity();
+        if (request.getTransactionType() == PortfolioTransaction.TransactionType.BUY) {
+            BigDecimal grossTotal = referencePrice.multiply(quantity);
+            BigDecimal commissionAmount = financialRulesService.calculateCommission(portfolio, instrument, grossTotal);
+            financialRulesService.ensureSufficientCash(portfolio, grossTotal.add(commissionAmount));
+            return;
+        }
+
+        BigDecimal availableQuantity = portfolioItemRepository
+            .findByPortfolioIdAndInstrumentIdOrderByPurchaseDateAsc(portfolio.getId(), instrument.getId())
+            .stream()
+            .map(PortfolioItem::getQuantity)
+            .map(this::safe)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (availableQuantity.compareTo(quantity) < 0) {
+            throw new BadRequestException(
+                "Yetersiz pozisyon bakiyesi. Gerekli: " + quantity.stripTrailingZeros().toPlainString()
+                    + ", Mevcut: " + availableQuantity.stripTrailingZeros().toPlainString()
+            );
         }
     }
 

@@ -10,6 +10,7 @@ import com.mintstack.finance.entity.Portfolio;
 import com.mintstack.finance.entity.PortfolioItem;
 import com.mintstack.finance.entity.PortfolioTransaction;
 import com.mintstack.finance.entity.User;
+import com.mintstack.finance.exception.BadRequestException;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PortfolioItemRepository;
@@ -43,6 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -435,6 +437,67 @@ class PortfolioServiceTest {
             .isEqualTo(PortfolioTransaction.OrderType.MARKET);
         assertThat(transaction.getOrderStatus())
             .isEqualTo(PortfolioTransaction.OrderStatus.FILLED);
+    }
+
+    @Test
+    void executeTrade_ShouldRejectBuy_WhenCashIsInsufficient() {
+        UUID portfolioId = testPortfolio.getId();
+        testPortfolio.setCashBalance(new BigDecimal("50.000000"));
+        ExecutePortfolioTradeRequest request = ExecutePortfolioTradeRequest.builder()
+            .instrumentSymbol(testInstrument.getSymbol())
+            .transactionType(PortfolioTransaction.TransactionType.BUY)
+            .orderType(PortfolioTransaction.OrderType.MARKET)
+            .quantity(BigDecimal.ONE)
+            .price(BigDecimal.valueOf(100))
+            .transactionDate(LocalDate.now())
+            .build();
+
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
+        when(portfolioRepository.findByIdAndUserId(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(instrumentRepository.findBySymbol(testInstrument.getSymbol()))
+            .thenReturn(Optional.of(testInstrument));
+
+        assertThatThrownBy(() -> portfolioService.executeTrade(keycloakId, portfolioId, request))
+            .isInstanceOf(BadRequestException.class)
+            .hasMessageContaining("Yetersiz nakit bakiye");
+
+        verify(portfolioTransactionRepository, never()).save(any(PortfolioTransaction.class));
+        verify(portfolioItemRepository, never()).save(any(PortfolioItem.class));
+    }
+
+    @Test
+    void executeTrade_ShouldRejectSell_WhenQuantityExceedsHoldings() {
+        UUID portfolioId = testPortfolio.getId();
+        PortfolioItem availableLot = PortfolioItem.builder()
+            .portfolio(testPortfolio)
+            .instrument(testInstrument)
+            .quantity(BigDecimal.valueOf(2))
+            .purchasePrice(BigDecimal.valueOf(90))
+            .purchaseDate(LocalDate.now().minusDays(1))
+            .build();
+        ExecutePortfolioTradeRequest request = ExecutePortfolioTradeRequest.builder()
+            .instrumentSymbol(testInstrument.getSymbol())
+            .transactionType(PortfolioTransaction.TransactionType.SELL)
+            .orderType(PortfolioTransaction.OrderType.MARKET)
+            .quantity(BigDecimal.valueOf(5))
+            .price(BigDecimal.valueOf(100))
+            .transactionDate(LocalDate.now())
+            .build();
+
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
+        when(portfolioRepository.findByIdAndUserId(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(instrumentRepository.findBySymbol(testInstrument.getSymbol()))
+            .thenReturn(Optional.of(testInstrument));
+        when(portfolioItemRepository.findByPortfolioIdAndInstrumentIdOrderByPurchaseDateAsc(portfolioId, testInstrument.getId()))
+            .thenReturn(List.of(availableLot));
+
+        assertThatThrownBy(() -> portfolioService.executeTrade(keycloakId, portfolioId, request))
+            .isInstanceOf(BadRequestException.class)
+            .hasMessageContaining("Yetersiz pozisyon bakiyesi");
+
+        verify(portfolioTransactionRepository, never()).save(any(PortfolioTransaction.class));
     }
 
     @Test
