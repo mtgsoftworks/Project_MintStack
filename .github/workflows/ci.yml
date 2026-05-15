@@ -59,12 +59,17 @@ jobs:
           SPRING_PROFILES_ACTIVE: test
 
       - name: Validate Flyway migrations
-        run: >
-          ./mvnw -B -ntp org.flywaydb:flyway-maven-plugin:10.17.0:validate
-          -Dflyway.url=jdbc:postgresql://localhost:5432/testdb
-          -Dflyway.user=testuser
-          -Dflyway.password=testpass
-          -Dflyway.locations=filesystem:src/main/resources/db/migration
+        run: |
+          ./mvnw -B -ntp org.flywaydb:flyway-maven-plugin:10.17.0:migrate \
+            -Dflyway.url=jdbc:postgresql://localhost:5432/testdb \
+            -Dflyway.user=testuser \
+            -Dflyway.password=testpass \
+            -Dflyway.locations=filesystem:src/main/resources/db/migration
+          ./mvnw -B -ntp org.flywaydb:flyway-maven-plugin:10.17.0:validate \
+            -Dflyway.url=jdbc:postgresql://localhost:5432/testdb \
+            -Dflyway.user=testuser \
+            -Dflyway.password=testpass \
+            -Dflyway.locations=filesystem:src/main/resources/db/migration
 
       - name: Upload backend test reports
         if: always()
