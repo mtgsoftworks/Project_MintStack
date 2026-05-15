@@ -41,6 +41,14 @@ export const settingsApi = baseApi.injectEndpoints({
             }),
             invalidatesTags: ['Currencies', 'Stocks', 'Bonds', 'Funds', 'Viop', 'Indices', 'Simulation', 'News', 'NewsCategories'],
         }),
+        backfillMarketData: builder.mutation({
+            query: (data) => ({
+                url: '/settings/market-data/backfill',
+                method: 'POST',
+                body: data,
+            }),
+            invalidatesTags: ['Currencies', 'Stocks', 'Bonds', 'Funds', 'Viop', 'Indices'],
+        }),
         // Data Source endpoints
         getDataSourceCapabilities: builder.query({
             query: () => '/data-sources/capabilities',
@@ -75,6 +83,7 @@ export const {
     useDeleteApiConfigMutation,
     useClearCacheMutation,
     useDeleteMarketDataMutation,
+    useBackfillMarketDataMutation,
     useGetDataSourceCapabilitiesQuery,
     useGetDataPreferencesQuery,
     useSetDataPreferenceMutation,

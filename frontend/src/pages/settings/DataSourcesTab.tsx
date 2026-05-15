@@ -6,6 +6,8 @@ import {
     CardTitle
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
     Select,
@@ -16,19 +18,124 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import RefreshButton from '@/components/common/RefreshButton'
-import { Database, Key, Zap } from 'lucide-react'
+import { Database, History, Key, Zap } from 'lucide-react'
 import { DATA_SOURCE_TYPES } from './providerInfo'
+
+const BACKFILL_TYPES = [
+    { value: 'STOCK', label: 'Hisse' },
+    { value: 'FUND', label: 'Fon' },
+    { value: 'CURRENCY', label: 'Doviz' },
+    { value: 'INDEX', label: 'Endeks' },
+    { value: 'BOND', label: 'Tahvil/Bono' },
+    { value: 'VIOP', label: 'VIOP' },
+]
 
 export function DataSourcesTab({
     t,
     apiConfigs,
     preferencesData,
     isRefreshing,
+    isAdmin,
+    backfillForm,
+    isBackfillingMarketData,
     getProviderLabel,
     onSelectDataPreference,
     onRefreshData,
-    onOpenApiKeysTab
+    onOpenApiKeysTab,
+    onBackfillFormChange,
+    onToggleBackfillType,
+    onBackfillMarketData
 }) {
+    const hasApiConfigs = Boolean(apiConfigs?.length)
+    const renderBackfillPanel = () => {
+        if (!isAdmin) {
+            return null
+        }
+
+        return (
+            <div className="mt-6 rounded-xl border border-dashed bg-muted/20 p-4">
+                <div className="mb-4 flex items-start gap-3">
+                    <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                        <History className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold">Gecmis Veri Backfill</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Yahoo hisse/endeks, TEFAS fon ve TCMB doviz gecmisini price_history tablosuna yazar. Tahvil/VIOP icin kaynak yoksa sentetik seri kullanilir.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                        <Label>Donem</Label>
+                        <Select
+                            value={backfillForm.days}
+                            onValueChange={(value) => onBackfillFormChange('days', value)}
+                        >
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="7">7 Gun</SelectItem>
+                                <SelectItem value="30">1 Ay</SelectItem>
+                                <SelectItem value="90">3 Ay</SelectItem>
+                                <SelectItem value="365">1 Yil</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Enstruman Limiti</Label>
+                        <Input
+                            type="number"
+                            min="1"
+                            max="500"
+                            value={backfillForm.maxInstruments}
+                            onChange={(event) => onBackfillFormChange('maxInstruments', event.target.value)}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Opsiyonel Semboller</Label>
+                        <Input
+                            value={backfillForm.symbols}
+                            onChange={(event) => onBackfillFormChange('symbols', event.target.value)}
+                            placeholder="THYAO,ASELS,USDTRY"
+                        />
+                    </div>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {BACKFILL_TYPES.map((type) => (
+                        <label key={type.value} className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm">
+                            <Checkbox
+                                checked={backfillForm.instrumentTypes.includes(type.value)}
+                                onCheckedChange={(checked) => onToggleBackfillType(type.value, Boolean(checked))}
+                            />
+                            {type.label}
+                        </label>
+                    ))}
+                </div>
+
+                <label className="mt-4 flex items-center gap-2 text-sm">
+                    <Checkbox
+                        checked={backfillForm.includeSyntheticFallback}
+                        onCheckedChange={(checked) => onBackfillFormChange('includeSyntheticFallback', Boolean(checked))}
+                    />
+                    Kaynak eksikse sentetik fallback ile grafik/analiz bos kalmasin
+                </label>
+
+                <div className="mt-4 flex justify-end">
+                    <Button
+                        onClick={onBackfillMarketData}
+                        disabled={isBackfillingMarketData}
+                    >
+                        {isBackfillingMarketData ? 'Backfill calisiyor...' : 'Gecmis Veriyi Doldur'}
+                    </Button>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -41,7 +148,7 @@ export function DataSourcesTab({
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                {!apiConfigs || apiConfigs.length === 0 ? (
+                {!hasApiConfigs ? (
                     <div className="text-center p-8 border-2 border-dashed rounded-lg text-muted-foreground">
                         <Key className="h-10 w-10 mx-auto mb-3 opacity-50" />
                         <p className="mb-2">{t('settings.dataSources.noApiKeys', { defaultValue: 'Once API anahtari ekleyin' })}</p>
@@ -115,6 +222,7 @@ export function DataSourcesTab({
                         </div>
                     </div>
                 )}
+                {renderBackfillPanel()}
             </CardContent>
         </Card>
     )

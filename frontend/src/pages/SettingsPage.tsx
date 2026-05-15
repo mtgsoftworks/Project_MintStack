@@ -101,10 +101,16 @@ export default function SettingsPage() {
                         apiConfigs={apiDataSourceSettings.apiConfigs}
                         preferencesData={apiDataSourceSettings.preferencesData}
                         isRefreshing={apiDataSourceSettings.isRefreshingDataSources}
+                        isAdmin={isAdmin}
+                        backfillForm={apiDataSourceSettings.backfillForm}
+                        isBackfillingMarketData={apiDataSourceSettings.isBackfillingMarketData}
                         getProviderLabel={getProviderLabel}
                         onSelectDataPreference={apiDataSourceSettings.handleSelectDataPreference}
                         onRefreshData={apiDataSourceSettings.handleRefreshDataSources}
                         onOpenApiKeysTab={() => apiDataSourceSettings.handleOpenDialog(null)}
+                        onBackfillFormChange={apiDataSourceSettings.handleBackfillFormChange}
+                        onToggleBackfillType={apiDataSourceSettings.handleToggleBackfillType}
+                        onBackfillMarketData={apiDataSourceSettings.handleBackfillMarketData}
                     />
                 </TabsContent>
 

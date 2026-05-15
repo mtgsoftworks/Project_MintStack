@@ -9,6 +9,7 @@ import {
     useGetAlertsQuery
 } from '@/store/api/alertsApi'
 import { getApiErrorMessage } from '@/pages/settings/getApiErrorMessage'
+import { useInstrumentOptions } from '@/hooks/useInstrumentOptions'
 
 const ALERT_TYPES = [
     { value: 'PRICE_ABOVE', labelKey: 'alerts.priceAbove', icon: TrendingUp },
@@ -23,6 +24,7 @@ export default function AlertsPage() {
     const [createAlert, { isLoading: creating }] = useCreateAlertMutation()
     const [deleteAlert, { isLoading: deleting }] = useDeleteAlertMutation()
     const [deactivateAlert, { isLoading: deactivating }] = useDeactivateAlertMutation()
+    const { instrumentOptions, isFetching: instrumentsFetching } = useInstrumentOptions()
 
     const [showCreateModal, setShowCreateModal] = useState(false)
     const [newAlert, setNewAlert] = useState({
@@ -236,11 +238,22 @@ export default function AlertsPage() {
                                 </label>
                                 <input
                                     type="text"
+                                    list="alert-symbol-options"
                                     value={newAlert.symbol}
-                                    onChange={(event) => setNewAlert({ ...newAlert, symbol: event.target.value })}
-                                    placeholder={t('alertsPage.placeholders.symbol')}
+                                    onChange={(event) => setNewAlert({ ...newAlert, symbol: event.target.value.toUpperCase() })}
+                                    placeholder={instrumentsFetching ? 'Semboller yukleniyor...' : t('alertsPage.placeholders.symbol')}
                                     className="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground placeholder:text-muted-foreground"
                                 />
+                                <datalist id="alert-symbol-options">
+                                    {instrumentOptions.map((instrument) => (
+                                        <option key={instrument.symbol} value={instrument.symbol}>
+                                            {`${instrument.name} (${instrument.type})`}
+                                        </option>
+                                    ))}
+                                </datalist>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    Hisse, tahvil/bono, fon, VIOP ve doviz sembolleri sirali listeden secilebilir.
+                                </p>
                             </div>
 
                             <div>

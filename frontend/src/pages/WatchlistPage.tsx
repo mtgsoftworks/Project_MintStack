@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, Star, TrendingUp, TrendingDown, AlertTriangle, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import {
+    useAddWatchlistInstrumentMutation,
     useCreateWatchlistMutation,
     useDeleteWatchlistMutation,
     useGetWatchlistQuery,
@@ -10,12 +11,14 @@ import {
     useRemoveWatchlistInstrumentMutation
 } from '@/store/api/watchlistApi'
 import { getApiErrorMessage } from '@/pages/settings/getApiErrorMessage'
+import { useInstrumentOptions } from '@/hooks/useInstrumentOptions'
 
 export default function WatchlistPage() {
     const { t } = useTranslation()
     const [selectedWatchlistId, setSelectedWatchlistId] = useState(null)
     const [showCreateModal, setShowCreateModal] = useState(false)
     const [newWatchlistName, setNewWatchlistName] = useState('')
+    const [newInstrumentSymbol, setNewInstrumentSymbol] = useState('')
 
     const {
         data: watchlists = [],
@@ -35,9 +38,11 @@ export default function WatchlistPage() {
 
     const [createWatchlist, { isLoading: creating }] = useCreateWatchlistMutation()
     const [deleteWatchlist, { isLoading: deleting }] = useDeleteWatchlistMutation()
+    const [addWatchlistInstrument, { isLoading: addingItem }] = useAddWatchlistInstrumentMutation()
     const [removeWatchlistInstrument, { isLoading: removingItem }] = useRemoveWatchlistInstrumentMutation()
+    const { instrumentOptions, isFetching: instrumentsFetching } = useInstrumentOptions()
 
-    const mutating = creating || deleting || removingItem
+    const mutating = creating || deleting || addingItem || removingItem
     const watchlistsErrorMessage = watchlistsError ? getApiErrorMessage(watchlistsError, t('common.error')) : null
     const watchlistDetailErrorMessage = watchlistDetailError ? getApiErrorMessage(watchlistDetailError, t('common.error')) : null
 
@@ -86,6 +91,41 @@ export default function WatchlistPage() {
         } catch (error) {
             toast.error(getApiErrorMessage(error, t('common.error')))
         }
+    }
+
+    const handleAddItem = async () => {
+        const symbol = newInstrumentSymbol.trim().toUpperCase()
+        if (!selectedWatchlistId || !symbol) {
+            toast.error('Once izleme listesi ve sembol secin')
+            return
+        }
+
+        try {
+            await addWatchlistInstrument({ watchlistId: selectedWatchlistId, symbol }).unwrap()
+            setNewInstrumentSymbol('')
+            toast.success('Varlik izleme listesine eklendi')
+        } catch (error) {
+            toast.error(getApiErrorMessage(error, t('common.error')))
+        }
+    }
+
+    const getChangePercent = (item) => {
+        if (typeof item.changePercent === 'number') {
+            return item.changePercent
+        }
+
+        const currentPrice = Number(item.currentPrice)
+        const previousClose = Number(item.previousClose)
+        if (!Number.isFinite(currentPrice) || !Number.isFinite(previousClose) || previousClose === 0) {
+            return null
+        }
+
+        return ((currentPrice - previousClose) / previousClose) * 100
+    }
+
+    const formatPrice = (price) => {
+        const numericPrice = Number(price)
+        return Number.isFinite(numericPrice) ? `TRY ${numericPrice.toLocaleString('tr-TR')}` : '-'
     }
 
     if (watchlistsLoading) {
@@ -161,15 +201,49 @@ export default function WatchlistPage() {
                 <div className="lg:col-span-3">
                     {selectedWatchlist ? (
                         <div className="rounded-xl border border-border bg-card shadow-sm">
-                            <div className="flex items-center justify-between p-4 border-b">
-                                <h2 className="font-semibold text-foreground">{selectedWatchlist.name}</h2>
-                                <button
-                                    onClick={() => handleDeleteWatchlist(selectedWatchlist.id)}
-                                    disabled={mutating}
-                                    className="text-red-500 hover:text-red-600 disabled:opacity-50"
-                                >
-                                    <Trash2 className="w-5 h-5" />
-                                </button>
+                            <div className="flex flex-col gap-4 p-4 border-b xl:flex-row xl:items-center xl:justify-between">
+                                <div>
+                                    <h2 className="font-semibold text-foreground">{selectedWatchlist.name}</h2>
+                                    <p className="text-sm text-muted-foreground">
+                                        Listedeki varliklari takip edin, yeni sembol ekleyin veya gereksiz olanlari kaldirin.
+                                    </p>
+                                </div>
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                    <div className="min-w-[260px]">
+                                        <input
+                                            type="text"
+                                            list="watchlist-symbol-options"
+                                            value={newInstrumentSymbol}
+                                            onChange={(event) => setNewInstrumentSymbol(event.target.value.toUpperCase())}
+                                            placeholder={instrumentsFetching ? 'Semboller yukleniyor...' : 'Sembol secin veya yazin'}
+                                            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+                                            disabled={addingItem}
+                                        />
+                                        <datalist id="watchlist-symbol-options">
+                                            {instrumentOptions.map((instrument) => (
+                                                <option key={instrument.symbol} value={instrument.symbol}>
+                                                    {`${instrument.name} (${instrument.type})`}
+                                                </option>
+                                            ))}
+                                        </datalist>
+                                    </div>
+                                    <button
+                                        onClick={handleAddItem}
+                                        disabled={mutating || !newInstrumentSymbol.trim()}
+                                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 disabled:opacity-50"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        Varlik Ekle
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteWatchlist(selectedWatchlist.id)}
+                                        disabled={mutating}
+                                        className="inline-flex items-center justify-center rounded-lg border border-red-200 px-3 py-2 text-red-500 hover:bg-red-50 disabled:opacity-50 dark:border-red-900/60 dark:hover:bg-red-950/30"
+                                        title="Izleme listesini sil"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full">
@@ -182,7 +256,14 @@ export default function WatchlistPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y">
-                                        {selectedWatchlist.items?.map((item) => (
+                                        {selectedWatchlist.items?.map((item) => {
+                                            const changePercent = getChangePercent(item)
+                                            const isPositive = changePercent != null && changePercent >= 0
+                                            const changeClass = changePercent == null
+                                                ? 'text-muted-foreground'
+                                                : isPositive ? 'text-green-600' : 'text-red-600'
+
+                                            return (
                                             <tr key={item.id} className="hover:bg-muted/40">
                                                 <td className="px-4 py-3">
                                                     <div>
@@ -191,16 +272,23 @@ export default function WatchlistPage() {
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 font-medium">
-                                                    TRY {item.currentPrice?.toLocaleString('tr-TR')}
+                                                    {formatPrice(item.currentPrice)}
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <div className={`flex items-center gap-1 ${item.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                        {item.changePercent >= 0 ? (
-                                                            <TrendingUp className="w-4 h-4" />
+                                                    <div className={`flex items-center gap-1 ${changeClass}`}>
+                                                        {changePercent == null ? (
+                                                            <span>-</span>
+                                                        ) : isPositive ? (
+                                                            <>
+                                                                <TrendingUp className="w-4 h-4" />
+                                                                <span>%{changePercent.toFixed(2)}</span>
+                                                            </>
                                                         ) : (
-                                                            <TrendingDown className="w-4 h-4" />
+                                                            <>
+                                                                <TrendingDown className="w-4 h-4" />
+                                                                <span>%{changePercent.toFixed(2)}</span>
+                                                            </>
                                                         )}
-                                                        <span>%{item.changePercent?.toFixed(2)}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
@@ -213,11 +301,15 @@ export default function WatchlistPage() {
                                                     </button>
                                                 </td>
                                             </tr>
-                                        ))}
+                                            )
+                                        })}
                                         {(!selectedWatchlist.items || selectedWatchlist.items.length === 0) && (
                                             <tr>
                                                 <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
-                                                    {t('watchlist.empty')}
+                                                    <div className="space-y-2">
+                                                        <p>{t('watchlist.empty')}</p>
+                                                        <p className="text-sm">Yukaridaki sembol alanindan ilk varligi ekleyin.</p>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         )}

@@ -32,7 +32,18 @@ vi.mock('@/store/api/watchlistApi', () => ({
   })),
   useCreateWatchlistMutation: vi.fn(() => [vi.fn(), { isLoading: false }]),
   useDeleteWatchlistMutation: vi.fn(() => [vi.fn(), { isLoading: false }]),
+  useAddWatchlistInstrumentMutation: vi.fn(() => [vi.fn(), { isLoading: false }]),
   useRemoveWatchlistInstrumentMutation: vi.fn(() => [vi.fn(), { isLoading: false }]),
+}))
+
+vi.mock('@/hooks/useInstrumentOptions', () => ({
+  useInstrumentOptions: vi.fn(() => ({
+    instrumentOptions: [
+      { symbol: 'AAPL', name: 'Apple Inc.', type: 'STOCK' },
+      { symbol: 'TRBOND', name: 'Tahvil Test', type: 'BOND' },
+    ],
+    isFetching: false,
+  })),
 }))
 
 describe('WatchlistPage', () => {

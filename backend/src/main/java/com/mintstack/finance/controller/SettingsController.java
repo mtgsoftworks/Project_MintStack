@@ -1,14 +1,17 @@
 package com.mintstack.finance.controller;
 
 import com.mintstack.finance.dto.request.ApiConfigRequest;
+import com.mintstack.finance.dto.request.HistoricalDataBackfillRequest;
 import com.mintstack.finance.dto.response.ApiConfigResponse;
 import com.mintstack.finance.dto.response.ApiResponse;
+import com.mintstack.finance.dto.response.HistoricalDataBackfillResponse;
 import com.mintstack.finance.entity.User;
 import com.mintstack.finance.entity.UserApiConfig;
 import com.mintstack.finance.service.ApiKeyValidationService;
 import com.mintstack.finance.service.MarketDataService;
 import com.mintstack.finance.service.SettingsService;
 import com.mintstack.finance.service.UserService;
+import com.mintstack.finance.service.market.HistoricalDataBackfillService;
 import com.mintstack.finance.service.simulation.SimulationDataService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -41,6 +44,7 @@ public class SettingsController {
     private final CacheManager cacheManager;
     private final MarketDataService marketDataService;
     private final SimulationDataService simulationDataService;
+    private final HistoricalDataBackfillService historicalDataBackfillService;
 
     @GetMapping("/api-keys")
     @Operation(summary = "Kullanıcının API anahtarlarını listele")
@@ -175,5 +179,17 @@ public class SettingsController {
         }
         
         return ResponseEntity.ok(ApiResponse.success(result, "Tüm piyasa verileri silindi"));
+    }
+
+    @PostMapping("/market-data/backfill")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Gecmis piyasa verisi backfill baslat")
+    public ResponseEntity<ApiResponse<HistoricalDataBackfillResponse>> backfillHistoricalMarketData(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody HistoricalDataBackfillRequest request) {
+
+        log.info("User {} requested historical market data backfill", jwt.getSubject());
+        HistoricalDataBackfillResponse result = historicalDataBackfillService.backfill(request);
+        return ResponseEntity.ok(ApiResponse.success(result, "Gecmis veri backfill tamamlandi"));
     }
 }

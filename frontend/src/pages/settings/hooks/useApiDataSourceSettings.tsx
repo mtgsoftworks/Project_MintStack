@@ -8,7 +8,8 @@ import {
     useGetDataSourceCapabilitiesQuery,
     useGetDataPreferencesQuery,
     useSetDataPreferenceMutation,
-    useTriggerDataFetchMutation
+    useTriggerDataFetchMutation,
+    useBackfillMarketDataMutation
 } from '@/store/api/settingsApi'
 import { getApiErrorMessage } from '@/pages/settings/getApiErrorMessage'
 
@@ -19,6 +20,14 @@ const DEFAULT_FORM_DATA = {
     modelName: '',
     baseUrl: '',
     isActive: true
+}
+
+const DEFAULT_BACKFILL_FORM = {
+    days: '30',
+    maxInstruments: '100',
+    instrumentTypes: ['STOCK', 'FUND', 'CURRENCY'],
+    symbols: '',
+    includeSyntheticFallback: true
 }
 
 const KEYLESS_PROVIDERS = new Set(['TCMB', 'TEFAS', 'RSS', 'YAHOO_FINANCE'])
@@ -83,6 +92,7 @@ export function useApiDataSourceSettings({ t }) {
     const [testApiKey, { isLoading: isTesting }] = useTestApiKeyMutation()
     const [triggerDataFetch] = useTriggerDataFetchMutation()
     const [setDataPreference] = useSetDataPreferenceMutation()
+    const [backfillMarketData, { isLoading: isBackfillingMarketData }] = useBackfillMarketDataMutation()
 
     const { data: capabilitiesData } = useGetDataSourceCapabilitiesQuery()
     const { data: preferencesData, refetch: refetchPreferences } = useGetDataPreferencesQuery()
@@ -92,6 +102,7 @@ export function useApiDataSourceSettings({ t }) {
     const [isValidated, setIsValidated] = useState(false)
     const [isRefreshingDataSources, setIsRefreshingDataSources] = useState(false)
     const [formData, setFormData] = useState(DEFAULT_FORM_DATA)
+    const [backfillForm, setBackfillForm] = useState(DEFAULT_BACKFILL_FORM)
 
     const apiConfigs = configsData?.data || []
 
@@ -286,6 +297,54 @@ export function useApiDataSourceSettings({ t }) {
         }
     }
 
+    const handleBackfillFormChange = (field, value) => {
+        setBackfillForm((previous) => ({
+            ...previous,
+            [field]: value
+        }))
+    }
+
+    const handleToggleBackfillType = (type, checked) => {
+        setBackfillForm((previous) => {
+            const current = new Set(previous.instrumentTypes)
+            if (checked) {
+                current.add(type)
+            } else {
+                current.delete(type)
+            }
+            return {
+                ...previous,
+                instrumentTypes: [...current]
+            }
+        })
+    }
+
+    const handleBackfillMarketData = async () => {
+        if (backfillForm.instrumentTypes.length === 0) {
+            toast.error('En az bir enstruman tipi secin')
+            return
+        }
+
+        const payload = {
+            days: Number(backfillForm.days),
+            maxInstruments: Number(backfillForm.maxInstruments),
+            instrumentTypes: backfillForm.instrumentTypes,
+            includeSyntheticFallback: backfillForm.includeSyntheticFallback,
+            symbols: backfillForm.symbols
+                .split(',')
+                .map((symbol) => symbol.trim().toUpperCase())
+                .filter(Boolean)
+        }
+
+        try {
+            const result = await backfillMarketData(payload).unwrap()
+            const savedRows = (result.data?.savedPriceRows || 0) + (result.data?.savedCurrencyRows || 0)
+            toast.success(`Gecmis veri yazildi: ${savedRows} kayit`)
+        } catch (error) {
+            toast.error(getApiErrorMessage(error, 'Gecmis veri backfill basarisiz oldu'))
+        }
+    }
+
     return {
         apiConfigs,
         providerCapabilities: capabilitiesData?.data || {},
@@ -296,8 +355,10 @@ export function useApiDataSourceSettings({ t }) {
         isDialogOpen,
         editingConfig,
         formData,
+        backfillForm,
         isValidated,
         isRefreshingDataSources,
+        isBackfillingMarketData,
         handleOpenDialog,
         handleDialogOpenChange,
         handleFormFieldChange,
@@ -305,6 +366,9 @@ export function useApiDataSourceSettings({ t }) {
         handleAddSubmit,
         handleDelete,
         handleSelectDataPreference,
-        handleRefreshDataSources
+        handleRefreshDataSources,
+        handleBackfillFormChange,
+        handleToggleBackfillType,
+        handleBackfillMarketData
     }
 }

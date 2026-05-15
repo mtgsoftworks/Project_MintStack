@@ -5,12 +5,14 @@ import com.mintstack.finance.config.CorsProperties;
 import com.mintstack.finance.config.RateLimitConfig;
 import com.mintstack.finance.config.SecurityConfig;
 import com.mintstack.finance.dto.request.ApiConfigRequest;
+import com.mintstack.finance.dto.response.HistoricalDataBackfillResponse;
 import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
 import com.mintstack.finance.dto.response.ApiConfigResponse;
 import com.mintstack.finance.entity.User;
 import com.mintstack.finance.service.SettingsService;
 import com.mintstack.finance.service.UserService;
 import com.mintstack.finance.service.MarketDataService;
+import com.mintstack.finance.service.market.HistoricalDataBackfillService;
 import com.mintstack.finance.service.simulation.SimulationDataService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,6 +68,9 @@ class SettingsControllerTest {
 
     @MockitoBean
     private SimulationDataService simulationDataService;
+
+    @MockitoBean
+    private HistoricalDataBackfillService historicalDataBackfillService;
 
     @MockitoBean
     private CacheManager cacheManager;
@@ -229,5 +235,52 @@ class SettingsControllerTest {
                     .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void backfillHistoricalMarketData_ShouldReturnForbidden_WhenNotAdmin() throws Exception {
+        mockMvc.perform(post("/api/v1/settings/market-data/backfill")
+                .with(jwt()
+                    .jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID))
+                    .authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "days": 7,
+                      "instrumentTypes": ["STOCK"]
+                    }
+                    """))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void backfillHistoricalMarketData_ShouldReturnSuccess_WhenAdmin() throws Exception {
+        when(historicalDataBackfillService.backfill(any())).thenReturn(new HistoricalDataBackfillResponse(
+            LocalDate.of(2026, 5, 1),
+            LocalDate.of(2026, 5, 7),
+            7,
+            2,
+            14,
+            0,
+            0,
+            List.of(),
+            Map.of("STOCK", 14)
+        ));
+
+        mockMvc.perform(post("/api/v1/settings/market-data/backfill")
+                .with(jwt()
+                    .jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID))
+                    .authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "days": 7,
+                      "instrumentTypes": ["STOCK"],
+                      "maxInstruments": 2
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.savedPriceRows").value(14));
     }
 }

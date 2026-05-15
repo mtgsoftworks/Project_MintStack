@@ -1,0 +1,402 @@
+package com.mintstack.finance.service.market;
+
+import com.mintstack.finance.dto.request.HistoricalDataBackfillRequest;
+import com.mintstack.finance.dto.response.HistoricalDataBackfillResponse;
+import com.mintstack.finance.entity.CurrencyRate;
+import com.mintstack.finance.entity.Instrument;
+import com.mintstack.finance.entity.Instrument.InstrumentType;
+import com.mintstack.finance.entity.PriceHistory;
+import com.mintstack.finance.repository.InstrumentRepository;
+import com.mintstack.finance.service.MarketDataService;
+import com.mintstack.finance.service.external.TcmbApiClient;
+import com.mintstack.finance.service.external.TefasFundClient;
+import com.mintstack.finance.service.external.TefasFundClient.TefasFundPrice;
+import com.mintstack.finance.service.external.YahooFinanceClient;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class HistoricalDataBackfillService {
+
+    private static final int DEFAULT_DAYS = 30;
+    private static final int DEFAULT_MAX_INSTRUMENTS = 100;
+    private static final int MAX_DAYS = 365;
+
+    private final InstrumentRepository instrumentRepository;
+    private final MarketDataService marketDataService;
+    private final YahooFinanceClient yahooFinanceClient;
+    private final TefasFundClient tefasFundClient;
+    private final TcmbApiClient tcmbApiClient;
+
+    public HistoricalDataBackfillResponse backfill(HistoricalDataBackfillRequest request) {
+        BackfillWindow window = resolveWindow(request);
+        Set<InstrumentType> requestedTypes = resolveTypes(request);
+        Set<String> requestedSymbols = normalizeSymbols(request.getSymbols());
+        boolean includeSyntheticFallback = request.getIncludeSyntheticFallback() == null
+            || Boolean.TRUE.equals(request.getIncludeSyntheticFallback());
+        int maxInstruments = resolveMaxInstruments(request.getMaxInstruments());
+
+        BackfillStats stats = new BackfillStats(window.startDate(), window.endDate(), window.days());
+
+        if (requestedTypes.contains(InstrumentType.CURRENCY)) {
+            backfillCurrencies(window, stats, requestedSymbols);
+        }
+
+        for (InstrumentType type : requestedTypes) {
+            if (type == InstrumentType.CURRENCY) {
+                continue;
+            }
+            List<Instrument> instruments = resolveInstruments(type, requestedSymbols, maxInstruments);
+            if (type == InstrumentType.FUND) {
+                stats.processedInstruments += instruments.size();
+                int savedRows = backfillFunds(instruments, window, stats);
+                stats.rowsByType.merge(type.name(), savedRows, Integer::sum);
+                continue;
+            }
+            for (Instrument instrument : instruments) {
+                stats.processedInstruments++;
+                int savedRows = backfillInstrument(instrument, window, includeSyntheticFallback, stats);
+                stats.rowsByType.merge(type.name(), savedRows, Integer::sum);
+                if (savedRows == 0) {
+                    stats.skippedInstruments++;
+                }
+            }
+        }
+
+        return stats.toResponse();
+    }
+
+    private int backfillInstrument(
+            Instrument instrument,
+            BackfillWindow window,
+            boolean includeSyntheticFallback,
+            BackfillStats stats) {
+        try {
+            if (instrument.getType() == InstrumentType.STOCK || instrument.getType() == InstrumentType.INDEX) {
+                List<PriceHistory> history = yahooFinanceClient.fetchHistoricalData(
+                    instrument.getSymbol(),
+                    window.startDate(),
+                    window.endDate().plusDays(1),
+                    null,
+                    null
+                );
+                return saveHistory(history);
+            }
+
+            if (includeSyntheticFallback && isSyntheticSupported(instrument.getType())) {
+                stats.warnings.add(instrument.getSymbol() + " icin dis tarihsel kaynak yok; sentetik seri yazildi.");
+                return saveHistory(generateSyntheticHistory(instrument, window));
+            }
+
+            stats.warnings.add(instrument.getSymbol() + " icin tarihsel kaynak desteklenmiyor.");
+            return 0;
+        } catch (Exception error) {
+            log.warn("Historical backfill failed for {}: {}", instrument.getSymbol(), error.getMessage());
+            if (includeSyntheticFallback && instrument.getCurrentPrice() != null) {
+                stats.warnings.add(instrument.getSymbol() + " kaynak hatasi sonrasi sentetik seri yazildi.");
+                return saveHistory(generateSyntheticHistory(instrument, window));
+            }
+            stats.warnings.add(instrument.getSymbol() + " atlandi: " + error.getMessage());
+            return 0;
+        }
+    }
+
+    private int backfillFunds(List<Instrument> instruments, BackfillWindow window, BackfillStats stats) {
+        if (instruments.isEmpty()) {
+            return 0;
+        }
+
+        Map<String, Instrument> selectedFunds = instruments.stream()
+            .collect(Collectors.toMap(
+                instrument -> normalizeSymbol(instrument.getSymbol()),
+                instrument -> instrument,
+                (left, right) -> left,
+                LinkedHashMap::new
+            ));
+        Map<String, Integer> savedBySymbol = new LinkedHashMap<>();
+        int saved = 0;
+
+        for (LocalDate date = window.startDate(); !date.isAfter(window.endDate()); date = date.plusDays(1)) {
+            if (isWeekend(date)) {
+                continue;
+            }
+
+            List<TefasFundPrice> prices = tefasFundClient.fetchFundPrices(date);
+            for (TefasFundPrice price : prices) {
+                Instrument instrument = selectedFunds.get(normalizeSymbol(price.fundCode()));
+                if (instrument == null) {
+                    continue;
+                }
+                upsertFundPrice(instrument, price);
+                saved++;
+                savedBySymbol.merge(instrument.getSymbol(), 1, Integer::sum);
+            }
+        }
+
+        for (Instrument instrument : instruments) {
+            if (!savedBySymbol.containsKey(instrument.getSymbol())) {
+                stats.skippedInstruments++;
+                stats.warnings.add(instrument.getSymbol() + " icin TEFAS tarihsel veri bulunamadi.");
+            }
+        }
+        return saved;
+    }
+
+    private void backfillCurrencies(BackfillWindow window, BackfillStats stats, Set<String> requestedSymbols) {
+        int saved = 0;
+        Set<String> processedCodes = new LinkedHashSet<>();
+        for (LocalDate date = window.startDate(); !date.isAfter(window.endDate()); date = date.plusDays(1)) {
+            if (isWeekend(date)) {
+                continue;
+            }
+
+            try {
+                LocalDate queryDate = date;
+                List<CurrencyRate> rates = tcmbApiClient.fetchRates(queryDate).stream()
+                    .filter(rate -> rate.getRateDate() != null && rate.getRateDate().toLocalDate().equals(queryDate))
+                    .filter(rate -> isCurrencyRequested(rate, requestedSymbols))
+                    .toList();
+                if (rates.isEmpty()) {
+                    stats.warnings.add("TCMB " + date + " icin veri donmedi.");
+                    continue;
+                }
+                rates.forEach(rate -> processedCodes.add(normalizeSymbol(rate.getCurrencyCode())));
+                marketDataService.saveCurrencyRates(rates);
+                saved += rates.size();
+            } catch (Exception error) {
+                log.warn("TCMB backfill failed for {}: {}", date, error.getMessage());
+                stats.warnings.add("TCMB " + date + " atlandi: " + error.getMessage());
+            }
+        }
+        stats.processedInstruments += processedCodes.size();
+        stats.savedCurrencyRows += saved;
+        stats.rowsByType.merge(InstrumentType.CURRENCY.name(), saved, Integer::sum);
+    }
+
+    private boolean isCurrencyRequested(CurrencyRate rate, Set<String> requestedSymbols) {
+        if (requestedSymbols.isEmpty()) {
+            return true;
+        }
+
+        String code = normalizeSymbol(rate.getCurrencyCode());
+        return requestedSymbols.contains(code)
+            || requestedSymbols.contains(code + "TRY")
+            || requestedSymbols.contains(code + "/TRY");
+    }
+
+    private int saveHistory(List<PriceHistory> history) {
+        if (history == null || history.isEmpty()) {
+            return 0;
+        }
+        int saved = 0;
+        for (PriceHistory item : history) {
+            if (item.getInstrument() == null || item.getPriceDate() == null || item.getClosePrice() == null) {
+                continue;
+            }
+            marketDataService.savePriceHistory(item);
+            saved++;
+        }
+        return saved;
+    }
+
+    private List<PriceHistory> generateSyntheticHistory(Instrument instrument, BackfillWindow window) {
+        BigDecimal basePrice = firstPositive(
+            instrument.getCurrentPrice(),
+            instrument.getPreviousClose(),
+            new BigDecimal("100")
+        );
+        int seed = Math.abs(instrument.getSymbol() != null ? instrument.getSymbol().hashCode() : 31);
+        List<PriceHistory> history = new ArrayList<>();
+        long totalDays = Math.max(1, ChronoUnit.DAYS.between(window.startDate(), window.endDate()) + 1);
+
+        for (LocalDate date = window.startDate(); !date.isAfter(window.endDate()); date = date.plusDays(1)) {
+            long index = ChronoUnit.DAYS.between(window.startDate(), date);
+            BigDecimal drift = BigDecimal.valueOf((index - totalDays / 2.0) / totalDays)
+                .multiply(new BigDecimal("0.0125"));
+            BigDecimal wave = BigDecimal.valueOf(Math.sin((seed % 17 + index) / 3.0))
+                .multiply(new BigDecimal("0.0180"));
+            BigDecimal multiplier = BigDecimal.ONE.add(drift).add(wave);
+            BigDecimal close = basePrice.multiply(multiplier).max(new BigDecimal("0.000001")).setScale(6, RoundingMode.HALF_UP);
+            BigDecimal open = close.multiply(new BigDecimal("0.9975")).setScale(6, RoundingMode.HALF_UP);
+            BigDecimal high = close.max(open).multiply(new BigDecimal("1.0060")).setScale(6, RoundingMode.HALF_UP);
+            BigDecimal low = close.min(open).multiply(new BigDecimal("0.9940")).setScale(6, RoundingMode.HALF_UP);
+            long volume = 25_000L + (seed % 90_000L) + (index * 137L);
+
+            history.add(PriceHistory.builder()
+                .instrument(instrument)
+                .priceDate(date)
+                .openPrice(open)
+                .highPrice(high)
+                .lowPrice(low)
+                .closePrice(close)
+                .adjustedClose(close)
+                .volume(volume)
+                .build());
+        }
+        return history;
+    }
+
+    private List<Instrument> resolveInstruments(InstrumentType type, Set<String> requestedSymbols, int maxInstruments) {
+        List<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulatedOrderBySymbolAsc(type, false);
+        if (!requestedSymbols.isEmpty()) {
+            instruments = instruments.stream()
+                .filter(instrument -> requestedSymbols.contains(normalizeSymbol(instrument.getSymbol())))
+                .toList();
+        }
+        return instruments.stream()
+            .limit(maxInstruments)
+            .toList();
+    }
+
+    private Set<InstrumentType> resolveTypes(HistoricalDataBackfillRequest request) {
+        if (request.getInstrumentTypes() == null || request.getInstrumentTypes().isEmpty()) {
+            return Set.of(InstrumentType.STOCK, InstrumentType.FUND, InstrumentType.CURRENCY);
+        }
+        return request.getInstrumentTypes().stream()
+            .filter(type -> type != null && type != InstrumentType.CRYPTO)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private Set<String> normalizeSymbols(List<String> symbols) {
+        if (symbols == null || symbols.isEmpty()) {
+            return Set.of();
+        }
+        return symbols.stream()
+            .map(this::normalizeSymbol)
+            .filter(symbol -> !symbol.isBlank())
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private String normalizeSymbol(String symbol) {
+        return symbol == null ? "" : symbol.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private BackfillWindow resolveWindow(HistoricalDataBackfillRequest request) {
+        LocalDate endDate = request.getEndDate() != null ? request.getEndDate() : LocalDate.now();
+        LocalDate startDate = request.getStartDate();
+        int requestedDays = request.getDays() != null ? Math.min(request.getDays(), MAX_DAYS) : DEFAULT_DAYS;
+        if (startDate == null) {
+            startDate = endDate.minusDays(requestedDays - 1L);
+        }
+        if (startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("Baslangic tarihi bitis tarihinden sonra olamaz");
+        }
+
+        long days = ChronoUnit.DAYS.between(startDate, endDate) + 1L;
+        if (days > MAX_DAYS) {
+            throw new IllegalArgumentException("Tarih araligi en fazla " + MAX_DAYS + " gun olabilir");
+        }
+        return new BackfillWindow(startDate, endDate, (int) days);
+    }
+
+    private int resolveMaxInstruments(Integer maxInstruments) {
+        if (maxInstruments == null) {
+            return DEFAULT_MAX_INSTRUMENTS;
+        }
+        return Math.max(1, Math.min(500, maxInstruments));
+    }
+
+    private boolean isSyntheticSupported(InstrumentType type) {
+        return type == InstrumentType.BOND || type == InstrumentType.VIOP || type == InstrumentType.COMMODITY;
+    }
+
+    private boolean isWeekend(LocalDate date) {
+        DayOfWeek day = date.getDayOfWeek();
+        return day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY;
+    }
+
+    private void upsertFundPrice(Instrument instrument, TefasFundPrice fundPrice) {
+        instrument.setName(fundPrice.fundName());
+        instrument.setType(InstrumentType.FUND);
+        instrument.setExchange("TEFAS");
+        instrument.setCurrency("TRY");
+        instrument.setIsActive(true);
+        instrument.setIsSimulated(false);
+        instrument.setPreviousClose(instrument.getCurrentPrice());
+        instrument.setCurrentPrice(fundPrice.price());
+        Instrument saved = instrumentRepository.save(instrument);
+
+        PriceHistory history = PriceHistory.builder()
+            .instrument(saved)
+            .priceDate(fundPrice.date())
+            .openPrice(firstPositive(fundPrice.exchangeBulletinPrice(), fundPrice.price()))
+            .highPrice(fundPrice.price())
+            .lowPrice(fundPrice.price())
+            .closePrice(fundPrice.price())
+            .adjustedClose(fundPrice.price())
+            .volume(toLong(fundPrice.sharesOutstanding()))
+            .build();
+        marketDataService.savePriceHistory(history);
+    }
+
+    private BigDecimal firstPositive(BigDecimal... values) {
+        for (BigDecimal value : values) {
+            if (value != null && value.signum() > 0) {
+                return value;
+            }
+        }
+        return BigDecimal.ONE;
+    }
+
+    private Long toLong(BigDecimal value) {
+        if (value == null || value.signum() < 0 || value.compareTo(new BigDecimal(Long.MAX_VALUE)) > 0) {
+            return null;
+        }
+        return value.longValue();
+    }
+
+    private record BackfillWindow(LocalDate startDate, LocalDate endDate, int days) {
+    }
+
+    private static class BackfillStats {
+        private final LocalDate startDate;
+        private final LocalDate endDate;
+        private final int days;
+        private int processedInstruments;
+        private int savedCurrencyRows;
+        private int skippedInstruments;
+        private final List<String> warnings = new ArrayList<>();
+        private final Map<String, Integer> rowsByType = new LinkedHashMap<>();
+
+        BackfillStats(LocalDate startDate, LocalDate endDate, int days) {
+            this.startDate = startDate;
+            this.endDate = endDate;
+            this.days = days;
+        }
+
+        HistoricalDataBackfillResponse toResponse() {
+            int savedPriceRows = rowsByType.entrySet().stream()
+                .filter(entry -> !InstrumentType.CURRENCY.name().equals(entry.getKey()))
+                .mapToInt(Map.Entry::getValue)
+                .sum();
+            return new HistoricalDataBackfillResponse(
+                startDate,
+                endDate,
+                days,
+                processedInstruments,
+                savedPriceRows,
+                savedCurrencyRows,
+                skippedInstruments,
+                List.copyOf(warnings),
+                Map.copyOf(rowsByType)
+            );
+        }
+    }
+}

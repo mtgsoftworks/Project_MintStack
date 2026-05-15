@@ -24,6 +24,16 @@ vi.mock('@/store/api/alertsApi', () => ({
   useDeactivateAlertMutation: vi.fn(() => [vi.fn(), { isLoading: false }]),
 }))
 
+vi.mock('@/hooks/useInstrumentOptions', () => ({
+  useInstrumentOptions: vi.fn(() => ({
+    instrumentOptions: [
+      { symbol: 'AAPL', name: 'Apple Inc.', type: 'STOCK' },
+      { symbol: 'TRBOND', name: 'Tahvil Test', type: 'BOND' },
+    ],
+    isFetching: false,
+  })),
+}))
+
 describe('AlertsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
