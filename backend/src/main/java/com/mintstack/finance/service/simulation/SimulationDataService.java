@@ -189,7 +189,6 @@ public class SimulationDataService {
         simulateViop(volatility, trend, intervalSeconds, eventMultiplier);
         simulateCurrencies(volatility, intervalSeconds);
         simulateIndices(volatility, trend, intervalSeconds, eventMultiplier);
-        simulateCryptos(volatility, trend, intervalSeconds, randomEvents);
         if (newsFeedProperties.isSimulationNewsEnabled()) {
             maybeGenerateSimulationHeadline(intervalSeconds);
         }

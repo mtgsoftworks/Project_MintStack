@@ -333,7 +333,6 @@ public class MarketDataService {
         }
         return type == InstrumentType.BOND
             || type == InstrumentType.VIOP
-            || type == InstrumentType.CRYPTO
             || type == InstrumentType.INDEX;
     }
 

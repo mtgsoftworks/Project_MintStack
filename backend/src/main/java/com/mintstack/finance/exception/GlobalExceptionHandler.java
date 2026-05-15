@@ -19,6 +19,7 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -368,6 +369,23 @@ public class GlobalExceptionHandler {
             .path(request.getDescription(false).replace("uri=", ""))
             .build();
             
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(ApiResponse.error(error));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNoResourceFound(
+            NoResourceFoundException ex, WebRequest request) {
+        log.warn("No resource found: {}", request.getDescription(false));
+
+        ErrorResponse error = ErrorResponse.builder()
+            .timestamp(LocalDateTime.now())
+            .status(HttpStatus.NOT_FOUND.value())
+            .error("Not Found")
+            .message("Istenen kaynak bulunamadi")
+            .path(request.getDescription(false).replace("uri=", ""))
+            .build();
+
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
             .body(ApiResponse.error(error));
     }

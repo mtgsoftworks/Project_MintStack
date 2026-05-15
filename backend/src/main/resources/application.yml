@@ -388,8 +388,6 @@ app:
     viop-prices-cron: "${APP_SCHEDULER_VIOP_PRICES_CRON:*/30 * * * * *}"
     # Non-TCMB Forex: Every 5 minutes (API rate limits apply)
     forex-rates-cron: "${APP_SCHEDULER_FOREX_RATES_CRON:0 */5 * * * MON-FRI}"
-    # Crypto: Every minute (24/7 markets)
-    crypto-prices-cron: "${APP_SCHEDULER_CRYPTO_PRICES_CRON:0 * * * * *}"
     # Instrument fetch count per scheduler cycle and per instrument type.
     instrument-batch-size: ${APP_SCHEDULER_INSTRUMENT_BATCH_SIZE:5}
     # News: Every 15 minutes

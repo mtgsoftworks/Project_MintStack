@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import RefreshButton from '@/components/common/RefreshButton'
+import PortfolioQuickTradeCell from '@/components/market/PortfolioQuickTradeCell'
 import {
   Select,
   SelectContent,
@@ -26,6 +27,7 @@ import {
 import { isSimulatedMarketData } from '@/lib/simulationData'
 import { cn, formatCurrency, formatPercent, formatDate } from '@/lib/utils'
 import { useGetViopQuery } from '@/store/api/marketApi'
+import { useDefaultPortfolioSelection } from '@/hooks/useDefaultPortfolioSelection'
 
 function ViopTableSkeleton() {
   return (
@@ -42,6 +44,7 @@ export default function ViopPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
+  const { portfolios, selectedPortfolioId, setSelectedPortfolioId } = useDefaultPortfolioSelection()
   const { data, isLoading, isFetching, refetch } = useGetViopQuery({
     page,
     size: pageSize,
@@ -72,6 +75,19 @@ export default function ViopPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {portfolios.length > 0 && (
+            <select
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              value={selectedPortfolioId}
+              onChange={(event) => setSelectedPortfolioId(event.target.value)}
+            >
+              {portfolios.map((portfolio) => (
+                <option key={portfolio.id} value={portfolio.id}>
+                  {portfolio.name}
+                </option>
+              ))}
+            </select>
+          )}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -123,12 +139,13 @@ export default function ViopPage() {
                   <TableHead className="text-right">{t('viopPage.headers.change')}</TableHead>
                   <TableHead className="text-right">{t('viopPage.headers.volume')}</TableHead>
                   <TableHead className="text-right">{t('viopPage.headers.maturity')}</TableHead>
+                  <TableHead className="text-right">Islem</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredViop.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       {t('viopPage.empty')}
                     </TableCell>
                   </TableRow>
@@ -172,6 +189,9 @@ export default function ViopPage() {
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
                         {contract.maturityDate ? formatDate(contract.maturityDate) : '-'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <PortfolioQuickTradeCell instrument={contract} selectedPortfolioId={selectedPortfolioId} />
                       </TableCell>
                     </TableRow>
                   ))

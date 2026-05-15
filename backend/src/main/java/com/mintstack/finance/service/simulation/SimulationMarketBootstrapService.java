@@ -47,20 +47,18 @@ public class SimulationMarketBootstrapService {
             viopCache,
             currencyCache,
             indexCache,
-            cryptoCache,
             loadedFromRedis
         );
         ensureBist100Alias(indexCache);
 
         log.info(
-            "Simulation market data initialized: {} stocks, {} bonds, {} funds, {} viop, {} currencies, {} indices, {} cryptos (from Redis: {})",
+            "Simulation market data initialized: {} stocks, {} bonds, {} funds, {} viop, {} currencies, {} indices (from Redis: {})",
             stockCache.size(),
             bondCache.size(),
             fundCache.size(),
             viopCache.size(),
             currencyCache.size(),
             indexCache.size(),
-            cryptoCache.size(),
             loadedFromRedis
         );
     }
@@ -72,7 +70,6 @@ public class SimulationMarketBootstrapService {
         Map<String, SimulatedStock> viopCache,
         Map<String, SimulatedCurrency> currencyCache,
         Map<String, SimulatedIndex> indexCache,
-        Map<String, SimulatedCrypto> cryptoCache,
         boolean loadedFromRedis
     ) {
         if (stockCache.isEmpty()) {
@@ -111,11 +108,6 @@ public class SimulationMarketBootstrapService {
             initializeIndices(indexCache);
         }
 
-        if (cryptoCache.isEmpty()) {
-            log.warn("Simulation crypto cache is empty{}; loading defaults",
-                loadedFromRedis ? " after Redis restore" : "");
-            initializeCryptos(cryptoCache);
-        }
     }
 
     private boolean loadFromRedis(

@@ -313,8 +313,7 @@
                     "missing": [
                         "Hisse Senetleri",
                         "Borsa Endeksleri",
-                        "Fonlar",
-                        "Kripto"
+                        "Fonlar"
                     ]
                 }
             }
@@ -374,7 +373,6 @@
         "metrics": {
             "tickCount": "Tick Sayısı",
             "stocks": "Hisseler",
-            "cryptos": "Kripto",
             "activeEvents": "Aktif Olaylar",
             "uptime": "Çalışma Süresi"
         },

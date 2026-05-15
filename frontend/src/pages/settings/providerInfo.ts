@@ -82,10 +82,5 @@ export const DATA_SOURCE_TYPES = [
         type: 'US_STOCKS',
         label: 'ABD Hisseleri',
         providers: ['YAHOO_FINANCE', 'ALPHA_VANTAGE', 'FINNHUB']
-    },
-    {
-        type: 'CRYPTO',
-        label: 'Kripto Paralar',
-        providers: ['YAHOO_FINANCE', 'ALPHA_VANTAGE', 'FINNHUB']
     }
 ]

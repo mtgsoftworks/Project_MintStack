@@ -90,7 +90,6 @@ app:
     tcmb-rates-cron: "0 0 9,12,15 * * MON-FRI"
     stock-prices-cron: "0 */15 9-18 * * MON-FRI"
     forex-rates-cron: "0 */5 * * * MON-FRI"
-    crypto-prices-cron: "0 * * * * *"
     news-fetch-cron: "0 */30 * * * *"
     cleanup-cron: "0 0 2 * * *"
   external-api:

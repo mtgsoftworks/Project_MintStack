@@ -68,18 +68,15 @@ public class DataSourceService {
             DataType.CURRENCY_RATES,
             DataType.BIST_STOCKS,
             DataType.BIST_INDICES,
-            DataType.US_STOCKS,
-            DataType.CRYPTO
+            DataType.US_STOCKS
         ));
         PROVIDER_CAPABILITIES.put(ApiProvider.ALPHA_VANTAGE, Set.of(
             DataType.CURRENCY_RATES,
-            DataType.US_STOCKS,
-            DataType.CRYPTO
+            DataType.US_STOCKS
         ));
         PROVIDER_CAPABILITIES.put(ApiProvider.FINNHUB, Set.of(
             DataType.CURRENCY_RATES,
-            DataType.US_STOCKS,
-            DataType.CRYPTO
+            DataType.US_STOCKS
         ));
         PROVIDER_CAPABILITIES.put(ApiProvider.LLM_ENRICHMENT, Set.of(DataType.NEWS));
 
@@ -88,7 +85,6 @@ public class DataSourceService {
         DATA_TYPE_LABELS.put(DataType.BIST_INDICES, "BIST Endeksleri");
         DATA_TYPE_LABELS.put(DataType.US_STOCKS, "ABD Hisseleri");
         DATA_TYPE_LABELS.put(DataType.FUNDS, "Yatirim Fonlari");
-        DATA_TYPE_LABELS.put(DataType.CRYPTO, "Kripto Paralar");
         DATA_TYPE_LABELS.put(DataType.NEWS, "Haberler");
         DATA_TYPE_LABELS.put(DataType.TECHNICAL_INDICATORS, "Teknik Gostergeler");
         DATA_TYPE_LABELS.put(DataType.GLOSSARY, "Kavram Sozlugu");
@@ -135,6 +131,7 @@ public class DataSourceService {
             .filter(preference -> preference.getDataType() != DataType.NEWS)
             .filter(preference -> preference.getDataType() != DataType.TECHNICAL_INDICATORS)
             .filter(preference -> preference.getDataType() != DataType.GLOSSARY)
+            .filter(preference -> preference.getDataType() != DataType.CRYPTO)
             .map(this::toResponse)
             .toList();
     }
@@ -147,6 +144,9 @@ public class DataSourceService {
 
         if (request.getDataType() == DataType.NEWS) {
             throw new IllegalArgumentException("Haber kaynagi RSS olarak sabittir; secim yapilamaz.");
+        }
+        if (request.getDataType() == DataType.CRYPTO) {
+            throw new IllegalArgumentException("Kripto para veri kaynagi sistemden kaldirildi; secim yapilamaz.");
         }
         if (request.getDataType() == DataType.TECHNICAL_INDICATORS || request.getDataType() == DataType.GLOSSARY) {
             throw new IllegalArgumentException("Bu veri tipi sistem tarafindan uretilir; kullanici kaynak tercihi yapilamaz.");
@@ -269,7 +269,6 @@ public class DataSourceService {
                     case YAHOO_FINANCE, ALPHA_VANTAGE, FINNHUB -> {
                         scheduler.fetchStockPrices();
                         scheduler.fetchNonTcmbForexRates();
-                        scheduler.fetchCryptoPrices();
                     }
                     default -> log.info("No immediate fetch handler for provider: {}", provider);
                 }

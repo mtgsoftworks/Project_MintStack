@@ -62,11 +62,11 @@ class SimulationMarketBootstrapServiceTest {
         assertThat(currencyCache).containsKey("USD");
         assertThat(indexCache).containsKey("XU100");
         assertThat(indexCache).containsKey("XU100.IS");
-        assertThat(cryptoCache).containsKey("BTC-USD");
+        assertThat(cryptoCache).isEmpty();
     }
 
     @Test
-    @DisplayName("initializeCaches should backfill missing stock/index/crypto data when Redis has only currency data")
+    @DisplayName("initializeCaches should backfill missing stock/index data when Redis has only currency data")
     void initializeCaches_ShouldBackfillMissingDatasets_WhenRedisHasOnlyCurrencies() {
         Map<String, SimulatedStock> stockCache = new HashMap<>();
         Map<String, SimulatedStock> bondCache = new HashMap<>();
@@ -108,6 +108,6 @@ class SimulationMarketBootstrapServiceTest {
         assertThat(viopCache).containsKey("XU0300426");
         assertThat(indexCache).containsKey("XU100");
         assertThat(indexCache).containsKey("XU100.IS");
-        assertThat(cryptoCache).containsKey("BTC-USD");
+        assertThat(cryptoCache).isEmpty();
     }
 }

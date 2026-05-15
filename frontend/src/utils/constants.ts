@@ -35,6 +35,5 @@ export const NEWS_CATEGORIES = [
   { slug: 'doviz', name: 'Döviz' },
   { slug: 'tahvil-bono', name: 'Tahvil/Bono' },
   { slug: 'altin', name: 'Altın' },
-  { slug: 'kripto', name: 'Kripto' },
   { slug: 'dunya-ekonomisi', name: 'Dünya Ekonomisi' },
 ]

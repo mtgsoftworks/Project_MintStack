@@ -151,7 +151,7 @@ export function SimulationDebugPanel() {
                 </div>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 <StatusCard 
                     title={t('simulation.metrics.tickCount')} 
                     value={metrics?.tickCount || 0} 
@@ -161,11 +161,6 @@ export function SimulationDebugPanel() {
                     title={t('simulation.metrics.stocks')} 
                     value={metrics?.stocks || 0} 
                     icon={Activity}
-                />
-                <StatusCard 
-                    title={t('simulation.metrics.cryptos')} 
-                    value={metrics?.cryptos || 0} 
-                    icon={Zap}
                 />
                 <StatusCard 
                     title={t('simulation.metrics.activeEvents')} 

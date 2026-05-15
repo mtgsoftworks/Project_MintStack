@@ -311,8 +311,7 @@
                     "missing": [
                         "Stocks",
                         "Indices",
-                        "Funds",
-                        "Crypto"
+                        "Funds"
                     ]
                 }
             }
@@ -372,7 +371,6 @@
         "metrics": {
             "tickCount": "Tick Count",
             "stocks": "Stocks",
-            "cryptos": "Cryptos",
             "activeEvents": "Active Events",
             "uptime": "Uptime"
         },

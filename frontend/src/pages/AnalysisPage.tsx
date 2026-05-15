@@ -19,7 +19,7 @@ import {
   useGetStochasticQuery,
   useGetTrendAnalysisQuery,
 } from '@/store/api/analysisApi'
-import { useGetCryptoQuery, useGetFundsQuery, useGetStocksQuery } from '@/store/api/marketApi'
+import { useGetFundsQuery, useGetStocksQuery } from '@/store/api/marketApi'
 
 const formatNumber = (value, digits = 2) => {
   const numeric = Number(value)
@@ -93,17 +93,10 @@ export default function AnalysisPage() {
     isFetching: fundsFetching,
     refetch: refetchFunds,
   } = useGetFundsQuery({ page: 0, size: 300, sort: 'symbol,asc' })
-  const {
-    data: cryptoResponse,
-    isFetching: cryptoFetching,
-    refetch: refetchCrypto,
-  } = useGetCryptoQuery({ page: 0, size: 300, sort: 'symbol,asc' })
-
   const availableInstruments = useMemo(() => {
     const combined = [
       ...(stocksResponse?.data || []),
       ...(fundsResponse?.data || []),
-      ...(cryptoResponse?.data || []),
     ]
 
     const uniqueBySymbol = new Map()
@@ -120,7 +113,7 @@ export default function AnalysisPage() {
     }
 
     return [...uniqueBySymbol.values()].sort((left, right) => left.symbol.localeCompare(right.symbol))
-  }, [stocksResponse, fundsResponse, cryptoResponse])
+  }, [stocksResponse, fundsResponse])
 
   const availableSymbols = useMemo(
     () => availableInstruments.map((item) => item.symbol),
@@ -264,7 +257,6 @@ export default function AnalysisPage() {
   const isRefreshing =
     stocksFetching
     || fundsFetching
-    || cryptoFetching
     || maFetching
     || trendFetching
     || comparisonFetching
@@ -277,7 +269,6 @@ export default function AnalysisPage() {
   const handleRefreshAll = () => {
     refetchStocks()
     refetchFunds()
-    refetchCrypto()
     refetchMa()
     refetchTrend()
     refetchRsi()

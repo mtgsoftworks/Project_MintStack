@@ -55,16 +55,6 @@ export const marketApi = baseApi.injectEndpoints({
       transformResponse: (response) => response.data,
     }),
 
-    // Crypto
-    getCrypto: builder.query({
-      query: (params = {}) => ({
-        url: '/market/crypto',
-        params,
-      }),
-      transformResponse: (response) => response,
-      providesTags: ['Stocks'],
-    }),
-
     // Bonds
     getBonds: builder.query({
       query: (params = {}) => ({
@@ -130,7 +120,6 @@ export const {
   useGetStocksQuery,
   useGetStockQuery,
   useGetStockHistoryQuery,
-  useGetCryptoQuery,
   useGetBondsQuery,
   useGetBondQuery,
   useGetFundsQuery,

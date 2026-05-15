@@ -37,13 +37,6 @@ export function MarketStatus({ lastUpdate }: any) {
                     {marketOpen ? `Açık (${timeToClose})` : 'Kapalı'}
                 </span>
             </div>
-            
-            <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-gray-600">Kripto:</span>
-                <span className="text-green-600 font-medium">7/24</span>
-            </div>
-            
             {lastUpdate && (
                 <div className="text-gray-500">
                     Son güncelleme: {new Date(lastUpdate).toLocaleTimeString('tr-TR')}

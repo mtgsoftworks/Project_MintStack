@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import RefreshButton from '@/components/common/RefreshButton'
+import PortfolioQuickTradeCell from '@/components/market/PortfolioQuickTradeCell'
 import {
   Select,
   SelectContent,
@@ -26,6 +27,7 @@ import {
 import { isSimulatedMarketData } from '@/lib/simulationData'
 import { formatCurrency, formatPercent } from '@/lib/utils'
 import { useGetFundsQuery } from '@/store/api/marketApi'
+import { useDefaultPortfolioSelection } from '@/hooks/useDefaultPortfolioSelection'
 
 function FundTableSkeleton() {
   return (
@@ -42,6 +44,7 @@ export default function FundsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
+  const { portfolios, selectedPortfolioId, setSelectedPortfolioId } = useDefaultPortfolioSelection()
   const { data, isLoading, isFetching, refetch } = useGetFundsQuery({
     page,
     size: pageSize,
@@ -72,6 +75,19 @@ export default function FundsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {portfolios.length > 0 && (
+            <select
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              value={selectedPortfolioId}
+              onChange={(event) => setSelectedPortfolioId(event.target.value)}
+            >
+              {portfolios.map((portfolio) => (
+                <option key={portfolio.id} value={portfolio.id}>
+                  {portfolio.name}
+                </option>
+              ))}
+            </select>
+          )}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -122,12 +138,13 @@ export default function FundsPage() {
                   <TableHead className="text-right">{t('fundsPage.headers.price')}</TableHead>
                   <TableHead className="text-right">{t('fundsPage.headers.change')}</TableHead>
                   <TableHead className="text-right">{t('fundsPage.headers.totalValue')}</TableHead>
+                  <TableHead className="text-right">Islem</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredFunds.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       {t('fundsPage.empty')}
                     </TableCell>
                   </TableRow>
@@ -160,6 +177,9 @@ export default function FundsPage() {
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
                         {fund.totalValue != null ? formatCurrency(fund.totalValue, 'TRY') : '-'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <PortfolioQuickTradeCell instrument={fund} selectedPortfolioId={selectedPortfolioId} />
                       </TableCell>
                     </TableRow>
                   ))

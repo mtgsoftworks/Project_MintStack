@@ -355,8 +355,10 @@ public class AnalysisService {
         Instrument instrument = resolveInstrumentBySymbol(symbol)
             .orElseThrow(() -> new ResourceNotFoundException("Enstruman", "sembol", symbol));
 
-        BigDecimal currentPrice = Optional.ofNullable(instrument.getCurrentPrice())
-            .orElse(instrument.getPreviousClose());
+        BigDecimal currentPrice = firstPositive(
+            instrument.getCurrentPrice(),
+            instrument.getPreviousClose()
+        );
         if (currentPrice == null || currentPrice.compareTo(BigDecimal.ZERO) <= 0) {
             return List.of();
         }
@@ -412,6 +414,18 @@ public class AnalysisService {
         }
 
         return generated;
+    }
+
+    private BigDecimal firstPositive(BigDecimal... values) {
+        if (values == null) {
+            return null;
+        }
+        for (BigDecimal value : values) {
+            if (value != null && value.compareTo(BigDecimal.ZERO) > 0) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private Optional<Instrument> resolveInstrumentBySymbol(String symbol) {

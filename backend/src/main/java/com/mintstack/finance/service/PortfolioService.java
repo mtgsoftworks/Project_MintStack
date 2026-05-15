@@ -239,6 +239,9 @@ public class PortfolioService {
             .orElseThrow(() -> new ResourceNotFoundException("Portföy", "id", portfolioId));
 
         Instrument instrument = resolveTradeInstrument(request.getInstrumentId(), request.getInstrumentSymbol());
+        if (instrument.getType() == Instrument.InstrumentType.CRYPTO) {
+            throw new BadRequestException("Kripto para islemleri sistemden kaldirildi.");
+        }
         LocalDate transactionDate = request.getTransactionDate() != null ? request.getTransactionDate() : LocalDate.now();
         PortfolioTransaction.OrderType orderType = request.getOrderType() != null
             ? request.getOrderType()

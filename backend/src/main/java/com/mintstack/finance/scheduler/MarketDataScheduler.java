@@ -185,50 +185,6 @@ public class MarketDataScheduler {
         log.info("Non-TCMB forex rates fetch completed.");
     }
 
-    @Observed(name = "scheduler.market-data.crypto", contextualName = "fetch-crypto-prices")
-    @Scheduled(cron = "${app.scheduler.crypto-prices-cron}")
-    public void fetchCryptoPrices() {
-        if (simulationDataService.isSimulationEnabled()) {
-            log.debug("Simulation mode active. Skipping crypto prices fetch.");
-            return;
-        }
-
-        UserApiConfig finnhubConfig = providerResolver.getActiveConfig(ApiProvider.FINNHUB);
-        if (finnhubConfig == null) {
-            log.debug("No crypto provider configured. Skipping crypto prices fetch.");
-            return;
-        }
-
-        log.info("Starting crypto prices fetch job");
-        List<Instrument> cryptoInstruments = instrumentRepository
-            .findByTypeAndIsActiveTrueAndIsSimulated(Instrument.InstrumentType.CRYPTO, false);
-
-        if (cryptoInstruments.isEmpty()) {
-            log.info("No crypto instruments found. Bootstrapping crypto instruments.");
-            bootstrapService.bootstrapCryptoInstruments(finnhubConfig);
-            return;
-        }
-
-        int batchSize = 3;
-        for (int index = 0; index < cryptoInstruments.size(); index += batchSize) {
-            int end = Math.min(index + batchSize, cryptoInstruments.size());
-            List<Instrument> batch = cryptoInstruments.subList(index, end);
-
-            for (Instrument instrument : batch) {
-                try {
-                    BigDecimal price = providerResolver.fetchCryptoPrice(instrument.getSymbol(), finnhubConfig);
-                    if (price != null) {
-                        instrumentUpdateService.updateInstrumentPrice(instrument, price, null);
-                    }
-                } catch (Exception error) {
-                    log.error("Failed to update crypto price for {}: {}", instrument.getSymbol(), error.getMessage());
-                }
-            }
-
-        }
-        log.info("Crypto prices fetch completed.");
-    }
-
     private void broadcastAndPublishCurrencyRate(CurrencyRate rate) {
         priceUpdateService.broadcastCurrencyUpdate(
             rate.getCurrencyCode(),

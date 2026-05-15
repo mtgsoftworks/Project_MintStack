@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import RefreshButton from '@/components/common/RefreshButton'
+import PortfolioQuickTradeCell from '@/components/market/PortfolioQuickTradeCell'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import {
@@ -30,6 +31,7 @@ import { isSimulatedMarketData } from '@/lib/simulationData'
 import { cn, formatCurrency, formatPercent } from '@/lib/utils'
 import { useGetStocksQuery } from '@/store/api/marketApi'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { useDefaultPortfolioSelection } from '@/hooks/useDefaultPortfolioSelection'
 
 function StockTableSkeleton() {
   return (
@@ -42,7 +44,7 @@ function StockTableSkeleton() {
 }
 
 // Virtual scrolling stock row component
-function VirtualStockRow({ stock }) {
+function VirtualStockRow({ stock, selectedPortfolioId }) {
   return (
     <div className="flex items-center px-4 gap-4 h-14 border-b hover:bg-muted/50 transition-colors">
       <div className="w-[180px] flex-shrink-0">
@@ -85,6 +87,9 @@ function VirtualStockRow({ stock }) {
       <div className="w-[100px] text-right text-muted-foreground flex-shrink-0">
         {stock.volume?.toLocaleString('tr-TR') || '-'}
       </div>
+      <div className="w-[230px] flex-shrink-0">
+        <PortfolioQuickTradeCell instrument={stock} selectedPortfolioId={selectedPortfolioId} />
+      </div>
     </div>
   )
 }
@@ -100,6 +105,7 @@ export default function StocksPage() {
   const [pageSize, setPageSize] = useState(50)
   const [useVirtualScroll, setUseVirtualScroll] = useState(false)
   const parentRef = useRef(null)
+  const { portfolios, selectedPortfolioId, setSelectedPortfolioId } = useDefaultPortfolioSelection()
 
   useEffect(() => {
     setSearchQuery(searchParam)
@@ -157,6 +163,19 @@ export default function StocksPage() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          {portfolios.length > 0 && (
+            <select
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              value={selectedPortfolioId}
+              onChange={(event) => setSelectedPortfolioId(event.target.value)}
+            >
+              {portfolios.map((portfolio) => (
+                <option key={portfolio.id} value={portfolio.id}>
+                  {portfolio.name}
+                </option>
+              ))}
+            </select>
+          )}
           {/* Virtual Scroll Toggle */}
           <div className="flex items-center space-x-2">
             <Switch
@@ -261,6 +280,7 @@ export default function StocksPage() {
                 </div>
                 <div className="w-[100px] text-right flex-shrink-0">{t('stocksPage.headers.previousClose')}</div>
                 <div className="w-[100px] text-right flex-shrink-0">{t('stocksPage.headers.volume')}</div>
+                <div className="w-[230px] text-right flex-shrink-0">Islem</div>
               </div>
 
               {/* Virtual List */}
@@ -295,7 +315,7 @@ export default function StocksPage() {
                             transform: `translateY(${virtualRow.start}px)`,
                           }}
                         >
-                          <VirtualStockRow stock={stock} />
+                          <VirtualStockRow stock={stock} selectedPortfolioId={selectedPortfolioId} />
                         </div>
                       )
                     })}
@@ -354,12 +374,13 @@ export default function StocksPage() {
                     </TableHead>
                     <TableHead className="text-right">{t('stocksPage.headers.previousClose')}</TableHead>
                     <TableHead className="text-right">{t('stocksPage.headers.volume')}</TableHead>
+                    <TableHead className="text-right">Islem</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredStocks.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         {t('stocksPage.empty')}
                       </TableCell>
                     </TableRow>
@@ -407,6 +428,9 @@ export default function StocksPage() {
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground">
                           {stock.volume?.toLocaleString('tr-TR') || '-'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <PortfolioQuickTradeCell instrument={stock} selectedPortfolioId={selectedPortfolioId} />
                         </TableCell>
                       </TableRow>
                     ))

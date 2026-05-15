@@ -118,7 +118,6 @@ public class SimulationController {
         status.put("viopCount", simulationDataService.getViop().size());
         status.put("currencyCount", simulationDataService.getCurrencies().size());
         status.put("indexCount", simulationDataService.getIndices().size());
-        status.put("cryptoCount", simulationDataService.getCryptos().size());
         
         return ResponseEntity.ok(ApiResponse.success(status));
     }
@@ -139,7 +138,6 @@ public class SimulationController {
             .stocks(simulationDataService.getStocks().size())
             .currencies(simulationDataService.getCurrencies().size())
             .indices(simulationDataService.getIndices().size())
-            .cryptos(simulationDataService.getCryptos().size())
             .activeEvents(marketEventEngine.getActiveEvents().size())
             .volatilityStats(volatilityStats)
             .cacheHitRatio(priceCacheService.isRedisAvailable() ? 1.0 : 0.0)
@@ -233,28 +231,6 @@ public class SimulationController {
         return ResponseEntity.ok(ApiResponse.success(indices));
     }
 
-    @GetMapping("/cryptos")
-    @Operation(summary = "Simüle edilen kripto paraları getir")
-    public ResponseEntity<ApiResponse<Map<String, CryptoResponse>>> getCryptos() {
-        Map<String, CryptoResponse> cryptos = new HashMap<>();
-        
-        simulationDataService.getCryptos().forEach((symbol, crypto) -> {
-            cryptos.put(symbol, new CryptoResponse(
-                    symbol,
-                    crypto.getName(),
-                    crypto.getCurrentPrice().doubleValue(),
-                    crypto.getPreviousClose().doubleValue(),
-                    crypto.getChangePercent().doubleValue(),
-                    crypto.getHigh24h().doubleValue(),
-                    crypto.getLow24h().doubleValue(),
-                    crypto.getVolume24h(),
-                    crypto.getBaseVolatility()
-            ));
-        });
-        
-        return ResponseEntity.ok(ApiResponse.success(cryptos));
-    }
-    
     @GetMapping("/volatility")
     @Operation(summary = "Volatilite istatistiklerini getir")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getVolatilityStats() {
@@ -386,18 +362,6 @@ public class SimulationController {
             double currentValue,
             double previousClose,
             double changePercent,
-            double baseVolatility
-    ) {}
-
-    public record CryptoResponse(
-            String symbol,
-            String name,
-            double currentPrice,
-            double previousClose,
-            double changePercent24h,
-            double high24h,
-            double low24h,
-            Long volume24h,
             double baseVolatility
     ) {}
 
