@@ -86,7 +86,7 @@ PostgreSQL 15 veritabanı olarak seçildi.
 ### Sonuçlar
 
 - PostgreSQL 15-alpine Docker imajı ile çalıştırılıyor
-- Flyway ile 19+ migrasyon ile şema yönetimi
+- Flyway ile 24 migrasyon ile şema yönetimi
 - JPA/Hibernate ile ORM katmanı
 
 ---

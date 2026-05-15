@@ -1,15 +1,15 @@
-# MintStack Finance Portal - Dağıtım Rehberi
+﻿# MintStack Finance Portal - DaÄŸÄ±tÄ±m Rehberi
 
-Bu doküman, MintStack Finance Portal uygulamasının geliştirme ve üretim ortamlarında nasıl dağıtılacağını açıklar.
+Bu dokÃ¼man, MintStack Finance Portal uygulamasÄ±nÄ±n geliÅŸtirme ve Ã¼retim ortamlarÄ±nda nasÄ±l daÄŸÄ±tÄ±lacaÄŸÄ±nÄ± aÃ§Ä±klar.
 
-## İçindekiler
+## Ä°Ã§indekiler
 
 1. [Gereksinimler](#1-gereksinimler)
-2. [Ortam Değişkenleri](#2-ortam-değişkenleri)
-3. [Development Ortamı](#3-development-ortamı)
-4. [Production Dağıtımı](#4-production-dağıtımı)
+2. [Ortam DeÄŸiÅŸkenleri](#2-ortam-deÄŸiÅŸkenleri)
+3. [Development OrtamÄ±](#3-development-ortamÄ±)
+4. [Production DaÄŸÄ±tÄ±mÄ±](#4-production-daÄŸÄ±tÄ±mÄ±)
 5. [CI/CD Pipeline](#5-cicd-pipeline)
-6. [Yedekleme ve Geri Yükleme](#6-yedekleme-ve-geri-yükleme)
+6. [Yedekleme ve Geri YÃ¼kleme](#6-yedekleme-ve-geri-yÃ¼kleme)
 7. [Monitoring ve Alerting](#7-monitoring-ve-alerting)
 8. [Sorun Giderme](#8-sorun-giderme)
 
@@ -17,7 +17,7 @@ Bu doküman, MintStack Finance Portal uygulamasının geliştirme ve üretim ort
 
 ## 1. Gereksinimler
 
-### Donanım Gereksinimleri
+### DonanÄ±m Gereksinimleri
 
 | Ortam | CPU | RAM | Disk |
 |-------|-----|-----|------|
@@ -25,13 +25,13 @@ Bu doküman, MintStack Finance Portal uygulamasının geliştirme ve üretim ort
 | **Lightweight (docker-compose.light.yml)** | Min. 2 CPU | Min. 4 GB | 10 GB+ |
 | **Production (docker-compose.prod.yml)** | Min. 4 CPU | Min. 8 GB | 50 GB+ |
 
-### Yazılım Gereksinimleri
+### YazÄ±lÄ±m Gereksinimleri
 
 - **Docker** 24+ (Docker Engine)
 - **Docker Compose** v2+ (Compose V2 plugin)
-- **Git** (kaynak kodu çekmek için)
+- **Git** (kaynak kodu Ã§ekmek iÃ§in)
 
-### Kurulum Kontrolü
+### Kurulum KontrolÃ¼
 
 ```bash
 docker --version          # Docker 24+
@@ -40,42 +40,45 @@ docker compose version     # Docker Compose v2+
 
 ---
 
-## 2. Ortam Değişkenleri
+## 2. Ortam DeÄŸiÅŸkenleri
 
-`.env.example` dosyasını `.env` olarak kopyalayın ve değerleri doldurun:
+`.env.example` dosyasÄ±nÄ± `.env` olarak kopyalayÄ±n ve deÄŸerleri doldurun:
 
 ```bash
 cp .env.example .env
 ```
 
-### Ortam Değişkenleri Listesi
+### Ortam DeÄŸiÅŸkenleri Listesi
 
-| Kategori | Değişken | Açıklama |
+| Kategori | DeÄŸiÅŸken | AÃ§Ä±klama |
 |----------|----------|----------|
-| **PostgreSQL** | `POSTGRES_DB` | Veritabanı adı (varsayılan: mintstack_finance) |
-| | `POSTGRES_USER` | Veritabanı kullanıcısı |
-| | `POSTGRES_PASSWORD` | Şifre (üret: `openssl rand -base64 24`) |
-| **Redis** | `REDIS_PASSWORD` | Redis şifresi (üret: `openssl rand -base64 24`) |
-| **Keycloak** | `KEYCLOAK_ADMIN` | Admin kullanıcı adı |
-| | `KEYCLOAK_ADMIN_PASSWORD` | Admin şifresi |
+| **PostgreSQL** | `POSTGRES_DB` | VeritabanÄ± adÄ± (varsayÄ±lan: mintstack_finance) |
+| | `POSTGRES_USER` | VeritabanÄ± kullanÄ±cÄ±sÄ± |
+| | `POSTGRES_PASSWORD` | Åžifre (Ã¼ret: `openssl rand -base64 24`) |
+| **Redis** | `REDIS_PASSWORD` | Redis ÅŸifresi (Ã¼ret: `openssl rand -base64 24`) |
+| **Keycloak** | `KEYCLOAK_ADMIN` | Admin kullanÄ±cÄ± adÄ± |
+| | `KEYCLOAK_ADMIN_PASSWORD` | Admin ÅŸifresi |
 | | `KEYCLOAK_FINANCE_BACKEND_SECRET` | Backend client secret |
-| **OpenLDAP** | `LDAP_ORGANISATION` | Organizasyon adı |
+| **OpenLDAP** | `LDAP_ORGANISATION` | Organizasyon adÄ± |
 | | `LDAP_DOMAIN` | LDAP domain |
-| | `LDAP_ADMIN_PASSWORD` | LDAP admin şifresi |
+| | `LDAP_ADMIN_PASSWORD` | LDAP admin ÅŸifresi |
 | **Kafka** | `KAFKA_CLUSTER_ID` | KRaft cluster ID |
-| | `KAFKA_SASL_PASSWORD` | SASL şifresi |
-| **OpenSearch** | `OPENSEARCH_INITIAL_ADMIN_PASSWORD` | Admin şifresi (min 8 karakter) |
-| **Grafana** | `GRAFANA_ADMIN_PASSWORD` | Grafana admin şifresi |
+| | `KAFKA_SASL_PASSWORD` | SASL ÅŸifresi |
+| **OpenSearch** | `OPENSEARCH_INITIAL_ADMIN_PASSWORD` | Admin ÅŸifresi (min 8 karakter) |
+| **Grafana** | `GRAFANA_ADMIN_PASSWORD` | Grafana admin ÅŸifresi |
 | **Spring Boot** | `SPRING_PROFILES_ACTIVE` | `dev` veya `prod` |
-| | `ALPHA_VANTAGE_API_KEY` | Alpha Vantage API anahtarı |
-| | `FINNHUB_API_KEY` | Finnhub API anahtarı |
+| | `ALPHA_VANTAGE_API_KEY` | Alpha Vantage API anahtarÄ± |
+| | `FINNHUB_API_KEY` | Finnhub API anahtarÄ± |
+| | `APP_EXTERNAL_API_TEFAS_ENABLED` | TEFAS fon adapter anahtarÄ±; API key gerekmez |
+| | `APP_EXTERNAL_API_FINTABLES_ENABLED` | Fintables policy switch; gÃ¼venli varsayÄ±lan `false` |
+| | `APP_NEWS_LLM_*` | RSS haber LLM enrichment endpoint/model/key ayarlarÄ± |
 | **Frontend** | `VITE_API_URL` | API base URL |
 | | `VITE_KEYCLOAK_URL` | Keycloak URL |
 | | `VITE_KEYCLOAK_REALM` | Keycloak realm |
 | | `VITE_KEYCLOAK_CLIENT_ID` | Frontend client ID |
 | | `VITE_WS_URL` | WebSocket URL |
 
-### Örnek .env (Geliştirme)
+### Ã–rnek .env (GeliÅŸtirme)
 
 ```env
 POSTGRES_DB=mintstack_finance
@@ -108,25 +111,25 @@ VITE_KEYCLOAK_CLIENT_ID=finance-frontend
 
 ---
 
-## 3. Development Ortamı
+## 3. Development OrtamÄ±
 
-### 3.1 Full Stack (Tüm Servisler)
+### 3.1 Full Stack (TÃ¼m Servisler)
 
 16 servis: postgres, redis, keycloak, openldap, kafka, opensearch, opensearch-dashboards, logstash, otel-collector, prometheus, grafana, alertmanager, backend, frontend, nginx.
 
 ```bash
-# .env dosyasını hazırlayın
+# .env dosyasÄ±nÄ± hazÄ±rlayÄ±n
 cp .env.example .env
-# .env içindeki değerleri düzenleyin
+# .env iÃ§indeki deÄŸerleri dÃ¼zenleyin
 
-# Tüm servisleri başlat
+# TÃ¼m servisleri baÅŸlat
 docker compose up -d
 
-# Logları izle
+# LoglarÄ± izle
 docker compose logs -f backend
 ```
 
-**Erişim Noktaları:**
+**EriÅŸim NoktalarÄ±:**
 
 | Servis | URL | Port |
 |--------|-----|------|
@@ -141,19 +144,19 @@ docker compose logs -f backend
 
 ### 3.2 Lightweight (Minimal Ortam)
 
-~4 GB RAM yeterli. Kafka, OpenSearch, Logstash, Prometheus, Grafana, Alertmanager, OTEL hariç.
+~4 GB RAM yeterli. Kafka, OpenSearch, Logstash, Prometheus, Grafana, Alertmanager, OTEL hariÃ§.
 
 ```bash
 docker compose -f docker-compose.light.yml up -d
 ```
 
-**Light modda devre dışı özellikler:**
-- Kafka mesajlaşma
+**Light modda devre dÄ±ÅŸÄ± Ã¶zellikler:**
+- Kafka mesajlaÅŸma
 - OpenSearch log aggregation
 - OpenTelemetry tracing
 - Prometheus/Grafana monitoring
 
-**Erişim:** http://localhost:8088
+**EriÅŸim:** http://localhost:8088
 
 ### 3.3 Servisleri Durdurma
 
@@ -164,24 +167,24 @@ docker compose down
 # Light stack
 docker compose -f docker-compose.light.yml down
 
-# Volume'ları da silmek için
+# Volume'larÄ± da silmek iÃ§in
 docker compose down -v
 ```
 
 ---
 
-## 4. Production Dağıtımı
+## 4. Production DaÄŸÄ±tÄ±mÄ±
 
-### 4.1 Ön Hazırlık
+### 4.1 Ã–n HazÄ±rlÄ±k
 
-#### Docker Secrets Oluşturma
+#### Docker Secrets OluÅŸturma
 
-Production ortamında hassas veriler Docker Secrets ile yönetilir. `secrets/` klasöründe aşağıdaki dosyaları oluşturun:
+Production ortamÄ±nda hassas veriler Docker Secrets ile yÃ¶netilir. `secrets/` klasÃ¶rÃ¼nde aÅŸaÄŸÄ±daki dosyalarÄ± oluÅŸturun:
 
 ```bash
 mkdir -p secrets
 
-# Her secret için ayrı dosya (içerik sadece değer, satır sonu yok)
+# Her secret iÃ§in ayrÄ± dosya (iÃ§erik sadece deÄŸer, satÄ±r sonu yok)
 echo -n "your_postgres_password" > secrets/postgres_password.txt
 echo -n "your_redis_password" > secrets/redis_password.txt
 echo -n "your_keycloak_admin_password" > secrets/keycloak_admin_password.txt
@@ -189,21 +192,21 @@ echo -n "your_alpha_vantage_api_key" > secrets/alpha_vantage_key.txt
 echo -n "your_grafana_password" > secrets/grafana_admin_password.txt
 echo -n "your_ldap_password" > secrets/ldap_admin_password.txt
 
-# .gitignore'a ekleyin (zaten ekli olmalı)
+# .gitignore'a ekleyin (zaten ekli olmalÄ±)
 echo "secrets/" >> .gitignore
 ```
 
-#### SSL Sertifikaları
+#### SSL SertifikalarÄ±
 
-Nginx production konfigürasyonu HTTPS kullanır. `nginx/ssl/` klasörüne sertifikaları yerleştirin:
+Nginx production konfigÃ¼rasyonu HTTPS kullanÄ±r. `nginx/ssl/` klasÃ¶rÃ¼ne sertifikalarÄ± yerleÅŸtirin:
 
 ```
 nginx/ssl/
-├── fullchain.pem   # Let's Encrypt veya CA sertifikası
-└── privkey.pem    # Özel anahtar
+â”œâ”€â”€ fullchain.pem   # Let's Encrypt veya CA sertifikasÄ±
+â””â”€â”€ privkey.pem    # Ã–zel anahtar
 ```
 
-Let's Encrypt ile örnek:
+Let's Encrypt ile Ã¶rnek:
 
 ```bash
 # Certbot ile sertifika al
@@ -213,20 +216,20 @@ cp /etc/letsencrypt/live/yourdomain.com/fullchain.pem nginx/ssl/
 cp /etc/letsencrypt/live/yourdomain.com/privkey.pem nginx/ssl/
 ```
 
-### 4.2 Ağ Segmentasyonu
+### 4.2 AÄŸ Segmentasyonu
 
-Production compose dosyası dört ayrı ağ kullanır:
+Production compose dosyasÄ± dÃ¶rt ayrÄ± aÄŸ kullanÄ±r:
 
-| Ağ | Servisler | Açıklama |
+| AÄŸ | Servisler | AÃ§Ä±klama |
 |----|-----------|----------|
-| **data-network** | postgres, redis, opensearch | Veri katmanı (internal) |
-| **app-network** | backend, frontend, nginx | Uygulama katmanı |
-| **auth-network** | keycloak, openldap | Kimlik doğrulama (internal) |
+| **data-network** | postgres, redis, opensearch | Veri katmanÄ± (internal) |
+| **app-network** | backend, frontend, nginx | Uygulama katmanÄ± |
+| **auth-network** | keycloak, openldap | Kimlik doÄŸrulama (internal) |
 | **obs-network** | prometheus, grafana, alertmanager, kafka, logstash, otel-collector | Observability (internal) |
 
-### 4.3 Production Ortam Değişkenleri
+### 4.3 Production Ortam DeÄŸiÅŸkenleri
 
-`.env` dosyasında production değerlerini ayarlayın:
+`.env` dosyasÄ±nda production deÄŸerlerini ayarlayÄ±n:
 
 ```env
 SPRING_PROFILES_ACTIVE=prod
@@ -237,23 +240,23 @@ VITE_WS_URL=wss://yourdomain.com/ws
 VITE_KEYCLOAK_URL=https://yourdomain.com/auth
 ```
 
-### 4.4 Dağıtım
+### 4.4 DaÄŸÄ±tÄ±m
 
 ```bash
-# Production compose ile başlat
+# Production compose ile baÅŸlat
 docker compose -f docker-compose.prod.yml up -d
 
-# Sadece uygulama katmanını güncellemek için
+# Sadece uygulama katmanÄ±nÄ± gÃ¼ncellemek iÃ§in
 docker compose -f docker-compose.prod.yml up -d --build backend frontend nginx
 ```
 
-### 4.5 Production Özellikleri
+### 4.5 Production Ã–zellikleri
 
-- **Backend replicas:** 2 instance (yük dengeleme)
-- **HTTPS:** Nginx 80→443 yönlendirmesi, TLS 1.2/1.3
-- **Güvenlik başlıkları:** HSTS, X-Frame-Options, CSP, vb.
+- **Backend replicas:** 2 instance (yÃ¼k dengeleme)
+- **HTTPS:** Nginx 80â†’443 yÃ¶nlendirmesi, TLS 1.2/1.3
+- **GÃ¼venlik baÅŸlÄ±klarÄ±:** HSTS, X-Frame-Options, CSP, vb.
 - **Rate limiting:** API 30 req/s, login 5 req/s
-- **Swagger/API docs:** Production'da devre dışı (404)
+- **Swagger/API docs:** Production'da devre dÄ±ÅŸÄ± (404)
 
 ---
 
@@ -261,73 +264,57 @@ docker compose -f docker-compose.prod.yml up -d --build backend frontend nginx
 
 ### 5.1 CI Pipeline (`.github/workflows/ci.yml`)
 
-**Tetikleyici:** `main`, `develop` push/PR
+**Tetikleyici:** `main`, `develop` push/PR ve manuel `workflow_dispatch`.
 
-| Job | Açıklama |
+| Job | Aciklama |
 |-----|----------|
-| **backend-test** | JUnit testleri, Flyway migration doğrulama |
-| **frontend-test** | ESLint, typecheck, Vitest, build |
-| **compose-validate** | docker-compose.yml ve docker-compose.prod.yml config doğrulama |
-| **e2e** | Playwright E2E testleri |
-| **docker-smoke** | Backend ve frontend image build doğrulama |
+| **backend** | `./mvnw -B -ntp clean verify`, JaCoCo kontrolu, Flyway `migrate -> validate` |
+| **frontend** | `npm ci`, lint, typecheck, Vitest, production build |
+| **compose** | `docker-compose.yml`, `docker-compose.light.yml`, `docker-compose.prod.yml` config dogrulama |
 
-### 5.2 CD Pipeline (`.github/workflows/deploy.yml`)
+Guncel CI notlari:
 
-**Tetikleyici:** `main` push, `v*` tag, workflow_dispatch
+- Otomatik CI yalnizca ana kalite kapilarini calistirir.
+- Backend adimi unit test, paketleme ve JaCoCo kontrolunu birlikte calistirir.
+- JaCoCo kalite kapisi: line `0.50`, branch `0.35`.
+- Flyway bos CI PostgreSQL uzerinde once `migrate`, sonra `validate` calistirir. Bos DB'de tek basina `validate` pending migration hatasi verir.
+- Frontend adimi lint, typecheck, Vitest ve production build kontrollerini kapsar.
+- Compose validation dev/light/prod compose dosyalarinin config olarak parse edilebildigini dogrular.
 
-#### Stage 1: Publish Images (GHCR)
+### 5.2 Manuel Docker Build (`.github/workflows/deploy.yml`)
 
-- Backend ve frontend image'ları `ghcr.io/<owner>/mintstack-backend` ve `ghcr.io/<owner>/mintstack-frontend` olarak push edilir
-- SBOM ve provenance metadata eklenir
-- Tag'ler: `latest`, `main`, `sha-<commit>`, `v1.0.0` (tag push'ta)
+**Tetikleyici:** yalnizca manuel `workflow_dispatch`.
 
-#### Stage 2: Scan Images (Trivy)
+Bu workflow deploy yapmaz, registry'ye image push etmez ve harici security action kullanmaz. Amaci sadece backend ve frontend Docker image'larinin GitHub runner uzerinde build edilebildigini dogrulamaktir.
 
-- CRITICAL ve HIGH severity açıkları taranır
-- SARIF sonuçları GitHub Security tab'ına yüklenir
-- Kritik açık varsa pipeline başarısız olur
+| Job | Aciklama |
+|-----|----------|
+| **docker-build** | Backend ve frontend Docker image build + image inspect |
 
-#### Stage 3: Sign Images (Cosign)
+Kaldirilan gereksiz/kirilgan adimlar:
 
-- OIDC ile keyless imzalama
-- Image bütünlüğü doğrulaması
+- GHCR image publish.
+- Trivy scan action.
+- Cosign image signing.
+- SSH staging/production deploy.
+- Release asset paketleme.
+- Otomatik E2E ve Docker smoke job'lari.
 
-#### Stage 4: Deploy
-
-**Staging:** `workflow_dispatch` + environment=staging
-- Gerekli secrets: `STAGING_HOST`, `STAGING_USER`, `STAGING_SSH_KEY`, `STAGING_DEPLOY_PATH`
-
-**Production:** `workflow_dispatch` + environment=production VEYA `v*` tag push
-- Gerekli secrets: `PROD_HOST`, `PROD_USER`, `PROD_SSH_KEY`, `PROD_DEPLOY_PATH`
-
-### 5.3 GitHub Secrets Yapılandırması
-
-Repository → Settings → Secrets and variables → Actions:
-
-| Secret | Kullanım |
-|--------|----------|
-| `STAGING_HOST` | Staging sunucu IP/hostname |
-| `STAGING_USER` | SSH kullanıcı adı |
-| `STAGING_SSH_KEY` | SSH private key |
-| `STAGING_DEPLOY_PATH` | Deploy dizini (örn: /opt/mintstack) |
-| `PROD_HOST` | Production sunucu |
-| `PROD_USER` | SSH kullanıcı |
-| `PROD_SSH_KEY` | SSH private key |
-| `PROD_DEPLOY_PATH` | Deploy dizini |
+Bu sade yapi proje kapanisi ve juri sunumu icin daha stabil bir CI/CD zemini saglar. Production deployment gerekiyorsa ayrica secrets, registry policy, image scan ve imzalama kararlarinin tekrar netlestirilmesi gerekir.
 
 ---
 
-## 6. Yedekleme ve Geri Yükleme
+## 6. Yedekleme ve Geri YÃ¼kleme
 
 ### 6.1 PostgreSQL Yedekleme
 
 **Bash (Linux/macOS):**
 
 ```bash
-# Geliştirme ortamı, 7 gün saklama
+# GeliÅŸtirme ortamÄ±, 7 gÃ¼n saklama
 ./docker/backup/pg_backup.sh dev ./backups 7
 
-# Production ortamı, 14 gün saklama
+# Production ortamÄ±, 14 gÃ¼n saklama
 ./docker/backup/pg_backup.sh prod ./backups 14
 ```
 
@@ -338,16 +325,16 @@ Repository → Settings → Secrets and variables → Actions:
 .\docker\backup\pg_backup.ps1 -Mode prod -BackupDir .\backups -RetentionDays 14
 ```
 
-> **Not:** Bash script `.sql.gz` (sıkıştırılmış), PowerShell script `.sql` (sıkıştırılmamış) üretir.
+> **Not:** Bash script `.sql.gz` (sÄ±kÄ±ÅŸtÄ±rÄ±lmÄ±ÅŸ), PowerShell script `.sql` (sÄ±kÄ±ÅŸtÄ±rÄ±lmamÄ±ÅŸ) Ã¼retir.
 
 **Parametreler:**
-- `MODE`: `dev` veya `prod` (container adına göre)
-- `BACKUP_DIR`: Yedek dosyalarının dizini
-- `RETENTION_DAYS`: Bu süreden eski yedekler silinir
+- `MODE`: `dev` veya `prod` (container adÄ±na gÃ¶re)
+- `BACKUP_DIR`: Yedek dosyalarÄ±nÄ±n dizini
+- `RETENTION_DAYS`: Bu sÃ¼reden eski yedekler silinir
 
-**Çıktı:** `./backups/dev_mintstack_finance_20260307_120000.sql.gz`
+**Ã‡Ä±ktÄ±:** `./backups/dev_mintstack_finance_20260307_120000.sql.gz`
 
-### 6.2 PostgreSQL Geri Yükleme
+### 6.2 PostgreSQL Geri YÃ¼kleme
 
 **Bash:**
 
@@ -359,17 +346,17 @@ Repository → Settings → Secrets and variables → Actions:
 **PowerShell:**
 
 ```powershell
-# Bash ile oluşturulmuş .sql.gz dosyası için (gunzip pipe ile)
-# PowerShell restore script sadece .sql dosyalarını destekler; .gz için bash kullanın
+# Bash ile oluÅŸturulmuÅŸ .sql.gz dosyasÄ± iÃ§in (gunzip pipe ile)
+# PowerShell restore script sadece .sql dosyalarÄ±nÄ± destekler; .gz iÃ§in bash kullanÄ±n
 .\docker\backup\pg_restore.ps1 -Mode dev -BackupFile .\backups\dev_mintstack_finance_20260307_120000.sql
 ```
 
-**Uyarı:** Geri yükleme mevcut veriyi üzerine yazar. Production'da önce test ortamında deneyin.
+**UyarÄ±:** Geri yÃ¼kleme mevcut veriyi Ã¼zerine yazar. Production'da Ã¶nce test ortamÄ±nda deneyin.
 
-### 6.3 Zamanlanmış Yedekleme (Cron)
+### 6.3 ZamanlanmÄ±ÅŸ Yedekleme (Cron)
 
 ```cron
-# Her gün 02:00'da production yedeği
+# Her gÃ¼n 02:00'da production yedeÄŸi
 0 2 * * * cd /opt/mintstack && ./docker/backup/pg_backup.sh prod /opt/backups 14
 ```
 
@@ -382,17 +369,17 @@ Repository → Settings → Secrets and variables → Actions:
 **URL:** http://localhost:9090 (dev) / internal (prod)
 
 **Scrape hedefleri:**
-- `backend:8080/actuator/prometheus` — Spring Boot metrikleri
-- `otel-collector:8889` — OpenTelemetry metrikleri
-- `localhost:9090` — Prometheus self-monitoring
+- `backend:8080/actuator/prometheus` â€” Spring Boot metrikleri
+- `otel-collector:8889` â€” OpenTelemetry metrikleri
+- `localhost:9090` â€” Prometheus self-monitoring
 
-**Konfigürasyon:** `docker/prometheus/prometheus.yml`
+**KonfigÃ¼rasyon:** `docker/prometheus/prometheus.yml`
 
 ### 7.2 Grafana
 
 **URL:** http://localhost:13030 (dev)
 
-**Varsayılan giriş:** admin / `GRAFANA_ADMIN_PASSWORD`
+**VarsayÄ±lan giriÅŸ:** admin / `GRAFANA_ADMIN_PASSWORD`
 
 **Datasource'lar (otomatik provisioning):**
 - Prometheus: `http://prometheus:9090`
@@ -404,27 +391,27 @@ Repository → Settings → Secrets and variables → Actions:
 
 **URL:** http://localhost:9093 (dev)
 
-**Konfigürasyon:** `docker/alertmanager/alertmanager.yml`
+**KonfigÃ¼rasyon:** `docker/alertmanager/alertmanager.yml`
 
-**Alert kuralları** (`docker/prometheus/alerts.yml`):
+**Alert kurallarÄ±** (`docker/prometheus/alerts.yml`):
 
-| Alert | Severity | Açıklama |
+| Alert | Severity | AÃ§Ä±klama |
 |-------|----------|----------|
-| HighErrorRate | critical | 5xx hata oranı > %10 |
-| ApplicationDown | critical | Backend yanıt vermiyor |
+| HighErrorRate | critical | 5xx hata oranÄ± > %10 |
+| ApplicationDown | critical | Backend yanÄ±t vermiyor |
 | DBConnectionPoolExhausted | critical | Connection pool > %90 |
-| CircuitBreakerOpen | warning | Circuit breaker açık |
+| CircuitBreakerOpen | warning | Circuit breaker aÃ§Ä±k |
 | HighLatency | warning | P95 latency > 2 sn |
 | HighHeapMemory | warning | JVM heap > %85 |
-| ExternalAPISlowResponse | warning | Harici API yavaş |
-| ExternalAPIHighFailureRate | warning | Harici API hata oranı > %30 |
+| ExternalAPISlowResponse | warning | Harici API yavaÅŸ |
+| ExternalAPIHighFailureRate | warning | Harici API hata oranÄ± > %30 |
 | KafkaConsumerLag | warning | Consumer lag > 1000 |
 
-**Bildirim kanalları:**
+**Bildirim kanallarÄ±:**
 - Webhook: `http://backend:8080/api/v1/admin/webhooks/alerts`
 - E-posta: `ALERTMANAGER_CRITICAL_EMAIL`, `ALERTMANAGER_WARNING_EMAIL` (ops-team, dev-team)
 
-**Ortam değişkenleri (Alertmanager için):**
+**Ortam deÄŸiÅŸkenleri (Alertmanager iÃ§in):**
 - `ALERTMANAGER_SMTP_HOST`, `ALERTMANAGER_SMTP_FROM`
 - `ALERTMANAGER_SMTP_USERNAME`, `ALERTMANAGER_SMTP_PASSWORD`
 - `ALERTMANAGER_WEBHOOK_URL`
@@ -434,64 +421,64 @@ Repository → Settings → Secrets and variables → Actions:
 
 ## 8. Sorun Giderme
 
-### Backend başlamıyor
+### Backend baÅŸlamÄ±yor
 
-| Sorun | Çözüm |
+| Sorun | Ã‡Ã¶zÃ¼m |
 |-------|-------|
-| PostgreSQL bağlantı hatası | `docker compose ps postgres` — container çalışıyor mu? Healthcheck geçti mi? |
-| Redis bağlantı hatası | `REDIS_PASSWORD` .env'de doğru mu? |
-| Keycloak hazır değil | Keycloak ilk açılışta 60+ sn sürebilir. `docker compose logs keycloak` ile izleyin |
-| Kafka SASL hatası | `KAFKA_SASL_PASSWORD` tüm servislerde aynı olmalı |
-| Flyway migration hatası | Veritabanı şeması güncel mi? `db/migration/` script'leri sıralı mı? |
+| PostgreSQL baÄŸlantÄ± hatasÄ± | `docker compose ps postgres` â€” container Ã§alÄ±ÅŸÄ±yor mu? Healthcheck geÃ§ti mi? |
+| Redis baÄŸlantÄ± hatasÄ± | `REDIS_PASSWORD` .env'de doÄŸru mu? |
+| Keycloak hazÄ±r deÄŸil | Keycloak ilk aÃ§Ä±lÄ±ÅŸta 60+ sn sÃ¼rebilir. `docker compose logs keycloak` ile izleyin |
+| Kafka SASL hatasÄ± | `KAFKA_SASL_PASSWORD` tÃ¼m servislerde aynÄ± olmalÄ± |
+| Flyway migration hatasÄ± | VeritabanÄ± ÅŸemasÄ± gÃ¼ncel mi? `db/migration/` script'leri sÄ±ralÄ± mÄ±? |
 
-### Frontend API hatası
+### Frontend API hatasÄ±
 
-| Sorun | Çözüm |
+| Sorun | Ã‡Ã¶zÃ¼m |
 |-------|-------|
-| CORS hatası | `application.yml` → `cors.allowed-origins` doğru origin içeriyor mu? |
-| 401 Unauthorized | Keycloak token süresi dolmuş olabilir. Yeniden giriş yapın |
-| API 404 | Nginx routing: `/api/` → backend. `nginx/nginx.dev.conf` kontrol edin |
-| WebSocket bağlantı hatası | Backend WebSocket endpoint aktif mi? `http://localhost:8088/ws` |
+| CORS hatasÄ± | `application.yml` â†’ `cors.allowed-origins` doÄŸru origin iÃ§eriyor mu? |
+| 401 Unauthorized | Keycloak token sÃ¼resi dolmuÅŸ olabilir. Yeniden giriÅŸ yapÄ±n |
+| API 404 | Nginx routing: `/api/` â†’ backend. `nginx/nginx.dev.conf` kontrol edin |
+| WebSocket baÄŸlantÄ± hatasÄ± | Backend WebSocket endpoint aktif mi? `http://localhost:8088/ws` |
 
-### Keycloak sorunları
+### Keycloak sorunlarÄ±
 
-| Sorun | Çözüm |
+| Sorun | Ã‡Ã¶zÃ¼m |
 |-------|-------|
-| Realm import hatası | `keycloak/realm-export.json` geçerli mi? |
-| JWT issuer mismatch | `SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI` Keycloak URL ile eşleşmeli |
-| Client secret hatalı | `KEYCLOAK_FINANCE_BACKEND_SECRET` realm-export.json'daki client secret ile aynı olmalı |
+| Realm import hatasÄ± | `keycloak/realm-export.json` geÃ§erli mi? |
+| JWT issuer mismatch | `SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI` Keycloak URL ile eÅŸleÅŸmeli |
+| Client secret hatalÄ± | `KEYCLOAK_FINANCE_BACKEND_SECRET` realm-export.json'daki client secret ile aynÄ± olmalÄ± |
 
-### Docker Compose sorunları
+### Docker Compose sorunlarÄ±
 
-| Sorun | Çözüm |
+| Sorun | Ã‡Ã¶zÃ¼m |
 |-------|-------|
-| Config validation hatası | `docker compose -f docker-compose.yml config` ile doğrulayın |
-| Port çakışması | Başka uygulama aynı portu kullanıyor olabilir. Portları değiştirin veya diğer uygulamayı durdurun |
-| Out of memory | Light compose kullanın veya RAM artırın |
-| Volume permission | Linux'ta `sudo` gerekebilir veya user namespace ayarlayın |
+| Config validation hatasÄ± | `docker compose -f docker-compose.yml config` ile doÄŸrulayÄ±n |
+| Port Ã§akÄ±ÅŸmasÄ± | BaÅŸka uygulama aynÄ± portu kullanÄ±yor olabilir. PortlarÄ± deÄŸiÅŸtirin veya diÄŸer uygulamayÄ± durdurun |
+| Out of memory | Light compose kullanÄ±n veya RAM artÄ±rÄ±n |
+| Volume permission | Linux'ta `sudo` gerekebilir veya user namespace ayarlayÄ±n |
 
-### Production özel sorunlar
+### Production Ã¶zel sorunlar
 
-| Sorun | Çözüm |
+| Sorun | Ã‡Ã¶zÃ¼m |
 |-------|-------|
-| Docker Secrets bulunamıyor | `secrets/*.txt` dosyaları mevcut mu? `secrets/` .gitignore'da mı? |
-| SSL sertifika hatası | `nginx/ssl/fullchain.pem` ve `privkey.pem` doğru mu? |
+| Docker Secrets bulunamÄ±yor | `secrets/*.txt` dosyalarÄ± mevcut mu? `secrets/` .gitignore'da mÄ±? |
+| SSL sertifika hatasÄ± | `nginx/ssl/fullchain.pem` ve `privkey.pem` doÄŸru mu? |
 | 502 Bad Gateway | Backend container'lar healthy mi? `docker compose ps` |
-| Grafana şifre dosyası | `GF_SECURITY_ADMIN_PASSWORD__FILE` (çift alt çizgi) kullanılmalı |
+| Grafana ÅŸifre dosyasÄ± | `GF_SECURITY_ADMIN_PASSWORD__FILE` (Ã§ift alt Ã§izgi) kullanÄ±lmalÄ± |
 
-### Faydalı Komutlar
+### FaydalÄ± Komutlar
 
 ```bash
-# Tüm container durumları
+# TÃ¼m container durumlarÄ±
 docker compose ps
 
-# Belirli servis logları
+# Belirli servis loglarÄ±
 docker compose logs -f backend
 
 # Backend health check
 curl http://localhost:8088/actuator/health
 
-# PostgreSQL bağlantı testi
+# PostgreSQL baÄŸlantÄ± testi
 docker exec mintstack-postgres pg_isready -U mintstack -d mintstack_finance
 
 # Redis ping
@@ -500,10 +487,10 @@ docker exec mintstack-redis redis-cli -a $REDIS_PASSWORD ping
 
 ---
 
-## İlgili Dokümantasyon
+## Ä°lgili DokÃ¼mantasyon
 
-- [README.md](../README.md) — Proje genel bakış
-- [ARCHITECTURE.md](ARCHITECTURE.md) — Sistem mimarisi
-- [API_VERSIONING.md](API_VERSIONING.md) — API versiyonlama
-- [SECURITY.md](SECURITY.md) — Güvenlik checklist
-- [KEYCLOAK_2FA_SETUP.md](KEYCLOAK_2FA_SETUP.md) — 2FA kurulumu
+- [README.md](../README.md) â€” Proje genel bakÄ±ÅŸ
+- [ARCHITECTURE.md](ARCHITECTURE.md) â€” Sistem mimarisi
+- [API_VERSIONING.md](API_VERSIONING.md) â€” API versiyonlama
+- [SECURITY.md](SECURITY.md) â€” GÃ¼venlik checklist
+- [KEYCLOAK_2FA_SETUP.md](KEYCLOAK_2FA_SETUP.md) â€” 2FA kurulumu

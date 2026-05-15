@@ -259,7 +259,7 @@ Tüm endpoint'ler `/api/v1` prefix'i altındadır. Base URL: `http://localhost:8
 | GET | `/simulation/stocks` | Simüle hisseler |
 | GET | `/simulation/currencies` | Simüle dövizler |
 | GET | `/simulation/indices` | Simüle endeksler |
-| GET | `/simulation/cryptos` | Simüle kripto |
+| GET | `/simulation/cryptos` | Deprecated: kripto modülü aktif kullanıcı kapsamından çıkarıldı |
 | GET | `/simulation/volatility` | Volatilite |
 | POST | `/simulation/volatility/burst` | Volatilite patlaması |
 | GET | `/simulation/events` | Piyasa olayları |

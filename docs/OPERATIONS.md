@@ -130,3 +130,53 @@ docker exec mintstack-postgres pg_dump -U mintstack -d mintstack_finance > backu
 | Frontend auth hatası | Keycloak realm, client, CORS ayarları |
 | Kafka bağlantısı | SASL password eşleşmesi kontrol |
 | OpenSearch başlamıyor | Linux: `vm.max_map_count` ayarı |
+
+---
+
+## 8. Kullanici Fiyat Alarmlari ve Alertmanager
+
+Kullanici fiyat alarmi ile Prometheus Alertmanager farkli mekanizmalardir.
+
+Kullanici fiyat alarmi:
+
+- Kullanici alarmi uygulama UI veya `/api/v1/alerts` endpointi uzerinden olusturur.
+- Backend fiyat guncellemelerinde alarm kosulunu kontrol eder.
+- Tetiklenen alarm pasife alinir ve bildirim event'i uretilir.
+- Uygulama ici bildirim DB'ye kaydedilir ve WebSocket hattina gonderilir.
+- SMTP aktifse e-posta gonderimi denenir.
+- Sesli alarm/browser push bu surumde tam bagli degildir.
+
+Alertmanager:
+
+- Prometheus kurallarindan gelen sistem alarmlarini yonetir.
+- Backend down, 5xx hata orani, latency, JVM heap, DB pool ve external API hata oranlarini izler.
+- Alarm gruplama, tekrar azaltma, inhibit ve receiver routing yapar.
+- Webhook receiver: `http://backend:8080/api/v1/admin/webhooks/alerts`.
+
+## 9. Gecmis Veri Backfill
+
+Admin/Ayarlar icinden gecmis veri backfill calistirilabilir.
+
+- Periyot secenekleri: 7 gun, 30 gun, 90 gun, 1 yil.
+- Enstruman tipleri: hisse, fon, doviz, tahvil/bono, VIOP.
+- Cikti: `price_history` tablosu.
+- Var olan veri veya optimistic lock conflict durumlari toplu isi tamamen bozmadan skip/retry mantigi ile ele alinir.
+
+Operasyon notu:
+
+- Backfill uzun surebilir; UI loading durumu gosterir.
+- Production'da once kucuk periyot ve dar enstruman tipiyle test edilmelidir.
+- TEFAS/NAV verileri gun sonu mantigi ile degerlendirilmelidir.
+
+## 10. CI/Flyway Sorun Giderme
+
+Bos CI veritabaninda `flyway:validate` tek basina calistirilmaz. Bos DB'de schema history yokken tum migration'lar pending gorunur ve validate fail eder.
+
+Dogru sira:
+
+```bash
+./mvnw -B -ntp org.flywaydb:flyway-maven-plugin:10.17.0:migrate
+./mvnw -B -ntp org.flywaydb:flyway-maven-plugin:10.17.0:validate
+```
+
+GitHub Actions bu nedenle once `migrate`, sonra `validate` calistirir.

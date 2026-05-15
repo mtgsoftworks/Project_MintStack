@@ -139,7 +139,7 @@ Nginx dev konfigi `/v3/api-docs` ve `/v3/api-docs/` pathlerini backend'e proxy e
 | BIST hisse | 20 saniye | Gelistirme/test icin sik; production'da piyasa saatine gore gevsetilebilir. |
 | Fon/TEFAS | 18:30, hafta ici onerilir | Fon fiyatlari genellikle gun sonu/NAV bazlidir. |
 | VIOP | 30 saniye | Daha yuksek hassasiyet. |
-| Kripto | 1 dakika | 7/24 piyasa, fakat portal icin realtime zorunlu degil. |
+| Kripto | Kapsam disi | Aktif kullanici akisi ve juri demosundan kaldirildi. |
 | Haber RSS | 15 dakika | RSS kaynaklari icin dengeli polling. |
 | Cleanup | 02:00 | Dusuk trafik penceresi. |
 

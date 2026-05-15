@@ -60,7 +60,7 @@ flowchart LR
     B --> R[(Redis :6379)]
     B --> K[Kafka KRaft :9092]
     B --> KC[Keycloak :8180]
-    B --> EXT[Dis API - TCMB/Yahoo/AV/Finnhub]
+    B --> EXT[Dis API - TCMB/TEFAS/Yahoo/AV/Finnhub/RSS]
 
     KC --> LDAP[OpenLDAP :389]
 
@@ -87,7 +87,7 @@ flowchart LR
 
 | Servis | Sorumluluk |
 |---|---|
-| **PostgreSQL 15** | Kalıcı iş verisi (3 veritabanı: `mintstack_finance`, `keycloak`, `mintstack`). Kullanıcı, portföy, enstrüman, işlem geçmişi, fiyat geçmişi, haber, alarm, bildirim verilerini saklar. 19+ Flyway migrasyonu ile şema yönetimi. |
+| **PostgreSQL 15** | Kalıcı iş verisi (3 veritabanı: `mintstack_finance`, `keycloak`, `mintstack`). Kullanıcı, portföy, enstrüman, işlem geçmişi, fiyat geçmişi, haber, alarm, bildirim verilerini saklar. 24 Flyway migrasyonu ile şema yönetimi. |
 | **Redis 7-alpine** | Sıcak veri cache'i, piyasa verisi ara belleği, rate limiting sayaçları. Okuma performansını artırmak için yoğun sorgulanan verileri (döviz kurları, hisse fiyatları) Redis'te tutar. |
 | **Kafka (KRaft, 7.5.0)** | Olay akışı (event streaming) ve log boru hattı. SASL/PLAIN doğrulama ile güvenli. Zookeeper bağımlılığı KRaft modu ile kaldırıldı. Uygulama logları ve market data event'leri Kafka üzerinden Logstash'e iletilir. |
 
@@ -104,7 +104,7 @@ flowchart LR
 |---|---|
 | **Prometheus 2.48.0** | Uygulama metrikleri toplama (Spring Actuator + Micrometer). CPU, memory, request latency, cache hit/miss, Kafka consumer lag vb. |
 | **Grafana 10.2.2** | Metrik görselleştirme, dashboard'lar ve alarm tanımları. Otomatik provisioning ile hazır dashboard'lar yüklenir. |
-| **AlertManager 0.26.0** | Prometheus alarm kurallarına göre bildirim gönderme (e-posta, webhook). |
+| **AlertManager 0.26.0** | Prometheus sistem alarm kurallarına göre operasyonel bildirim gönderme (e-posta, webhook). Kullanıcı fiyat alarmlarından ayrıdır. |
 | **OpenSearch 2.13.0** | Log indeksleme, tam metin arama, log analizi. Güvenlik eklentisi aktif. |
 | **OpenSearch Dashboards 2.13.0** | Log arama ve görselleştirme arayüzü. |
 | **Logstash 8.9.0** | Log işleme pipeline'ı: Kafka'dan log tüketir, parse eder, OpenSearch'e indeksler. |
@@ -131,7 +131,7 @@ flowchart LR
 
 | Alt Paket | İçerik |
 |---|---|
-| `service/external/` | Dış API istemcileri (TcmbApiClient, YahooFinanceClient, AlphaVantageClient, FinnhubClient, RssNewsClient) |
+| `service/external/` | Dış API istemcileri (TcmbApiClient, TefasFundClient, YahooFinanceClient, AlphaVantageClient, FinnhubClient, RssNewsClient) |
 | `service/portfolio/` | Portföy finansal kuralları ve emir çalıştırma motoru |
 | `service/simulation/` | Piyasa simülasyon motoru (fiyat, haber senaryoları, market event) |
 | `service/market/` | Enstrüman metrik servisi ve market veri bakımı |
