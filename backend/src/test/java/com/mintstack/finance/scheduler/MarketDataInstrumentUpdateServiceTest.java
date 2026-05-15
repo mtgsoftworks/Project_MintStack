@@ -60,16 +60,16 @@ class MarketDataInstrumentUpdateServiceTest {
             instrument("S2", Instrument.InstrumentType.STOCK),
             instrument("S3", Instrument.InstrumentType.STOCK)
         );
-        List<Instrument> bondList = List.of(
-            instrument("B1", Instrument.InstrumentType.BOND),
-            instrument("B2", Instrument.InstrumentType.BOND),
-            instrument("B3", Instrument.InstrumentType.BOND)
+        List<Instrument> indexList = List.of(
+            instrument("I1", Instrument.InstrumentType.INDEX),
+            instrument("I2", Instrument.InstrumentType.INDEX),
+            instrument("I3", Instrument.InstrumentType.INDEX)
         );
 
         when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulatedOrderBySymbolAsc(
             Instrument.InstrumentType.STOCK, false)).thenReturn(stockList);
         when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulatedOrderBySymbolAsc(
-            Instrument.InstrumentType.BOND, false)).thenReturn(bondList);
+            Instrument.InstrumentType.INDEX, false)).thenReturn(indexList);
 
         service.updatePricesForType(
             Instrument.InstrumentType.STOCK,
@@ -79,7 +79,7 @@ class MarketDataInstrumentUpdateServiceTest {
             new EnumMap<>(DataType.class)
         );
         service.updatePricesForType(
-            Instrument.InstrumentType.BOND,
+            Instrument.InstrumentType.INDEX,
             null,
             null,
             null,
@@ -100,7 +100,7 @@ class MarketDataInstrumentUpdateServiceTest {
             .map(Instrument::getSymbol)
             .toList();
 
-        assertThat(symbols).containsSequence("S1", "S2", "B1", "B2");
+        assertThat(symbols).containsSequence("S1", "S2", "I1", "I2");
     }
 
     private Instrument instrument(String symbol, Instrument.InstrumentType type) {

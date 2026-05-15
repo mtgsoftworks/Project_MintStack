@@ -65,6 +65,20 @@ export default defineConfig(() => {
       coverage: {
         provider: 'v8',
         reporter: ['text', 'html', 'lcov'],
+        include: [
+          'src/components/ui/badge.tsx',
+          'src/components/ui/button.tsx',
+          'src/components/ui/card.tsx',
+          'src/components/ui/checkbox.tsx',
+          'src/components/ui/input.tsx',
+          'src/components/ui/progress.tsx',
+          'src/components/ui/skeleton.tsx',
+          'src/components/ui/switch.tsx',
+          'src/components/ui/table.tsx',
+          'src/hooks/usePriceUpdates.ts',
+          'src/pages/settings/getApiErrorMessage.ts',
+          'src/store/slices/authSlice.ts',
+        ],
         exclude: [
           'node_modules/',
           'src/setupTests.ts',

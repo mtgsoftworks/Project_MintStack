@@ -158,7 +158,6 @@ class MarketDataInstrumentUpdateService {
 
     private boolean isExternallyUpdatableType(Instrument.InstrumentType type) {
         return type == Instrument.InstrumentType.STOCK
-            || type == Instrument.InstrumentType.CRYPTO
             || type == Instrument.InstrumentType.INDEX;
     }
 }
