@@ -242,6 +242,34 @@ class MarketDataServiceTest {
     }
 
     @Test
+    @DisplayName("getInstrumentsByType with pagination should return synthetic VIOP volume when history is empty")
+    void getInstrumentsByType_WithPagination_ShouldReturnSyntheticViopVolume_WhenHistoryIsEmpty() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Instrument viop = Instrument.builder()
+                .symbol("F_XU0300426")
+                .name("BIST30 Nisan Vadeli")
+                .type(InstrumentType.VIOP)
+                .exchange("VIOP")
+                .currency("TRY")
+                .currentPrice(new BigDecimal("11120.00"))
+                .previousClose(new BigDecimal("11065.00"))
+                .isActive(true)
+                .build();
+        viop.setId(UUID.randomUUID());
+
+        when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType.VIOP, false, pageable))
+                .thenReturn(new PageImpl<>(List.of(viop), pageable, 1));
+        when(priceHistoryRepository.findTopByInstrumentIdOrderByPriceDateDesc(viop.getId()))
+                .thenReturn(Optional.empty());
+
+        Page<InstrumentResponse> result = marketDataService.getInstrumentsByType(InstrumentType.VIOP, pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getVolume()).isEqualTo(145_000L);
+        assertThat(result.getContent().get(0).getTotalValue()).isEqualByComparingTo(new BigDecimal("1612400000.00"));
+    }
+
+    @Test
     @DisplayName("getInstrumentsByType with pagination should fallback to simulation cache for stocks when DB is empty")
     void getInstrumentsByType_WithPagination_ShouldFallbackToSimulationCacheForStocks() {
         Pageable pageable = PageRequest.of(0, 10);

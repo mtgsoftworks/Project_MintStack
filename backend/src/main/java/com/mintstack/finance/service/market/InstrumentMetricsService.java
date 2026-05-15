@@ -296,6 +296,26 @@ public class InstrumentMetricsService {
             return 150_000L;
         }
 
+        if (instrument.getType() == InstrumentType.VIOP) {
+            String symbol = instrument.getSymbol();
+            if (symbol == null) {
+                return 50_000L;
+            }
+            return switch (symbol) {
+                case "F_XU0300426", "XU0300426" -> 145_000L;
+                case "F_USDTRY0426", "USDTRY0626" -> 89_000L;
+                case "F_GARAN0426" -> 76_000L;
+                case "F_THYAO0426", "THYAO0526" -> 82_000L;
+                case "F_XAUUSD0426", "XAUUSD0826" -> 68_000L;
+                case "F_AKBNK0426" -> 94_000L;
+                case "F_ASELS0426" -> 88_000L;
+                case "F_ISCTR0426" -> 97_000L;
+                case "F_SISE0426" -> 87_000L;
+                case "F_YKBNK0426" -> 84_000L;
+                default -> 50_000L;
+            };
+        }
+
         return null;
     }
 
