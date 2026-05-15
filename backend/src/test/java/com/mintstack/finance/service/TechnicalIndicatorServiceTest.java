@@ -74,8 +74,8 @@ class TechnicalIndicatorServiceTest {
     }
 
     @Test
-    @DisplayName("RSI yetersiz veri ile null döndürmeli")
-    void testCalculateRSI_WithInsufficientData_ReturnsNull() {
+    @DisplayName("RSI yetersiz veri ile sentetik seri kullanarak hesaplanmali")
+    void testCalculateRSI_WithInsufficientData_UsesSyntheticFallback() {
         // Given
         when(instrumentRepository.findBySymbol("THYAO")).thenReturn(Optional.of(testInstrument));
         
@@ -88,7 +88,8 @@ class TechnicalIndicatorServiceTest {
         Double rsi = technicalIndicatorService.calculateRSI("THYAO", 14);
 
         // Then
-        assertThat(rsi).isNull();
+        assertThat(rsi).isNotNull();
+        assertThat(rsi).isBetween(0.0, 100.0);
     }
 
     @Test

@@ -159,7 +159,8 @@ public class AnalysisService {
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(days);
         
-        List<PriceHistory> history = ensureHistory(symbol, startDate, endDate, 1);
+        int minimumPoints = Math.max(2, days + 1);
+        List<PriceHistory> history = ensureHistory(symbol, startDate, endDate, minimumPoints);
         
         if (history.isEmpty()) {
             throw new ResourceNotFoundException("Fiyat geçmişi", "sembol", symbol);
@@ -238,8 +239,10 @@ public class AnalysisService {
         List<Map<String, Object>> comparisonData = new ArrayList<>();
         
         for (String symbol : request.getSymbols()) {
+            long requestedDays = ChronoUnit.DAYS.between(request.getStartDate(), request.getEndDate());
+            int minimumPoints = (int) Math.max(2, Math.min(requestedDays + 1, 366));
             List<PriceHistory> history = ensureHistory(
-                symbol, request.getStartDate(), request.getEndDate(), 2);
+                symbol, request.getStartDate(), request.getEndDate(), minimumPoints);
             
             if (history.isEmpty()) {
                 log.warn("No price history found for symbol: {}", symbol);
