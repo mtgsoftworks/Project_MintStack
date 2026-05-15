@@ -7,10 +7,13 @@ declare global {
     keycloak?: {
       authenticated?: boolean
       token?: string
+      login?: (options?: {
+        action?: string
+        redirectUri?: string
+        prompt?: 'none' | 'login' | 'consent'
+      }) => Promise<void>
       logout: (options?: { redirectUri?: string }) => void
       updateToken?: (minValidity: number) => Promise<boolean>
-      accountManagement?: () => Promise<void> | void
-      createAccountUrl?: (options?: { redirectUri?: string }) => string
     }
   }
 }

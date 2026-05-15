@@ -102,25 +102,26 @@ export default function ProfilePage() {
     }
   }
 
-  const openAccountManagement = async () => {
+  const runKeycloakAction = async (action: 'UPDATE_PASSWORD' | 'CONFIGURE_TOTP') => {
     const redirectUri = `${window.location.origin}/profile`
-    const accountUrl = window.keycloak?.createAccountUrl?.({ redirectUri })
+    const client = window.keycloak
 
-    if (accountUrl) {
-      window.location.assign(accountUrl)
+    if (!client?.login) {
+      toast.error('Keycloak oturum islemi baslatilamadi')
       return
     }
 
-    if (window.keycloak?.accountManagement) {
-      try {
-        await window.keycloak.accountManagement()
-        return
-      } catch (error) {
-        console.error('Keycloak account management failed:', error)
-      }
+    try {
+      await client.updateToken?.(30)
+      await client.login({
+        action,
+        redirectUri,
+        prompt: 'login',
+      })
+    } catch (error) {
+      console.error(`Keycloak action failed: ${action}`, error)
+      toast.error('Keycloak guvenlik islemi baslatilamadi')
     }
-
-    toast.error('Keycloak hesap yonetimi acilamadi')
   }
 
   return (
@@ -161,7 +162,7 @@ export default function ProfilePage() {
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={openAccountManagement}
+                onClick={() => runKeycloakAction('UPDATE_PASSWORD')}
               >
                 <Key className="mr-2 h-4 w-4" />
                 Şifre Değiştir
@@ -169,7 +170,7 @@ export default function ProfilePage() {
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={openAccountManagement}
+                onClick={() => runKeycloakAction('CONFIGURE_TOTP')}
               >
                 <Shield className="mr-2 h-4 w-4" />
                 Güvenlik Ayarları
