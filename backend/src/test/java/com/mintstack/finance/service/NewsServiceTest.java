@@ -132,7 +132,7 @@ class NewsServiceTest {
 
     @Test
     void getCategories_ShouldReturnCategoryDtos() {
-        when(newsCategoryRepository.findByIsActiveTrueOrderByDisplayOrderAsc())
+        when(newsCategoryRepository.findActiveCategoriesWithPublishedNewsOrderByDisplayOrderAsc())
             .thenReturn(List.of(testCategory));
 
         List<NewsCategoryResponse> result = newsService.getCategories();

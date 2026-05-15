@@ -76,7 +76,7 @@ public class NewsService {
 
     @Transactional(readOnly = true)
     public List<NewsCategoryResponse> getCategories() {
-        return categoryRepository.findByIsActiveTrueOrderByDisplayOrderAsc()
+        return categoryRepository.findActiveCategoriesWithPublishedNewsOrderByDisplayOrderAsc()
             .stream()
             .map(this::mapToCategoryResponse)
             .collect(Collectors.toList());
