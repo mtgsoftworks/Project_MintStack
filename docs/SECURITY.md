@@ -132,7 +132,7 @@ Hassas veriler dosya veya Swarm secret olarak yönetilir:
 ### Port Binding (Geliştirme)
 
 - **PostgreSQL**: `127.0.0.1:5432`
-- **Redis**: `127.0.0.1:6379`
+- **Redis**: `127.0.0.1:${REDIS_HOST_PORT:-16379}` (container içi port: `6379`)
 - **LDAP**: `127.0.0.1:389`, `127.0.0.1:636`
 - **OpenSearch**: `127.0.0.1:19200`
 - **Prometheus**: `127.0.0.1:9090`

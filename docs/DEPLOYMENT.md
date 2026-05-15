@@ -137,7 +137,7 @@ docker compose logs -f backend
 | Alertmanager | http://localhost:9093 | 9093 |
 | OpenSearch Dashboards | http://localhost:15601 | 15601 |
 | PostgreSQL | localhost:5432 | 5432 |
-| Redis | localhost:6379 | 6379 |
+| Redis | localhost:16379 | 6379 |
 
 ### 3.2 Lightweight (Minimal Ortam)
 
