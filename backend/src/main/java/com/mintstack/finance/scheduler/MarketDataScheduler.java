@@ -123,7 +123,7 @@ public class MarketDataScheduler {
             }
         }
 
-        long stockCount = instrumentRepository.countRealInstruments();
+        long stockCount = instrumentRepository.countRealInstrumentsByType(Instrument.InstrumentType.STOCK);
         if (stockCount == 0) {
             UserApiConfig alphaConfig = providerResolver.getActiveConfig(ApiProvider.ALPHA_VANTAGE);
             UserApiConfig yahooConfig = providerResolver.getActiveConfig(ApiProvider.YAHOO_FINANCE);
@@ -259,9 +259,9 @@ public class MarketDataScheduler {
             ApiProvider preferredBistProvider = providerContext.preferredProviders().get(DataType.BIST_STOCKS);
 
             if (bootstrapStocksWhenEmpty) {
-                long instrumentCount = instrumentRepository.countRealInstruments();
-                if (instrumentCount == 0) {
-                    log.info("No real instruments found. Bootstrapping stock universe before updates.");
+                long stockCount = instrumentRepository.countRealInstrumentsByType(Instrument.InstrumentType.STOCK);
+                if (stockCount == 0) {
+                    log.info("No real stock instruments found. Bootstrapping stock universe before updates.");
                     if (providerResolver.hasStockProviderForDataType(
                         preferredBistProvider,
                         providerContext.yahooConfig(),

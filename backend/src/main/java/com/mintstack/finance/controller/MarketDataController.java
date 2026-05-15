@@ -118,8 +118,14 @@ public class MarketDataController {
     @GetMapping("/bonds")
     @Operation(summary = "Tahvil/bono listesini getir")
     public ResponseEntity<ApiResponse<List<InstrumentResponse>>> getBonds(
+            @RequestParam(required = false) String search,
             @PageableDefault(size = 20) Pageable pageable) {
-        Page<InstrumentResponse> bonds = marketDataService.getInstrumentsByType(InstrumentType.BOND, pageable);
+        Page<InstrumentResponse> bonds;
+        if (search != null && !search.isEmpty()) {
+            bonds = marketDataService.searchInstruments(InstrumentType.BOND, search, pageable);
+        } else {
+            bonds = marketDataService.getInstrumentsByType(InstrumentType.BOND, pageable);
+        }
         return ResponseEntity.ok(ApiResponse.success(bonds.getContent(), PaginationInfo.from(bonds)));
     }
 
@@ -144,8 +150,14 @@ public class MarketDataController {
     @GetMapping("/viop")
     @Operation(summary = "VIOP enstrümanlarını listele")
     public ResponseEntity<ApiResponse<List<InstrumentResponse>>> getViop(
+            @RequestParam(required = false) String search,
             @PageableDefault(size = 20) Pageable pageable) {
-        Page<InstrumentResponse> viop = marketDataService.getInstrumentsByType(InstrumentType.VIOP, pageable);
+        Page<InstrumentResponse> viop;
+        if (search != null && !search.isEmpty()) {
+            viop = marketDataService.searchInstruments(InstrumentType.VIOP, search, pageable);
+        } else {
+            viop = marketDataService.getInstrumentsByType(InstrumentType.VIOP, pageable);
+        }
         return ResponseEntity.ok(ApiResponse.success(viop.getContent(), PaginationInfo.from(viop)));
     }
 

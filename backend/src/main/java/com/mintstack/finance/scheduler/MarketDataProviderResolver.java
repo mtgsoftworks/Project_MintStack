@@ -67,7 +67,11 @@ class MarketDataProviderResolver {
             return DataType.CRYPTO;
         }
 
-        return DataType.BIST_STOCKS;
+        if (type == Instrument.InstrumentType.INDEX) {
+            return DataType.BIST_INDICES;
+        }
+
+        return null;
     }
 
     @Observed(name = "market-data.fetch-instrument-price", contextualName = "fetch-instrument-price")

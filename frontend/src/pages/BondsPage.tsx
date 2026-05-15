@@ -1,12 +1,20 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Search, TrendingUp, TrendingDown } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import RefreshButton from '@/components/common/RefreshButton'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -32,9 +40,21 @@ function BondTableSkeleton() {
 export default function BondsPage() {
   const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
-  const { data, isLoading, isFetching, refetch } = useGetBondsQuery({})
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(50)
+  const { data, isLoading, isFetching, refetch } = useGetBondsQuery({
+    page,
+    size: pageSize,
+    search: searchQuery.trim() || undefined,
+  })
 
   const bonds = data?.data || []
+  const totalPages = data?.pagination?.totalPages || 0
+  const totalElements = data?.pagination?.totalElements || 0
+
+  useEffect(() => {
+    setPage(0)
+  }, [searchQuery, pageSize])
 
   const filteredBonds = bonds.filter((bond) =>
     bond.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -61,6 +81,18 @@ export default function BondsPage() {
               className="pl-9 w-64"
             />
           </div>
+          <Select value={String(pageSize)} onValueChange={(value) => setPageSize(Number(value))}>
+            <SelectTrigger className="w-28">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[20, 50, 100, 200].map((size) => (
+                <SelectItem key={size} value={String(size)}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <RefreshButton
             variant="outline"
             size="icon"
@@ -75,7 +107,7 @@ export default function BondsPage() {
         <CardHeader>
           <CardTitle>{t('bondsPage.listTitle')}</CardTitle>
           <CardDescription>
-            {t('bondsPage.listDescription', { count: bonds.length })}
+            {t('bondsPage.listDescription', { count: totalElements })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -145,6 +177,27 @@ export default function BondsPage() {
                 )}
               </TableBody>
             </Table>
+          )}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => setPage((value) => Math.max(0, value - 1))}
+                disabled={page === 0 || isFetching}
+              >
+                {t('common.previous')}
+              </Button>
+              <span className="text-sm text-muted-foreground px-4">
+                {page + 1} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                onClick={() => setPage((value) => value + 1)}
+                disabled={page >= totalPages - 1 || isFetching}
+              >
+                {t('common.next')}
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>

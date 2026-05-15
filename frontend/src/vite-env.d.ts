@@ -9,7 +9,8 @@ declare global {
       token?: string
       logout: (options?: { redirectUri?: string }) => void
       updateToken?: (minValidity: number) => Promise<boolean>
-      accountManagement?: () => void
+      accountManagement?: () => Promise<void> | void
+      createAccountUrl?: (options?: { redirectUri?: string }) => string
     }
   }
 }

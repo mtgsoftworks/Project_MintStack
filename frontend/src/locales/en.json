@@ -223,7 +223,7 @@
             "missing": "❌ Missing Data:",
             "info": {
                 "YAHOO_FINANCE": {
-                    "title": "Yahoo Finance (Recommended)",
+                    "title": "Yahoo Finance",
                     "desc": "Most comprehensive data provider.",
                     "supported": [
                         "BIST Stocks",
@@ -261,7 +261,7 @@
                     ]
                 },
                 "TEFAS": {
-                    "title": "TEFAS (Fund Data)",
+                    "title": "TEFAS",
                     "desc": "Public/no-key provider for TEFAS fund data.",
                     "supported": [
                         "Mutual Funds",

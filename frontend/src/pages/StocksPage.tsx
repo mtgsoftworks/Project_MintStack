@@ -12,6 +12,13 @@ import RefreshButton from '@/components/common/RefreshButton'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Table,
   TableBody,
   TableCell,
@@ -90,6 +97,7 @@ export default function StocksPage() {
   const [searchQuery, setSearchQuery] = useState(() => searchParam)
   const [sortBy, setSortBy] = useState('symbol')
   const [sortOrder, setSortOrder] = useState('asc')
+  const [pageSize, setPageSize] = useState(50)
   const [useVirtualScroll, setUseVirtualScroll] = useState(false)
   const parentRef = useRef(null)
 
@@ -98,12 +106,16 @@ export default function StocksPage() {
     setPage(0)
   }, [searchParam])
 
+  useEffect(() => {
+    setPage(0)
+  }, [searchQuery, pageSize, sortBy, sortOrder])
+
   // Load more items when virtual scrolling is enabled
-  const pageSize = useVirtualScroll ? 100 : 20
+  const requestSize = useVirtualScroll ? Math.max(pageSize, 100) : pageSize
 
   const { data, isLoading, isFetching, refetch } = useGetStocksQuery({
     page: useVirtualScroll ? 0 : page,
-    size: pageSize,
+    size: requestSize,
     sort: `${sortBy},${sortOrder}`,
     search: searchQuery.trim() || undefined,
   })
@@ -176,6 +188,18 @@ export default function StocksPage() {
               className="pl-9 w-64"
             />
           </div>
+          <Select value={String(pageSize)} onValueChange={(value) => setPageSize(Number(value))}>
+            <SelectTrigger className="w-28">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[20, 50, 100, 200].map((size) => (
+                <SelectItem key={size} value={String(size)}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <RefreshButton
             variant="outline"
             size="icon"

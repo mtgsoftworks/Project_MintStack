@@ -46,6 +46,11 @@ class MarketDataInstrumentUpdateService {
         UserApiConfig finnhubConfig,
         EnumMap<DataType, ApiProvider> preferredProviders
     ) {
+        if (!isExternallyUpdatableType(type)) {
+            log.debug("Skipping external price update for unsupported type: {}", type);
+            return;
+        }
+
         List<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulatedOrderBySymbolAsc(type, false);
 
         if (instruments.isEmpty()) {
@@ -74,6 +79,9 @@ class MarketDataInstrumentUpdateService {
         for (Instrument instrument : batch) {
             try {
                 DataType dataType = providerResolver.resolveDataTypeForInstrument(type, instrument);
+                if (dataType == null) {
+                    continue;
+                }
                 ApiProvider preferredProvider = preferredProviders.get(dataType);
                 BigDecimal price = providerResolver.fetchInstrumentPrice(
                     instrument,
@@ -146,5 +154,11 @@ class MarketDataInstrumentUpdateService {
 
     private int resolveBatchSize() {
         return configuredBatchSize > 0 ? configuredBatchSize : 5;
+    }
+
+    private boolean isExternallyUpdatableType(Instrument.InstrumentType type) {
+        return type == Instrument.InstrumentType.STOCK
+            || type == Instrument.InstrumentType.CRYPTO
+            || type == Instrument.InstrumentType.INDEX;
     }
 }

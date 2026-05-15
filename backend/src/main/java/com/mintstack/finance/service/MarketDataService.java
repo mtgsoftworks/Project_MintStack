@@ -155,6 +155,10 @@ public class MarketDataService {
             instruments = instrumentRepository.findByTypeAndIsActiveTrue(type);
         }
 
+        if (shouldFallbackToInactiveCatalog(type, isSimulation, instruments.isEmpty())) {
+            instruments = instrumentRepository.findRealByType(type);
+        }
+
         return instruments.stream()
             .map(this::mapToInstrumentResponse)
             .collect(Collectors.toList());
@@ -174,6 +178,10 @@ public class MarketDataService {
 
         if (shouldFallbackToRealInstruments(type, isSimulation, instruments.isEmpty())) {
             instruments = instrumentRepository.findByTypeAndIsActiveTrue(type, pageable);
+        }
+
+        if (shouldFallbackToInactiveCatalog(type, isSimulation, instruments.isEmpty())) {
+            instruments = instrumentRepository.findRealByType(type, pageable);
         }
 
         return instruments.map(this::mapToInstrumentResponse);
@@ -217,6 +225,10 @@ public class MarketDataService {
             if (!filtered.isEmpty()) {
                 return paginateResponses(filtered, pageable);
             }
+        }
+
+        if (shouldFallbackToInactiveCatalog(type, simulationDataService.isSimulationEnabled(), instruments.isEmpty())) {
+            instruments = instrumentRepository.searchRealByTypeAndQuery(type, query, pageable);
         }
 
         return instruments.map(this::mapToInstrumentResponse);
@@ -313,6 +325,16 @@ public class MarketDataService {
             return false;
         }
         return type == InstrumentType.BOND || type == InstrumentType.FUND || type == InstrumentType.VIOP;
+    }
+
+    private boolean shouldFallbackToInactiveCatalog(InstrumentType type, boolean simulationEnabled, boolean isEmpty) {
+        if (simulationEnabled || !isEmpty) {
+            return false;
+        }
+        return type == InstrumentType.BOND
+            || type == InstrumentType.VIOP
+            || type == InstrumentType.CRYPTO
+            || type == InstrumentType.INDEX;
     }
 
     private InstrumentResponse getSimulatedIndexResponse(String symbol) {

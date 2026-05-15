@@ -35,6 +35,12 @@ public interface InstrumentRepository extends JpaRepository<Instrument, UUID> {
     @Query("SELECT i FROM Instrument i WHERE i.type = :type AND i.isActive = true AND (i.isSimulated IS NULL OR i.isSimulated = false)")
     Page<Instrument> findByTypeAndIsActiveTrue(@Param("type") InstrumentType type, Pageable pageable);
 
+    @Query("SELECT i FROM Instrument i WHERE i.type = :type AND (i.isSimulated IS NULL OR i.isSimulated = false)")
+    List<Instrument> findRealByType(@Param("type") InstrumentType type);
+
+    @Query("SELECT i FROM Instrument i WHERE i.type = :type AND (i.isSimulated IS NULL OR i.isSimulated = false)")
+    Page<Instrument> findRealByType(@Param("type") InstrumentType type, Pageable pageable);
+
     Page<Instrument> findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType type, Boolean isSimulated, Pageable pageable);
 
     @Query("SELECT i FROM Instrument i WHERE i.isActive = true AND (i.isSimulated IS NULL OR i.isSimulated = false)")
@@ -52,6 +58,13 @@ public interface InstrumentRepository extends JpaRepository<Instrument, UUID> {
                                           @Param("query") String query, 
                                           Pageable pageable);
 
+    @Query("SELECT i FROM Instrument i WHERE i.type = :type AND (i.isSimulated IS NULL OR i.isSimulated = false) AND " +
+           "(LOWER(i.symbol) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(i.name) LIKE LOWER(CONCAT('%', :query, '%')))")
+    Page<Instrument> searchRealByTypeAndQuery(@Param("type") InstrumentType type,
+                                              @Param("query") String query,
+                                              Pageable pageable);
+
     List<Instrument> findBySymbolIn(List<String> symbols);
 
     boolean existsBySymbol(String symbol);
@@ -62,4 +75,7 @@ public interface InstrumentRepository extends JpaRepository<Instrument, UUID> {
 
     @Query("SELECT COUNT(i) FROM Instrument i WHERE i.isSimulated IS NULL OR i.isSimulated = false")
     long countRealInstruments();
+
+    @Query("SELECT COUNT(i) FROM Instrument i WHERE i.type = :type AND (i.isSimulated IS NULL OR i.isSimulated = false)")
+    long countRealInstrumentsByType(@Param("type") InstrumentType type);
 }

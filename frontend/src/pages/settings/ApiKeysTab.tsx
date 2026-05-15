@@ -75,10 +75,7 @@ export function ApiKeysTab({
     const visibleProviderOptions = providerOptions.filter((option) => (
         editingConfig
         || option.value === formData.provider
-        || (
-            option.value !== 'YAHOO_FINANCE'
-            && !usedProviders.has(option.value)
-        )
+        || !usedProviders.has(option.value)
     ))
 
     const requiresValidation = !isKeylessProvider
@@ -278,10 +275,6 @@ export function ApiKeysTab({
                 </Dialog>
             </CardHeader>
             <CardContent>
-                <div className="mb-4 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
-                    <span className="font-semibold">Yahoo Finance (Public): </span>
-                    {t('settings.apiKeys.yahooReadonlyHint', { defaultValue: 'Bu saglayici keyless/public calisir. API key veya base URL girmeniz gerekmez.' })}
-                </div>
                 {isLoading ? (
                     <div className="flex items-center justify-center p-8 text-muted-foreground">
                         <RefreshCw className="h-6 w-6 animate-spin mr-2" />

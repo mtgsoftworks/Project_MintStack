@@ -102,10 +102,25 @@ export default function ProfilePage() {
     }
   }
 
-  const handleKeycloakSettings = () => {
-    if (window.keycloak) {
-      window.keycloak.accountManagement()
+  const openAccountManagement = async () => {
+    const redirectUri = `${window.location.origin}/profile`
+    const accountUrl = window.keycloak?.createAccountUrl?.({ redirectUri })
+
+    if (accountUrl) {
+      window.location.assign(accountUrl)
+      return
     }
+
+    if (window.keycloak?.accountManagement) {
+      try {
+        await window.keycloak.accountManagement()
+        return
+      } catch (error) {
+        console.error('Keycloak account management failed:', error)
+      }
+    }
+
+    toast.error('Keycloak hesap yonetimi acilamadi')
   }
 
   return (
@@ -146,7 +161,7 @@ export default function ProfilePage() {
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={handleKeycloakSettings}
+                onClick={openAccountManagement}
               >
                 <Key className="mr-2 h-4 w-4" />
                 Şifre Değiştir
@@ -154,7 +169,7 @@ export default function ProfilePage() {
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={handleKeycloakSettings}
+                onClick={openAccountManagement}
               >
                 <Shield className="mr-2 h-4 w-4" />
                 Güvenlik Ayarları

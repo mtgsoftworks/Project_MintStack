@@ -225,7 +225,7 @@
             "missing": "❌ Eksik Veriler:",
             "info": {
                 "YAHOO_FINANCE": {
-                    "title": "Yahoo Finance (Önerilen)",
+                    "title": "Yahoo Finance",
                     "desc": "En kapsamlı veri sağlayıcısı.",
                     "supported": [
                         "BIST Hisseleri",
@@ -263,7 +263,7 @@
                     ]
                 },
                 "TEFAS": {
-                    "title": "TEFAS (Fon Verisi)",
+                    "title": "TEFAS",
                     "desc": "TEFAS fon verisi için public/no-key provider.",
                     "supported": [
                         "Yatırım Fonları",
@@ -282,7 +282,7 @@
                     "supported": [
                         "BIST Hisseleri",
                         "BIST Endeksleri",
-                        "Fon Verisi",
+                        "Fonlar",
                         "Teknik Gostergeler"
                     ],
                     "missing": [

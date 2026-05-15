@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -55,20 +57,22 @@ public class ApiKeyValidationService {
 
     /**
      * Validate an API key by making a test request to the provider
+     *
      * @return ValidationResult with success status and message
      */
     public ValidationResult validateApiKey(ApiProvider provider, String apiKey, String baseUrl) {
         String effectiveUrl = (baseUrl != null && !baseUrl.isEmpty()) ? baseUrl : getDefaultUrl(provider);
+        String normalizedApiKey = apiKey == null ? null : apiKey.trim();
 
         if (provider == ApiProvider.YAHOO_FINANCE) {
             if (effectiveUrl == null || effectiveUrl.isBlank()) {
-                return new ValidationResult(false, "Yahoo Finance için geçerli bir base URL gerekli");
+                return new ValidationResult(false, "Yahoo Finance icin gecerli bir base URL gerekli");
             }
             return validateYahooFinance(effectiveUrl);
         }
 
         // Check for empty key (allowed for public/no-key providers)
-        if (apiKey == null || apiKey.trim().isEmpty()) {
+        if (normalizedApiKey == null || normalizedApiKey.isEmpty()) {
             if (provider == ApiProvider.TCMB
                 || provider == ApiProvider.TEFAS
                 || provider == ApiProvider.RSS) {
@@ -78,30 +82,21 @@ public class ApiKeyValidationService {
         }
 
         if (effectiveUrl == null) {
-            return new ValidationResult(false, "Bu provider için URL belirtmeniz gerekiyor");
+            return new ValidationResult(false, "Bu provider icin URL belirtmeniz gerekiyor");
         }
 
         try {
-            switch (provider) {
-                case ALPHA_VANTAGE:
-                    return validateAlphaVantage(apiKey, effectiveUrl);
-                case FINNHUB:
-                    return validateFinnhub(apiKey, effectiveUrl);
-                case TCMB:
-                    return new ValidationResult(true, "TCMB - public API, validation not required");
-                case TEFAS:
-                    return new ValidationResult(true, "TEFAS - public API, validation not required");
-                case RSS:
-                    return new ValidationResult(true, "RSS - feed URLs are validated during ingestion");
-                case FINTABLES:
-                    return validateFintables(apiKey, effectiveUrl);
-                case LLM_ENRICHMENT:
-                    return new ValidationResult(true, "LLM key accepted; model provider runtime validation will run during enrichment");
-                case OTHER:
-                    return new ValidationResult(true, "Custom API - test atlandi");
-                default:
-                    return new ValidationResult(false, "Bilinmeyen provider");
-            }
+            return switch (provider) {
+                case ALPHA_VANTAGE -> validateAlphaVantage(normalizedApiKey, effectiveUrl);
+                case FINNHUB -> validateFinnhub(normalizedApiKey, effectiveUrl);
+                case TCMB -> new ValidationResult(true, "TCMB - public API, validation not required");
+                case TEFAS -> new ValidationResult(true, "TEFAS - public API, validation not required");
+                case RSS -> new ValidationResult(true, "RSS - feed URLs are validated during ingestion");
+                case FINTABLES -> validateFintables(normalizedApiKey, effectiveUrl);
+                case LLM_ENRICHMENT -> new ValidationResult(true, "LLM key accepted; runtime validation will run during enrichment");
+                case OTHER -> new ValidationResult(true, "Custom API - test atlandi");
+                default -> new ValidationResult(false, "Bilinmeyen provider");
+            };
         } catch (Exception e) {
             log.error("API key validation failed for {}: {}", provider, e.getMessage());
             return new ValidationResult(false, "Baglanti hatasi: " + e.getMessage());
@@ -109,126 +104,76 @@ public class ApiKeyValidationService {
     }
 
     private ValidationResult validateAlphaVantage(String apiKey, String baseUrl) {
-        // 1. First, validate key format before making API call
-        // Real Alpha Vantage keys are 16 characters, alphanumeric
-        String trimmedKey = apiKey.trim();
-        
-        // Reject obviously fake/demo keys
-        String lowerKey = trimmedKey.toLowerCase();
-        if (lowerKey.equals("demo") || 
-            lowerKey.equals("test") || 
-            lowerKey.equals("apikey") ||
-            lowerKey.contains("test") ||
-            lowerKey.contains("fake") ||
-            lowerKey.contains("sample") ||
-            trimmedKey.length() < 10) {
-            log.warn("Alpha Vantage key rejected - appears to be test/demo key: {}", 
-                    trimmedKey.substring(0, Math.min(5, trimmedKey.length())) + "***");
-            return new ValidationResult(false, "GeÃ§ersiz API anahtarÄ± - gerÃ§ek bir anahtar girin");
-        }
-        
-        // Check format: real keys are typically 16 chars, alphanumeric only
-        if (trimmedKey.length() != 16) {
-            log.warn("Alpha Vantage key has incorrect length: {} (expected 16)", trimmedKey.length());
-            return new ValidationResult(false, "GeÃ§ersiz API anahtarÄ± formatÄ± - 16 karakter olmalÄ±");
-        }
-        
-        if (!trimmedKey.matches("^[A-Z0-9]+$")) {
-            log.warn("Alpha Vantage key contains invalid characters");
-            return new ValidationResult(false, "GeÃ§ersiz API anahtarÄ± formatÄ± - sadece bÃ¼yÃ¼k harf ve rakam olmalÄ±");
-        }
-        
-        log.info("Alpha Vantage key format valid, testing API...");
-        
         try {
-            WebClient client = WebClient.builder()
-                    .baseUrl(baseUrl)
-                    .build();
+            String normalizedBaseUrl = normalizeAlphaVantageBaseUrl(baseUrl);
+            String requestUrl = UriComponentsBuilder.fromHttpUrl(normalizedBaseUrl)
+                .queryParam("function", "GLOBAL_QUOTE")
+                .queryParam("symbol", "IBM")
+                .queryParam("apikey", apiKey)
+                .build(true)
+                .toUriString();
 
-            String response = client.get()
-                    .uri("?function=GLOBAL_QUOTE&symbol=IBM&apikey=" + apiKey)
-                    .retrieve()
-                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
-                            clientResponse -> {
-                                log.warn("Alpha Vantage returned HTTP error: {}", clientResponse.statusCode());
-                                return clientResponse.createException();
-                            })
-                    .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(30))
-                    .block();
+            String response = WebClient.create()
+                .get()
+                .uri(requestUrl)
+                .retrieve()
+                .bodyToMono(String.class)
+                .timeout(Duration.ofSeconds(20))
+                .block();
 
             if (response == null || response.trim().isEmpty()) {
-                log.warn("Alpha Vantage returned empty response");
-                return new ValidationResult(false, "Sunucudan yanÄ±t alÄ±namadÄ±");
+                return new ValidationResult(false, "Sunucudan yanit alinamadi");
             }
 
-            log.debug("Alpha Vantage response: {}", response.substring(0, Math.min(200, response.length())));
-            
             JsonNode root = objectMapper.readTree(response);
 
-            // Check for explicit error message
             if (root.has("Error Message")) {
-                log.warn("Alpha Vantage error: {}", root.get("Error Message").asText());
-                return new ValidationResult(false, "GeÃ§ersiz API anahtarÄ± veya sembol");
+                return new ValidationResult(false, "Gecersiz API anahtari veya endpoint hatasi");
             }
-            
-            // Check for API rate limit (Note field)
+
+            JsonNode globalQuote = root.path("Global Quote");
+            if (!globalQuote.isMissingNode() && globalQuote.has("01. symbol")) {
+                return new ValidationResult(true, "API anahtari gecerli");
+            }
+
             if (root.has("Note")) {
-                String note = root.get("Note").asText();
-                log.warn("Alpha Vantage note: {}", note);
-                if (note.contains("API call frequency") || note.contains("rate limit")) {
-                    return new ValidationResult(false, "API limit aÅŸÄ±ldÄ± - 1 dakika bekleyip tekrar deneyin");
-                }
+                return new ValidationResult(true, "API yaniti alindi (rate limit notu olabilir), anahtar kaydedilebilir");
             }
 
-            // Check for demo/information message (usually means key is limited)
             if (root.has("Information")) {
-                String info = root.get("Information").asText();
-                log.warn("Alpha Vantage info: {}", info);
-                if (info.contains("demo") || info.contains("premium")) {
-                    return new ValidationResult(false, "Demo/Ã¼cretsiz anahtar - limitli kullanÄ±m");
-                }
-                return new ValidationResult(false, "API anahtarÄ± geÃ§ersiz: " + info);
+                return new ValidationResult(true, "API bilgi notu dondu, anahtar kaydedilebilir");
             }
 
-            // Check if we got valid Global Quote data
-            if (root.has("Global Quote")) {
-                JsonNode globalQuote = root.get("Global Quote");
-                
-                // Check if Global Quote is empty - this happens with invalid keys!
-                if (globalQuote == null || globalQuote.isEmpty() || !globalQuote.has("01. symbol")) {
-                    log.warn("Alpha Vantage returned empty Global Quote - invalid API key");
-                    return new ValidationResult(false, "GeÃ§ersiz API anahtarÄ± (boÅŸ yanÄ±t)");
-                }
-                
-                // Valid response with data
-                String symbol = globalQuote.get("01. symbol").asText();
-                log.info("Alpha Vantage validation successful - got data for: {}", symbol);
-                return new ValidationResult(true, "API anahtarÄ± geÃ§erli âœ“");
-            }
+            return new ValidationResult(false, "Beklenmeyen yanit formati");
 
-            log.warn("Alpha Vantage returned unexpected format: {}", response.substring(0, Math.min(100, response.length())));
-            return new ValidationResult(false, "Beklenmeyen yanÄ±t formatÄ±");
-            
+        } catch (WebClientResponseException e) {
+            if (e.getStatusCode().value() == 429) {
+                return new ValidationResult(true, "Rate limit yaniti alindi, anahtar kaydedilebilir");
+            }
+            if (e.getStatusCode().value() == 401 || e.getStatusCode().value() == 403) {
+                return new ValidationResult(false, "Gecersiz API anahtari");
+            }
+            log.warn("Alpha Vantage HTTP validation error: {}", e.getMessage());
+            return new ValidationResult(false, "HTTP hatasi: " + e.getStatusCode().value());
         } catch (Exception e) {
-            log.error("Alpha Vantage validation exception: {}", e.getMessage(), e);
-            return new ValidationResult(false, "BaÄŸlantÄ±/doÄŸrulama hatasÄ±: " + e.getMessage());
+            log.warn("Alpha Vantage validation error: {}", e.getMessage());
+            return new ValidationResult(false, "Baglanti/dogrulama hatasi: " + e.getMessage());
         }
     }
 
     private ValidationResult validateYahooFinance(String baseUrl) {
         try {
             WebClient client = WebClient.builder()
-                    .baseUrl(baseUrl)
-                    .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                    .build();
+                .baseUrl(baseUrl)
+                .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                .build();
 
             String response = client.get()
-                    .uri("/chart/AAPL?interval=1d&range=1d")
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(10))
-                    .block();
+                .uri("/chart/AAPL?interval=1d&range=1d")
+                .retrieve()
+                .bodyToMono(String.class)
+                .timeout(Duration.ofSeconds(10))
+                .block();
 
             if (response == null || response.trim().isEmpty()) {
                 return new ValidationResult(false, "Sunucudan yanit alinamadi");
@@ -257,53 +202,78 @@ public class ApiKeyValidationService {
 
     private ValidationResult validateFinnhub(String apiKey, String baseUrl) {
         try {
-            WebClient client = WebClient.builder()
-                    .baseUrl(baseUrl)
-                    .build();
+            String normalizedBaseUrl = normalizeFinnhubBaseUrl(baseUrl);
+            String stockRequestUrl = UriComponentsBuilder.fromHttpUrl(normalizedBaseUrl)
+                .path("/quote")
+                .queryParam("symbol", "AAPL")
+                .queryParam("token", apiKey)
+                .build(true)
+                .toUriString();
 
-            String stockResponse = client.get()
-                    .uri("/quote?symbol=AAPL&token=" + apiKey)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(10))
-                    .block();
+            String stockResponse = WebClient.create()
+                .get()
+                .uri(stockRequestUrl)
+                .retrieve()
+                .bodyToMono(String.class)
+                .timeout(Duration.ofSeconds(15))
+                .block();
 
-            if (stockResponse == null) {
-                return new ValidationResult(false, "Sunucudan yanÄ±t alÄ±namadÄ±");
+            if (stockResponse == null || stockResponse.trim().isEmpty()) {
+                return new ValidationResult(false, "Sunucudan yanit alinamadi");
             }
 
             JsonNode stockRoot = objectMapper.readTree(stockResponse);
             if (stockRoot.has("error")) {
-                return new ValidationResult(false, "GeÃ§ersiz API anahtarÄ±");
+                return new ValidationResult(false, "Gecersiz Finnhub API anahtari");
             }
 
-            if (!stockRoot.has("c") || stockRoot.get("c").asDouble() <= 0) {
-                return new ValidationResult(false, "Beklenmeyen yanÄ±t formatÄ±");
+            if (!stockRoot.has("c")) {
+                return new ValidationResult(false, "Beklenmeyen Finnhub yanit formati");
             }
 
-            String forexResponse = client.get()
-                    .uri("/forex/rates?base=USD&token=" + apiKey)
+            String forexRequestUrl = UriComponentsBuilder.fromHttpUrl(normalizedBaseUrl)
+                .path("/forex/rates")
+                .queryParam("base", "USD")
+                .queryParam("token", apiKey)
+                .build(true)
+                .toUriString();
+            try {
+                String forexResponse = WebClient.create()
+                    .get()
+                    .uri(forexRequestUrl)
                     .retrieve()
                     .bodyToMono(String.class)
                     .timeout(Duration.ofSeconds(10))
                     .block();
 
-            if (forexResponse != null) {
-                JsonNode forexRoot = objectMapper.readTree(forexResponse);
-                if (forexRoot.has("error")) {
-                    String error = forexRoot.get("error").asText("").toLowerCase();
-                    if (error.contains("don't have access") || error.contains("not have access")) {
-                        return new ValidationResult(true,
-                            "API anahtarÄ± geÃ§erli âœ“, ancak Forex endpoint eriÅŸimi planÄ±nÄ±zda kapalÄ± olabilir");
+                if (forexResponse != null && !forexResponse.isBlank()) {
+                    JsonNode forexRoot = objectMapper.readTree(forexResponse);
+                    if (forexRoot.has("error")) {
+                        String error = forexRoot.get("error").asText("").toLowerCase();
+                        if (error.contains("don't have access") || error.contains("not have access")) {
+                            return new ValidationResult(true,
+                                "API anahtari gecerli, ancak Forex endpoint erisimi planinizda kapali olabilir");
+                        }
                     }
                 }
+            } catch (Exception forexError) {
+                log.debug("Finnhub forex validation step skipped: {}", forexError.getMessage());
             }
 
-            return new ValidationResult(true, "API anahtarÄ± geÃ§erli âœ“");
+            return new ValidationResult(true, "API anahtari gecerli");
 
+        } catch (WebClientResponseException e) {
+            if (e.getStatusCode().value() == 429) {
+                return new ValidationResult(true, "Rate limit yaniti alindi, anahtar kaydedilebilir");
+            }
+            if (e.getStatusCode().value() == 401 || e.getStatusCode().value() == 403) {
+                return new ValidationResult(false, "Gecersiz Finnhub API anahtari");
+            }
+            log.warn("Finnhub HTTP validation error: {}", e.getMessage());
+            return new ValidationResult(false, "HTTP hatasi: " + e.getStatusCode().value());
         } catch (Exception e) {
             log.warn("Finnhub validation error: {}", e.getMessage());
-            return new ValidationResult(false, "BaÄŸlantÄ± hatasÄ±: " + e.getMessage());
+            return new ValidationResult(false, "Baglanti hatasi: " + e.getMessage());
         }
     }
 
@@ -321,6 +291,50 @@ public class ApiKeyValidationService {
         }
         return new ValidationResult(true,
             "Fintables key format accepted; live validation is disabled until endpoint contract is configured");
+    }
+
+    private String normalizeBaseUrl(String baseUrl) {
+        if (baseUrl == null) {
+            return "";
+        }
+
+        String normalized = baseUrl.trim();
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
+    }
+
+    private String normalizeAlphaVantageBaseUrl(String baseUrl) {
+        String normalized = normalizeBaseUrl(baseUrl);
+        String lowercase = normalized.toLowerCase();
+
+        if (lowercase.contains("alphavantage.co")
+            && !lowercase.endsWith("/query")
+            && !lowercase.contains("/query?")) {
+            return normalized + "/query";
+        }
+
+        return normalized;
+    }
+
+    private String normalizeFinnhubBaseUrl(String baseUrl) {
+        String normalized = normalizeBaseUrl(baseUrl);
+        String lowercase = normalized.toLowerCase();
+
+        if (!lowercase.contains("finnhub.io")) {
+            return normalized;
+        }
+
+        if (lowercase.endsWith("/api/v1") || lowercase.contains("/api/v1?")) {
+            return normalized;
+        }
+
+        if (lowercase.endsWith("/api")) {
+            return normalized + "/v1";
+        }
+
+        return normalized + "/api/v1";
     }
 
     /**
@@ -344,6 +358,3 @@ public class ApiKeyValidationService {
         }
     }
 }
-
-
-
