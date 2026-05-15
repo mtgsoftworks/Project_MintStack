@@ -4,6 +4,7 @@ import com.mintstack.finance.entity.SimulationConfig;
 import com.mintstack.finance.service.simulation.SimulationDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -19,12 +20,18 @@ public class SimulationScheduler {
     private final AtomicLong tickCount = new AtomicLong(0);
     private volatile long lastUpdateTime = 0;
 
+    @Value("${app.scheduler.enabled:true}")
+    private boolean schedulerEnabled;
+
     /**
      * Ana simülasyon döngüsü - Her saniye çalışır
      * Gerçek güncelleme aralığı config'den alınır
      */
     @Scheduled(fixedRate = 1000)
     public void simulationTick() {
+        if (!schedulerEnabled) {
+            return;
+        }
         if (!simulationDataService.isSimulationEnabled()) {
             return;
         }
@@ -62,6 +69,9 @@ public class SimulationScheduler {
      */
     @Scheduled(cron = "0 0 0 * * *")
     public void dailyReset() {
+        if (!schedulerEnabled) {
+            return;
+        }
         if (!simulationDataService.isSimulationEnabled()) {
             return;
         }
