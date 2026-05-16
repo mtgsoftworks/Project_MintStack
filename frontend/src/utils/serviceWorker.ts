@@ -3,7 +3,8 @@ export function registerServiceWorker() {
     window.addEventListener('load', async () => {
       try {
         const registration = await navigator.serviceWorker.register('/sw.js', {
-          scope: '/'
+          scope: '/',
+          updateViaCache: 'none'
         });
         
         console.log('[PWA] Service Worker registered:', registration.scope);
