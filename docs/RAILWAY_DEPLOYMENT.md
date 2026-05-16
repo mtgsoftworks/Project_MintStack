@@ -41,6 +41,20 @@ Bu dizinlerdeki `railway.toml` dosyalari Dockerfile build ve healthcheck
 ayarlarini verir. Railway config-as-code environment variable/secrets set etmez;
 secret ve servis baglantilari Railway Variables uzerinden verilmelidir.
 
+Onerilen kurulum sirasi:
+
+1. `Postgres` plugin ekle.
+2. `Redis` plugin ekle.
+3. `keycloak` servisini GitHub repo + `/keycloak` root directory ile ekle.
+4. `keycloak` icin public domain uret.
+5. `backend` servisini GitHub repo + `/backend` root directory ile ekle.
+6. `backend` icin public domain uret.
+7. `frontend` servisini GitHub repo + `/frontend` root directory ile ekle.
+8. `frontend` icin public domain uret.
+
+Frontend `VITE_*` degerlerini build sirasinda gomdugu icin Keycloak veya
+backend domaini degistiginde frontend'i yeniden deploy edin.
+
 ## Keycloak variables
 
 `keycloak` servisinde Variables -> Raw Editor:
@@ -77,6 +91,7 @@ SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=https://${{keycloak.RAILWA
 APP_MESSAGING_ENABLED=false
 APP_MARKET_DATA_CONSUMER_ENABLED=false
 APP_EXTERNAL_API_FINTABLES_ENABLED=false
+APP_EXTERNAL_API_BIST_DATASTORE_ENABLED=true
 APP_NEWS_LLM_ENABLED=false
 OTEL_SDK_DISABLED=true
 ```
