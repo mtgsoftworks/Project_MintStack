@@ -10,13 +10,14 @@ build eder ve her push sonrasi otomatik redeploy yapar.
 | --- | --- | --- | --- |
 | Postgres | Railway PostgreSQL plugin | Evet | Uygulama veritabani |
 | Redis | Railway Redis plugin | Evet | Cache ve rate limit |
+| kafka | `/kafka` | Evet | Event bus, notification/market-data consumers |
 | keycloak | `/keycloak` | Evet | OIDC login |
 | backend | `/backend` | Evet | Spring Boot API |
 | frontend | `/frontend` | Evet | React/Nginx arayuz |
 
-Kafka, OpenSearch, Grafana, Prometheus, Alertmanager, OpenLDAP Railway demo
-kurulumunda zorunlu degildir. Bunlar lokal/kurumsal observability ve event
-altyapisi icin tutulur.
+OpenSearch, Grafana, Prometheus, Alertmanager ve OpenLDAP Railway demo
+kurulumunda zorunlu degildir. Bunlar lokal/kurumsal observability ve ileri
+kurumsal entegrasyonlar icin tutulur.
 
 ## Servis adlari
 
@@ -25,6 +26,7 @@ calisir:
 
 - `Postgres`
 - `Redis`
+- `kafka`
 - `keycloak`
 - `backend`
 - `frontend`
@@ -45,12 +47,13 @@ Onerilen kurulum sirasi:
 
 1. `Postgres` plugin ekle.
 2. `Redis` plugin ekle.
-3. `keycloak` servisini GitHub repo + `/keycloak` root directory ile ekle.
-4. `keycloak` icin public domain uret.
-5. `backend` servisini GitHub repo + `/backend` root directory ile ekle.
-6. `backend` icin public domain uret.
-7. `frontend` servisini GitHub repo + `/frontend` root directory ile ekle.
-8. `frontend` icin public domain uret.
+3. `kafka` servisini GitHub repo + `/kafka` root directory ile ekle.
+4. `keycloak` servisini GitHub repo + `/keycloak` root directory ile ekle.
+5. `keycloak` icin public domain uret.
+6. `backend` servisini GitHub repo + `/backend` root directory ile ekle.
+7. `backend` icin public domain uret.
+8. `frontend` servisini GitHub repo + `/frontend` root directory ile ekle.
+9. `frontend` icin public domain uret.
 
 Frontend `VITE_*` degerlerini build sirasinda gomdugu icin Keycloak veya
 backend domaini degistiginde frontend'i yeniden deploy edin.
@@ -80,6 +83,35 @@ KC_HOSTNAME=https://${{keycloak.RAILWAY_PUBLIC_DOMAIN}}
 
 Public Networking altindan domain uretin.
 
+## Kafka variables
+
+`kafka` servisine 5 GB volume ekleyin ve mount path olarak
+`/var/lib/kafka/data` kullanin. Variables -> Raw Editor:
+
+```env
+KAFKA_NODE_ID=1
+KAFKA_PROCESS_ROLES=broker,controller
+KAFKA_CONTROLLER_QUORUM_VOTERS=1@127.0.0.1:9093
+KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka.railway.internal:9092
+KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+KAFKA_NUM_PARTITIONS=3
+KAFKA_LOG_DIRS=/var/lib/kafka/data/logs
+KAFKA_HEAP_OPTS=-Xmx512m -Xms256m
+CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
+PORT=9092
+```
+
+Kafka public domain almaz; backend private DNS ile
+`kafka.railway.internal:9092` adresine baglanir.
+
 ## Backend variables
 
 `backend` servisinde Variables -> Raw Editor:
@@ -92,10 +124,12 @@ SPRING_DATASOURCE_PASSWORD=${{Postgres.PGPASSWORD}}
 SPRING_DATA_REDIS_HOST=${{Redis.REDISHOST}}
 SPRING_DATA_REDIS_PORT=${{Redis.REDISPORT}}
 SPRING_DATA_REDIS_PASSWORD=${{Redis.REDISPASSWORD}}
+SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka.railway.internal:9092
+SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL=PLAINTEXT
 SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://${{keycloak.RAILWAY_PUBLIC_DOMAIN}}/realms/mintstack-finance
 SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=https://${{keycloak.RAILWAY_PUBLIC_DOMAIN}}/realms/mintstack-finance/protocol/openid-connect/certs
-APP_MESSAGING_ENABLED=false
-APP_MARKET_DATA_CONSUMER_ENABLED=false
+APP_MESSAGING_ENABLED=true
+APP_MARKET_DATA_CONSUMER_ENABLED=true
 APP_EXTERNAL_API_FINTABLES_ENABLED=false
 APP_EXTERNAL_API_BIST_DATASTORE_ENABLED=true
 APP_NEWS_LLM_ENABLED=false
