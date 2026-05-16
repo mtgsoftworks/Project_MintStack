@@ -35,6 +35,7 @@ import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -50,6 +51,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PortfolioServiceTest {
+
+    private static final ZoneId BIST_ZONE = ZoneId.of("Europe/Istanbul");
 
     @Mock
     private PortfolioRepository portfolioRepository;
@@ -536,7 +539,7 @@ class PortfolioServiceTest {
     @Test
     void executeTrade_ShouldKeepPending_WhenTransactionDateIsFuture() {
         UUID portfolioId = testPortfolio.getId();
-        LocalDate tomorrow = LocalDate.now().plusDays(1);
+        LocalDate tomorrow = LocalDate.now(BIST_ZONE).plusDays(1);
         ExecutePortfolioTradeRequest request = ExecutePortfolioTradeRequest.builder()
             .instrumentSymbol(testInstrument.getSymbol())
             .transactionType(PortfolioTransaction.TransactionType.BUY)
@@ -581,7 +584,7 @@ class PortfolioServiceTest {
             .quantity(BigDecimal.ONE)
             .filledQuantity(BigDecimal.ZERO)
             .price(BigDecimal.valueOf(100))
-            .transactionDate(LocalDate.now().plusDays(1))
+            .transactionDate(LocalDate.now(BIST_ZONE).plusDays(1))
             .build();
 
         when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);

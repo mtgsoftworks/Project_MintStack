@@ -38,6 +38,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class PortfolioOrderExecutionServiceTest {
 
+    private static final ZoneId BIST_ZONE = ZoneId.of("Europe/Istanbul");
+
     @Mock
     private PortfolioRepository portfolioRepository;
 
@@ -175,7 +177,7 @@ class PortfolioOrderExecutionServiceTest {
             .quantity(new BigDecimal("2.000000"))
             .filledQuantity(BigDecimal.ZERO)
             .price(new BigDecimal("100.000000"))
-            .transactionDate(LocalDate.now().plusDays(1))
+            .transactionDate(LocalDate.now(BIST_ZONE).plusDays(1))
             .build();
 
         service.tryFillOrder(portfolio, order, instrument);
