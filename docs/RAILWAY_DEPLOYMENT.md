@@ -154,6 +154,16 @@ VITE_KEYCLOAK_CLIENT_ID=finance-frontend
 Bu degiskenler build-time oldugu icin degistirildiginde frontend redeploy
 edilmelidir.
 
+Mevcut Railway frontend domaini:
+
+```text
+https://mintstackfinance.up.railway.app
+```
+
+Bu domain Keycloak `finance-frontend` client redirect URI ve web origin listesine
+eklenmelidir. Aksi halde login ekraninda `Invalid parameter: redirect_uri`
+hatası alınır.
+
 ## Auto deploy
 
 GitHub repo Railway'e baglandiktan sonra Railway GitHub push'larini otomatik

@@ -135,6 +135,8 @@
         "http://127.0.0.1:3001/*",
         "http://localhost:3002/*",
         "http://127.0.0.1:3002/*",
+        "https://mintstackfinance.up.railway.app/*",
+        "https://mintstackfinance.up.railway.app",
         "https://*.up.railway.app/*",
         "https://*.railway.app/*"
       ],
@@ -145,6 +147,7 @@
         "http://127.0.0.1:3001",
         "http://localhost:3002",
         "http://127.0.0.1:3002",
+        "https://mintstackfinance.up.railway.app",
         "https://*.up.railway.app",
         "https://*.railway.app"
       ],
@@ -160,7 +163,7 @@
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "access.token.lifespan": "28800",
-        "post.logout.redirect.uris": "http://localhost:3000/*##http://localhost:3001/*##http://localhost:3002/*##http://127.0.0.1:3002/*##https://*.up.railway.app/*##https://*.railway.app/*"
+        "post.logout.redirect.uris": "http://localhost:3000/*##http://localhost:3001/*##http://localhost:3002/*##http://127.0.0.1:3002/*##https://mintstackfinance.up.railway.app/*##https://mintstackfinance.up.railway.app##https://*.up.railway.app/*##https://*.railway.app/*"
       },
       "fullScopeAllowed": true,
       "defaultClientScopes": [
