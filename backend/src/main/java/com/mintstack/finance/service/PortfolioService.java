@@ -272,7 +272,9 @@ public class PortfolioService {
         if (persistedOrder != null) {
             order = persistedOrder;
         }
-        orderExecutionService.tryFillOrder(portfolio, order, instrument);
+        if (isOrderDueForExecution(transactionDate)) {
+            orderExecutionService.tryFillOrder(portfolio, order, instrument);
+        }
         return reloadPortfolioResponse(user.getId(), portfolioId);
     }
 
@@ -293,6 +295,9 @@ public class PortfolioService {
             );
 
         for (PortfolioTransaction order : pendingOrders) {
+            if (!isOrderDueForExecution(order.getTransactionDate())) {
+                continue;
+            }
             orderExecutionService.tryFillOrder(portfolio, order, order.getInstrument());
         }
 
@@ -601,6 +606,14 @@ public class PortfolioService {
 
     private BigDecimal safe(BigDecimal value) {
         return value != null ? value : BigDecimal.ZERO;
+    }
+
+    private boolean isOrderDueForExecution(LocalDate transactionDate) {
+        if (transactionDate == null) {
+            return true;
+        }
+        LocalDate today = LocalDate.now(BIST_ZONE);
+        return !transactionDate.isAfter(today);
     }
 
     private BigDecimal resolveSellPrice(PortfolioItem item) {

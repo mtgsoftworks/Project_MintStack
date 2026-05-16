@@ -161,6 +161,32 @@ class PortfolioOrderExecutionServiceTest {
         verify(portfolioTransactionRepository, never()).save(any(PortfolioTransaction.class));
     }
 
+    @Test
+    void tryFillOrder_ShouldNotExecuteFutureDatedOrder() {
+        Portfolio portfolio = createPortfolio("100000.000000");
+        Instrument instrument = createInstrument("THYAO", Instrument.InstrumentType.STOCK, "105.000000");
+
+        PortfolioTransaction order = PortfolioTransaction.builder()
+            .portfolio(portfolio)
+            .instrument(instrument)
+            .transactionType(PortfolioTransaction.TransactionType.BUY)
+            .orderType(PortfolioTransaction.OrderType.MARKET)
+            .orderStatus(PortfolioTransaction.OrderStatus.PENDING)
+            .quantity(new BigDecimal("2.000000"))
+            .filledQuantity(BigDecimal.ZERO)
+            .price(new BigDecimal("100.000000"))
+            .transactionDate(LocalDate.now().plusDays(1))
+            .build();
+
+        service.tryFillOrder(portfolio, order, instrument);
+
+        assertThat(order.getOrderStatus()).isEqualTo(PortfolioTransaction.OrderStatus.PENDING);
+        assertThat(order.getFilledQuantity()).isEqualByComparingTo(BigDecimal.ZERO);
+        verify(portfolioItemRepository, never()).save(any(PortfolioItem.class));
+        verify(portfolioRepository, never()).save(any(Portfolio.class));
+        verify(portfolioTransactionRepository, never()).save(any(PortfolioTransaction.class));
+    }
+
     private Portfolio createPortfolio(String cashBalance) {
         Portfolio portfolio = Portfolio.builder()
             .name("Test Portfolio")

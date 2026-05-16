@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -44,6 +45,9 @@ public class PortfolioOrderExecutionService {
 
     public void tryFillOrder(Portfolio portfolio, PortfolioTransaction order, Instrument instrument) {
         if (order == null || instrument == null) {
+            return;
+        }
+        if (isFutureDated(order)) {
             return;
         }
         if (order.getOrderStatus() == PortfolioTransaction.OrderStatus.FILLED
@@ -380,6 +384,15 @@ public class PortfolioOrderExecutionService {
             }
         }
         return low.compareTo(MIN_ORDER_QUANTITY) >= 0 ? low : BigDecimal.ZERO;
+    }
+
+    private boolean isFutureDated(PortfolioTransaction order) {
+        LocalDate orderDate = order.getTransactionDate();
+        if (orderDate == null) {
+            return false;
+        }
+        LocalDate today = LocalDate.now(clock);
+        return orderDate.isAfter(today);
     }
 
     private BigDecimal firstPositive(BigDecimal... values) {

@@ -534,6 +534,74 @@ class PortfolioServiceTest {
     }
 
     @Test
+    void executeTrade_ShouldKeepPending_WhenTransactionDateIsFuture() {
+        UUID portfolioId = testPortfolio.getId();
+        LocalDate tomorrow = LocalDate.now().plusDays(1);
+        ExecutePortfolioTradeRequest request = ExecutePortfolioTradeRequest.builder()
+            .instrumentSymbol(testInstrument.getSymbol())
+            .transactionType(PortfolioTransaction.TransactionType.BUY)
+            .orderType(PortfolioTransaction.OrderType.MARKET)
+            .quantity(BigDecimal.ONE)
+            .price(BigDecimal.valueOf(100))
+            .transactionDate(tomorrow)
+            .build();
+
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
+        when(portfolioRepository.findByIdAndUserId(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(portfolioRepository.findByIdAndUserIdWithItems(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(instrumentRepository.findBySymbol(testInstrument.getSymbol()))
+            .thenReturn(Optional.of(testInstrument));
+        when(portfolioTransactionRepository.save(any(PortfolioTransaction.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        portfolioService.executeTrade(keycloakId, portfolioId, request);
+
+        verify(portfolioItemRepository, never()).save(any(PortfolioItem.class));
+        verify(portfolioRepository, never()).save(any(Portfolio.class));
+
+        ArgumentCaptor<PortfolioTransaction> transactionCaptor = ArgumentCaptor.forClass(PortfolioTransaction.class);
+        verify(portfolioTransactionRepository, atLeastOnce()).save(transactionCaptor.capture());
+        PortfolioTransaction transaction = transactionCaptor.getAllValues().get(transactionCaptor.getAllValues().size() - 1);
+        assertThat(transaction.getOrderStatus()).isEqualTo(PortfolioTransaction.OrderStatus.PENDING);
+        assertThat(transaction.getFilledQuantity()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(transaction.getTransactionDate()).isEqualTo(tomorrow);
+    }
+
+    @Test
+    void processPendingOrders_ShouldSkipFutureDatedOrders() {
+        UUID portfolioId = testPortfolio.getId();
+        PortfolioTransaction futureOrder = PortfolioTransaction.builder()
+            .portfolio(testPortfolio)
+            .instrument(testInstrument)
+            .transactionType(PortfolioTransaction.TransactionType.BUY)
+            .orderType(PortfolioTransaction.OrderType.MARKET)
+            .orderStatus(PortfolioTransaction.OrderStatus.PENDING)
+            .quantity(BigDecimal.ONE)
+            .filledQuantity(BigDecimal.ZERO)
+            .price(BigDecimal.valueOf(100))
+            .transactionDate(LocalDate.now().plusDays(1))
+            .build();
+
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
+        when(portfolioRepository.findByIdAndUserId(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(portfolioRepository.findByIdAndUserIdWithItems(portfolioId, testUser.getId()))
+            .thenReturn(Optional.of(testPortfolio));
+        when(portfolioTransactionRepository.findByPortfolioIdAndOrderStatusInOrderByCreatedAtAsc(
+            portfolioId,
+            List.of(PortfolioTransaction.OrderStatus.PENDING, PortfolioTransaction.OrderStatus.PARTIALLY_FILLED)))
+            .thenReturn(List.of(futureOrder));
+
+        portfolioService.processPendingOrders(keycloakId, portfolioId);
+
+        verify(portfolioItemRepository, never()).save(any(PortfolioItem.class));
+        verify(portfolioRepository, never()).save(any(Portfolio.class));
+        verify(portfolioTransactionRepository, never()).save(any(PortfolioTransaction.class));
+    }
+
+    @Test
     void getPortfolioTransactions_ShouldReturnTransactions() {
         // Given
         UUID portfolioId = testPortfolio.getId();

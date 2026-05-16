@@ -31,7 +31,6 @@ public class AddPortfolioItemRequest {
     private BigDecimal purchasePrice;
 
     @NotNull(message = "Alış tarihi zorunludur")
-    @PastOrPresent(message = "Alış tarihi bugün veya geçmişte olmalıdır")
     private LocalDate purchaseDate;
 
     @Size(max = 500, message = "Not en fazla 500 karakter olabilir")
