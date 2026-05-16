@@ -136,8 +136,12 @@ public class SimulationController {
             .tickCount(simulationScheduler.getTickCount())
             .uptime(Duration.between(startTime, LocalDateTime.now()))
             .stocks(simulationDataService.getStocks().size())
+            .bonds(simulationDataService.getBonds().size())
+            .funds(simulationDataService.getFunds().size())
+            .viop(simulationDataService.getViop().size())
             .currencies(simulationDataService.getCurrencies().size())
             .indices(simulationDataService.getIndices().size())
+            .cryptos(0)
             .activeEvents(marketEventEngine.getActiveEvents().size())
             .volatilityStats(volatilityStats)
             .cacheHitRatio(priceCacheService.isRedisAvailable() ? 1.0 : 0.0)
@@ -191,6 +195,24 @@ public class SimulationController {
         });
         
         return ResponseEntity.ok(ApiResponse.success(stocks));
+    }
+
+    @GetMapping("/bonds")
+    @Operation(summary = "Simule edilen tahvil ve bonolari getir")
+    public ResponseEntity<ApiResponse<Map<String, QuoteResponse>>> getBonds() {
+        return ResponseEntity.ok(ApiResponse.success(mapQuoteResponses(simulationDataService.getBonds())));
+    }
+
+    @GetMapping("/funds")
+    @Operation(summary = "Simule edilen yatirim fonlarini getir")
+    public ResponseEntity<ApiResponse<Map<String, QuoteResponse>>> getFunds() {
+        return ResponseEntity.ok(ApiResponse.success(mapQuoteResponses(simulationDataService.getFunds())));
+    }
+
+    @GetMapping("/viop")
+    @Operation(summary = "Simule edilen VIOP kontratlarini getir")
+    public ResponseEntity<ApiResponse<Map<String, QuoteResponse>>> getViop() {
+        return ResponseEntity.ok(ApiResponse.success(mapQuoteResponses(simulationDataService.getViop())));
     }
 
     @GetMapping("/currencies")
@@ -365,6 +387,17 @@ public class SimulationController {
             double baseVolatility
     ) {}
 
+    public record QuoteResponse(
+            String symbol,
+            String name,
+            String exchange,
+            double currentPrice,
+            double previousClose,
+            double changePercent,
+            long volume,
+            double baseVolatility
+    ) {}
+
     private SimulationConfigResponse mapToResponse(SimulationConfig config) {
         return new SimulationConfigResponse(
                 config.getIsEnabled(),
@@ -376,5 +409,20 @@ public class SimulationController {
                 new String[]{"LOW", "MEDIUM", "HIGH", "EXTREME"},
                 new String[]{"BULLISH", "NEUTRAL", "BEARISH"}
         );
+    }
+
+    private Map<String, QuoteResponse> mapQuoteResponses(Map<String, com.mintstack.finance.service.simulation.SimulatedStock> quotes) {
+        Map<String, QuoteResponse> responses = new HashMap<>();
+        quotes.forEach((symbol, quote) -> responses.put(symbol, new QuoteResponse(
+            symbol,
+            quote.getName(),
+            quote.getExchange(),
+            quote.getCurrentPrice().doubleValue(),
+            quote.getPreviousClose().doubleValue(),
+            quote.getChangePercent().doubleValue(),
+            quote.getVolume(),
+            quote.getBaseVolatility()
+        )));
+        return responses;
     }
 }

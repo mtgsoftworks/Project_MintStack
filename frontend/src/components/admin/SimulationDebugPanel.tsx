@@ -151,7 +151,7 @@ export function SimulationDebugPanel() {
                 </div>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
                 <StatusCard 
                     title={t('simulation.metrics.tickCount')} 
                     value={metrics?.tickCount || 0} 
@@ -160,6 +160,31 @@ export function SimulationDebugPanel() {
                 <StatusCard 
                     title={t('simulation.metrics.stocks')} 
                     value={metrics?.stocks || 0} 
+                    icon={Activity}
+                />
+                <StatusCard
+                    title={t('simulation.metrics.bonds', { defaultValue: 'Tahvil' })}
+                    value={metrics?.bonds || 0}
+                    icon={Activity}
+                />
+                <StatusCard
+                    title={t('simulation.metrics.funds', { defaultValue: 'Fon' })}
+                    value={metrics?.funds || 0}
+                    icon={Activity}
+                />
+                <StatusCard
+                    title={t('simulation.metrics.viop', { defaultValue: 'VIOP' })}
+                    value={metrics?.viop || 0}
+                    icon={Activity}
+                />
+                <StatusCard
+                    title={t('simulation.metrics.currencies', { defaultValue: 'Doviz' })}
+                    value={metrics?.currencies || 0}
+                    icon={Activity}
+                />
+                <StatusCard
+                    title={t('simulation.metrics.indices', { defaultValue: 'Endeks' })}
+                    value={metrics?.indices || 0}
                     icon={Activity}
                 />
                 <StatusCard 

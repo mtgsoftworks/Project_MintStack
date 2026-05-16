@@ -26,6 +26,50 @@ export function SimulationTab({
     onResetSimulation
 }) {
     const updateConfig = (partialConfig) => onUpdateSimulationConfig(partialConfig)
+    const activeCounts = [
+        {
+            key: 'stocks',
+            value: simStatus?.stockCount || 0,
+            label: t('settings.simulation.stocks', { defaultValue: 'Hisse Senedi' }),
+            className: 'text-blue-600'
+        },
+        {
+            key: 'currencies',
+            value: simStatus?.currencyCount || 0,
+            label: t('settings.simulation.currencies', { defaultValue: 'Doviz Kuru' }),
+            className: 'text-green-600'
+        },
+        {
+            key: 'indices',
+            value: simStatus?.indexCount || 0,
+            label: t('settings.simulation.indices', { defaultValue: 'Endeks' }),
+            className: 'text-purple-600'
+        },
+        {
+            key: 'bonds',
+            value: simStatus?.bondCount || 0,
+            label: t('settings.simulation.bonds', { defaultValue: 'Tahvil & Bono' }),
+            className: 'text-amber-600'
+        },
+        {
+            key: 'funds',
+            value: simStatus?.fundCount || 0,
+            label: t('settings.simulation.funds', { defaultValue: 'Yatirim Fonu' }),
+            className: 'text-cyan-600'
+        },
+        {
+            key: 'viop',
+            value: simStatus?.viopCount || 0,
+            label: t('settings.simulation.viop', { defaultValue: 'VIOP' }),
+            className: 'text-rose-600'
+        },
+        {
+            key: 'ticks',
+            value: simStatus?.tickCount || 0,
+            label: t('settings.simulation.ticks', { defaultValue: 'Guncelleme' }),
+            className: 'text-orange-600'
+        }
+    ]
 
     return (
         <Card>
@@ -60,23 +104,13 @@ export function SimulationTab({
                 </div>
 
                 {simConfig?.enabled && simStatus && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="p-3 border rounded-lg text-center">
-                            <p className="text-2xl font-bold text-blue-600">{simStatus.stockCount || 0}</p>
-                            <p className="text-xs text-muted-foreground">{t('settings.simulation.stocks', { defaultValue: 'Hisse Senedi' })}</p>
-                        </div>
-                        <div className="p-3 border rounded-lg text-center">
-                            <p className="text-2xl font-bold text-green-600">{simStatus.currencyCount || 0}</p>
-                            <p className="text-xs text-muted-foreground">{t('settings.simulation.currencies', { defaultValue: 'Doviz Kuru' })}</p>
-                        </div>
-                        <div className="p-3 border rounded-lg text-center">
-                            <p className="text-2xl font-bold text-purple-600">{simStatus.indexCount || 0}</p>
-                            <p className="text-xs text-muted-foreground">{t('settings.simulation.indices', { defaultValue: 'Endeks' })}</p>
-                        </div>
-                        <div className="p-3 border rounded-lg text-center">
-                            <p className="text-2xl font-bold text-orange-600">{simStatus.tickCount || 0}</p>
-                            <p className="text-xs text-muted-foreground">{t('settings.simulation.ticks', { defaultValue: 'Guncelleme' })}</p>
-                        </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4">
+                        {activeCounts.map((item) => (
+                            <div key={item.key} className="p-3 border rounded-lg text-center bg-card">
+                                <p className={`text-2xl font-bold ${item.className}`}>{item.value}</p>
+                                <p className="text-xs text-muted-foreground">{item.label}</p>
+                            </div>
+                        ))}
                     </div>
                 )}
 
@@ -206,10 +240,10 @@ export function SimulationTab({
                         {t('settings.simulation.infoTitle', { defaultValue: 'Simulasyon Hakkinda' })}
                     </h4>
                     <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
-                        <li>{t('settings.simulation.info1', { defaultValue: 'BIST 30 hisseleri icin gercekci fiyat hareketleri' })}</li>
-                        <li>{t('settings.simulation.info2', { defaultValue: 'TCMB doviz kurlari simulasyonu' })}</li>
-                        <li>{t('settings.simulation.info3', { defaultValue: 'Geometric Brownian Motion ve Mean Reversion algoritmalari' })}</li>
-                        <li>{t('settings.simulation.info4', { defaultValue: 'WebSocket ile gercek zamanli guncellemeler' })}</li>
+                        <li>{t('settings.simulation.info1', { defaultValue: 'Hisse, doviz, endeks, tahvil, fon ve VIOP icin simule piyasa verisi uretir' })}</li>
+                        <li>{t('settings.simulation.info2', { defaultValue: 'Gercek API cagrisini beklemeden cache, listeleme, portfoy ve alarm akisini test eder' })}</li>
+                        <li>{t('settings.simulation.info3', { defaultValue: 'GBM ve Mean Reversion algoritmalariyla volatilite/trend senaryolari calistirir' })}</li>
+                        <li>{t('settings.simulation.info4', { defaultValue: 'Kripto para simulasyonu sistem kapsamindan kaldirilmistir' })}</li>
                     </ul>
                 </div>
             </CardContent>

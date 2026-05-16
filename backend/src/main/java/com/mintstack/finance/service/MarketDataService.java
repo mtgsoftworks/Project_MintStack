@@ -19,6 +19,7 @@ import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
 import com.mintstack.finance.entity.UserDataPreference.DataType;
 import com.mintstack.finance.service.market.InstrumentMetricsService;
 import com.mintstack.finance.service.market.MarketDataMaintenanceService;
+import com.mintstack.finance.service.simulation.SimulatedCurrency;
 import com.mintstack.finance.service.simulation.SimulatedIndex;
 import com.mintstack.finance.service.simulation.SimulatedStock;
 import lombok.RequiredArgsConstructor;
@@ -66,6 +67,11 @@ public class MarketDataService {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
         RateSource preferredSource = resolveCurrencyRateSource(isSimulation);
         List<CurrencyRate> rates = currencyRateRepository.findLatestBySource(preferredSource);
+        if (isSimulation && rates.isEmpty()) {
+            return simulationDataService.getCurrencies().entrySet().stream()
+                .map(entry -> mapToSimulatedRateResponse(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
+        }
         if (rates.isEmpty() && preferredSource != RateSource.TCMB) {
             rates = currencyRateRepository.findLatestBySource(RateSource.TCMB);
         }
@@ -78,12 +84,19 @@ public class MarketDataService {
     public CurrencyRateResponse getCurrencyRate(String currencyCode) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
         RateSource source = resolveCurrencyRateSource(isSimulation);
+        String normalizedCode = currencyCode != null ? currencyCode.toUpperCase() : "";
 
         CurrencyRate rate = currencyRateRepository
-            .findTopByCurrencyCodeAndSourceOrderByFetchedAtDesc(currencyCode, source)
-            .orElseGet(() -> resolveFallbackCurrencyRate(currencyCode, source));
+            .findTopByCurrencyCodeAndSourceOrderByFetchedAtDesc(normalizedCode, source)
+            .orElseGet(() -> resolveFallbackCurrencyRate(normalizedCode, source));
 
         if (rate == null) {
+            if (isSimulation) {
+                SimulatedCurrency simulated = simulationDataService.getCurrency(normalizedCode);
+                if (simulated != null) {
+                    return mapToSimulatedRateResponse(normalizedCode, simulated);
+                }
+            }
             throw new ResourceNotFoundException("Kur", "kod", currencyCode);
         }
         return mapToRateResponse(rate);
@@ -114,6 +127,9 @@ public class MarketDataService {
     }
 
     private CurrencyRate resolveFallbackCurrencyRate(String currencyCode, RateSource preferredSource) {
+        if (preferredSource == RateSource.MANUAL && simulationDataService.isSimulationEnabled()) {
+            return null;
+        }
         if (preferredSource != RateSource.TCMB) {
             CurrencyRate fallbackTcmb = currencyRateRepository
                 .findTopByCurrencyCodeAndSourceOrderByFetchedAtDesc(currencyCode, RateSource.TCMB)
@@ -123,6 +139,22 @@ public class MarketDataService {
             }
         }
         return currencyRateRepository.findTopByCurrencyCodeOrderByFetchedAtDesc(currencyCode).orElse(null);
+    }
+
+    private CurrencyRateResponse mapToSimulatedRateResponse(String code, SimulatedCurrency currency) {
+        return CurrencyRateResponse.builder()
+            .currencyCode(code)
+            .currencyName(currency.getName())
+            .buyingRate(currency.getBuyingRate())
+            .sellingRate(currency.getSellingRate())
+            .effectiveBuyingRate(currency.getBuyingRate())
+            .effectiveSellingRate(currency.getSellingRate())
+            .averageRate(currency.getMidRate())
+            .changePercent(BigDecimal.ZERO)
+            .source(RateSource.MANUAL.name())
+            .fetchedAt(java.time.LocalDateTime.now())
+            .rateDate(java.time.LocalDateTime.now())
+            .build();
     }
 
     private RateSource mapProviderToRateSource(ApiProvider provider) {

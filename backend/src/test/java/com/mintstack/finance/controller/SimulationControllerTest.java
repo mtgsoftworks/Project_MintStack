@@ -192,9 +192,12 @@ class SimulationControllerTest {
         Map<String, SimulatedStock> stocks = new HashMap<>();
         stocks.put("THYAO", new SimulatedStock("THY", "BIST", 100.0, 0.02));
         when(simulationDataService.getStocks()).thenReturn(stocks);
-        when(simulationDataService.getBonds()).thenReturn(new HashMap<>());
-        when(simulationDataService.getFunds()).thenReturn(new HashMap<>());
-        when(simulationDataService.getViop()).thenReturn(new HashMap<>());
+        when(simulationDataService.getBonds()).thenReturn(Map.of(
+            "TRT150127T14", new SimulatedStock("Tahvil", "BIST", 98.2, 0.006)));
+        when(simulationDataService.getFunds()).thenReturn(Map.of(
+            "MAC", new SimulatedStock("Fon", "TEFAS", 15.4, 0.011)));
+        when(simulationDataService.getViop()).thenReturn(Map.of(
+            "XU0300426", new SimulatedStock("VIOP", "VIOP", 11235.0, 0.028)));
 
         Map<String, SimulatedCurrency> currencies = new HashMap<>();
         currencies.put("USD", new SimulatedCurrency("USD", 38.0, 38.5, 0.01));
@@ -212,6 +215,9 @@ class SimulationControllerTest {
                 .andExpect(jsonPath("$.data.enabled").value(true))
                 .andExpect(jsonPath("$.data.tickCount").value(100))
                 .andExpect(jsonPath("$.data.stockCount").value(1))
+                .andExpect(jsonPath("$.data.bondCount").value(1))
+                .andExpect(jsonPath("$.data.fundCount").value(1))
+                .andExpect(jsonPath("$.data.viopCount").value(1))
                 .andExpect(jsonPath("$.data.currencyCount").value(1))
                 .andExpect(jsonPath("$.data.indexCount").value(1));
     }
@@ -233,6 +239,51 @@ class SimulationControllerTest {
                 .andExpect(jsonPath("$.data.THYAO").exists())
                 .andExpect(jsonPath("$.data.THYAO.name").value("TÃ¼rk Hava YollarÄ±"))
                 .andExpect(jsonPath("$.data.GARAN").exists());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("GET /api/v1/simulation/bonds tahvil ve bonolari dondurmeli")
+    void testGetBonds_ReturnsBonds() throws Exception {
+        Map<String, SimulatedStock> bonds = new HashMap<>();
+        bonds.put("TRT150127T14", new SimulatedStock("Devlet Tahvili", "BIST", 98.20, 0.006));
+        when(simulationDataService.getBonds()).thenReturn(bonds);
+
+        mockMvc.perform(get("/api/v1/simulation/bonds"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.TRT150127T14").exists())
+                .andExpect(jsonPath("$.data.TRT150127T14.exchange").value("BIST"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("GET /api/v1/simulation/funds fonlari dondurmeli")
+    void testGetFunds_ReturnsFunds() throws Exception {
+        Map<String, SimulatedStock> funds = new HashMap<>();
+        funds.put("MAC", new SimulatedStock("Marmara Capital", "TEFAS", 15.40, 0.011));
+        when(simulationDataService.getFunds()).thenReturn(funds);
+
+        mockMvc.perform(get("/api/v1/simulation/funds"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.MAC").exists())
+                .andExpect(jsonPath("$.data.MAC.exchange").value("TEFAS"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("GET /api/v1/simulation/viop VIOP kontratlarini dondurmeli")
+    void testGetViop_ReturnsContracts() throws Exception {
+        Map<String, SimulatedStock> viop = new HashMap<>();
+        viop.put("XU0300426", new SimulatedStock("BIST 30 Vadeli", "VIOP", 11235.0, 0.028));
+        when(simulationDataService.getViop()).thenReturn(viop);
+
+        mockMvc.perform(get("/api/v1/simulation/viop"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.XU0300426").exists())
+                .andExpect(jsonPath("$.data.XU0300426.exchange").value("VIOP"));
     }
 
     @Test
@@ -281,5 +332,4 @@ class SimulationControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 }
-
 

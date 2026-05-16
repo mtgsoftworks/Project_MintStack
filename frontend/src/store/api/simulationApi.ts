@@ -36,6 +36,18 @@ export const simulationApi = baseApi.injectEndpoints({
             query: () => '/simulation/stocks',
             providesTags: ['Simulation'],
         }),
+        getSimulatedBonds: builder.query({
+            query: () => '/simulation/bonds',
+            providesTags: ['Simulation'],
+        }),
+        getSimulatedFunds: builder.query({
+            query: () => '/simulation/funds',
+            providesTags: ['Simulation'],
+        }),
+        getSimulatedViop: builder.query({
+            query: () => '/simulation/viop',
+            providesTags: ['Simulation'],
+        }),
         getSimulatedCurrencies: builder.query({
             query: () => '/simulation/currencies',
             providesTags: ['Simulation'],
@@ -54,6 +66,9 @@ export const {
     useResetSimulationMutation,
     useGetSimulationStatusQuery,
     useGetSimulatedStocksQuery,
+    useGetSimulatedBondsQuery,
+    useGetSimulatedFundsQuery,
+    useGetSimulatedViopQuery,
     useGetSimulatedCurrenciesQuery,
     useGetSimulatedIndicesQuery,
 } = simulationApi

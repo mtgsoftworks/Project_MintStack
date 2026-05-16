@@ -24,6 +24,9 @@ public class SimulationMetrics {
     private Duration uptime;
     
     private int stocks;
+    private int bonds;
+    private int funds;
+    private int viop;
     private int currencies;
     private int indices;
     private int cryptos;
