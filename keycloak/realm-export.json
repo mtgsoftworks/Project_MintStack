@@ -168,6 +168,7 @@
       "fullScopeAllowed": true,
       "defaultClientScopes": [
         "web-origins",
+        "basic",
         "acr",
         "profile",
         "roles",

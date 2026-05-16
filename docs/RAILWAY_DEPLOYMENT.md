@@ -164,6 +164,11 @@ Bu domain Keycloak `finance-frontend` client redirect URI ve web origin listesin
 eklenmelidir. Aksi halde login ekraninda `Invalid parameter: redirect_uri`
 hatası alınır.
 
+`finance-frontend` client default scope listesinde `basic` mutlaka bulunmalidir.
+Backend kullaniciyi access token icindeki `sub` claim'i ile eslestirir; `basic`
+scope eksikse `/api/v1/users/me`, `/api/v1/portfolios`,
+`/api/v1/settings/api-keys` gibi endpointler kullaniciyi bulamaz.
+
 ## Auto deploy
 
 GitHub repo Railway'e baglandiktan sonra Railway GitHub push'larini otomatik
