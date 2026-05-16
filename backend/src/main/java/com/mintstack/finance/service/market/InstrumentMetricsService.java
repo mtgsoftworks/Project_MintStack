@@ -6,6 +6,7 @@ import com.mintstack.finance.entity.PriceHistory;
 import com.mintstack.finance.service.external.YahooFinanceClient;
 import com.mintstack.finance.repository.PriceHistoryRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -24,23 +25,29 @@ public class InstrumentMetricsService {
 
     private static final Pattern VIOP_MATURITY_PATTERN = Pattern.compile("(\\d{4})$");
     private static final Pattern BOND_MATURITY_PATTERN = Pattern.compile("^TRT(\\d{2})(\\d{2})(\\d{2})T\\d{2}$");
+    private static final int RECENT_HISTORY_LIMIT = 10;
 
     private final PriceHistoryRepository priceHistoryRepository;
     private final YahooFinanceClient yahooFinanceClient;
 
     public InstrumentMetrics resolveMetrics(Instrument instrument) {
-        Optional<PriceHistory> latestHistory = resolveLatestHistory(instrument);
-        Long volume = resolveLatestVolume(instrument);
+        List<PriceHistory> recentHistory = resolveRecentHistory(instrument, RECENT_HISTORY_LIMIT);
+        Optional<PriceHistory> latestHistory = recentHistory.stream().findFirst();
+        BigDecimal currentPrice = resolveCurrentPrice(instrument, latestHistory);
+        BigDecimal previousClose = resolvePreviousClose(instrument, recentHistory, currentPrice);
+        Long volume = resolveLatestVolume(instrument, latestHistory);
         LocalDate maturityDate = resolveMaturityDate(instrument);
-        BigDecimal yieldRate = resolveYieldRate(instrument, maturityDate);
-        BigDecimal totalValue = resolveTotalValue(instrument, volume);
-        BigDecimal marketCap = resolveMarketCap(instrument, totalValue);
+        BigDecimal yieldRate = resolveYieldRate(instrument, maturityDate, currentPrice);
+        BigDecimal totalValue = resolveTotalValue(instrument, currentPrice, volume);
+        BigDecimal marketCap = resolveMarketCap(instrument, totalValue, currentPrice, previousClose);
         PriceRange week52Range = resolveWeek52Range(instrument);
         BigDecimal openPrice = resolveOpenPrice(instrument, latestHistory);
         BigDecimal highPrice = resolveHighPrice(instrument, latestHistory);
         BigDecimal lowPrice = resolveLowPrice(instrument, latestHistory);
 
         return new InstrumentMetrics(
+            currentPrice,
+            previousClose,
             openPrice,
             highPrice,
             lowPrice,
@@ -54,12 +61,57 @@ public class InstrumentMetricsService {
         );
     }
 
-    private Optional<PriceHistory> resolveLatestHistory(Instrument instrument) {
+    private List<PriceHistory> resolveRecentHistory(Instrument instrument, int limit) {
         if (instrument == null || instrument.getId() == null) {
-            return Optional.empty();
+            return List.of();
         }
-        Optional<PriceHistory> latest = priceHistoryRepository.findTopByInstrumentIdOrderByPriceDateDesc(instrument.getId());
-        return latest != null ? latest : Optional.empty();
+        List<PriceHistory> history = priceHistoryRepository.findByInstrumentIdOrderByPriceDateDesc(
+            instrument.getId(),
+            PageRequest.of(0, limit)
+        );
+        return history != null ? history : List.of();
+    }
+
+    private BigDecimal resolveCurrentPrice(Instrument instrument, Optional<PriceHistory> latestHistory) {
+        if (shouldResolvePriceFromHistory(instrument)
+            && latestHistory.isPresent()
+            && firstPositive(latestHistory.get().getClosePrice()) != null) {
+            return latestHistory.get().getClosePrice();
+        }
+        return firstPositive(
+            instrument != null ? instrument.getCurrentPrice() : null,
+            latestHistory.map(PriceHistory::getClosePrice).orElse(null)
+        );
+    }
+
+    private BigDecimal resolvePreviousClose(Instrument instrument, List<PriceHistory> recentHistory, BigDecimal currentPrice) {
+        if (shouldResolvePriceFromHistory(instrument) && recentHistory != null && recentHistory.size() > 1) {
+            BigDecimal previousHistoryClose = recentHistory.stream()
+                .skip(1)
+                .map(PriceHistory::getClosePrice)
+                .map(value -> firstPositive(value))
+                .filter(java.util.Objects::nonNull)
+                .filter(close -> currentPrice == null || close.compareTo(currentPrice) != 0)
+                .findFirst()
+                .orElseGet(() -> firstPositive(recentHistory.get(1).getClosePrice()));
+            if (previousHistoryClose != null) {
+                return previousHistoryClose;
+            }
+        }
+        return firstPositive(
+            instrument != null ? instrument.getPreviousClose() : null,
+            recentHistory != null && !recentHistory.isEmpty() ? recentHistory.get(0).getOpenPrice() : null
+        );
+    }
+
+    private boolean shouldResolvePriceFromHistory(Instrument instrument) {
+        if (instrument == null || instrument.getType() == null) {
+            return false;
+        }
+        return instrument.getType() == InstrumentType.STOCK
+            || instrument.getType() == InstrumentType.BOND
+            || instrument.getType() == InstrumentType.FUND
+            || instrument.getType() == InstrumentType.VIOP;
     }
 
     private BigDecimal resolveOpenPrice(Instrument instrument, Optional<PriceHistory> latestHistory) {
@@ -83,16 +135,13 @@ public class InstrumentMetricsService {
         return firstPositive(instrument.getCurrentPrice(), instrument.getPreviousClose());
     }
 
-    private Long resolveLatestVolume(Instrument instrument) {
+    private Long resolveLatestVolume(Instrument instrument, Optional<PriceHistory> latestHistory) {
         if (instrument == null) {
             return null;
         }
 
-        if (instrument.getId() != null) {
-            Optional<PriceHistory> latestHistory = priceHistoryRepository.findTopByInstrumentIdOrderByPriceDateDesc(instrument.getId());
-            if (latestHistory != null && latestHistory.isPresent() && latestHistory.get().getVolume() != null) {
-                return latestHistory.get().getVolume();
-            }
+        if (latestHistory != null && latestHistory.isPresent() && latestHistory.get().getVolume() != null) {
+            return latestHistory.get().getVolume();
         }
 
         if (instrument.getSymbol() != null && shouldQueryExternalVolume(instrument.getType())) {
@@ -101,7 +150,7 @@ public class InstrumentMetricsService {
                 return liveVolume;
             }
         }
-        return resolveSyntheticVolume(instrument);
+        return null;
     }
 
     private LocalDate resolveMaturityDate(Instrument instrument) {
@@ -153,12 +202,12 @@ public class InstrumentMetricsService {
         }
     }
 
-    private BigDecimal resolveYieldRate(Instrument instrument, LocalDate maturityDate) {
+    private BigDecimal resolveYieldRate(Instrument instrument, LocalDate maturityDate, BigDecimal currentPrice) {
         if (instrument == null || instrument.getType() != InstrumentType.BOND) {
             return null;
         }
 
-        BigDecimal price = instrument.getCurrentPrice();
+        BigDecimal price = currentPrice;
         if (price == null || price.compareTo(BigDecimal.ZERO) <= 0 || maturityDate == null) {
             return null;
         }
@@ -184,36 +233,23 @@ public class InstrumentMetricsService {
             .setScale(2, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal resolveTotalValue(Instrument instrument, Long volume) {
-        if (instrument == null || instrument.getCurrentPrice() == null) {
+    private BigDecimal resolveTotalValue(Instrument instrument, BigDecimal currentPrice, Long volume) {
+        if (currentPrice == null) {
             return null;
         }
 
-        Long effectiveVolume = volume;
-        if (effectiveVolume == null || effectiveVolume <= 0) {
-            effectiveVolume = resolveSyntheticVolume(instrument);
-        }
-        if (effectiveVolume == null || effectiveVolume <= 0) {
+        if (volume == null || volume <= 0) {
             return null;
         }
 
-        return instrument.getCurrentPrice()
-            .multiply(BigDecimal.valueOf(effectiveVolume))
+        return currentPrice
+            .multiply(BigDecimal.valueOf(volume))
             .setScale(2, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal resolveMarketCap(Instrument instrument, BigDecimal totalValue) {
-        if (instrument == null || instrument.getType() != InstrumentType.STOCK) {
-            return null;
-        }
-        if (totalValue != null && totalValue.compareTo(BigDecimal.ZERO) > 0) {
-            return totalValue.setScale(2, RoundingMode.HALF_UP);
-        }
-        BigDecimal base = firstPositive(instrument.getCurrentPrice(), instrument.getPreviousClose());
-        if (base == null) {
-            return null;
-        }
-        return base.multiply(new BigDecimal("2500000")).setScale(2, RoundingMode.HALF_UP);
+    private BigDecimal resolveMarketCap(Instrument instrument, BigDecimal totalValue,
+                                        BigDecimal currentPrice, BigDecimal previousClose) {
+        return null;
     }
 
     private PriceRange resolveWeek52Range(Instrument instrument) {
@@ -236,13 +272,6 @@ public class InstrumentMetricsService {
             .min(BigDecimal::compareTo)
             .orElse(null);
 
-        BigDecimal reference = firstPositive(instrument.getCurrentPrice(), instrument.getPreviousClose());
-        if (high == null && reference != null) {
-            high = reference.multiply(new BigDecimal("1.15"));
-        }
-        if (low == null && reference != null) {
-            low = reference.multiply(new BigDecimal("0.85"));
-        }
         if (high == null || low == null) {
             return new PriceRange(null, null);
         }
@@ -255,68 +284,6 @@ public class InstrumentMetricsService {
             high.setScale(6, RoundingMode.HALF_UP),
             low.setScale(6, RoundingMode.HALF_UP)
         );
-    }
-
-    private Long resolveSyntheticVolume(Instrument instrument) {
-        if (instrument == null || instrument.getType() == null) {
-            return null;
-        }
-
-        if (instrument.getType() == InstrumentType.STOCK) {
-            String symbol = instrument.getSymbol();
-            if (symbol == null) {
-                return 2_500_000L;
-            }
-            return switch (symbol) {
-                case "THYAO" -> 12_000_000L;
-                case "GARAN" -> 9_500_000L;
-                case "AKBNK" -> 8_200_000L;
-                case "SISE" -> 7_400_000L;
-                case "ASELS" -> 6_800_000L;
-                default -> 2_500_000L;
-            };
-        }
-
-        if (instrument.getType() == InstrumentType.FUND) {
-            String symbol = instrument.getSymbol();
-            if (symbol == null) {
-                return 500_000L;
-            }
-            return switch (symbol) {
-                case "MAC" -> 1_250_000L;
-                case "TCD" -> 980_000L;
-                case "TI2" -> 2_400_000L;
-                case "AFT" -> 760_000L;
-                case "GSP" -> 420_000L;
-                default -> 500_000L;
-            };
-        }
-
-        if (instrument.getType() == InstrumentType.BOND) {
-            return 150_000L;
-        }
-
-        if (instrument.getType() == InstrumentType.VIOP) {
-            String symbol = instrument.getSymbol();
-            if (symbol == null) {
-                return 50_000L;
-            }
-            return switch (symbol) {
-                case "F_XU0300426", "XU0300426" -> 145_000L;
-                case "F_USDTRY0426", "USDTRY0626" -> 89_000L;
-                case "F_GARAN0426" -> 76_000L;
-                case "F_THYAO0426", "THYAO0526" -> 82_000L;
-                case "F_XAUUSD0426", "XAUUSD0826" -> 68_000L;
-                case "F_AKBNK0426" -> 94_000L;
-                case "F_ASELS0426" -> 88_000L;
-                case "F_ISCTR0426" -> 97_000L;
-                case "F_SISE0426" -> 87_000L;
-                case "F_YKBNK0426" -> 84_000L;
-                default -> 50_000L;
-            };
-        }
-
-        return null;
     }
 
     private boolean shouldQueryExternalVolume(InstrumentType type) {
@@ -339,6 +306,8 @@ public class InstrumentMetricsService {
     }
 
     public record InstrumentMetrics(
+        BigDecimal currentPrice,
+        BigDecimal previousClose,
         BigDecimal openPrice,
         BigDecimal highPrice,
         BigDecimal lowPrice,

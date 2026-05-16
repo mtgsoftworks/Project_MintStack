@@ -13,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -483,11 +482,7 @@ public class TechnicalIndicatorService {
         }
 
         List<PriceHistory> recentHistory = getRecentStoredHistory(instrumentOpt.get(), limit);
-        if (recentHistory.size() >= limit) {
-            return recentHistory;
-        }
-
-        return generateSyntheticHistory(instrumentOpt.get(), recentHistory, limit);
+        return recentHistory;
     }
 
     private List<PriceHistory> getRecentStoredHistory(Instrument instrument, int limit) {
@@ -507,73 +502,6 @@ public class TechnicalIndicatorService {
         return fullHistory.stream()
                 .skip(size - limit)
                 .toList();
-    }
-
-    private List<PriceHistory> generateSyntheticHistory(Instrument instrument, List<PriceHistory> storedHistory, int limit) {
-        if (limit <= 0) {
-            return List.of();
-        }
-
-        BigDecimal latestStoredClose = storedHistory.isEmpty()
-            ? null
-            : storedHistory.get(storedHistory.size() - 1).getClosePrice();
-        BigDecimal currentPrice = firstPositive(
-            instrument.getCurrentPrice(),
-            latestStoredClose,
-            instrument.getPreviousClose()
-        );
-        if (currentPrice == null || currentPrice.compareTo(BigDecimal.ZERO) <= 0) {
-            return storedHistory;
-        }
-
-        BigDecimal firstStoredClose = storedHistory.isEmpty()
-            ? null
-            : storedHistory.get(0).getClosePrice();
-        BigDecimal baselinePrice = firstPositive(
-            firstStoredClose,
-            instrument.getPreviousClose(),
-            currentPrice.multiply(new BigDecimal("0.985000"))
-        );
-        if (baselinePrice == null || baselinePrice.compareTo(BigDecimal.ZERO) <= 0) {
-            baselinePrice = currentPrice.multiply(new BigDecimal("0.985000"));
-        }
-
-        LocalDate endDate = LocalDate.now();
-        List<PriceHistory> generated = new ArrayList<>();
-        for (int index = 0; index < limit; index++) {
-            LocalDate date = endDate.minusDays((long) limit - 1L - index);
-            BigDecimal progress = limit == 1
-                ? BigDecimal.ONE
-                : BigDecimal.valueOf(index).divide(BigDecimal.valueOf(limit - 1L), 10, RoundingMode.HALF_UP);
-
-            BigDecimal trendComponent = currentPrice.subtract(baselinePrice).multiply(progress);
-            BigDecimal waveComponent = currentPrice
-                .multiply(BigDecimal.valueOf(Math.sin(index / 3.0d)))
-                .multiply(new BigDecimal("0.002500"));
-
-            BigDecimal close = baselinePrice.add(trendComponent).add(waveComponent);
-            if (close.compareTo(BigDecimal.ZERO) <= 0) {
-                close = new BigDecimal("0.000001");
-            }
-            close = close.setScale(6, RoundingMode.HALF_UP);
-
-            BigDecimal open = close.multiply(new BigDecimal("0.999000")).setScale(6, RoundingMode.HALF_UP);
-            BigDecimal high = close.multiply(new BigDecimal("1.002000")).setScale(6, RoundingMode.HALF_UP);
-            BigDecimal low = close.multiply(new BigDecimal("0.998000")).setScale(6, RoundingMode.HALF_UP);
-
-            generated.add(PriceHistory.builder()
-                .instrument(instrument)
-                .openPrice(open)
-                .highPrice(high)
-                .lowPrice(low)
-                .closePrice(close)
-                .adjustedClose(close)
-                .volume(1_500_000L)
-                .priceDate(date)
-                .build());
-        }
-
-        return generated;
     }
 
     private double calculateEMAFromPrices(double[] prices, int period) {
@@ -664,18 +592,6 @@ public class TechnicalIndicatorService {
             return "LIMITED";
         }
         return "NO_DATA";
-    }
-
-    private BigDecimal firstPositive(BigDecimal... values) {
-        if (values == null) {
-            return null;
-        }
-        for (BigDecimal value : values) {
-            if (value != null && value.compareTo(BigDecimal.ZERO) > 0) {
-                return value;
-            }
-        }
-        return null;
     }
 
     private double typicalPrice(PriceHistory item) {

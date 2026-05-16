@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Search, TrendingUp, TrendingDown } from 'lucide-react'
+import { Search, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -150,15 +150,21 @@ export default function BondsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredBonds.map((bond) => (
+                  filteredBonds.map((bond) => {
+                    const hasChange = bond.changePercent !== null && bond.changePercent !== undefined
+                    const isPositive = hasChange && bond.changePercent >= 0
+
+                    return (
                     <TableRow key={bond.symbol}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className={cn(
                             "flex h-10 w-10 items-center justify-center rounded-lg",
-                            bond.changePercent >= 0 ? "bg-success/10" : "bg-danger/10"
+                            !hasChange ? "bg-muted" : isPositive ? "bg-success/10" : "bg-danger/10"
                           )}>
-                            {bond.changePercent >= 0 ? (
+                            {!hasChange ? (
+                              <Minus className="h-5 w-5 text-muted-foreground" />
+                            ) : isPositive ? (
                               <TrendingUp className="h-5 w-5 text-success" />
                             ) : (
                               <TrendingDown className="h-5 w-5 text-danger" />
@@ -182,8 +188,8 @@ export default function BondsPage() {
                         {bond.yieldRate != null ? `%${Number(bond.yieldRate).toFixed(2)}` : '-'}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Badge variant={bond.changePercent >= 0 ? 'success' : 'danger'}>
-                          {formatPercent(bond.changePercent || 0)}
+                        <Badge variant={!hasChange ? 'secondary' : isPositive ? 'success' : 'danger'}>
+                          {formatPercent(bond.changePercent)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
@@ -193,7 +199,8 @@ export default function BondsPage() {
                         <PortfolioQuickTradeCell instrument={bond} selectedPortfolioId={selectedPortfolioId} />
                       </TableCell>
                     </TableRow>
-                  ))
+                    )
+                  })
                 )}
               </TableBody>
             </Table>

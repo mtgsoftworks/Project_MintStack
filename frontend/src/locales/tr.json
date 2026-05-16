@@ -176,6 +176,7 @@
                 "yahooFinance": "Yahoo Finance",
                 "finnhub": "Finnhub",
                 "tefas": "TEFAS",
+                "bistDataStore": "BIST DataStore",
                 "fintables": "Fintables",
                 "llmEnrichment": "LLM Zenginlestirme",
                 "tcmb": "TCMB (Merkez Bankası)",
@@ -274,6 +275,20 @@
                     "missing": [
                         "Anlık 7/24 veri garantisi yok",
                         "Site kontratı değişirse adapter güncellenir"
+                    ]
+                },
+                "BIST_DATASTORE": {
+                    "title": "BIST DataStore",
+                    "desc": "Borsa Istanbul public dosya/bulten kaynaklarindan tahvil/bono ve VIOP verisi ceker.",
+                    "supported": [
+                        "Tahvil & Bono gunluk bulteni",
+                        "VIOP gunluk bulteni",
+                        "Fiyat, onceki fiyat ve hacim",
+                        "Tarihsel backfill"
+                    ],
+                    "missing": [
+                        "7/24 anlik akis degil",
+                        "BIST dosya formati degisirse adapter guncellenir"
                     ]
                 },
                 "FINTABLES": {

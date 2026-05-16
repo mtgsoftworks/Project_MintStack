@@ -28,6 +28,10 @@ RUN npm run build
 FROM nginx:alpine
 WORKDIR /usr/share/nginx/html
 
+ENV PORT=3000
+ENV BACKEND_UPSTREAM=http://backend:8080
+ENV NGINX_RESOLVER=127.0.0.11
+
 # Install curl for healthcheck
 RUN apk add --no-cache curl
 
@@ -37,14 +41,15 @@ RUN rm -rf ./*
 # Copy built assets from build stage
 COPY --from=build /app/dist .
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx configuration template. The official nginx entrypoint renders
+# /etc/nginx/templates/*.template with environment variables before startup.
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 # Expose port
 EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:3000/health || exit 1
+    CMD sh -c 'curl -f "http://localhost:${PORT:-3000}/health" || exit 1'
 
 CMD ["nginx", "-g", "daemon off;"]

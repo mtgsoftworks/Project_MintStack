@@ -6,6 +6,7 @@ import com.mintstack.finance.entity.CurrencyRate;
 import com.mintstack.finance.entity.CurrencyRate.RateSource;
 import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.Instrument.InstrumentType;
+import com.mintstack.finance.entity.PriceHistory;
 import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.CurrencyRateRepository;
@@ -287,8 +288,96 @@ class MarketDataServiceTest {
     }
 
     @Test
-    @DisplayName("getInstrumentsByType with pagination should return synthetic VIOP volume when history is empty")
-    void getInstrumentsByType_WithPagination_ShouldReturnSyntheticViopVolume_WhenHistoryIsEmpty() {
+    @DisplayName("getInstrumentsByType with pagination should derive stock change from price history")
+    void getInstrumentsByType_WithPagination_ShouldDeriveStockChangeFromPriceHistory() {
+        Pageable pageable = PageRequest.of(0, 10);
+        thyaoStock.setCurrentPrice(new BigDecimal("300.000000"));
+        thyaoStock.setPreviousClose(new BigDecimal("300.000000"));
+        PriceHistory latest = PriceHistory.builder()
+                .instrument(thyaoStock)
+                .priceDate(LocalDate.of(2026, 5, 15))
+                .openPrice(new BigDecimal("299.000000"))
+                .highPrice(new BigDecimal("305.000000"))
+                .lowPrice(new BigDecimal("298.000000"))
+                .closePrice(new BigDecimal("302.000000"))
+                .volume(12_000_000L)
+                .build();
+        PriceHistory duplicateClose = PriceHistory.builder()
+                .instrument(thyaoStock)
+                .priceDate(LocalDate.of(2026, 5, 14))
+                .closePrice(new BigDecimal("302.000000"))
+                .volume(11_800_000L)
+                .build();
+        PriceHistory previous = PriceHistory.builder()
+                .instrument(thyaoStock)
+                .priceDate(LocalDate.of(2026, 5, 13))
+                .closePrice(new BigDecimal("300.000000"))
+                .volume(11_500_000L)
+                .build();
+
+        when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType.STOCK, false, pageable))
+                .thenReturn(new PageImpl<>(List.of(thyaoStock), pageable, 1));
+        when(priceHistoryRepository.findByInstrumentIdOrderByPriceDateDesc(eq(thyaoStock.getId()), any(Pageable.class)))
+                .thenReturn(List.of(latest, duplicateClose, previous));
+        when(priceHistoryRepository.findBySymbolAndDateRange(eq("THYAO"), any(LocalDate.class), any(LocalDate.class)))
+                .thenReturn(List.of(latest, duplicateClose, previous));
+
+        Page<InstrumentResponse> result = marketDataService.getInstrumentsByType(InstrumentType.STOCK, pageable);
+
+        InstrumentResponse response = result.getContent().get(0);
+        assertThat(response.getCurrentPrice()).isEqualByComparingTo(new BigDecimal("302.000000"));
+        assertThat(response.getPreviousClose()).isEqualByComparingTo(new BigDecimal("300.000000"));
+        assertThat(response.getChange()).isEqualByComparingTo(new BigDecimal("2.000000"));
+        assertThat(response.getChangePercent()).isEqualByComparingTo(new BigDecimal("0.666700"));
+        assertThat(response.getVolume()).isEqualTo(12_000_000L);
+        assertThat(response.getTotalValue()).isEqualByComparingTo(new BigDecimal("3624000000.00"));
+    }
+
+    @Test
+    @DisplayName("getInstrumentsByType with pagination should not fabricate stock change for sparse flat history")
+    void getInstrumentsByType_WithPagination_ShouldNotFabricateStockChangeForSparseFlatHistory() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Instrument stock = Instrument.builder()
+                .symbol("KOZAL")
+                .name("Koza Altin")
+                .type(InstrumentType.STOCK)
+                .exchange("BIST")
+                .currency("TRY")
+                .currentPrice(new BigDecimal("34.950000"))
+                .previousClose(new BigDecimal("34.950000"))
+                .isActive(true)
+                .build();
+        stock.setId(UUID.randomUUID());
+        PriceHistory latest = PriceHistory.builder()
+                .instrument(stock)
+                .priceDate(LocalDate.of(2026, 5, 16))
+                .openPrice(new BigDecimal("34.950000"))
+                .closePrice(new BigDecimal("34.950000"))
+                .build();
+        PriceHistory duplicate = PriceHistory.builder()
+                .instrument(stock)
+                .priceDate(LocalDate.of(2026, 5, 15))
+                .openPrice(new BigDecimal("34.950000"))
+                .closePrice(new BigDecimal("34.950000"))
+                .build();
+
+        when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType.STOCK, false, pageable))
+                .thenReturn(new PageImpl<>(List.of(stock), pageable, 1));
+        when(priceHistoryRepository.findByInstrumentIdOrderByPriceDateDesc(eq(stock.getId()), any(Pageable.class)))
+                .thenReturn(List.of(latest, duplicate));
+
+        Page<InstrumentResponse> result = marketDataService.getInstrumentsByType(InstrumentType.STOCK, pageable);
+
+        InstrumentResponse response = result.getContent().get(0);
+        assertThat(response.getCurrentPrice()).isEqualByComparingTo(new BigDecimal("34.950000"));
+        assertThat(response.getPreviousClose()).isEqualByComparingTo(new BigDecimal("34.950000"));
+        assertThat(response.getChange()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(response.getChangePercent()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    @DisplayName("getInstrumentsByType with pagination should not fabricate VIOP volume when history is empty")
+    void getInstrumentsByType_WithPagination_ShouldNotFabricateViopVolume_WhenHistoryIsEmpty() {
         Pageable pageable = PageRequest.of(0, 10);
         Instrument viop = Instrument.builder()
                 .symbol("F_XU0300426")
@@ -304,14 +393,63 @@ class MarketDataServiceTest {
 
         when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType.VIOP, false, pageable))
                 .thenReturn(new PageImpl<>(List.of(viop), pageable, 1));
-        when(priceHistoryRepository.findTopByInstrumentIdOrderByPriceDateDesc(viop.getId()))
-                .thenReturn(Optional.empty());
+        when(priceHistoryRepository.findByInstrumentIdOrderByPriceDateDesc(eq(viop.getId()), any(Pageable.class)))
+                .thenReturn(List.of());
 
         Page<InstrumentResponse> result = marketDataService.getInstrumentsByType(InstrumentType.VIOP, pageable);
 
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).getVolume()).isEqualTo(145_000L);
-        assertThat(result.getContent().get(0).getTotalValue()).isEqualByComparingTo(new BigDecimal("1612400000.00"));
+        assertThat(result.getContent().get(0).getVolume()).isNull();
+        assertThat(result.getContent().get(0).getTotalValue()).isNull();
+    }
+
+    @Test
+    @DisplayName("getInstrumentsByType with pagination should derive derivatives change from price history")
+    void getInstrumentsByType_WithPagination_ShouldDeriveViopChangeFromPriceHistory() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Instrument viop = Instrument.builder()
+                .symbol("F_AKBNK0426")
+                .name("AKBNK Nisan Vadeli")
+                .type(InstrumentType.VIOP)
+                .exchange("VIOP")
+                .currency("TRY")
+                .currentPrice(new BigDecimal("67.250000"))
+                .previousClose(new BigDecimal("67.250000"))
+                .isActive(true)
+                .build();
+        viop.setId(UUID.randomUUID());
+
+        PriceHistory latest = PriceHistory.builder()
+                .instrument(viop)
+                .priceDate(LocalDate.of(2026, 5, 15))
+                .openPrice(new BigDecimal("66.522877"))
+                .highPrice(new BigDecimal("67.083526"))
+                .lowPrice(new BigDecimal("66.123305"))
+                .closePrice(new BigDecimal("66.687672"))
+                .volume(102_969L)
+                .build();
+        PriceHistory previous = PriceHistory.builder()
+                .instrument(viop)
+                .priceDate(LocalDate.of(2026, 5, 14))
+                .closePrice(new BigDecimal("66.955733"))
+                .volume(102_832L)
+                .build();
+
+        when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType.VIOP, false, pageable))
+                .thenReturn(new PageImpl<>(List.of(viop), pageable, 1));
+        when(priceHistoryRepository.findByInstrumentIdOrderByPriceDateDesc(eq(viop.getId()), any(Pageable.class)))
+                .thenReturn(List.of(latest, previous));
+
+        Page<InstrumentResponse> result = marketDataService.getInstrumentsByType(InstrumentType.VIOP, pageable);
+
+        InstrumentResponse response = result.getContent().get(0);
+        assertThat(response.getCurrentPrice()).isEqualByComparingTo(new BigDecimal("66.687672"));
+        assertThat(response.getPreviousClose()).isEqualByComparingTo(new BigDecimal("66.955733"));
+        assertThat(response.getChange()).isLessThan(BigDecimal.ZERO);
+        assertThat(response.getChange()).isNotEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(response.getChangePercent()).isLessThan(BigDecimal.ZERO);
+        assertThat(response.getVolume()).isEqualTo(102_969L);
+        assertThat(response.getTotalValue()).isEqualByComparingTo(new BigDecimal("6866762.90"));
     }
 
     @Test

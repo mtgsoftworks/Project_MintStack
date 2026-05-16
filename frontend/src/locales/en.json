@@ -176,6 +176,7 @@
                 "yahooFinance": "Yahoo Finance",
                 "finnhub": "Finnhub",
                 "tefas": "TEFAS",
+                "bistDataStore": "BIST DataStore",
                 "fintables": "Fintables",
                 "llmEnrichment": "LLM Enrichment"
             },
@@ -272,6 +273,20 @@
                     "missing": [
                         "No hard 24/7 realtime guarantee",
                         "Adapter updates may be needed when site contract changes"
+                    ]
+                },
+                "BIST_DATASTORE": {
+                    "title": "BIST DataStore",
+                    "desc": "Reads debt securities and VIOP data from Borsa Istanbul public files and bulletins.",
+                    "supported": [
+                        "Debt securities daily bulletin",
+                        "VIOP daily bulletin",
+                        "Price, previous price and volume",
+                        "Historical backfill"
+                    ],
+                    "missing": [
+                        "Not a 24/7 live stream",
+                        "Adapter must be updated if BIST file formats change"
                     ]
                 },
                 "FINTABLES": {

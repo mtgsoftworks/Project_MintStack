@@ -27,15 +27,16 @@ const DEFAULT_BACKFILL_FORM = {
     maxInstruments: '100',
     instrumentTypes: ['STOCK', 'FUND', 'CURRENCY'],
     symbols: '',
-    includeSyntheticFallback: true
+    includeSyntheticFallback: false
 }
 
-const KEYLESS_PROVIDERS = new Set(['TCMB', 'TEFAS', 'RSS', 'YAHOO_FINANCE'])
+const KEYLESS_PROVIDERS = new Set(['TCMB', 'TEFAS', 'BIST_DATASTORE', 'RSS', 'YAHOO_FINANCE'])
 const PROVIDER_ORDER_FOR_ADD = [
     'ALPHA_VANTAGE',
     'YAHOO_FINANCE',
     'FINNHUB',
     'TEFAS',
+    'BIST_DATASTORE',
     'FINTABLES',
     'TCMB',
     'LLM_ENRICHMENT',
@@ -45,14 +46,16 @@ const PROVIDER_ORDER_FOR_ADD = [
 const requiresValidationForProvider = (provider) => !KEYLESS_PROVIDERS.has(provider)
 
 const withProviderFallbackKey = (data) => {
-    if ((data.provider === 'TCMB' || data.provider === 'TEFAS' || data.provider === 'YAHOO_FINANCE') && !data.apiKey.trim()) {
+    if ((data.provider === 'TCMB' || data.provider === 'TEFAS' || data.provider === 'BIST_DATASTORE' || data.provider === 'YAHOO_FINANCE') && !data.apiKey.trim()) {
         return {
             ...data,
             apiKey: data.provider === 'TCMB'
                 ? 'TCMB_PUBLIC'
                 : data.provider === 'TEFAS'
                     ? 'TEFAS_PUBLIC'
-                    : 'YAHOO_DIRECT'
+                    : data.provider === 'BIST_DATASTORE'
+                        ? 'BIST_DATASTORE_PUBLIC'
+                        : 'YAHOO_DIRECT'
         }
     }
 
@@ -329,7 +332,7 @@ export function useApiDataSourceSettings({ t }) {
             days: Number(backfillForm.days),
             maxInstruments: Number(backfillForm.maxInstruments),
             instrumentTypes: backfillForm.instrumentTypes,
-            includeSyntheticFallback: backfillForm.includeSyntheticFallback,
+            includeSyntheticFallback: false,
             symbols: backfillForm.symbols
                 .split(',')
                 .map((symbol) => symbol.trim().toUpperCase())

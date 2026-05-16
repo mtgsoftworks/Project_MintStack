@@ -39,6 +39,13 @@ export const getProviderInfo = (t) => ({
         missing: asArray(t('settings.providers.info.TEFAS.missing', { returnObjects: true })),
         color: 'bg-cyan-50 text-cyan-900 border-cyan-200'
     },
+    BIST_DATASTORE: {
+        title: t('settings.providers.info.BIST_DATASTORE.title'),
+        description: t('settings.providers.info.BIST_DATASTORE.desc'),
+        supported: asArray(t('settings.providers.info.BIST_DATASTORE.supported', { returnObjects: true })),
+        missing: asArray(t('settings.providers.info.BIST_DATASTORE.missing', { returnObjects: true })),
+        color: 'bg-indigo-50 text-indigo-900 border-indigo-200'
+    },
     FINTABLES: {
         title: t('settings.providers.info.FINTABLES.title'),
         description: t('settings.providers.info.FINTABLES.desc'),
@@ -74,9 +81,24 @@ export const DATA_SOURCE_TYPES = [
         providers: ['YAHOO_FINANCE']
     },
     {
+        type: 'BIST_INDICES',
+        label: 'BIST Endeksleri',
+        providers: ['YAHOO_FINANCE']
+    },
+    {
         type: 'FUNDS',
         label: 'Yatirim Fonlari',
         providers: ['TEFAS', 'FINTABLES']
+    },
+    {
+        type: 'BONDS',
+        label: 'Tahvil & Bono',
+        providers: ['BIST_DATASTORE']
+    },
+    {
+        type: 'VIOP',
+        label: 'VIOP',
+        providers: ['BIST_DATASTORE']
     },
     {
         type: 'US_STOCKS',

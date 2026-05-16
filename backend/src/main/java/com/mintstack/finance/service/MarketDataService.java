@@ -617,14 +617,22 @@ public class MarketDataService {
     }
 
     private InstrumentResponse mapToInstrumentResponse(Instrument instrument) {
+        InstrumentMetricsService.InstrumentMetrics metrics = instrumentMetricsService.resolveMetrics(instrument);
+        BigDecimal currentPrice = metrics.currentPrice();
+        BigDecimal previousClose = metrics.previousClose();
         BigDecimal change = null;
         BigDecimal changePercent = null;
-        
-        if (instrument.getCurrentPrice() != null && instrument.getPreviousClose() != null) {
-            change = instrument.getCurrentPrice().subtract(instrument.getPreviousClose());
-            changePercent = instrument.getChangePercent();
+
+        if (currentPrice != null && previousClose != null) {
+            change = currentPrice.subtract(previousClose);
+            if (previousClose.compareTo(BigDecimal.ZERO) != 0) {
+                changePercent = change
+                    .divide(previousClose, 6, RoundingMode.HALF_UP)
+                    .multiply(new BigDecimal("100"));
+            } else {
+                changePercent = BigDecimal.ZERO;
+            }
         }
-        InstrumentMetricsService.InstrumentMetrics metrics = instrumentMetricsService.resolveMetrics(instrument);
 
         return InstrumentResponse.builder()
             .id(instrument.getId())
@@ -633,8 +641,8 @@ public class MarketDataService {
             .type(instrument.getType())
             .exchange(instrument.getExchange())
             .currency(instrument.getCurrency())
-            .currentPrice(instrument.getCurrentPrice())
-            .previousClose(instrument.getPreviousClose())
+            .currentPrice(currentPrice)
+            .previousClose(previousClose)
             .change(change)
             .changePercent(changePercent)
             .openPrice(metrics.openPrice())

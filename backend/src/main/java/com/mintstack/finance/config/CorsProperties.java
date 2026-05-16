@@ -21,6 +21,10 @@ public class CorsProperties {
         "http://localhost:8088",
         "http://127.0.0.1:8088"
     );
+    private List<String> allowedOriginPatterns = List.of(
+        "https://*.up.railway.app",
+        "https://*.railway.app"
+    );
     private List<String> allowedMethods = List.of("GET", "POST", "PUT", "DELETE", "OPTIONS");
     private List<String> allowedHeaders = List.of("*");
     private boolean allowCredentials = true;

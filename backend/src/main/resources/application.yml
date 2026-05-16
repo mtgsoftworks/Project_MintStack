@@ -90,7 +90,7 @@ spring:
 
 # Server Configuration
 server:
-  port: 8080
+  port: ${PORT:8080}
   error:
     include-message: always
     include-binding-errors: always
@@ -313,6 +313,9 @@ app:
       - http://127.0.0.1:3002
       - http://localhost:8088
       - http://127.0.0.1:8088
+    allowed-origin-patterns:
+      - https://*.up.railway.app
+      - https://*.railway.app
     allowed-methods:
       - GET
       - POST
@@ -347,6 +350,14 @@ app:
       timeout: ${APP_EXTERNAL_API_TEFAS_TIMEOUT:60000}
       default-fund-kinds: ${APP_EXTERNAL_API_TEFAS_DEFAULT_FUND_KINDS:YAT,BYF}
       fund-codes: ${APP_EXTERNAL_API_TEFAS_FUND_CODES:}
+    bist-datastore:
+      enabled: ${APP_EXTERNAL_API_BIST_DATASTORE_ENABLED:true}
+      base-url: ${APP_EXTERNAL_API_BIST_DATASTORE_BASE_URL:https://www.borsaistanbul.com}
+      timeout: ${APP_EXTERNAL_API_BIST_DATASTORE_TIMEOUT:30000}
+      latest-lookback-days: ${APP_EXTERNAL_API_BIST_DATASTORE_LATEST_LOOKBACK_DAYS:7}
+      health-path: ${APP_EXTERNAL_API_BIST_DATASTORE_HEALTH_PATH:/files/datafilepaths_viop.zip}
+      bond-daily-bulletin-path-template: ${APP_EXTERNAL_API_BIST_DATASTORE_BOND_DAILY_TEMPLATE:/data/ttb/{yyyy}/{MM}/ttb{yyyyMMdd}3.zip}
+      viop-daily-bulletin-path-template: ${APP_EXTERNAL_API_BIST_DATASTORE_VIOP_DAILY_TEMPLATE:/data/vadeli/viop_{yyyyMMdd}.csv}
     fintables:
       enabled: ${APP_EXTERNAL_API_FINTABLES_ENABLED:false}
       base-url: ${FINTABLES_BASE_URL:https://api.fintables.com}

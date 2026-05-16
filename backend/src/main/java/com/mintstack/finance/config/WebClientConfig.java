@@ -47,6 +47,12 @@ public class WebClientConfig {
     @Value("${app.external-api.tefas.timeout:60000}")
     private int tefasTimeout;
 
+    @Value("${app.external-api.bist-datastore.base-url:https://www.borsaistanbul.com}")
+    private String bistDataStoreBaseUrl;
+
+    @Value("${app.external-api.bist-datastore.timeout:30000}")
+    private int bistDataStoreTimeout;
+
     @Bean
     public WebClient tcmbWebClient() {
         return createWebClient(tcmbBaseUrl, tcmbTimeout);
@@ -75,6 +81,15 @@ public class WebClientConfig {
             .defaultHeader("Content-Type", "application/json")
             .defaultHeader("Origin", "https://www.tefas.gov.tr")
             .defaultHeader("Referer", "https://www.tefas.gov.tr/tr/fon-verileri")
+            .build();
+    }
+
+    @Bean
+    public WebClient bistDataStoreWebClient() {
+        return createWebClient(bistDataStoreBaseUrl, bistDataStoreTimeout)
+            .mutate()
+            .defaultHeader("Accept", "*/*")
+            .defaultHeader("Referer", "https://www.borsaistanbul.com/")
             .build();
     }
 

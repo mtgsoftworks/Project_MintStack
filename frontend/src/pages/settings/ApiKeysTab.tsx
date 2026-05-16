@@ -56,7 +56,7 @@ export function ApiKeysTab({
     onTestKey,
     onDelete
 }) {
-    const KEYLESS_PROVIDERS = new Set(['TCMB', 'TEFAS', 'RSS', 'YAHOO_FINANCE'])
+    const KEYLESS_PROVIDERS = new Set(['TCMB', 'TEFAS', 'BIST_DATASTORE', 'RSS', 'YAHOO_FINANCE'])
     const capabilities = providerCapabilities || {}
     const isKeylessProvider = KEYLESS_PROVIDERS.has(formData.provider)
     const isCurrentProviderPolicyDisabled = Boolean(capabilities[formData.provider]) && capabilities[formData.provider].enabled === false
@@ -67,6 +67,7 @@ export function ApiKeysTab({
         { value: 'YAHOO_FINANCE', label: t('settings.apiKeys.providers.yahooFinance') },
         { value: 'FINNHUB', label: t('settings.apiKeys.providers.finnhub') },
         { value: 'TEFAS', label: t('settings.apiKeys.providers.tefas') },
+        { value: 'BIST_DATASTORE', label: t('settings.apiKeys.providers.bistDataStore') },
         { value: 'FINTABLES', label: t('settings.apiKeys.providers.fintables') },
         { value: 'TCMB', label: t('settings.providers.info.TCMB.title') },
         { value: 'LLM_ENRICHMENT', label: t('settings.apiKeys.providers.llmEnrichment') },

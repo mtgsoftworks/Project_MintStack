@@ -57,6 +57,10 @@ public class DataSourceService {
     static {
         PROVIDER_CAPABILITIES.put(ApiProvider.TCMB, Set.of(DataType.CURRENCY_RATES));
         PROVIDER_CAPABILITIES.put(ApiProvider.TEFAS, Set.of(DataType.FUNDS));
+        PROVIDER_CAPABILITIES.put(ApiProvider.BIST_DATASTORE, Set.of(
+            DataType.BONDS,
+            DataType.VIOP
+        ));
         PROVIDER_CAPABILITIES.put(ApiProvider.RSS, Set.of(DataType.NEWS));
         PROVIDER_CAPABILITIES.put(ApiProvider.FINTABLES, Set.of(
             DataType.BIST_STOCKS,
@@ -83,6 +87,8 @@ public class DataSourceService {
         DATA_TYPE_LABELS.put(DataType.CURRENCY_RATES, "Doviz Kurlari");
         DATA_TYPE_LABELS.put(DataType.BIST_STOCKS, "BIST Hisseleri");
         DATA_TYPE_LABELS.put(DataType.BIST_INDICES, "BIST Endeksleri");
+        DATA_TYPE_LABELS.put(DataType.BONDS, "Tahvil & Bono");
+        DATA_TYPE_LABELS.put(DataType.VIOP, "VIOP");
         DATA_TYPE_LABELS.put(DataType.US_STOCKS, "ABD Hisseleri");
         DATA_TYPE_LABELS.put(DataType.FUNDS, "Yatirim Fonlari");
         DATA_TYPE_LABELS.put(DataType.NEWS, "Haberler");
@@ -91,6 +97,7 @@ public class DataSourceService {
 
         PROVIDER_LABELS.put(ApiProvider.TCMB, "TCMB (Merkez Bankasi)");
         PROVIDER_LABELS.put(ApiProvider.TEFAS, "TEFAS");
+        PROVIDER_LABELS.put(ApiProvider.BIST_DATASTORE, "BIST DataStore");
         PROVIDER_LABELS.put(ApiProvider.FINTABLES, "Fintables");
         PROVIDER_LABELS.put(ApiProvider.RSS, "RSS Haber Akislari");
         PROVIDER_LABELS.put(ApiProvider.LLM_ENRICHMENT, "LLM Haber Zenginlestirme");
@@ -266,6 +273,10 @@ public class DataSourceService {
                 switch (provider) {
                     case TCMB -> scheduler.fetchTcmbRates();
                     case TEFAS -> scheduler.fetchFundPrices();
+                    case BIST_DATASTORE -> {
+                        scheduler.fetchBondPrices();
+                        scheduler.fetchViopPrices();
+                    }
                     case YAHOO_FINANCE, ALPHA_VANTAGE, FINNHUB -> {
                         scheduler.fetchStockPrices();
                         scheduler.fetchNonTcmbForexRates();
@@ -309,6 +320,7 @@ public class DataSourceService {
     private boolean requiresUserApiConfig(ApiProvider provider) {
         return provider != ApiProvider.TCMB
             && provider != ApiProvider.TEFAS
+            && provider != ApiProvider.BIST_DATASTORE
             && provider != ApiProvider.RSS
             && provider != ApiProvider.YAHOO_FINANCE;
     }

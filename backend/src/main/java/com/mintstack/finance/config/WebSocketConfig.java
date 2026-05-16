@@ -46,16 +46,20 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         String[] origins = corsProperties.getAllowedOrigins()
                 .toArray(new String[0]);
+        String[] originPatterns = corsProperties.getAllowedOriginPatterns()
+                .toArray(new String[0]);
 
         // WebSocket endpoint with SockJS fallback
         registry.addEndpoint("/ws")
                 .setAllowedOrigins(origins)
+                .setAllowedOriginPatterns(originPatterns)
                 .withSockJS()
                 .setHeartbeatTime(25000);
 
         // Pure WebSocket endpoint (without SockJS)
         registry.addEndpoint("/ws-native")
-                .setAllowedOrigins(origins);
+                .setAllowedOrigins(origins)
+                .setAllowedOriginPatterns(originPatterns);
     }
 
     /**

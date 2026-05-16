@@ -19,7 +19,7 @@ Kullanicilarin portfoylerini, doviz/fon/hisse gibi finansal enstrumanlari, haber
 ## Kapsam
 
 - Portfoy CRUD, nakit, alim/satim, emir yasam dongusu.
-- Market data: TCMB, TEFAS, Yahoo/Alpha/Finnhub, RSS.
+- Market data: TCMB, TEFAS, BIST DataStore, Yahoo/Alpha/Finnhub, RSS.
 - Borsa/fon kavram sozlugu yalnizca `docs/` altinda ic kullanim dokumani olarak tutulur.
 - Teknik analiz: RSI, MACD, Bollinger, SMA/EMA, Stochastic, ATR, ADX, OBV, VWAP, CCI, MFI, Williams %R.
 - Admin: kullanici, rate limit, runtime settings, glossary, simulation, observability.
@@ -45,6 +45,7 @@ flowchart LR
 |---|---|---|
 | Market Data | `MarketDataService`, `MarketDataScheduler` | `marketApi`, market pages |
 | TEFAS | `TefasFundClient`, `TefasFundDataService` | Funds page |
+| BIST DataStore | `BistDataStoreClient`, `BistDataStoreMarketDataService` | Bonds/VIOP pages, Settings/Data Sources |
 | Doviz Portfolio | `MarketDataMaintenanceService`, `PortfolioService` | `CurrencyPage` |
 | Glossary | `docs/BORSA_TERIM_SOZLUGU_TEFAS_KAYNAKLI.md` | Kullanici arayuzunde gosterilmez |
 | Haber Enrichment | `NewsEnrichmentService`, `NewsScheduler` | News feed card/summary consumption |
@@ -60,6 +61,7 @@ flowchart LR
 |---|---|---|
 | TCMB | Resmi doviz kurlari | Aktif |
 | TEFAS | Fon fiyatlari ve fon sozlugu kaynak bilgisi | Aktif |
+| BIST DataStore | Tahvil/bono ve VIOP gunluk bulten dosyalari | Aktif |
 | Yahoo Finance | Public fallback market data | Aktif |
 | Alpha Vantage | US/FX fallback | API key gerekir |
 | Finnhub | US/FX fallback | API key gerekir |
@@ -98,6 +100,7 @@ Not: Kripto para destegi aktif kullanici akisi kapsamindan cikarilmistir; schedu
 | `APP_RATE_LIMIT_STORE` | `redis` veya `memory` |
 | `APP_RATE_LIMIT_*` | Limit degerleri |
 | `APP_EXTERNAL_API_TEFAS_*` | TEFAS entegrasyon ayarlari |
+| `APP_EXTERNAL_API_BIST_DATASTORE_*` | BIST tahvil/bono ve VIOP public dosya entegrasyon ayarlari |
 | `APP_EXTERNAL_API_FINTABLES_ENABLED` | Fintables policy switch (varsayilan `false`) |
 | `FINTABLES_BASE_URL`, `FINTABLES_API_KEY` | Fintables konfigurasyonu (yalniz policy aciksa) |
 | `ALPHA_VANTAGE_API_KEY`, `FINNHUB_API_KEY` | Finance API keyleri |
@@ -140,5 +143,6 @@ GitHub Actions:
 - Swagger pathleri gateway uzerinden erisilebilir.
 - Doviz kurlari `CURRENCY` enstrumanina yazilir ve portfoy trade endpointi ile islenir.
 - TEFAS fon verisi `FUND` enstrumanina ve `price_history` tablosuna yazilir.
+- BIST DataStore tahvil/bono ve VIOP bultenleri `BOND`/`VIOP` enstrumanlarina ve `price_history` tablosuna yazilir.
 - Gecmis veri backfill `price_history` tablosuna idempotent bicimde yazar.
 - Fiyat alarmlari uygulama ici bildirim uretir; SMTP aktifse e-posta denenir, sesli alarm/browser push bu surumde tam bagli degildir.

@@ -150,17 +150,21 @@ export default function ViopPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredViop.map((contract) => (
+                  filteredViop.map((contract) => {
+                    const hasChange = contract.changePercent !== null && contract.changePercent !== undefined
+                    const isPositive = hasChange && contract.changePercent >= 0
+
+                    return (
                     <TableRow key={contract.symbol}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className={cn(
                             "flex h-10 w-10 items-center justify-center rounded-lg",
-                            contract.changePercent >= 0 ? "bg-success/10" : "bg-danger/10"
+                            !hasChange ? "bg-muted" : isPositive ? "bg-success/10" : "bg-danger/10"
                           )}>
                             <LineChart className={cn(
                               "h-5 w-5",
-                              contract.changePercent >= 0 ? "text-success" : "text-danger"
+                              !hasChange ? "text-muted-foreground" : isPositive ? "text-success" : "text-danger"
                             )} />
                           </div>
                           <div className="flex items-center gap-2">
@@ -180,8 +184,8 @@ export default function ViopPage() {
                         {formatCurrency(contract.currentPrice, 'TRY')}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Badge variant={contract.changePercent >= 0 ? 'success' : 'danger'}>
-                          {formatPercent(contract.changePercent || 0)}
+                        <Badge variant={!hasChange ? 'secondary' : isPositive ? 'success' : 'danger'}>
+                          {formatPercent(contract.changePercent)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
@@ -194,7 +198,8 @@ export default function ViopPage() {
                         <PortfolioQuickTradeCell instrument={contract} selectedPortfolioId={selectedPortfolioId} />
                       </TableCell>
                     </TableRow>
-                  ))
+                    )
+                  })
                 )}
               </TableBody>
             </Table>

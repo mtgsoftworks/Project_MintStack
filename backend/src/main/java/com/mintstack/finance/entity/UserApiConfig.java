@@ -46,6 +46,7 @@ public class UserApiConfig extends BaseEntity {
         FINNHUB,
         TCMB,
         TEFAS,
+        BIST_DATASTORE,
         FINTABLES,
         RSS,
         LLM_ENRICHMENT,

@@ -64,7 +64,7 @@ export function DataSourcesTab({
                     <div>
                         <h3 className="font-semibold">Gecmis Veri Backfill</h3>
                         <p className="text-sm text-muted-foreground">
-                            Yahoo hisse/endeks, TEFAS fon ve TCMB doviz gecmisini price_history tablosuna yazar. Tahvil/VIOP icin kaynak yoksa sentetik seri kullanilir.
+                            Yahoo hisse/endeks, TEFAS fon, TCMB doviz ve BIST DataStore tahvil/VIOP gecmisini price_history tablosuna yazar. Sentetik veri uretilmez.
                         </p>
                     </div>
                 </div>
@@ -122,15 +122,6 @@ export function DataSourcesTab({
                         </label>
                     ))}
                 </div>
-
-                <label className="mt-4 flex items-center gap-2 text-sm">
-                    <Checkbox
-                        checked={backfillForm.includeSyntheticFallback}
-                        onCheckedChange={(checked) => onBackfillFormChange('includeSyntheticFallback', Boolean(checked))}
-                        disabled={isBackfillingMarketData}
-                    />
-                    Kaynak eksikse sentetik fallback ile grafik/analiz bos kalmasin
-                </label>
 
                 {isBackfillingMarketData && (
                     <div className="mt-4 flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
@@ -190,6 +181,8 @@ export function DataSourcesTab({
                             const availableProviders = apiConfigs.filter((config) =>
                                 config.isActive && dataType.providers.includes(config.provider)
                             )
+                            const unavailableReason = (dataType as { unavailableReason?: string }).unavailableReason
+                            const isUnavailable = Boolean(unavailableReason)
 
                             return (
                                 <div key={dataType.type} className="flex items-center justify-between py-4 border-b last:border-0">
@@ -197,14 +190,20 @@ export function DataSourcesTab({
                                         <div>
                                             <Label className="text-base font-medium">{dataType.label}</Label>
                                             <p className="text-sm text-muted-foreground">
-                                                {availableProviders.length > 0
+                                                {isUnavailable
+                                                    ? unavailableReason
+                                                    : availableProviders.length > 0
                                                     ? `${availableProviders.length} kaynak mevcut`
                                                     : 'Kaynak yok - API anahtari ekleyin'}
                                             </p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {availableProviders.length > 0 ? (
+                                        {isUnavailable ? (
+                                            <Badge variant="secondary">
+                                                Dogrulanmis kaynak yok
+                                            </Badge>
+                                        ) : availableProviders.length > 0 ? (
                                             <Select
                                                 value={currentPreference?.provider || ''}
                                                 onValueChange={(provider) => onSelectDataPreference(dataType, provider)}

@@ -56,6 +56,8 @@ public class UserDataPreference {
         CURRENCY_RATES,
         BIST_STOCKS,
         BIST_INDICES,
+        BONDS,
+        VIOP,
         US_STOCKS,
         FUNDS,
         CRYPTO,

@@ -10,6 +10,7 @@ import com.mintstack.finance.service.MarketDataService;
 import com.mintstack.finance.service.PriceUpdateService;
 import com.mintstack.finance.service.event.EventPublisher;
 import com.mintstack.finance.service.external.TcmbApiClient;
+import com.mintstack.finance.service.market.BistDataStoreMarketDataService;
 import com.mintstack.finance.service.market.TefasFundDataService;
 import com.mintstack.finance.service.simulation.SimulationDataService;
 import io.micrometer.observation.annotation.Observed;
@@ -45,6 +46,7 @@ public class MarketDataScheduler {
     private final MarketDataInstrumentUpdateService instrumentUpdateService;
     private final MarketDataBootstrapService bootstrapService;
     private final TefasFundDataService tefasFundDataService;
+    private final BistDataStoreMarketDataService bistDataStoreMarketDataService;
 
     @Observed(name = "scheduler.market-data.tcmb", contextualName = "fetch-tcmb-rates")
     @Scheduled(cron = "${app.scheduler.tcmb-rates-cron}")
@@ -80,6 +82,13 @@ public class MarketDataScheduler {
     @Observed(name = "scheduler.market-data.bond", contextualName = "fetch-bond-prices")
     @Scheduled(cron = "${app.scheduler.bond-prices-cron}")
     public void fetchBondPrices() {
+        if (!simulationDataService.isSimulationEnabled()) {
+            try {
+                bistDataStoreMarketDataService.refreshBondPrices();
+            } catch (Exception error) {
+                log.warn("BIST DataStore bond refresh failed, falling back to configured provider updater: {}", error.getMessage());
+            }
+        }
         updateInstrumentPricesByType(Instrument.InstrumentType.BOND, false);
     }
 
@@ -99,6 +108,13 @@ public class MarketDataScheduler {
     @Observed(name = "scheduler.market-data.viop", contextualName = "fetch-viop-prices")
     @Scheduled(cron = "${app.scheduler.viop-prices-cron}")
     public void fetchViopPrices() {
+        if (!simulationDataService.isSimulationEnabled()) {
+            try {
+                bistDataStoreMarketDataService.refreshViopPrices();
+            } catch (Exception error) {
+                log.warn("BIST DataStore VIOP refresh failed, falling back to configured provider updater: {}", error.getMessage());
+            }
+        }
         updateInstrumentPricesByType(Instrument.InstrumentType.VIOP, false);
     }
 

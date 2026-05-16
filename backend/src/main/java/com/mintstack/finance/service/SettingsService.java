@@ -173,7 +173,7 @@ public class SettingsService {
             return apiKey;
         }
         return switch (provider) {
-            case YAHOO_FINANCE, TCMB, TEFAS, RSS -> "PUBLIC";
+            case YAHOO_FINANCE, TCMB, TEFAS, BIST_DATASTORE, RSS -> "PUBLIC";
             default -> apiKey;
         };
     }

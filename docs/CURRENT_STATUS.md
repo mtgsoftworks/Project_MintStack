@@ -28,6 +28,7 @@ Aktif ana moduller:
 | TCMB | Aktif, resmi doviz kuru kaynagi | Gerekmez |
 | TEFAS | Aktif, fon verisi icin native Java adapter | Gerekmez |
 | Yahoo Finance | Aktif, public/keyless market data fallback | Gerekmez |
+| BIST DataStore | Aktif, tahvil/bono ve VIOP public bulten dosyalari | Gerekmez |
 | Alpha Vantage | Aktiflenebilir | Gerekir |
 | Finnhub | Aktiflenebilir | Gerekir |
 | Fintables | Policy lock ile pasif | Varsayilan kapali |
@@ -38,6 +39,7 @@ Notlar:
 
 - TEFAS icin resmi public API paylasimi olmadigi kabul edilir; sistem TEFAS web tarafinda gorunen servis kontratini adapter mantigi ile kullanir.
 - Yahoo Finance keyless calisir; kullanicidan API key/base URL istenmemelidir.
+- BIST DataStore keyless calisir; tahvil/bono icin `ttbYYYYAAGG3.zip`, VIOP icin `viop_YYYYAAGG.csv` dosyalari okunur.
 - Fintables resmi olarak pasif kabul edilir. `APP_EXTERNAL_API_FINTABLES_ENABLED=false` guvenli varsayilandir.
 - GitHub Models kullanimi icin LLM endpoint `https://models.github.ai/inference`, model ornegi `openai/gpt-5`, token ise `GITHUB_TOKEN` veya UI uzerinden girilen provider key'i olabilir.
 
@@ -102,3 +104,4 @@ Flyway notu:
 - `docs/OPERATIONS.md`: isletim, secret, alerting, backfill ve sorun giderme.
 - `docs/BORSA_TERIM_SOZLUGU_TEFAS_KAYNAKLI.md`: kullaniciya acik olmayan, ic kullanim borsa/fon kavram sozlugu.
 - `docs/TEFAS_API_SECIMI_VE_ENTEGRASYON.md`: TEFAS entegrasyon karari.
+- `docs/BIST_DATASTORE_ENTEGRASYONU.md`: BIST tahvil/bono ve VIOP dosya entegrasyonu.

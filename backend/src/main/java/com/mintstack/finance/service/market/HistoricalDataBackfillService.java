@@ -19,7 +19,6 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -46,13 +45,12 @@ public class HistoricalDataBackfillService {
     private final YahooFinanceClient yahooFinanceClient;
     private final TefasFundClient tefasFundClient;
     private final TcmbApiClient tcmbApiClient;
+    private final BistDataStoreMarketDataService bistDataStoreMarketDataService;
 
     public HistoricalDataBackfillResponse backfill(HistoricalDataBackfillRequest request) {
         BackfillWindow window = resolveWindow(request);
         Set<InstrumentType> requestedTypes = resolveTypes(request);
         Set<String> requestedSymbols = normalizeSymbols(request.getSymbols());
-        boolean includeSyntheticFallback = request.getIncludeSyntheticFallback() == null
-            || Boolean.TRUE.equals(request.getIncludeSyntheticFallback());
         int maxInstruments = resolveMaxInstruments(request.getMaxInstruments());
 
         BackfillStats stats = new BackfillStats(window.startDate(), window.endDate(), window.days());
@@ -72,9 +70,37 @@ public class HistoricalDataBackfillService {
                 stats.rowsByType.merge(type.name(), savedRows, Integer::sum);
                 continue;
             }
+            if (type == InstrumentType.BOND) {
+                stats.processedInstruments += instruments.size();
+                int savedRows = bistDataStoreMarketDataService.backfillBondPrices(
+                    window.startDate(),
+                    window.endDate(),
+                    requestedSymbols,
+                    maxInstruments
+                );
+                stats.rowsByType.merge(type.name(), savedRows, Integer::sum);
+                if (savedRows == 0) {
+                    stats.warnings.add("BIST DataStore tahvil/bono tarihsel veri donmedi.");
+                }
+                continue;
+            }
+            if (type == InstrumentType.VIOP) {
+                stats.processedInstruments += instruments.size();
+                int savedRows = bistDataStoreMarketDataService.backfillViopPrices(
+                    window.startDate(),
+                    window.endDate(),
+                    requestedSymbols,
+                    maxInstruments
+                );
+                stats.rowsByType.merge(type.name(), savedRows, Integer::sum);
+                if (savedRows == 0) {
+                    stats.warnings.add("BIST DataStore VIOP tarihsel veri donmedi.");
+                }
+                continue;
+            }
             for (Instrument instrument : instruments) {
                 stats.processedInstruments++;
-                int savedRows = backfillInstrument(instrument, window, includeSyntheticFallback, stats);
+                int savedRows = backfillInstrument(instrument, window, stats);
                 stats.rowsByType.merge(type.name(), savedRows, Integer::sum);
                 if (savedRows == 0) {
                     stats.skippedInstruments++;
@@ -88,7 +114,6 @@ public class HistoricalDataBackfillService {
     private int backfillInstrument(
             Instrument instrument,
             BackfillWindow window,
-            boolean includeSyntheticFallback,
             BackfillStats stats) {
         try {
             if (instrument.getType() == InstrumentType.STOCK || instrument.getType() == InstrumentType.INDEX) {
@@ -102,19 +127,10 @@ public class HistoricalDataBackfillService {
                 return saveHistory(history);
             }
 
-            if (includeSyntheticFallback && isSyntheticSupported(instrument.getType())) {
-                stats.warnings.add(instrument.getSymbol() + " icin dis tarihsel kaynak yok; sentetik seri yazildi.");
-                return saveHistory(generateSyntheticHistory(instrument, window));
-            }
-
             stats.warnings.add(instrument.getSymbol() + " icin tarihsel kaynak desteklenmiyor.");
             return 0;
         } catch (Exception error) {
             log.warn("Historical backfill failed for {}: {}", instrument.getSymbol(), error.getMessage());
-            if (includeSyntheticFallback && instrument.getCurrentPrice() != null) {
-                stats.warnings.add(instrument.getSymbol() + " kaynak hatasi sonrasi sentetik seri yazildi.");
-                return saveHistory(generateSyntheticHistory(instrument, window));
-            }
             stats.warnings.add(instrument.getSymbol() + " atlandi: " + error.getMessage());
             return 0;
         }
@@ -251,43 +267,6 @@ public class HistoricalDataBackfillService {
         return false;
     }
 
-    private List<PriceHistory> generateSyntheticHistory(Instrument instrument, BackfillWindow window) {
-        BigDecimal basePrice = firstPositive(
-            instrument.getCurrentPrice(),
-            instrument.getPreviousClose(),
-            new BigDecimal("100")
-        );
-        int seed = Math.abs(instrument.getSymbol() != null ? instrument.getSymbol().hashCode() : 31);
-        List<PriceHistory> history = new ArrayList<>();
-        long totalDays = Math.max(1, ChronoUnit.DAYS.between(window.startDate(), window.endDate()) + 1);
-
-        for (LocalDate date = window.startDate(); !date.isAfter(window.endDate()); date = date.plusDays(1)) {
-            long index = ChronoUnit.DAYS.between(window.startDate(), date);
-            BigDecimal drift = BigDecimal.valueOf((index - totalDays / 2.0) / totalDays)
-                .multiply(new BigDecimal("0.0125"));
-            BigDecimal wave = BigDecimal.valueOf(Math.sin((seed % 17 + index) / 3.0))
-                .multiply(new BigDecimal("0.0180"));
-            BigDecimal multiplier = BigDecimal.ONE.add(drift).add(wave);
-            BigDecimal close = basePrice.multiply(multiplier).max(new BigDecimal("0.000001")).setScale(6, RoundingMode.HALF_UP);
-            BigDecimal open = close.multiply(new BigDecimal("0.9975")).setScale(6, RoundingMode.HALF_UP);
-            BigDecimal high = close.max(open).multiply(new BigDecimal("1.0060")).setScale(6, RoundingMode.HALF_UP);
-            BigDecimal low = close.min(open).multiply(new BigDecimal("0.9940")).setScale(6, RoundingMode.HALF_UP);
-            long volume = 25_000L + (seed % 90_000L) + (index * 137L);
-
-            history.add(PriceHistory.builder()
-                .instrument(instrument)
-                .priceDate(date)
-                .openPrice(open)
-                .highPrice(high)
-                .lowPrice(low)
-                .closePrice(close)
-                .adjustedClose(close)
-                .volume(volume)
-                .build());
-        }
-        return history;
-    }
-
     private List<Instrument> resolveInstruments(InstrumentType type, Set<String> requestedSymbols, int maxInstruments) {
         List<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulatedOrderBySymbolAsc(type, false);
         if (!requestedSymbols.isEmpty()) {
@@ -346,10 +325,6 @@ public class HistoricalDataBackfillService {
             return DEFAULT_MAX_INSTRUMENTS;
         }
         return Math.max(1, Math.min(500, maxInstruments));
-    }
-
-    private boolean isSyntheticSupported(InstrumentType type) {
-        return type == InstrumentType.BOND || type == InstrumentType.VIOP || type == InstrumentType.COMMODITY;
     }
 
     private boolean isWeekend(LocalDate date) {

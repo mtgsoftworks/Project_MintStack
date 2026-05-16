@@ -35,6 +35,7 @@ public class ApiKeyValidationService {
         put(ApiProvider.FINNHUB, "https://finnhub.io/api/v1");
         put(ApiProvider.TCMB, "https://www.tcmb.gov.tr/kurlar");
         put(ApiProvider.TEFAS, "https://www.tefas.gov.tr/api/funds");
+        put(ApiProvider.BIST_DATASTORE, "https://www.borsaistanbul.com");
         put(ApiProvider.FINTABLES, "https://api.fintables.com");
         put(ApiProvider.RSS, null);
         put(ApiProvider.LLM_ENRICHMENT, "https://models.github.ai/inference");
@@ -75,6 +76,7 @@ public class ApiKeyValidationService {
         if (normalizedApiKey == null || normalizedApiKey.isEmpty()) {
             if (provider == ApiProvider.TCMB
                 || provider == ApiProvider.TEFAS
+                || provider == ApiProvider.BIST_DATASTORE
                 || provider == ApiProvider.RSS) {
                 return new ValidationResult(true, provider + " - public/no-key usage enabled");
             }
@@ -91,6 +93,7 @@ public class ApiKeyValidationService {
                 case FINNHUB -> validateFinnhub(normalizedApiKey, effectiveUrl);
                 case TCMB -> new ValidationResult(true, "TCMB - public API, validation not required");
                 case TEFAS -> new ValidationResult(true, "TEFAS - public API, validation not required");
+                case BIST_DATASTORE -> validateBistDataStore(effectiveUrl);
                 case RSS -> new ValidationResult(true, "RSS - feed URLs are validated during ingestion");
                 case FINTABLES -> validateFintables(normalizedApiKey, effectiveUrl);
                 case LLM_ENRICHMENT -> new ValidationResult(true, "LLM key accepted; runtime validation will run during enrichment");
@@ -291,6 +294,33 @@ public class ApiKeyValidationService {
         }
         return new ValidationResult(true,
             "Fintables key format accepted; live validation is disabled until endpoint contract is configured");
+    }
+
+    private ValidationResult validateBistDataStore(String baseUrl) {
+        try {
+            String normalizedBaseUrl = normalizeBaseUrl(baseUrl);
+            if (normalizedBaseUrl.isBlank()) {
+                return new ValidationResult(false, "BIST DataStore base URL bos olamaz");
+            }
+            byte[] response = WebClient.builder()
+                .baseUrl(normalizedBaseUrl)
+                .defaultHeader("User-Agent", "MintStack-Finance-Portal/1.0")
+                .build()
+                .get()
+                .uri("/files/datafilepaths_viop.zip")
+                .retrieve()
+                .bodyToMono(byte[].class)
+                .timeout(Duration.ofSeconds(10))
+                .block();
+
+            if (response == null || response.length == 0) {
+                return new ValidationResult(false, "BIST DataStore yaniti bos");
+            }
+            return new ValidationResult(true, "BIST DataStore public dosya kaynagi erisilebilir");
+        } catch (Exception error) {
+            log.warn("BIST DataStore validation error: {}", error.getMessage());
+            return new ValidationResult(false, "BIST DataStore baglanti hatasi: " + error.getMessage());
+        }
     }
 
     private String normalizeBaseUrl(String baseUrl) {
