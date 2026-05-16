@@ -15,6 +15,8 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -39,6 +41,7 @@ public class NewsScheduler {
         try {
             List<News> newsList = rssNewsClient.fetchAllNews();
             int saved = 0;
+            int updated = 0;
             int enriched = 0;
             for (News news : newsList) {
                 if (shouldSave(news)) {
@@ -48,9 +51,11 @@ public class NewsScheduler {
                     }
                     newsRepository.save(prepared);
                     saved++;
+                } else if (updateExistingNews(news)) {
+                    updated++;
                 }
             }
-            log.info("News fetch completed: {} new articles saved out of {} fetched (llmEnriched={})", saved, newsList.size(), enriched);
+            log.info("News fetch completed: {} new, {} updated out of {} fetched (llmEnriched={})", saved, updated, newsList.size(), enriched);
         } catch (Exception e) {
             log.error("News fetch failed", e);
         }
@@ -67,6 +72,7 @@ public class NewsScheduler {
         try {
             List<News> newsList = rssNewsClient.fetchAllNews();
             int saved = 0;
+            int updated = 0;
             int enriched = 0;
             for (News news : newsList) {
                 if (shouldSave(news)) {
@@ -76,9 +82,11 @@ public class NewsScheduler {
                     }
                     newsRepository.save(prepared);
                     saved++;
+                } else if (updateExistingNews(news)) {
+                    updated++;
                 }
             }
-            log.info("Initial news load completed: {} articles saved (llmEnriched={})", saved, enriched);
+            log.info("Initial news load completed: {} new, {} updated (llmEnriched={})", saved, updated, enriched);
         } catch (Exception e) {
             log.warn("Initial news load failed: {}", e.getMessage());
         }
@@ -88,5 +96,59 @@ public class NewsScheduler {
         boolean existsByUrl = StringUtils.hasText(news.getSourceUrl()) && newsRepository.existsBySourceUrl(news.getSourceUrl());
         boolean existsByHash = StringUtils.hasText(news.getExternalHash()) && newsRepository.existsByExternalHash(news.getExternalHash());
         return !existsByUrl && !existsByHash;
+    }
+
+    private boolean updateExistingNews(News incoming) {
+        Optional<News> existing = findExisting(incoming);
+        if (existing.isEmpty()) {
+            return false;
+        }
+
+        News item = existing.get();
+        boolean updated = false;
+
+        if (incoming.getCategory() != null
+            && (item.getCategory() == null || !Objects.equals(item.getCategory().getId(), incoming.getCategory().getId()))) {
+            item.setCategory(incoming.getCategory());
+            updated = true;
+        }
+
+        if (StringUtils.hasText(incoming.getSummary()) && !Objects.equals(item.getSummary(), incoming.getSummary())) {
+            item.setSummary(incoming.getSummary());
+            updated = true;
+        }
+
+        if (StringUtils.hasText(incoming.getContent()) && !Objects.equals(item.getContent(), incoming.getContent())) {
+            item.setContent(incoming.getContent());
+            updated = true;
+        }
+
+        if (StringUtils.hasText(incoming.getImageUrl()) && !Objects.equals(item.getImageUrl(), incoming.getImageUrl())) {
+            item.setImageUrl(incoming.getImageUrl());
+            updated = true;
+        }
+
+        if (!updated) {
+            return false;
+        }
+
+        newsRepository.save(item);
+        return true;
+    }
+
+    private Optional<News> findExisting(News incoming) {
+        if (incoming == null) {
+            return Optional.empty();
+        }
+        if (StringUtils.hasText(incoming.getSourceUrl())) {
+            Optional<News> byUrl = newsRepository.findBySourceUrl(incoming.getSourceUrl());
+            if (byUrl.isPresent()) {
+                return byUrl;
+            }
+        }
+        if (StringUtils.hasText(incoming.getExternalHash())) {
+            return newsRepository.findByExternalHash(incoming.getExternalHash());
+        }
+        return Optional.empty();
     }
 }

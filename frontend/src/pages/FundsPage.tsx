@@ -8,7 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import RefreshButton from '@/components/common/RefreshButton'
+import RefreshStatus from '@/components/common/RefreshStatus'
 import PortfolioQuickTradeCell from '@/components/market/PortfolioQuickTradeCell'
+import WatchlistQuickAddButton from '@/components/market/WatchlistQuickAddButton'
 import {
   Select,
   SelectContent,
@@ -27,6 +29,7 @@ import {
 import { isSimulatedMarketData } from '@/lib/simulationData'
 import { formatCurrency, formatPercent } from '@/lib/utils'
 import { useGetFundsQuery } from '@/store/api/marketApi'
+import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 import { useDefaultPortfolioSelection } from '@/hooks/useDefaultPortfolioSelection'
 
 function FundTableSkeleton() {
@@ -45,11 +48,21 @@ export default function FundsPage() {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
   const { portfolios, selectedPortfolioId, setSelectedPortfolioId } = useDefaultPortfolioSelection()
-  const { data, isLoading, isFetching, refetch } = useGetFundsQuery({
-    page,
-    size: pageSize,
-    search: searchQuery.trim() || undefined,
-  })
+  const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
+  const {
+    data,
+    isLoading,
+    isFetching,
+    refetch,
+    fulfilledTimeStamp,
+  } = useGetFundsQuery(
+    {
+      page,
+      size: pageSize,
+      search: searchQuery.trim() || undefined,
+    },
+    queryOptions
+  )
 
   const funds = data?.data || []
   const totalPages = data?.pagination?.totalPages || 0
@@ -73,6 +86,13 @@ export default function FundsPage() {
           <p className="text-muted-foreground">
             {t('fundsPage.subtitle')}
           </p>
+          <RefreshStatus
+            className="mt-1"
+            lastUpdatedAt={fulfilledTimeStamp}
+            autoUpdateEnabled={autoUpdate}
+            refreshRateSeconds={refreshRate}
+            isFetching={isFetching}
+          />
         </div>
         <div className="flex items-center gap-2">
           {portfolios.length > 0 && (
@@ -179,7 +199,10 @@ export default function FundsPage() {
                         {fund.totalValue != null ? formatCurrency(fund.totalValue, 'TRY') : '-'}
                       </TableCell>
                       <TableCell className="text-right">
-                        <PortfolioQuickTradeCell instrument={fund} selectedPortfolioId={selectedPortfolioId} />
+                        <div className="flex justify-end gap-2">
+                          <WatchlistQuickAddButton symbol={fund.symbol} />
+                          <PortfolioQuickTradeCell instrument={fund} selectedPortfolioId={selectedPortfolioId} />
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

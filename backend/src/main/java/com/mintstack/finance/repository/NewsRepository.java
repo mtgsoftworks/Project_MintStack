@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -45,9 +46,21 @@ public interface NewsRepository extends JpaRepository<News, UUID> {
 
     boolean existsByExternalHash(String externalHash);
 
+    Optional<News> findBySourceUrl(String sourceUrl);
+
+    Optional<News> findByExternalHash(String externalHash);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE News n SET n.viewCount = COALESCE(n.viewCount, 0) + 1 WHERE n.id = :id")
     int incrementViewCount(@Param("id") UUID id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE News n SET n.summary = n.title WHERE n.summary IS NULL OR TRIM(n.summary) = ''")
+    int fillMissingSummaryWithTitle();
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE News n SET n.content = COALESCE(n.summary, n.title) WHERE n.content IS NULL OR TRIM(n.content) = ''")
+    int fillMissingContentWithSummary();
 
     List<News> findBySourceUrlIsNullAndSourceNameIn(List<String> sourceNames);
 

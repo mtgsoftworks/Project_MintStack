@@ -17,6 +17,10 @@ public class NewsFeedProperties {
     private int maxItemsPerFeed = 10;
     private int connectTimeoutMs = 10000;
     private int readTimeoutMs = 10000;
+    private boolean articlePreviewEnabled = true;
+    private int articlePreviewConnectTimeoutMs = 4000;
+    private int articlePreviewReadTimeoutMs = 7000;
+    private int articlePreviewMaxBytes = 350000;
     private List<Feed> feeds = new ArrayList<>();
     private Llm llm = new Llm();
 

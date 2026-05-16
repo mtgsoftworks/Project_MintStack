@@ -24,7 +24,9 @@ import java.util.regex.Pattern;
 public class InstrumentMetricsService {
 
     private static final Pattern VIOP_MATURITY_PATTERN = Pattern.compile("(\\d{4})$");
-    private static final Pattern BOND_MATURITY_PATTERN = Pattern.compile("^TRT(\\d{2})(\\d{2})(\\d{2})T\\d{2}$");
+    private static final Pattern TREASURY_BOND_MATURITY_PATTERN = Pattern.compile("^TR[A-Z0-9](\\d{2})(\\d{2})(\\d{2})[A-Z0-9]{3}$");
+    private static final Pattern CORPORATE_BOND_MONTH_YEAR_DAY_PATTERN = Pattern.compile("([1-9]|1[0-2])(\\d{2})(\\d{2})$");
+    private static final Pattern CORPORATE_BOND_MONTH_CODE_PATTERN = Pattern.compile("([A-L])(\\d{2})(\\d{2})$");
     private static final int RECENT_HISTORY_LIMIT = 10;
 
     private final PriceHistoryRepository priceHistoryRepository;
@@ -158,6 +160,10 @@ public class InstrumentMetricsService {
             return null;
         }
 
+        if (instrument.getMaturityDate() != null) {
+            return instrument.getMaturityDate();
+        }
+
         if (instrument.getType() == InstrumentType.BOND) {
             return resolveBondMaturityDate(instrument.getSymbol());
         }
@@ -186,15 +192,49 @@ public class InstrumentMetricsService {
             return null;
         }
 
-        Matcher matcher = BOND_MATURITY_PATTERN.matcher(symbol);
-        if (!matcher.find()) {
-            return null;
+        String normalized = symbol.toUpperCase();
+        Matcher treasury = TREASURY_BOND_MATURITY_PATTERN.matcher(normalized);
+        if (treasury.matches()) {
+            return safeDate(
+                2000 + Integer.parseInt(treasury.group(3)),
+                Integer.parseInt(treasury.group(2)),
+                Integer.parseInt(treasury.group(1))
+            );
         }
 
-        int day = Integer.parseInt(matcher.group(1));
-        int month = Integer.parseInt(matcher.group(2));
-        int year = 2000 + Integer.parseInt(matcher.group(3));
+        Matcher monthYearDay = CORPORATE_BOND_MONTH_YEAR_DAY_PATTERN.matcher(normalized);
+        if (monthYearDay.find()) {
+            return safeDate(
+                2000 + Integer.parseInt(monthYearDay.group(2)),
+                Integer.parseInt(monthYearDay.group(1)),
+                Integer.parseInt(monthYearDay.group(3))
+            );
+        }
 
+        Matcher monthCode = CORPORATE_BOND_MONTH_CODE_PATTERN.matcher(normalized);
+        if (monthCode.find()) {
+            Integer month = monthFromCode(monthCode.group(1).charAt(0));
+            if (month == null) {
+                return null;
+            }
+            return safeDate(
+                2000 + Integer.parseInt(monthCode.group(2)),
+                month,
+                Integer.parseInt(monthCode.group(3))
+            );
+        }
+
+        return null;
+    }
+
+    private Integer monthFromCode(char monthCode) {
+        if (monthCode < 'A' || monthCode > 'L') {
+            return null;
+        }
+        return (monthCode - 'A') + 1;
+    }
+
+    private LocalDate safeDate(int year, int month, int day) {
         try {
             return LocalDate.of(year, month, day);
         } catch (RuntimeException ex) {

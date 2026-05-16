@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 public class HistoricalDataBackfillService {
 
     private static final int DEFAULT_DAYS = 30;
-    private static final int DEFAULT_MAX_INSTRUMENTS = 100;
+    private static final int DEFAULT_MAX_INSTRUMENTS = 500;
     private static final int MAX_DAYS = 365;
 
     private final InstrumentRepository instrumentRepository;
@@ -324,7 +324,7 @@ public class HistoricalDataBackfillService {
         if (maxInstruments == null) {
             return DEFAULT_MAX_INSTRUMENTS;
         }
-        return Math.max(1, Math.min(500, maxInstruments));
+        return Math.max(1, Math.min(5000, maxInstruments));
     }
 
     private boolean isWeekend(LocalDate date) {

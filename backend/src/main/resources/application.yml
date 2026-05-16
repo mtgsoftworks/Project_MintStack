@@ -218,6 +218,10 @@ app:
     max-items-per-feed: ${APP_NEWS_MAX_ITEMS_PER_FEED:10}
     connect-timeout-ms: ${APP_NEWS_CONNECT_TIMEOUT_MS:10000}
     read-timeout-ms: ${APP_NEWS_READ_TIMEOUT_MS:10000}
+    article-preview-enabled: ${APP_NEWS_ARTICLE_PREVIEW_ENABLED:true}
+    article-preview-connect-timeout-ms: ${APP_NEWS_ARTICLE_PREVIEW_CONNECT_TIMEOUT_MS:4000}
+    article-preview-read-timeout-ms: ${APP_NEWS_ARTICLE_PREVIEW_READ_TIMEOUT_MS:7000}
+    article-preview-max-bytes: ${APP_NEWS_ARTICLE_PREVIEW_MAX_BYTES:350000}
     feeds:
       - code: bloomberg-markets
         url: https://feeds.bloomberg.com/markets/news.rss
@@ -231,60 +235,78 @@ app:
         source-name: Bloomberg Business
         enabled: true
         priority: 20
+      - code: cnbc-economy
+        url: https://www.cnbc.com/id/20910258/device/rss/rss.html
+        category-slug: ekonomi
+        source-name: CNBC Economy
+        enabled: true
+        priority: 25
+      - code: cnbc-earnings
+        url: https://www.cnbc.com/id/15839135/device/rss/rss.html
+        category-slug: sirket
+        source-name: CNBC Earnings
+        enabled: true
+        priority: 30
+      - code: yahoo-finance-news
+        url: https://finance.yahoo.com/news/rssindex
+        category-slug: sirket
+        source-name: Yahoo Finance
+        enabled: true
+        priority: 35
       - code: marketwatch-topstories
         url: https://feeds.content.dowjones.io/public/rss/mw_topstories
         category-slug: piyasa
         source-name: MarketWatch
         enabled: true
-        priority: 30
+        priority: 40
       - code: wsj-markets
         url: https://feeds.a.dj.com/rss/RSSMarketsMain.xml
         category-slug: piyasa
         source-name: WSJ Markets
         enabled: false
-        priority: 40
+        priority: 50
       - code: tcmb-basin-duyurulari
         url: https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Bottom+Menu/Diger/RSS/Basin+Duyurulari
         category-slug: ekonomi
         source-name: TCMB Basin Duyurulari
         enabled: true
-        priority: 50
+        priority: 60
       - code: tcmb-ppk-kararlari
         url: https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Bottom+Menu/Diger/RSS/PPK+Kararlari
         category-slug: ekonomi
         source-name: TCMB PPK Kararlari
         enabled: true
-        priority: 60
+        priority: 70
       - code: tcmb-veriler
         url: https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Bottom+Menu/Diger/RSS/Veriler
         category-slug: ekonomi
         source-name: TCMB Veriler
-        enabled: true
-        priority: 70
+        enabled: false
+        priority: 80
       - code: tcmb-yayinlar
         url: https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Bottom+Menu/Diger/RSS/Yayinlar
         category-slug: ekonomi
         source-name: TCMB Yayinlar
-        enabled: true
-        priority: 80
+        enabled: false
+        priority: 90
       - code: dunya-ekonomi
         url: https://www.dunya.com/rss/ekonomi.xml
         category-slug: ekonomi
         source-name: Dunya Ekonomi
         enabled: true
-        priority: 90
+        priority: 100
       - code: foreks-rss
         url: https://www.foreks.com/rss/
         category-slug: piyasa
         source-name: Foreks
         enabled: true
-        priority: 100
+        priority: 110
       - code: aa-ekonomi
         url: https://www.aa.com.tr/tr/rss/default?cat=ekonomi
         category-slug: ekonomi
         source-name: Anadolu Ajansi
         enabled: true
-        priority: 110
+        priority: 120
       - code: t24-ekonomi
         url: https://t24.com.tr/rss/haber/ekonomi
         category-slug: ekonomi
@@ -355,6 +377,7 @@ app:
       base-url: ${APP_EXTERNAL_API_BIST_DATASTORE_BASE_URL:https://www.borsaistanbul.com}
       timeout: ${APP_EXTERNAL_API_BIST_DATASTORE_TIMEOUT:30000}
       latest-lookback-days: ${APP_EXTERNAL_API_BIST_DATASTORE_LATEST_LOOKBACK_DAYS:7}
+      maturity-lookback-days: ${APP_EXTERNAL_API_BIST_DATASTORE_MATURITY_LOOKBACK_DAYS:120}
       health-path: ${APP_EXTERNAL_API_BIST_DATASTORE_HEALTH_PATH:/files/datafilepaths_viop.zip}
       bond-daily-bulletin-path-template: ${APP_EXTERNAL_API_BIST_DATASTORE_BOND_DAILY_TEMPLATE:/data/ttb/{yyyy}/{MM}/ttb{yyyyMMdd}3.zip}
       viop-daily-bulletin-path-template: ${APP_EXTERNAL_API_BIST_DATASTORE_VIOP_DAILY_TEMPLATE:/data/vadeli/viop_{yyyyMMdd}.csv}
@@ -363,6 +386,11 @@ app:
       base-url: ${FINTABLES_BASE_URL:https://api.fintables.com}
       api-key: ${FINTABLES_API_KEY:}
       timeout: ${APP_EXTERNAL_API_FINTABLES_TIMEOUT:15000}
+
+  market-data:
+    max-active-fund-instruments: ${APP_MARKET_DATA_MAX_ACTIVE_FUND_INSTRUMENTS:500}
+    max-active-viop-instruments: ${APP_MARKET_DATA_MAX_ACTIVE_VIOP_INSTRUMENTS:300}
+    min-viop-volume: ${APP_MARKET_DATA_MIN_VIOP_VOLUME:1}
 
   # Cache TTL Configuration (in seconds)
   cache:

@@ -8,12 +8,17 @@ import com.mintstack.finance.service.external.TefasFundClient;
 import com.mintstack.finance.service.external.TefasFundClient.TefasFundPrice;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -27,6 +32,9 @@ public class TefasFundDataService {
     @Value("${app.external-api.tefas.enabled:true}")
     private boolean enabled;
 
+    @Value("${app.market-data.max-active-fund-instruments:500}")
+    private int maxActiveFundInstruments;
+
     @Transactional
     public int refreshFundPrices() {
         if (!enabled) {
@@ -35,9 +43,33 @@ public class TefasFundDataService {
         }
 
         List<TefasFundPrice> prices = tefasFundClient.fetchLatestFundPrices();
-        prices.forEach(this::upsertFundPrice);
-        log.info("TEFAS fund refresh completed: {} prices processed", prices.size());
-        return prices.size();
+        if (prices.isEmpty()) {
+            log.warn("TEFAS fund refresh returned empty price list; keeping existing active funds.");
+            return 0;
+        }
+
+        int cap = resolveFundCap();
+        List<TefasFundPrice> ranked = prices.stream()
+            .sorted(Comparator
+                .comparing(TefasFundPrice::portfolioSize, Comparator.nullsLast(BigDecimal::compareTo)).reversed()
+                .thenComparing(TefasFundPrice::investorCount, Comparator.nullsLast(BigDecimal::compareTo)).reversed()
+                .thenComparing(TefasFundPrice::sharesOutstanding, Comparator.nullsLast(BigDecimal::compareTo)).reversed()
+                .thenComparing(TefasFundPrice::fundCode))
+            .toList();
+
+        List<TefasFundPrice> selected = ranked.stream()
+            .limit(cap)
+            .toList();
+        Set<String> selectedSymbols = selected.stream()
+            .map(TefasFundPrice::fundCode)
+            .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+
+        selected.forEach(this::upsertFundPrice);
+        deactivateFundsOutsideSelection(selectedSymbols);
+
+        log.info("TEFAS fund refresh completed: {} selected / {} fetched (active cap={})",
+            selected.size(), prices.size(), cap);
+        return selected.size();
     }
 
     private void upsertFundPrice(TefasFundPrice fundPrice) {
@@ -58,7 +90,7 @@ public class TefasFundDataService {
         instrument.setCurrency("TRY");
         instrument.setIsActive(true);
         instrument.setIsSimulated(false);
-        instrument.setPreviousClose(instrument.getCurrentPrice());
+        instrument.setPreviousClose(resolvePreviousCloseForDate(instrument, fundPrice.date()));
         instrument.setCurrentPrice(fundPrice.price());
         Instrument saved = instrumentRepository.save(instrument);
 
@@ -75,6 +107,51 @@ public class TefasFundDataService {
         history.setAdjustedClose(fundPrice.price());
         history.setVolume(toLong(fundPrice.sharesOutstanding()));
         priceHistoryRepository.save(history);
+    }
+
+    private BigDecimal resolvePreviousCloseForDate(Instrument instrument, LocalDate effectiveDate) {
+        if (instrument == null) {
+            return null;
+        }
+
+        if (instrument.getId() != null && effectiveDate != null) {
+            List<PriceHistory> recent = priceHistoryRepository.findByInstrumentIdOrderByPriceDateDesc(
+                instrument.getId(),
+                PageRequest.of(0, 20)
+            );
+            for (PriceHistory item : recent) {
+                if (item.getPriceDate() == null || !item.getPriceDate().isBefore(effectiveDate)) {
+                    continue;
+                }
+                BigDecimal close = firstPositive(item.getClosePrice(), item.getAdjustedClose(), item.getOpenPrice());
+                if (close != null) {
+                    return close;
+                }
+            }
+        }
+
+        return firstPositive(instrument.getCurrentPrice(), instrument.getPreviousClose());
+    }
+
+    private void deactivateFundsOutsideSelection(Set<String> selectedSymbols) {
+        if (selectedSymbols == null || selectedSymbols.isEmpty()) {
+            return;
+        }
+
+        List<Instrument> activeFunds = instrumentRepository.findByTypeAndIsActiveTrue(Instrument.InstrumentType.FUND);
+        List<Instrument> toDeactivate = activeFunds.stream()
+            .filter(fund -> fund.getSymbol() != null && !selectedSymbols.contains(fund.getSymbol()))
+            .peek(fund -> fund.setIsActive(false))
+            .toList();
+
+        if (!toDeactivate.isEmpty()) {
+            instrumentRepository.saveAll(toDeactivate);
+            log.info("TEFAS fund universe trimmed: {} funds deactivated outside top selection", toDeactivate.size());
+        }
+    }
+
+    private int resolveFundCap() {
+        return Math.max(50, Math.min(2000, maxActiveFundInstruments));
     }
 
     private BigDecimal firstPositive(BigDecimal... values) {

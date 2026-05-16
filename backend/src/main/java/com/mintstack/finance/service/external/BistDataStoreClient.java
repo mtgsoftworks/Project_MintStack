@@ -19,6 +19,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -32,6 +33,12 @@ public class BistDataStoreClient {
 
     private static final Charset TURKISH_CHARSET = Charset.forName("windows-1254");
     private static final DateTimeFormatter BASIC_DATE = DateTimeFormatter.BASIC_ISO_DATE;
+    private static final java.util.regex.Pattern TREASURY_BOND_MATURITY_SYMBOL_PATTERN =
+        java.util.regex.Pattern.compile("^TR[A-Z0-9](\\d{2})(\\d{2})(\\d{2})[A-Z0-9]{3}$");
+    private static final java.util.regex.Pattern CORPORATE_BOND_MONTH_YEAR_DAY_PATTERN =
+        java.util.regex.Pattern.compile("([1-9]|1[0-2])(\\d{2})(\\d{2})$");
+    private static final java.util.regex.Pattern CORPORATE_BOND_MONTH_CODE_PATTERN =
+        java.util.regex.Pattern.compile("([A-L])(\\d{2})(\\d{2})$");
 
     private final WebClient bistDataStoreWebClient;
 
@@ -85,6 +92,20 @@ public class BistDataStoreClient {
         }
     }
 
+    public Map<String, LocalDate> fetchBondMaturityHints(LocalDate date) {
+        String path = resolveDatedPath(bondDailyBulletinPathTemplate, date);
+        try {
+            byte[] zipped = fetchBytes(path);
+            String csv = unzipFirstTextFile(zipped);
+            return parseBondMaturityHints(csv);
+        } catch (WebClientResponseException.NotFound notFound) {
+            log.debug("BIST DataStore bond maturity bulletin not found for {} at {}", date, path);
+            return Map.of();
+        } catch (Exception error) {
+            throw new ExternalApiException("BIST DataStore", "Bond maturity hints could not be fetched: " + date, error);
+        }
+    }
+
     List<BistBondPrice> parseBondCsv(String csv) {
         if (csv == null || csv.isBlank()) {
             return List.of();
@@ -103,6 +124,7 @@ public class BistDataStoreClient {
             if (tradeDate == null || closePrice == null) {
                 continue;
             }
+            LocalDate maturityDate = resolveBondMaturityDate(symbol, tradeDate, value(row, 7), value(row, 8));
 
             BistBondPrice item = new BistBondPrice(
                 symbol,
@@ -111,6 +133,7 @@ public class BistDataStoreClient {
                 value(row, 6).isBlank() ? "TRY" : value(row, 6),
                 closePrice,
                 firstPositive(decimal(row, 18), decimal(row, 17)),
+                maturityDate,
                 firstPositive(decimal(row, 10), closePrice),
                 decimal(row, 11),
                 decimal(row, 12),
@@ -139,6 +162,8 @@ public class BistDataStoreClient {
             if (tradeDate == null || settlementPrice == null || settlementPrice.signum() <= 0) {
                 continue;
             }
+            BigDecimal tradeVolume = normalizeTradeVolume(decimal(row, 19), decimal(row, 17), settlementPrice);
+            BigDecimal changePercent = normalizeChangePercent(decimal(row, 11), tradeVolume);
 
             BistViopPrice item = new BistViopPrice(
                 symbol,
@@ -151,13 +176,40 @@ public class BistDataStoreClient {
                 decimal(row, 13),
                 decimal(row, 14),
                 firstPositive(decimal(row, 15), settlementPrice),
-                decimal(row, 11),
-                decimal(row, 19),
+                changePercent,
+                tradeVolume,
                 decimal(row, 17)
             );
             bySymbol.putIfAbsent(symbol, item);
         }
         return List.copyOf(bySymbol.values());
+    }
+
+    Map<String, LocalDate> parseBondMaturityHints(String csv) {
+        if (csv == null || csv.isBlank()) {
+            return Map.of();
+        }
+
+        Map<String, LocalDate> hints = new HashMap<>();
+        for (String[] row : dataRows(csv)) {
+            String symbol = normalizeSymbol(value(row, 5));
+            if (!looksLikeIsin(symbol)) {
+                continue;
+            }
+
+            LocalDate tradeDate = parseDate(value(row, 1));
+            if (tradeDate == null) {
+                continue;
+            }
+
+            LocalDate maturityDate = resolveBondMaturityDate(symbol, tradeDate, value(row, 7), value(row, 8));
+            if (maturityDate == null) {
+                continue;
+            }
+
+            hints.merge(symbol, maturityDate, this::maxDate);
+        }
+        return Map.copyOf(hints);
     }
 
     private byte[] fetchBytes(String path) {
@@ -214,7 +266,25 @@ public class BistDataStoreClient {
     private BistBondPrice chooseMoreLiquidBond(BistBondPrice left, BistBondPrice right) {
         BigDecimal leftValue = left.tradedValue() == null ? BigDecimal.ZERO : left.tradedValue();
         BigDecimal rightValue = right.tradedValue() == null ? BigDecimal.ZERO : right.tradedValue();
-        return rightValue.compareTo(leftValue) > 0 ? right : left;
+        BistBondPrice primary = rightValue.compareTo(leftValue) > 0 ? right : left;
+        LocalDate maturityDate = maxDate(left.maturityDate(), right.maturityDate());
+        if (maturityDate == null || maturityDate.equals(primary.maturityDate())) {
+            return primary;
+        }
+        return new BistBondPrice(
+            primary.symbol(),
+            primary.name(),
+            primary.date(),
+            primary.currency(),
+            primary.closePrice(),
+            primary.previousClose(),
+            maturityDate,
+            primary.openPrice(),
+            primary.lowPrice(),
+            primary.highPrice(),
+            primary.quantity(),
+            primary.tradedValue()
+        );
     }
 
     private boolean isKesMarket(String market) {
@@ -266,6 +336,102 @@ public class BistDataStoreClient {
         }
     }
 
+    private LocalDate resolveBondMaturityDate(String symbol, LocalDate tradeDate, String vkgRaw, String kkgRaw) {
+        if (tradeDate != null) {
+            Integer remainingDays = firstPositiveInt(parsePositiveInt(vkgRaw), parsePositiveInt(kkgRaw));
+            if (remainingDays != null && remainingDays > 0 && remainingDays <= 3650) {
+                return tradeDate.plusDays(remainingDays);
+            }
+        }
+        return parseBondMaturityFromSymbol(symbol);
+    }
+
+    private Integer parsePositiveInt(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        try {
+            int value = new BigDecimal(text.replace(",", ".").trim()).intValue();
+            return value > 0 ? value : null;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Integer firstPositiveInt(Integer... values) {
+        for (Integer value : values) {
+            if (value != null && value > 0) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private LocalDate maxDate(LocalDate left, LocalDate right) {
+        if (left == null) {
+            return right;
+        }
+        if (right == null) {
+            return left;
+        }
+        return right.isAfter(left) ? right : left;
+    }
+
+    private LocalDate parseBondMaturityFromSymbol(String symbol) {
+        if (symbol == null || symbol.isBlank()) {
+            return null;
+        }
+
+        String normalized = symbol.trim().toUpperCase(Locale.ROOT);
+        java.util.regex.Matcher treasuryMatcher = TREASURY_BOND_MATURITY_SYMBOL_PATTERN.matcher(normalized);
+        if (treasuryMatcher.matches()) {
+            return safeDate(
+                2000 + Integer.parseInt(treasuryMatcher.group(3)),
+                Integer.parseInt(treasuryMatcher.group(2)),
+                Integer.parseInt(treasuryMatcher.group(1))
+            );
+        }
+
+        java.util.regex.Matcher monthYearDayMatcher = CORPORATE_BOND_MONTH_YEAR_DAY_PATTERN.matcher(normalized);
+        if (monthYearDayMatcher.find()) {
+            return safeDate(
+                2000 + Integer.parseInt(monthYearDayMatcher.group(2)),
+                Integer.parseInt(monthYearDayMatcher.group(1)),
+                Integer.parseInt(monthYearDayMatcher.group(3))
+            );
+        }
+
+        java.util.regex.Matcher monthCodeMatcher = CORPORATE_BOND_MONTH_CODE_PATTERN.matcher(normalized);
+        if (monthCodeMatcher.find()) {
+            Integer month = monthFromCode(monthCodeMatcher.group(1).charAt(0));
+            if (month == null) {
+                return null;
+            }
+            return safeDate(
+                2000 + Integer.parseInt(monthCodeMatcher.group(2)),
+                month,
+                Integer.parseInt(monthCodeMatcher.group(3))
+            );
+        }
+
+        return null;
+    }
+
+    private Integer monthFromCode(char monthCode) {
+        if (monthCode < 'A' || monthCode > 'L') {
+            return null;
+        }
+        return (monthCode - 'A') + 1;
+    }
+
+    private LocalDate safeDate(int year, int month, int day) {
+        try {
+            return LocalDate.of(year, month, day);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
     private BigDecimal firstPositive(BigDecimal... values) {
         for (BigDecimal value : values) {
             if (value != null && value.signum() > 0) {
@@ -275,6 +441,30 @@ public class BistDataStoreClient {
         return null;
     }
 
+    private BigDecimal normalizeTradeVolume(BigDecimal rawVolume, BigDecimal tradedValue, BigDecimal settlementPrice) {
+        if (rawVolume != null && rawVolume.signum() > 0) {
+            return rawVolume;
+        }
+
+        if (tradedValue != null && tradedValue.signum() > 0 && settlementPrice != null && settlementPrice.signum() > 0) {
+            return tradedValue.divide(settlementPrice, 0, java.math.RoundingMode.HALF_UP);
+        }
+
+        return null;
+    }
+
+    private BigDecimal normalizeChangePercent(BigDecimal rawChangePercent, BigDecimal normalizedVolume) {
+        if (rawChangePercent == null) {
+            return null;
+        }
+
+        if (rawChangePercent.signum() != 0) {
+            return rawChangePercent;
+        }
+
+        return normalizedVolume != null && normalizedVolume.signum() > 0 ? rawChangePercent : null;
+    }
+
     public record BistBondPrice(
         String symbol,
         String name,
@@ -282,6 +472,7 @@ public class BistDataStoreClient {
         String currency,
         BigDecimal closePrice,
         BigDecimal previousClose,
+        LocalDate maturityDate,
         BigDecimal openPrice,
         BigDecimal lowPrice,
         BigDecimal highPrice,

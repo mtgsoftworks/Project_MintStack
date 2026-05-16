@@ -1,0 +1,27 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="720" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#1E3A8A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <g opacity="0.2">
+    <circle cx="140" cy="640" r="220" fill="#60A5FA"/>
+    <circle cx="1120" cy="110" r="180" fill="#93C5FD"/>
+  </g>
+  <g fill="#DBEAFE" opacity="0.9">
+    <rect x="270" y="320" width="160" height="260" rx="16"/>
+    <rect x="450" y="250" width="180" height="330" rx="16"/>
+    <rect x="650" y="190" width="190" height="390" rx="16"/>
+    <rect x="860" y="280" width="140" height="300" rx="16"/>
+    <rect x="306" y="362" width="88" height="16" rx="6" fill="#93C5FD"/>
+    <rect x="306" y="404" width="88" height="16" rx="6" fill="#93C5FD"/>
+    <rect x="486" y="292" width="108" height="16" rx="6" fill="#93C5FD"/>
+    <rect x="486" y="334" width="108" height="16" rx="6" fill="#93C5FD"/>
+    <rect x="686" y="232" width="118" height="16" rx="6" fill="#93C5FD"/>
+    <rect x="686" y="274" width="118" height="16" rx="6" fill="#93C5FD"/>
+  </g>
+  <text x="640" y="130" text-anchor="middle" fill="#EFF6FF" font-size="66" font-family="Segoe UI, Arial, sans-serif" font-weight="700">SIRKET HABERLERI</text>
+  <text x="640" y="190" text-anchor="middle" fill="#BFDBFE" font-size="30" font-family="Segoe UI, Arial, sans-serif">Bilanco, gelir, CEO ve operasyon gelismeleri</text>
+</svg>

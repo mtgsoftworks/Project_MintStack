@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,6 +49,9 @@ public class Instrument extends BaseEntity {
 
     @Column(name = "previous_close", precision = 18, scale = 6)
     private BigDecimal previousClose;
+
+    @Column(name = "maturity_date")
+    private LocalDate maturityDate;
 
     @Column(name = "is_active")
     @Builder.Default

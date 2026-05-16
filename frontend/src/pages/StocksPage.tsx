@@ -9,7 +9,9 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import RefreshButton from '@/components/common/RefreshButton'
+import RefreshStatus from '@/components/common/RefreshStatus'
 import PortfolioQuickTradeCell from '@/components/market/PortfolioQuickTradeCell'
+import WatchlistQuickAddButton from '@/components/market/WatchlistQuickAddButton'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import {
@@ -30,6 +32,7 @@ import {
 import { isSimulatedMarketData } from '@/lib/simulationData'
 import { cn, formatCurrency, formatPercent } from '@/lib/utils'
 import { useGetStocksQuery } from '@/store/api/marketApi'
+import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useDefaultPortfolioSelection } from '@/hooks/useDefaultPortfolioSelection'
 
@@ -87,8 +90,11 @@ function VirtualStockRow({ stock, selectedPortfolioId }) {
       <div className="w-[100px] text-right text-muted-foreground flex-shrink-0">
         {stock.volume?.toLocaleString('tr-TR') || '-'}
       </div>
-      <div className="w-[230px] flex-shrink-0">
-        <PortfolioQuickTradeCell instrument={stock} selectedPortfolioId={selectedPortfolioId} />
+      <div className="w-[280px] flex-shrink-0">
+        <div className="flex justify-end gap-2">
+          <WatchlistQuickAddButton symbol={stock.symbol} />
+          <PortfolioQuickTradeCell instrument={stock} selectedPortfolioId={selectedPortfolioId} />
+        </div>
       </div>
     </div>
   )
@@ -106,6 +112,7 @@ export default function StocksPage() {
   const [useVirtualScroll, setUseVirtualScroll] = useState(false)
   const parentRef = useRef(null)
   const { portfolios, selectedPortfolioId, setSelectedPortfolioId } = useDefaultPortfolioSelection()
+  const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
 
   useEffect(() => {
     setSearchQuery(searchParam)
@@ -119,12 +126,21 @@ export default function StocksPage() {
   // Load more items when virtual scrolling is enabled
   const requestSize = useVirtualScroll ? Math.max(pageSize, 100) : pageSize
 
-  const { data, isLoading, isFetching, refetch } = useGetStocksQuery({
-    page: useVirtualScroll ? 0 : page,
-    size: requestSize,
-    sort: `${sortBy},${sortOrder}`,
-    search: searchQuery.trim() || undefined,
-  })
+  const {
+    data,
+    isLoading,
+    isFetching,
+    refetch,
+    fulfilledTimeStamp,
+  } = useGetStocksQuery(
+    {
+      page: useVirtualScroll ? 0 : page,
+      size: requestSize,
+      sort: `${sortBy},${sortOrder}`,
+      search: searchQuery.trim() || undefined,
+    },
+    queryOptions
+  )
 
   const stocks = data?.data || []
   const totalPages = data?.pagination?.totalPages || 0
@@ -161,6 +177,13 @@ export default function StocksPage() {
           <p className="text-muted-foreground">
             {t('stocksPage.subtitle')}
           </p>
+          <RefreshStatus
+            className="mt-1"
+            lastUpdatedAt={fulfilledTimeStamp}
+            autoUpdateEnabled={autoUpdate}
+            refreshRateSeconds={refreshRate}
+            isFetching={isFetching}
+          />
         </div>
         <div className="flex items-center gap-4">
           {portfolios.length > 0 && (
@@ -280,7 +303,7 @@ export default function StocksPage() {
                 </div>
                 <div className="w-[100px] text-right flex-shrink-0">{t('stocksPage.headers.previousClose')}</div>
                 <div className="w-[100px] text-right flex-shrink-0">{t('stocksPage.headers.volume')}</div>
-                <div className="w-[230px] text-right flex-shrink-0">Islem</div>
+                <div className="w-[280px] text-right flex-shrink-0">Islem</div>
               </div>
 
               {/* Virtual List */}
@@ -430,7 +453,10 @@ export default function StocksPage() {
                           {stock.volume?.toLocaleString('tr-TR') || '-'}
                         </TableCell>
                         <TableCell className="text-right">
-                          <PortfolioQuickTradeCell instrument={stock} selectedPortfolioId={selectedPortfolioId} />
+                          <div className="flex justify-end gap-2">
+                            <WatchlistQuickAddButton symbol={stock.symbol} />
+                            <PortfolioQuickTradeCell instrument={stock} selectedPortfolioId={selectedPortfolioId} />
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))

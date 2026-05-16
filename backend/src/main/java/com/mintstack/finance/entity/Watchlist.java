@@ -30,6 +30,15 @@ public class Watchlist extends BaseEntity {
     @Column(name = "description")
     private String description;
 
+    @Column(name = "tag", length = 50)
+    private String tag;
+
+    @Column(name = "notes")
+    private String notes;
+
+    @Column(name = "column_prefs", length = 300)
+    private String columnPrefs;
+
     @Column(name = "is_default")
     @Builder.Default
     private Boolean isDefault = false;
@@ -41,10 +50,11 @@ public class Watchlist extends BaseEntity {
     /**
      * Add an instrument to the watchlist
      */
-    public void addItem(Instrument instrument) {
+    public void addItem(Instrument instrument, int displayOrder) {
         WatchlistItem item = WatchlistItem.builder()
                 .watchlist(this)
                 .instrument(instrument)
+                .displayOrder(displayOrder)
                 .build();
         items.add(item);
     }

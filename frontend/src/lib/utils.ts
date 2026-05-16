@@ -71,6 +71,21 @@ export function formatDateTime(date: any) {
 }
 
 /**
+ * Format datetime with second precision
+ */
+export function formatDateTimeWithSeconds(date: any) {
+  if (!date) return '-'
+  return new Date(date).toLocaleString('tr-TR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
+
+/**
  * Format relative time (e.g., "2 hours ago")
  */
 export function formatRelativeTime(date: any) {

@@ -36,4 +36,8 @@ public class WatchlistItem extends BaseEntity {
 
     @Column(name = "notes")
     private String notes;
+
+    @Column(name = "display_order", nullable = false)
+    @Builder.Default
+    private Integer displayOrder = 1;
 }

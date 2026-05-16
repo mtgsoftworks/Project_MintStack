@@ -60,7 +60,7 @@ public class MarketDataController {
     @Operation(summary = "Hisse senetlerini listele")
     public ResponseEntity<ApiResponse<List<InstrumentResponse>>> getStocks(
             @RequestParam(required = false) String search,
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "symbol") Pageable pageable) {
         
         Page<InstrumentResponse> stocks;
         if (search != null && !search.isEmpty()) {
@@ -103,7 +103,7 @@ public class MarketDataController {
     @Operation(summary = "Tahvil/bono listesini getir")
     public ResponseEntity<ApiResponse<List<InstrumentResponse>>> getBonds(
             @RequestParam(required = false) String search,
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "symbol") Pageable pageable) {
         Page<InstrumentResponse> bonds;
         if (search != null && !search.isEmpty()) {
             bonds = marketDataService.searchInstruments(InstrumentType.BOND, search, pageable);
@@ -118,7 +118,7 @@ public class MarketDataController {
     @Operation(summary = "Yatırım fonlarını listele")
     public ResponseEntity<ApiResponse<List<InstrumentResponse>>> getFunds(
             @RequestParam(required = false) String search,
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "symbol") Pageable pageable) {
         
         Page<InstrumentResponse> funds;
         if (search != null && !search.isEmpty()) {
@@ -135,7 +135,7 @@ public class MarketDataController {
     @Operation(summary = "VIOP enstrümanlarını listele")
     public ResponseEntity<ApiResponse<List<InstrumentResponse>>> getViop(
             @RequestParam(required = false) String search,
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "symbol") Pageable pageable) {
         Page<InstrumentResponse> viop;
         if (search != null && !search.isEmpty()) {
             viop = marketDataService.searchInstruments(InstrumentType.VIOP, search, pageable);
@@ -159,7 +159,7 @@ public class MarketDataController {
     @Operation(summary = "Tüm enstrümanlarda ara")
     public ResponseEntity<ApiResponse<List<InstrumentResponse>>> searchInstruments(
             @RequestParam String query,
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "symbol") Pageable pageable) {
         Page<InstrumentResponse> results = marketDataService.searchInstruments(query, pageable);
         return ResponseEntity.ok(ApiResponse.success(results.getContent(), PaginationInfo.from(results)));
     }

@@ -13,12 +13,14 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import RefreshButton from '@/components/common/RefreshButton'
+import RefreshStatus from '@/components/common/RefreshStatus'
 import { cn, formatCurrency, formatPercent, formatRelativeTime } from '@/lib/utils'
 import { getNewsDisplayTitle, getNewsSourceLabel, isSimulationNews } from '@/lib/news'
 import { isSimulatedMarketData } from '@/lib/simulationData'
 import { useGetCurrenciesQuery, useGetStocksQuery, useGetMarketIndexQuery } from '@/store/api/marketApi'
 import { useGetNewsQuery } from '@/store/api/newsApi'
 import { useGetPortfoliosQuery } from '@/store/api/portfolioApi'
+import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 import { useDispatch, useSelector } from 'react-redux'
 import { selectIsAuthenticated } from '@/store/slices/authSlice'
 import { Link } from 'react-router-dom'
@@ -72,9 +74,9 @@ function StatCard({ title, value, change, icon: Icon, trend, loading }) {
   )
 }
 
-function CurrencyWidget() {
+function CurrencyWidget({ queryOptions }) {
   const { t } = useTranslation()
-  const { data: currencies, isLoading } = useGetCurrenciesQuery()
+  const { data: currencies, isLoading } = useGetCurrenciesQuery(undefined, queryOptions)
 
   const priorityCurrencyCodes = ['USD', 'EUR', 'GBP', 'CHF', 'JPY', 'SAR', 'CAD', 'AUD']
   const mainCurrencies = [...(currencies || [])]
@@ -153,15 +155,11 @@ function CurrencyWidget() {
   )
 }
 
-function NewsWidget() {
+function NewsWidget({ queryOptions }) {
   const { t } = useTranslation()
   const { data, isLoading } = useGetNewsQuery(
     { page: 0, size: 5 },
-    {
-      pollingInterval: 10000,
-      refetchOnFocus: true,
-      refetchOnReconnect: true,
-    }
+    queryOptions
   )
   const news = data?.data || []
 
@@ -221,9 +219,9 @@ function NewsWidget() {
   )
 }
 
-function StocksWidget() {
+function StocksWidget({ queryOptions }) {
   const { t } = useTranslation()
-  const { data, isLoading } = useGetStocksQuery({ size: 5 })
+  const { data, isLoading } = useGetStocksQuery({ size: 5 }, queryOptions)
   const stocks = data?.data || []
 
   return (
@@ -281,42 +279,45 @@ export default function DashboardPage() {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const isAuthenticated = useSelector(selectIsAuthenticated)
+  const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
   const {
     data: currencies,
     isLoading: currenciesLoading,
     isFetching: currenciesFetching,
     refetch: refetchCurrencies,
-  } = useGetCurrenciesQuery()
+    fulfilledTimeStamp: currenciesFulfilledAt,
+  } = useGetCurrenciesQuery(undefined, queryOptions)
   const {
     data: bistData,
     isLoading: bistLoading,
     isFetching: bistFetching,
     error: bistError,
     refetch: refetchBist,
-  } = useGetMarketIndexQuery(
-    'XU100.IS',
-    {
-      pollingInterval: 5000,
-      refetchOnFocus: true,
-      refetchOnReconnect: true,
-    }
-  )
+    fulfilledTimeStamp: bistFulfilledAt,
+  } = useGetMarketIndexQuery('XU100.IS', queryOptions)
   const {
     data: portfolios,
     isLoading: portfolioLoading,
     isFetching: portfolioFetching,
     refetch: refetchPortfolios,
+    fulfilledTimeStamp: portfoliosFulfilledAt,
   } = useGetPortfoliosQuery(undefined, {
-    skip: !isAuthenticated
+    ...queryOptions,
+    skip: !isAuthenticated,
   })
   const isRefreshing = currenciesFetching || portfolioFetching || bistFetching
+  const lastUpdatedAt = Math.max(
+    currenciesFulfilledAt || 0,
+    bistFulfilledAt || 0,
+    portfoliosFulfilledAt || 0
+  ) || null
 
-  const handleRefresh = () => {
-    refetchCurrencies()
-    refetchBist()
+  const handleRefresh = async () => {
+    const requests = [Promise.resolve(refetchCurrencies()), Promise.resolve(refetchBist())]
     if (isAuthenticated) {
-      refetchPortfolios()
+      requests.push(Promise.resolve(refetchPortfolios()))
     }
+    await Promise.all(requests)
 
     // Refresh dashboard widgets that subscribe to these tags.
     dispatch(baseApi.util.invalidateTags(['Stocks', 'News', 'Currencies', 'Indices', 'Portfolios']))
@@ -371,6 +372,13 @@ export default function DashboardPage() {
           <p className="text-muted-foreground">
             {t('dashboard.subtitle')}
           </p>
+          <RefreshStatus
+            className="mt-1"
+            lastUpdatedAt={lastUpdatedAt}
+            autoUpdateEnabled={autoUpdate}
+            refreshRateSeconds={refreshRate}
+            isFetching={isRefreshing}
+          />
         </div>
         <RefreshButton
           variant="outline"
@@ -423,9 +431,9 @@ export default function DashboardPage() {
 
       {/* Widgets Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <CurrencyWidget />
-        <StocksWidget />
-        <NewsWidget />
+        <CurrencyWidget queryOptions={queryOptions} />
+        <StocksWidget queryOptions={queryOptions} />
+        <NewsWidget queryOptions={queryOptions} />
       </div>
     </div>
   )

@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import RefreshButton from '@/components/common/RefreshButton'
+import RefreshStatus from '@/components/common/RefreshStatus'
+import WatchlistQuickAddButton from '@/components/market/WatchlistQuickAddButton'
 import {
   Table,
   TableBody,
@@ -21,6 +23,7 @@ import { isSimulatedMarketData } from '@/lib/simulationData'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { cn, formatCurrency, formatNumber, formatPercent, formatDateTime } from '@/lib/utils'
 import { useGetCurrenciesQuery } from '@/store/api/marketApi'
+import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 import {
   useExecutePortfolioTradeMutation,
   useGetPortfolioQuery,
@@ -51,7 +54,14 @@ export default function CurrencyPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPortfolioId, setSelectedPortfolioId] = useState('')
   const [tradeQuantities, setTradeQuantities] = useState({})
-  const { data: currencies, isLoading, isFetching, refetch } = useGetCurrenciesQuery()
+  const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
+  const {
+    data: currencies,
+    isLoading,
+    isFetching,
+    refetch,
+    fulfilledTimeStamp,
+  } = useGetCurrenciesQuery(undefined, queryOptions)
   const { data: portfolios = [] } = useGetPortfoliosQuery()
   const { data: selectedPortfolio, isFetching: isPortfolioFetching } = useGetPortfolioQuery(
     selectedPortfolioId,
@@ -172,6 +182,13 @@ export default function CurrencyPage() {
               ? t('currencyPage.subtitleWithSource', { source: getSourceLabel(dataSource), defaultValue: `${getSourceLabel(dataSource)} güncel döviz kurları` })
               : t('currencyPage.subtitle')}
           </p>
+          <RefreshStatus
+            className="mt-1"
+            lastUpdatedAt={fulfilledTimeStamp}
+            autoUpdateEnabled={autoUpdate}
+            refreshRateSeconds={refreshRate}
+            isFetching={isFetching}
+          />
         </div>
         <div className="flex items-center gap-2">
           {portfolios.length > 0 && (
@@ -324,6 +341,7 @@ export default function CurrencyPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <WatchlistQuickAddButton symbol={`${currency.currencyCode}TRY`} />
                           <Input
                             className="h-9 w-24 text-right"
                             type="number"

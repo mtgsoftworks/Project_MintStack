@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatRelativeTime } from '@/lib/utils'
-import { getNewsDisplayTitle, getNewsSourceLabel, isSimulationNews } from '@/lib/news'
+import { getNewsDisplayTitle, getNewsSourceLabel, getNewsSummary, isSimulationNews } from '@/lib/news'
+import NewsImage from '@/components/news/NewsImage'
 import {
   useGetNewsByCategoryQuery,
   useGetNewsCategoriesQuery,
@@ -20,19 +21,12 @@ function NewsCard({ news }) {
   const categoryLabel = news?.category?.name || news?.categoryName
   const simulationNews = isSimulationNews(news)
   const displayTitle = getNewsDisplayTitle(news)
+  const summary = getNewsSummary(news)
 
   return (
     <Link to={`/news/${news.id}`}>
-      <Card className={`card-hover h-full ${simulationNews ? 'border-warning/50 bg-warning/5' : ''}`}>
-        {news.imageUrl && (
-          <div className="aspect-video overflow-hidden rounded-t-xl">
-            <img
-              src={news.imageUrl}
-              alt={news.title}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-          </div>
-        )}
+      <Card className={`card-hover group h-full ${simulationNews ? 'border-warning/50 bg-warning/5' : ''}`}>
+        <NewsImage imageUrl={news.imageUrl} title={news.title} categorySlug={news?.category?.slug || news?.categorySlug} />
         <CardHeader className="pb-2">
           <div className="mb-2 flex items-center gap-2">
             {categoryLabel && (
@@ -56,7 +50,7 @@ function NewsCard({ news }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">{news.summary}</p>
+          <p className="mb-4 line-clamp-3 text-sm text-muted-foreground">{summary}</p>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1">

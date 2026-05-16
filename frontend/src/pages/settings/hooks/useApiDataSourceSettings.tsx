@@ -24,7 +24,7 @@ const DEFAULT_FORM_DATA = {
 
 const DEFAULT_BACKFILL_FORM = {
     days: '30',
-    maxInstruments: '100',
+    maxInstruments: '500',
     instrumentTypes: ['STOCK', 'FUND', 'CURRENCY'],
     symbols: '',
     includeSyntheticFallback: false

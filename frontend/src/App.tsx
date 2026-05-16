@@ -6,6 +6,7 @@ import Keycloak from 'keycloak-js'
 import { setAuth, setInitialized } from '@/store/slices/authSlice'
 import { setKeycloakInstance } from '@/services/api'
 import { setKeycloakInstance as setApiKeycloakInstance } from '@/store/api/baseApi'
+import { baseApi } from '@/store/api/baseApi'
 import { selectAutoUpdate, selectRefreshRate, selectTheme } from '@/store/slices/uiSlice'
 import { AdminRoute, Layout, ProtectedRoute } from '@/components/layout'
 import websocketService from '@/services/websocketService'
@@ -17,6 +18,7 @@ const NewsDetailPage = lazy(() => import('@/pages/NewsDetailPage'))
 const CurrencyPage = lazy(() => import('@/pages/CurrencyPage'))
 const StocksPage = lazy(() => import('@/pages/StocksPage'))
 const StockDetailPage = lazy(() => import('@/pages/StockDetailPage'))
+const MarketSearchPage = lazy(() => import('@/pages/MarketSearchPage'))
 const BondsPage = lazy(() => import('@/pages/BondsPage'))
 const FundsPage = lazy(() => import('@/pages/FundsPage'))
 const ViopPage = lazy(() => import('@/pages/ViopPage'))
@@ -72,10 +74,20 @@ function App() {
 
   // Function to trigger data refresh via WebSocket
   const triggerDataRefresh = useCallback(() => {
+    dispatch(baseApi.util.invalidateTags([
+      'Currencies',
+      'Stocks',
+      'Bonds',
+      'Funds',
+      'Viop',
+      'Indices',
+      'Portfolios',
+    ]))
+
     if (websocketService.isConnected) {
       websocketService.requestPriceUpdate()
     }
-  }, [])
+  }, [dispatch])
 
   // Setup data refresh interval based on user settings
   useEffect(() => {
@@ -244,6 +256,11 @@ function App() {
           <Route path="/market/stocks/:symbol" element={
             <ProtectedRoute>
               <StockDetailPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/market/search" element={
+            <ProtectedRoute>
+              <MarketSearchPage />
             </ProtectedRoute>
           } />
           <Route path="/market/bonds" element={

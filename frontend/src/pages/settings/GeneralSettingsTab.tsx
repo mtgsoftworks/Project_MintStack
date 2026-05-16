@@ -45,6 +45,7 @@ export function GeneralSettingsTab({
     onAutoUpdateChange,
     onRefreshRateChange,
     onNotificationToggle,
+    isAdmin,
     onFullReset,
     onClearCache,
     onSaveSettings
@@ -203,77 +204,79 @@ export function GeneralSettingsTab({
                 </CardContent>
             </Card>
 
-            <Card className="border-destructive/50 mt-6">
-                <CardHeader>
-                    <CardTitle className="text-destructive">{t('settingsPage.dangerZone.title')}</CardTitle>
-                    <CardDescription>{t('settingsPage.dangerZone.description')}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between py-2">
-                        <div className="space-y-0.5">
-                            <Label className="text-destructive font-medium">{t('settingsPage.dangerZone.reset.title')}</Label>
-                            <p className="text-sm text-muted-foreground">{t('settingsPage.dangerZone.reset.description')}</p>
-                        </div>
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button variant="destructive" size="sm">
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    {t('settingsPage.dangerZone.reset.button')}
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle className="text-destructive flex items-center gap-2">
-                                        <AlertCircle className="h-5 w-5" />
-                                        {t('settingsPage.dangerZone.reset.dialog.title')}
-                                    </DialogTitle>
-                                    <DialogDescription>{t('settingsPage.dangerZone.reset.dialog.description')}</DialogDescription>
-                                </DialogHeader>
-                                <div className="py-4">
-                                    <p className="text-sm text-muted-foreground mb-4">{t('settingsPage.dangerZone.reset.dialog.continue')}</p>
-                                    <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                                        <p className="text-sm font-medium text-destructive">{t('settingsPage.dangerZone.reset.dialog.warningTitle')}</p>
-                                        <ul className="text-sm text-muted-foreground mt-2 space-y-1 list-disc list-inside">
-                                            {t('settingsPage.dangerZone.reset.dialog.items', { returnObjects: true }).map((item) => (
-                                                <li key={item}>{item}</li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </div>
-                                <DialogFooter className="gap-2">
-                                    <DialogClose asChild>
-                                        <Button variant="outline">{t('common.cancel')}</Button>
-                                    </DialogClose>
-                                    <Button variant="destructive" onClick={onFullReset}>
+            {isAdmin && (
+                <Card className="border-destructive/50 mt-6">
+                    <CardHeader>
+                        <CardTitle className="text-destructive">{t('settingsPage.dangerZone.title')}</CardTitle>
+                        <CardDescription>{t('settingsPage.dangerZone.description')}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between py-2">
+                            <div className="space-y-0.5">
+                                <Label className="text-destructive font-medium">{t('settingsPage.dangerZone.reset.title')}</Label>
+                                <p className="text-sm text-muted-foreground">{t('settingsPage.dangerZone.reset.description')}</p>
+                            </div>
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="destructive" size="sm">
                                         <Trash2 className="h-4 w-4 mr-2" />
-                                        {t('settingsPage.dangerZone.reset.confirmButton')}
+                                        {t('settingsPage.dangerZone.reset.button')}
                                     </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                    </div>
-
-                    <div className="flex items-center justify-between py-2 border-t">
-                        <div className="space-y-0.5">
-                            <Label className="font-medium">{t('settingsPage.cache.title')}</Label>
-                            <p className="text-sm text-muted-foreground">{t('settingsPage.cache.description')}</p>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle className="text-destructive flex items-center gap-2">
+                                            <AlertCircle className="h-5 w-5" />
+                                            {t('settingsPage.dangerZone.reset.dialog.title')}
+                                        </DialogTitle>
+                                        <DialogDescription>{t('settingsPage.dangerZone.reset.dialog.description')}</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="py-4">
+                                        <p className="text-sm text-muted-foreground mb-4">{t('settingsPage.dangerZone.reset.dialog.continue')}</p>
+                                        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                                            <p className="text-sm font-medium text-destructive">{t('settingsPage.dangerZone.reset.dialog.warningTitle')}</p>
+                                            <ul className="text-sm text-muted-foreground mt-2 space-y-1 list-disc list-inside">
+                                                {t('settingsPage.dangerZone.reset.dialog.items', { returnObjects: true }).map((item) => (
+                                                    <li key={item}>{item}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <DialogFooter className="gap-2">
+                                        <DialogClose asChild>
+                                            <Button variant="outline">{t('common.cancel')}</Button>
+                                        </DialogClose>
+                                        <Button variant="destructive" onClick={onFullReset}>
+                                            <Trash2 className="h-4 w-4 mr-2" />
+                                            {t('settingsPage.dangerZone.reset.confirmButton')}
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
                         </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={isClearingCache}
-                            onClick={onClearCache}
-                        >
-                            {isClearingCache ? (
-                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                            )}
-                            {t('settingsPage.cache.button')}
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
+
+                        <div className="flex items-center justify-between py-2 border-t">
+                            <div className="space-y-0.5">
+                                <Label className="font-medium">{t('settingsPage.cache.title')}</Label>
+                                <p className="text-sm text-muted-foreground">{t('settingsPage.cache.description')}</p>
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={isClearingCache}
+                                onClick={onClearCache}
+                            >
+                                {isClearingCache ? (
+                                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                    <RefreshCw className="h-4 w-4 mr-2" />
+                                )}
+                                {t('settingsPage.cache.button')}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </>
     )
 }

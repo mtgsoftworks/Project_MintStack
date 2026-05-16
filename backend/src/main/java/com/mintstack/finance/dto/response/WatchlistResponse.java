@@ -19,6 +19,9 @@ public class WatchlistResponse {
     private UUID id;
     private String name;
     private String description;
+    private String tag;
+    private String notes;
+    private List<String> columnPreferences;
     private Boolean isDefault;
     private Integer itemCount;
     private List<WatchlistItemResponse> items;
@@ -35,6 +38,8 @@ public class WatchlistResponse {
         private String type;
         private BigDecimal currentPrice;
         private BigDecimal previousClose;
+        private String notes;
+        private Integer displayOrder;
         private LocalDateTime addedAt;
 
         public BigDecimal getChange() {

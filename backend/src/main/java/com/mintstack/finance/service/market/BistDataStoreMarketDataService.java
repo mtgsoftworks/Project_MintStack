@@ -9,23 +9,35 @@ import com.mintstack.finance.service.external.BistDataStoreClient.BistBondPrice;
 import com.mintstack.finance.service.external.BistDataStoreClient.BistViopPrice;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BistDataStoreMarketDataService {
+
+    private static final Pattern TREASURY_BOND_MATURITY_SYMBOL_PATTERN =
+        Pattern.compile("^TR[A-Z0-9](\\d{2})(\\d{2})(\\d{2})[A-Z0-9]{3}$");
+    private static final Pattern CORPORATE_BOND_MONTH_YEAR_DAY_PATTERN =
+        Pattern.compile("([1-9]|1[0-2])(\\d{2})(\\d{2})$");
+    private static final Pattern CORPORATE_BOND_MONTH_CODE_PATTERN =
+        Pattern.compile("([A-L])(\\d{2})(\\d{2})$");
 
     private final BistDataStoreClient bistDataStoreClient;
     private final InstrumentRepository instrumentRepository;
@@ -37,6 +49,15 @@ public class BistDataStoreMarketDataService {
     @Value("${app.external-api.bist-datastore.latest-lookback-days:7}")
     private int latestLookbackDays;
 
+    @Value("${app.external-api.bist-datastore.maturity-lookback-days:120}")
+    private int maturityLookbackDays;
+
+    @Value("${app.market-data.max-active-viop-instruments:300}")
+    private int maxActiveViopInstruments;
+
+    @Value("${app.market-data.min-viop-volume:1}")
+    private long minViopVolume;
+
     @Transactional
     public int refreshBondPrices() {
         if (!enabled) {
@@ -45,7 +66,9 @@ public class BistDataStoreMarketDataService {
         }
         List<BistBondPrice> prices = fetchLatestBondPrices();
         int saved = upsertBondPrices(prices, ignored -> true, Integer.MAX_VALUE);
+        BondMaturityEnrichmentResult enrichmentResult = enrichBondMaturityMetadata();
         log.info("BIST DataStore bond refresh completed: {} rows processed", saved);
+        logBondMaturityEnrichment(enrichmentResult);
         return saved;
     }
 
@@ -56,8 +79,24 @@ public class BistDataStoreMarketDataService {
             return 0;
         }
         List<BistViopPrice> prices = fetchLatestViopPrices();
-        int saved = upsertViopPrices(prices, ignored -> true, Integer.MAX_VALUE);
-        log.info("BIST DataStore VIOP refresh completed: {} rows processed", saved);
+        if (prices.isEmpty()) {
+            log.warn("BIST DataStore VIOP refresh returned empty list; keeping current active contracts.");
+            return 0;
+        }
+
+        int cap = resolveViopCap();
+        List<BistViopPrice> ranked = rankViopPrices(prices);
+        List<BistViopPrice> selected = ranked.stream()
+            .limit(cap)
+            .toList();
+        Set<String> selectedSymbols = selected.stream()
+            .map(BistViopPrice::symbol)
+            .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+
+        int saved = upsertViopPrices(selected, ignored -> true, cap);
+        deactivateViopOutsideSelection(selectedSymbols);
+        log.info("BIST DataStore VIOP refresh completed: {} selected / {} fetched (active cap={})",
+            saved, prices.size(), cap);
         return saved;
     }
 
@@ -78,7 +117,15 @@ public class BistDataStoreMarketDataService {
                 log.debug("BIST DataStore bond backfill skipped for {}: {}", date, error.getMessage());
             }
         }
+        logBondMaturityEnrichment(enrichBondMaturityMetadata());
         return saved;
+    }
+
+    @Transactional
+    public BondMaturityEnrichmentResult enrichBondMaturityMetadata() {
+        int parsedFromSymbols = backfillBondMaturityFromSymbols();
+        int enrichedFromBulletins = backfillBondMaturityFromRecentBulletins();
+        return new BondMaturityEnrichmentResult(parsedFromSymbols, enrichedFromBulletins);
     }
 
     @Transactional
@@ -162,7 +209,10 @@ public class BistDataStoreMarketDataService {
             instrument.setCurrency(normalizeCurrency(price.currency()));
             instrument.setIsActive(true);
             instrument.setIsSimulated(false);
-            instrument.setPreviousClose(firstPositive(price.previousClose(), instrument.getCurrentPrice()));
+            if (price.maturityDate() != null) {
+                instrument.setMaturityDate(price.maturityDate());
+            }
+            instrument.setPreviousClose(resolvePreviousClose(price.previousClose(), instrument.getPreviousClose()));
             instrument.setCurrentPrice(price.closePrice());
             Instrument savedInstrument = instrumentRepository.save(instrument);
             upsertHistory(
@@ -207,7 +257,7 @@ public class BistDataStoreMarketDataService {
             instrument.setCurrency(normalizeCurrency(price.currency()));
             instrument.setIsActive(true);
             instrument.setIsSimulated(false);
-            instrument.setPreviousClose(firstPositive(price.previousSettlementPrice(), instrument.getCurrentPrice()));
+            instrument.setPreviousClose(resolvePreviousSettlementPrice(price, instrument));
             instrument.setCurrentPrice(price.settlementPrice());
             Instrument savedInstrument = instrumentRepository.save(instrument);
             upsertHistory(
@@ -278,6 +328,255 @@ public class BistDataStoreMarketDataService {
             }
         }
         return null;
+    }
+
+    private BigDecimal resolvePreviousClose(BigDecimal incomingPreviousClose, BigDecimal existingPreviousClose) {
+        BigDecimal explicitPrevious = firstPositive(incomingPreviousClose);
+        if (explicitPrevious != null) {
+            return explicitPrevious;
+        }
+        return firstPositive(existingPreviousClose);
+    }
+
+    private BigDecimal resolvePreviousSettlementPrice(BistViopPrice price, Instrument existing) {
+        BigDecimal explicitPrevious = firstPositive(price.previousSettlementPrice());
+        if (explicitPrevious != null) {
+            return explicitPrevious;
+        }
+
+        BigDecimal settlement = price.settlementPrice();
+        BigDecimal changePercent = price.changePercent();
+        if (settlement != null && settlement.signum() > 0 && changePercent != null) {
+            BigDecimal divisor = BigDecimal.ONE.add(
+                changePercent.divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP)
+            );
+            if (divisor.signum() > 0) {
+                BigDecimal derived = settlement
+                    .divide(divisor, 6, RoundingMode.HALF_UP);
+                if (derived.signum() > 0) {
+                    return derived;
+                }
+            }
+        }
+
+        BigDecimal existingPrevious = firstPositive(existing.getPreviousClose());
+        if (existingPrevious != null && settlement != null && existingPrevious.compareTo(settlement) != 0) {
+            return existingPrevious;
+        }
+
+        BigDecimal historyPrevious = resolvePreviousCloseFromHistory(existing, price.date());
+        if (historyPrevious != null && settlement != null && historyPrevious.compareTo(settlement) != 0) {
+            return historyPrevious;
+        }
+
+        return null;
+    }
+
+    private BigDecimal resolvePreviousCloseFromHistory(Instrument instrument, LocalDate currentDate) {
+        if (instrument == null || instrument.getId() == null || currentDate == null) {
+            return null;
+        }
+
+        List<PriceHistory> recent = priceHistoryRepository.findByInstrumentIdOrderByPriceDateDesc(
+            instrument.getId(),
+            PageRequest.of(0, 20)
+        );
+        for (PriceHistory history : recent) {
+            if (history.getPriceDate() == null || !history.getPriceDate().isBefore(currentDate)) {
+                continue;
+            }
+            BigDecimal close = firstPositive(history.getClosePrice(), history.getAdjustedClose(), history.getOpenPrice());
+            if (close != null) {
+                return close;
+            }
+        }
+        return null;
+    }
+
+    private List<BistViopPrice> rankViopPrices(List<BistViopPrice> prices) {
+        if (prices == null || prices.isEmpty()) {
+            return List.of();
+        }
+
+        List<BistViopPrice> withPositiveVolume = prices.stream()
+            .filter(item -> item != null && item.symbol() != null && item.settlementPrice() != null && item.settlementPrice().signum() > 0)
+            .filter(item -> item.tradeVolume() != null && item.tradeVolume().longValue() >= Math.max(0L, minViopVolume))
+            .sorted(Comparator
+                .comparing((BistViopPrice item) -> item.tradeVolume() == null ? BigDecimal.ZERO : item.tradeVolume(), BigDecimal::compareTo).reversed()
+                .thenComparing(item -> item.tradedValue() == null ? BigDecimal.ZERO : item.tradedValue(), BigDecimal::compareTo).reversed()
+                .thenComparing(BistViopPrice::symbol))
+            .toList();
+
+        if (!withPositiveVolume.isEmpty()) {
+            return withPositiveVolume;
+        }
+
+        return prices.stream()
+            .filter(item -> item != null && item.symbol() != null && item.settlementPrice() != null && item.settlementPrice().signum() > 0)
+            .sorted(Comparator
+                .comparing((BistViopPrice item) -> item.tradedValue() == null ? BigDecimal.ZERO : item.tradedValue(), BigDecimal::compareTo).reversed()
+                .thenComparing(BistViopPrice::symbol))
+            .toList();
+    }
+
+    private void deactivateViopOutsideSelection(Set<String> selectedSymbols) {
+        if (selectedSymbols == null || selectedSymbols.isEmpty()) {
+            return;
+        }
+
+        List<Instrument> activeViop = instrumentRepository.findByTypeAndIsActiveTrue(Instrument.InstrumentType.VIOP);
+        List<Instrument> toDeactivate = activeViop.stream()
+            .filter(contract -> contract.getSymbol() != null && !selectedSymbols.contains(contract.getSymbol()))
+            .peek(contract -> contract.setIsActive(false))
+            .toList();
+
+        if (!toDeactivate.isEmpty()) {
+            instrumentRepository.saveAll(toDeactivate);
+            log.info("BIST DataStore VIOP universe trimmed: {} contracts deactivated outside top selection", toDeactivate.size());
+        }
+    }
+
+    private int resolveViopCap() {
+        return Math.max(50, Math.min(2000, maxActiveViopInstruments));
+    }
+
+    private int backfillBondMaturityFromSymbols() {
+        List<Instrument> bonds = instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulatedOrderBySymbolAsc(
+            Instrument.InstrumentType.BOND,
+            false
+        );
+        int updated = 0;
+        for (Instrument bond : bonds) {
+            if (bond.getMaturityDate() != null) {
+                continue;
+            }
+            LocalDate maturityDate = parseBondMaturityFromSymbol(bond.getSymbol());
+            if (maturityDate == null) {
+                continue;
+            }
+            bond.setMaturityDate(maturityDate);
+            instrumentRepository.save(bond);
+            updated++;
+        }
+        return updated;
+    }
+
+    private int backfillBondMaturityFromRecentBulletins() {
+        List<Instrument> bonds = instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulatedOrderBySymbolAsc(
+            Instrument.InstrumentType.BOND,
+            false
+        );
+
+        java.util.Map<String, Instrument> unresolved = bonds.stream()
+            .filter(instrument -> instrument.getMaturityDate() == null)
+            .collect(java.util.stream.Collectors.toMap(
+                instrument -> instrument.getSymbol().toUpperCase(Locale.ROOT),
+                instrument -> instrument,
+                (left, right) -> left,
+                java.util.LinkedHashMap::new
+            ));
+        if (unresolved.isEmpty()) {
+            return 0;
+        }
+
+        int lookbackDays = Math.max(1, maturityLookbackDays);
+        int updated = 0;
+        LocalDate date = LocalDate.now();
+        for (int offset = 0; offset < lookbackDays && !unresolved.isEmpty(); offset++) {
+            if (!isWeekend(date)) {
+                try {
+                    java.util.Map<String, LocalDate> hints = bistDataStoreClient.fetchBondMaturityHints(date);
+                    for (java.util.Map.Entry<String, LocalDate> hint : hints.entrySet()) {
+                        if (hint.getValue() == null) {
+                            continue;
+                        }
+                        Instrument instrument = unresolved.remove(hint.getKey().toUpperCase(Locale.ROOT));
+                        if (instrument == null) {
+                            continue;
+                        }
+                        instrument.setMaturityDate(hint.getValue());
+                        instrumentRepository.save(instrument);
+                        updated++;
+                    }
+                } catch (Exception error) {
+                    log.debug("BIST DataStore bond maturity hint fetch skipped for {}: {}", date, error.getMessage());
+                }
+            }
+            date = date.minusDays(1);
+        }
+        return updated;
+    }
+
+    private void logBondMaturityEnrichment(BondMaturityEnrichmentResult result) {
+        if (result == null) {
+            return;
+        }
+        if (result.parsedFromSymbols() > 0) {
+            log.info("BIST DataStore bond maturity enrichment completed: {} rows updated", result.parsedFromSymbols());
+        }
+        if (result.enrichedFromBulletins() > 0) {
+            log.info("BIST DataStore bond maturity backfill from bulletins completed: {} rows updated", result.enrichedFromBulletins());
+        }
+    }
+
+    public record BondMaturityEnrichmentResult(
+        int parsedFromSymbols,
+        int enrichedFromBulletins
+    ) {
+    }
+
+    private LocalDate parseBondMaturityFromSymbol(String symbol) {
+        if (symbol == null) {
+            return null;
+        }
+        String normalized = symbol.toUpperCase(Locale.ROOT);
+        Matcher treasuryMatcher = TREASURY_BOND_MATURITY_SYMBOL_PATTERN.matcher(normalized);
+        if (treasuryMatcher.matches()) {
+            return safeDate(
+                2000 + Integer.parseInt(treasuryMatcher.group(3)),
+                Integer.parseInt(treasuryMatcher.group(2)),
+                Integer.parseInt(treasuryMatcher.group(1))
+            );
+        }
+
+        Matcher monthYearDayMatcher = CORPORATE_BOND_MONTH_YEAR_DAY_PATTERN.matcher(normalized);
+        if (monthYearDayMatcher.find()) {
+            return safeDate(
+                2000 + Integer.parseInt(monthYearDayMatcher.group(2)),
+                Integer.parseInt(monthYearDayMatcher.group(1)),
+                Integer.parseInt(monthYearDayMatcher.group(3))
+            );
+        }
+
+        Matcher monthCodeMatcher = CORPORATE_BOND_MONTH_CODE_PATTERN.matcher(normalized);
+        if (monthCodeMatcher.find()) {
+            Integer month = monthFromCode(monthCodeMatcher.group(1).charAt(0));
+            if (month == null) {
+                return null;
+            }
+            return safeDate(
+                2000 + Integer.parseInt(monthCodeMatcher.group(2)),
+                month,
+                Integer.parseInt(monthCodeMatcher.group(3))
+            );
+        }
+
+        return null;
+    }
+
+    private Integer monthFromCode(char monthCode) {
+        if (monthCode < 'A' || monthCode > 'L') {
+            return null;
+        }
+        return (monthCode - 'A') + 1;
+    }
+
+    private LocalDate safeDate(int year, int month, int day) {
+        try {
+            return LocalDate.of(year, month, day);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 
     private Long toLong(BigDecimal value) {

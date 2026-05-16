@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { formatDateTime, formatRelativeTime } from '@/lib/utils'
-import { getNewsDisplayTitle, getNewsSourceLabel, isSimulationNews } from '@/lib/news'
+import { getNewsDisplayTitle, getNewsSourceLabel, getNewsSummary, isSimulationNews } from '@/lib/news'
+import NewsImage from '@/components/news/NewsImage'
 import { useGetNewsByIdQuery, useIncrementViewCountMutation } from '@/store/api/newsApi'
 
 export default function NewsDetailPage() {
@@ -24,6 +25,7 @@ export default function NewsDetailPage() {
   const categoryLabel = news?.category?.name || news?.categoryName
   const simulationNews = isSimulationNews(news)
   const displayTitle = getNewsDisplayTitle(news)
+  const summary = getNewsSummary(news, 420)
 
   if (isLoading) {
     return (
@@ -77,11 +79,7 @@ export default function NewsDetailPage() {
       </Button>
 
       <Card className={simulationNews ? 'border-warning/50 bg-warning/5' : ''}>
-        {news.imageUrl && (
-          <div className="aspect-video overflow-hidden rounded-t-xl">
-            <img src={news.imageUrl} alt={news.title} className="h-full w-full object-cover" />
-          </div>
-        )}
+        <NewsImage imageUrl={news.imageUrl} title={news.title} categorySlug={news?.category?.slug || news?.categorySlug} />
 
         <CardHeader className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -142,7 +140,7 @@ export default function NewsDetailPage() {
         <Separator />
 
         <CardContent className="pt-6">
-          {news.summary && <p className="mb-6 text-lg font-medium text-muted-foreground">{news.summary}</p>}
+          {summary && <p className="mb-6 text-lg font-medium text-muted-foreground">{summary}</p>}
 
           {news.content ? (
             <div className="prose prose-neutral max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: news.content }} />

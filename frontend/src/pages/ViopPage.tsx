@@ -8,7 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import RefreshButton from '@/components/common/RefreshButton'
+import RefreshStatus from '@/components/common/RefreshStatus'
 import PortfolioQuickTradeCell from '@/components/market/PortfolioQuickTradeCell'
+import WatchlistQuickAddButton from '@/components/market/WatchlistQuickAddButton'
 import {
   Select,
   SelectContent,
@@ -27,6 +29,7 @@ import {
 import { isSimulatedMarketData } from '@/lib/simulationData'
 import { cn, formatCurrency, formatPercent, formatDate } from '@/lib/utils'
 import { useGetViopQuery } from '@/store/api/marketApi'
+import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 import { useDefaultPortfolioSelection } from '@/hooks/useDefaultPortfolioSelection'
 
 function ViopTableSkeleton() {
@@ -45,11 +48,22 @@ export default function ViopPage() {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
   const { portfolios, selectedPortfolioId, setSelectedPortfolioId } = useDefaultPortfolioSelection()
-  const { data, isLoading, isFetching, refetch } = useGetViopQuery({
-    page,
-    size: pageSize,
-    search: searchQuery.trim() || undefined,
-  })
+  const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
+  const {
+    data,
+    isLoading,
+    isFetching,
+    refetch,
+    fulfilledTimeStamp,
+  } = useGetViopQuery(
+    {
+      page,
+      size: pageSize,
+      sort: 'symbol,asc',
+      search: searchQuery.trim() || undefined,
+    },
+    queryOptions
+  )
 
   const viop = data?.data || []
   const totalPages = data?.pagination?.totalPages || 0
@@ -59,10 +73,19 @@ export default function ViopPage() {
     setPage(0)
   }, [searchQuery, pageSize])
 
-  const filteredViop = viop.filter((contract) =>
-    contract.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    contract.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredViop = viop
+    .filter((contract) =>
+      contract.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      contract.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((left, right) => {
+      const leftVolume = Number(left.volume ?? 0)
+      const rightVolume = Number(right.volume ?? 0)
+      if (leftVolume !== rightVolume) {
+        return rightVolume - leftVolume
+      }
+      return left.symbol.localeCompare(right.symbol)
+    })
 
   return (
     <div className="space-y-6 animate-in">
@@ -73,6 +96,13 @@ export default function ViopPage() {
           <p className="text-muted-foreground">
             {t('viopPage.subtitle')}
           </p>
+          <RefreshStatus
+            className="mt-1"
+            lastUpdatedAt={fulfilledTimeStamp}
+            autoUpdateEnabled={autoUpdate}
+            refreshRateSeconds={refreshRate}
+            isFetching={isFetching}
+          />
         </div>
         <div className="flex items-center gap-2">
           {portfolios.length > 0 && (
@@ -151,8 +181,11 @@ export default function ViopPage() {
                   </TableRow>
                 ) : (
                   filteredViop.map((contract) => {
-                    const hasChange = contract.changePercent !== null && contract.changePercent !== undefined
-                    const isPositive = hasChange && contract.changePercent >= 0
+                    const hasVolume = contract.volume !== null && contract.volume !== undefined
+                    const hasChange = contract.changePercent !== null
+                      && contract.changePercent !== undefined
+                      && Number.isFinite(Number(contract.changePercent))
+                    const isPositive = hasChange && Number(contract.changePercent) > 0
 
                     return (
                     <TableRow key={contract.symbol}>
@@ -185,17 +218,20 @@ export default function ViopPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <Badge variant={!hasChange ? 'secondary' : isPositive ? 'success' : 'danger'}>
-                          {formatPercent(contract.changePercent)}
+                          {hasChange ? formatPercent(contract.changePercent) : '-'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
-                        {contract.volume?.toLocaleString('tr-TR') || '-'}
+                        {hasVolume ? Number(contract.volume).toLocaleString('tr-TR') : '-'}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
                         {contract.maturityDate ? formatDate(contract.maturityDate) : '-'}
                       </TableCell>
                       <TableCell className="text-right">
-                        <PortfolioQuickTradeCell instrument={contract} selectedPortfolioId={selectedPortfolioId} />
+                        <div className="flex justify-end gap-2">
+                          <WatchlistQuickAddButton symbol={contract.symbol} />
+                          <PortfolioQuickTradeCell instrument={contract} selectedPortfolioId={selectedPortfolioId} />
+                        </div>
                       </TableCell>
                     </TableRow>
                     )

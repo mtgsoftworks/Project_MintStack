@@ -104,7 +104,7 @@ export function Header() {
       return
     }
 
-    navigate(`/market/stocks?search=${encodeURIComponent(query)}`)
+    navigate(`/market/search?query=${encodeURIComponent(query)}`)
   }
 
   return (
@@ -147,7 +147,7 @@ export function Header() {
           variant="ghost"
           size="icon"
           className="md:hidden"
-          onClick={() => navigate('/market/stocks')}
+          onClick={() => navigate('/market/search')}
           aria-label={t('common.search')}
           title={t('common.search')}
         >

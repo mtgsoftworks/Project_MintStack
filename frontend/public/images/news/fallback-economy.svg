@@ -1,0 +1,24 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="720" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F766E"/>
+      <stop offset="1" stop-color="#134E4A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <g opacity="0.22">
+    <circle cx="160" cy="120" r="140" fill="#99F6E4"/>
+    <circle cx="1180" cy="620" r="220" fill="#14B8A6"/>
+  </g>
+  <g fill="#CCFBF1" opacity="0.9">
+    <rect x="236" y="428" width="84" height="108" rx="12"/>
+    <rect x="348" y="382" width="84" height="154" rx="12"/>
+    <rect x="460" y="338" width="84" height="198" rx="12"/>
+    <rect x="572" y="292" width="84" height="244" rx="12"/>
+    <rect x="684" y="332" width="84" height="204" rx="12"/>
+    <rect x="796" y="280" width="84" height="256" rx="12"/>
+    <rect x="908" y="244" width="84" height="292" rx="12"/>
+  </g>
+  <text x="640" y="160" text-anchor="middle" fill="#E6FFFA" font-size="68" font-family="Segoe UI, Arial, sans-serif" font-weight="700">EKONOMI HABERLERI</text>
+  <text x="640" y="220" text-anchor="middle" fill="#99F6E4" font-size="30" font-family="Segoe UI, Arial, sans-serif">Guncel makro gelismeler ve piyasa etkileri</text>
+</svg>

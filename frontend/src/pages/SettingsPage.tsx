@@ -66,6 +66,7 @@ export default function SettingsPage() {
                         onAutoUpdateChange={generalSettings.handleAutoUpdateChange}
                         onRefreshRateChange={generalSettings.handleRefreshRateChange}
                         onNotificationToggle={generalSettings.handleNotificationToggle}
+                        isAdmin={isAdmin}
                         onFullReset={generalSettings.handleFullReset}
                         onClearCache={generalSettings.handleClearCache}
                         onSaveSettings={generalSettings.handleSaveSettings}

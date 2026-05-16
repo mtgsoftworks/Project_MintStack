@@ -34,6 +34,7 @@ const baseProps = {
   onAutoUpdateChange: vi.fn(),
   onRefreshRateChange: vi.fn(),
   onNotificationToggle: vi.fn(),
+  isAdmin: true,
   onFullReset: vi.fn(),
   onClearCache: vi.fn(),
   onSaveSettings: vi.fn(),

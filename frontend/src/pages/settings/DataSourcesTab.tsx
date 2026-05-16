@@ -93,7 +93,7 @@ export function DataSourcesTab({
                         <Input
                             type="number"
                             min="1"
-                            max="500"
+                            max="5000"
                             value={backfillForm.maxInstruments}
                             onChange={(event) => onBackfillFormChange('maxInstruments', event.target.value)}
                             disabled={isBackfillingMarketData}

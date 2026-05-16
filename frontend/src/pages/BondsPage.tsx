@@ -8,7 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import RefreshButton from '@/components/common/RefreshButton'
+import RefreshStatus from '@/components/common/RefreshStatus'
 import PortfolioQuickTradeCell from '@/components/market/PortfolioQuickTradeCell'
+import WatchlistQuickAddButton from '@/components/market/WatchlistQuickAddButton'
 import {
   Select,
   SelectContent,
@@ -27,6 +29,7 @@ import {
 import { isSimulatedMarketData } from '@/lib/simulationData'
 import { cn, formatCurrency, formatPercent, formatDate } from '@/lib/utils'
 import { useGetBondsQuery } from '@/store/api/marketApi'
+import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 import { useDefaultPortfolioSelection } from '@/hooks/useDefaultPortfolioSelection'
 
 function BondTableSkeleton() {
@@ -45,11 +48,22 @@ export default function BondsPage() {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
   const { portfolios, selectedPortfolioId, setSelectedPortfolioId } = useDefaultPortfolioSelection()
-  const { data, isLoading, isFetching, refetch } = useGetBondsQuery({
-    page,
-    size: pageSize,
-    search: searchQuery.trim() || undefined,
-  })
+  const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
+  const {
+    data,
+    isLoading,
+    isFetching,
+    refetch,
+    fulfilledTimeStamp,
+  } = useGetBondsQuery(
+    {
+      page,
+      size: pageSize,
+      sort: 'symbol,asc',
+      search: searchQuery.trim() || undefined,
+    },
+    queryOptions
+  )
 
   const bonds = data?.data || []
   const totalPages = data?.pagination?.totalPages || 0
@@ -73,6 +87,13 @@ export default function BondsPage() {
           <p className="text-muted-foreground">
             {t('bondsPage.subtitle')}
           </p>
+          <RefreshStatus
+            className="mt-1"
+            lastUpdatedAt={fulfilledTimeStamp}
+            autoUpdateEnabled={autoUpdate}
+            refreshRateSeconds={refreshRate}
+            isFetching={isFetching}
+          />
         </div>
         <div className="flex items-center gap-2">
           {portfolios.length > 0 && (
@@ -196,7 +217,10 @@ export default function BondsPage() {
                         {bond.maturityDate ? formatDate(bond.maturityDate) : '-'}
                       </TableCell>
                       <TableCell className="text-right">
-                        <PortfolioQuickTradeCell instrument={bond} selectedPortfolioId={selectedPortfolioId} />
+                        <div className="flex justify-end gap-2">
+                          <WatchlistQuickAddButton symbol={bond.symbol} />
+                          <PortfolioQuickTradeCell instrument={bond} selectedPortfolioId={selectedPortfolioId} />
+                        </div>
                       </TableCell>
                     </TableRow>
                     )

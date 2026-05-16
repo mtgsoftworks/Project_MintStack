@@ -3,7 +3,6 @@ package com.mintstack.finance.dto.request;
 import com.mintstack.finance.entity.PortfolioTransaction;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -46,7 +45,6 @@ public class ExecutePortfolioTradeRequest {
     @Positive(message = "Stop fiyat pozitif olmalidir")
     private BigDecimal stopPrice;
 
-    @PastOrPresent(message = "Islem tarihi bugun veya gecmiste olmalidir")
     private LocalDate transactionDate;
 
     @Size(max = 500, message = "Not en fazla 500 karakter olabilir")
