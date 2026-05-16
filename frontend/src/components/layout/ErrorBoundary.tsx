@@ -27,7 +27,14 @@ export class ErrorBoundary extends Component<any, any> {
   }
 
   render() {
-    const { t } = this.props
+    const translate = typeof this.props.t === 'function'
+      ? this.props.t
+      : (key: string) => ({
+          'errors.boundaryTitle': 'Beklenmeyen bir hata olustu',
+          'errors.boundaryDescription': 'Sayfa islenirken bir hata olustu. Yenileyerek tekrar deneyin.',
+          'common.refreshPage': 'Sayfayi yenile',
+        }[key] || key)
+
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex items-center justify-center p-4 bg-background">
@@ -36,9 +43,9 @@ export class ErrorBoundary extends Component<any, any> {
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-danger/10">
                 <AlertTriangle className="h-8 w-8 text-danger" />
               </div>
-              <CardTitle className="text-xl">{t('errors.boundaryTitle')}</CardTitle>
+              <CardTitle className="text-xl">{translate('errors.boundaryTitle')}</CardTitle>
               <CardDescription>
-                {t('errors.boundaryDescription')}
+                {translate('errors.boundaryDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -50,7 +57,7 @@ export class ErrorBoundary extends Component<any, any> {
                 </div>
               )}
               <RefreshButton onRefresh={this.handleReset} className="w-full">
-                {t('common.refreshPage')}
+                {translate('common.refreshPage')}
               </RefreshButton>
             </CardContent>
           </Card>

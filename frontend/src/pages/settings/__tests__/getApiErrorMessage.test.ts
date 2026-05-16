@@ -18,4 +18,18 @@ describe('getApiErrorMessage', () => {
   it('falls back when no backend payload exists', () => {
     expect(getApiErrorMessage({}, 'fallback')).toBe('fallback')
   })
+
+  it('does not return raw error objects to renderers', () => {
+    const error = {
+      status: 400,
+      data: {
+        error: {
+          status: 400,
+          error: 'Bad Request',
+        },
+      },
+    }
+
+    expect(getApiErrorMessage(error, 'fallback')).toBe('Bad Request')
+  })
 })

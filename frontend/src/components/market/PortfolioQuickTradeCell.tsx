@@ -2,18 +2,8 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useExecutePortfolioTradeMutation } from '@/store/api/portfolioApi'
-
-function resolveApiErrorMessage(error, fallbackMessage) {
-  const responseData = error?.data
-  if (!responseData) {
-    return fallbackMessage
-  }
-  if (typeof responseData === 'string') {
-    return responseData
-  }
-  return responseData.message || responseData.error || responseData.details || fallbackMessage
-}
+import { getApiErrorMessage } from '@/lib/apiError'
+import { useExecutePortfolioTradeMutation, useGetPortfolioQuery } from '@/store/api/portfolioApi'
 
 export default function PortfolioQuickTradeCell({
   instrument,
@@ -22,9 +12,23 @@ export default function PortfolioQuickTradeCell({
 }) {
   const [quantity, setQuantity] = useState('')
   const [executeTrade, { isLoading }] = useExecutePortfolioTradeMutation()
+  const { data: selectedPortfolio, isFetching: isPortfolioFetching } = useGetPortfolioQuery(
+    selectedPortfolioId,
+    { skip: !selectedPortfolioId }
+  )
   const symbol = (instrument?.symbol || '').toUpperCase()
   const price = Number(instrument?.currentPrice || 0)
   const canTrade = Boolean(symbol && Number.isFinite(price) && price > 0)
+  const holdingQuantity = (selectedPortfolio?.items || [])
+    .filter((item) => {
+      const itemSymbol = (item.instrumentSymbol || item.symbol || '').toUpperCase()
+      return item.instrumentId === instrument?.id || itemSymbol === symbol
+    })
+    .reduce((total, item) => {
+      const itemQuantity = Number(item.quantity || 0)
+      return Number.isFinite(itemQuantity) ? total + itemQuantity : total
+    }, 0)
+  const cashBalance = Number(selectedPortfolio?.cashBalance || 0)
 
   const handleTrade = async (transactionType) => {
     const parsedQuantity = Number(quantity)
@@ -40,6 +44,29 @@ export default function PortfolioQuickTradeCell({
     if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
       toast.error('Gecerli miktar girin')
       return
+    }
+    if (!selectedPortfolio) {
+      toast.error('Portfoy bilgisi yukleniyor, tekrar deneyin')
+      return
+    }
+
+    if (transactionType === 'SELL') {
+      if (holdingQuantity <= 0) {
+        toast.error(`${symbol} portfoyde yok; satis yapilamaz`)
+        return
+      }
+      if (parsedQuantity > holdingQuantity) {
+        toast.error(`Yetersiz pozisyon. Mevcut: ${holdingQuantity}`)
+        return
+      }
+    }
+
+    if (transactionType === 'BUY') {
+      const estimatedGross = parsedQuantity * price
+      if (Number.isFinite(cashBalance) && estimatedGross > cashBalance) {
+        toast.error(`Yetersiz nakit bakiye. Tahmini gerekli: ${estimatedGross.toLocaleString('tr-TR')}, mevcut: ${cashBalance.toLocaleString('tr-TR')}`)
+        return
+      }
     }
 
     try {
@@ -58,7 +85,7 @@ export default function PortfolioQuickTradeCell({
       toast.success(transactionType === 'BUY' ? 'Varlik portfoye eklendi' : 'Satis emri islendi')
       setQuantity('')
     } catch (error) {
-      toast.error(resolveApiErrorMessage(error, 'Portfoy islemi basarisiz oldu'))
+      toast.error(getApiErrorMessage(error, 'Portfoy islemi basarisiz oldu'))
     }
   }
 
@@ -76,7 +103,7 @@ export default function PortfolioQuickTradeCell({
       <Button
         size="sm"
         variant="success"
-        disabled={isLoading || !canTrade}
+        disabled={isLoading || isPortfolioFetching || !canTrade}
         onClick={() => handleTrade('BUY')}
       >
         Al
@@ -84,7 +111,7 @@ export default function PortfolioQuickTradeCell({
       <Button
         size="sm"
         variant="outline"
-        disabled={isLoading || !canTrade}
+        disabled={isLoading || isPortfolioFetching || !canTrade}
         onClick={() => handleTrade('SELL')}
       >
         Sat

@@ -18,9 +18,14 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { isSimulatedMarketData } from '@/lib/simulationData'
+import { getApiErrorMessage } from '@/lib/apiError'
 import { cn, formatCurrency, formatNumber, formatPercent, formatDateTime } from '@/lib/utils'
 import { useGetCurrenciesQuery } from '@/store/api/marketApi'
-import { useExecutePortfolioTradeMutation, useGetPortfoliosQuery } from '@/store/api/portfolioApi'
+import {
+  useExecutePortfolioTradeMutation,
+  useGetPortfolioQuery,
+  useGetPortfoliosQuery,
+} from '@/store/api/portfolioApi'
 
 function CurrencyTableSkeleton() {
   return (
@@ -48,6 +53,10 @@ export default function CurrencyPage() {
   const [tradeQuantities, setTradeQuantities] = useState({})
   const { data: currencies, isLoading, isFetching, refetch } = useGetCurrenciesQuery()
   const { data: portfolios = [] } = useGetPortfoliosQuery()
+  const { data: selectedPortfolio, isFetching: isPortfolioFetching } = useGetPortfolioQuery(
+    selectedPortfolioId,
+    { skip: !selectedPortfolioId }
+  )
   const [executeTrade, { isLoading: isSubmittingTrade }] = useExecutePortfolioTradeMutation()
 
   useEffect(() => {
@@ -89,12 +98,52 @@ export default function CurrencyPage() {
       toast.error('Gecerli doviz miktari girin')
       return
     }
+    if (!selectedPortfolio) {
+      toast.error('Portfoy bilgisi yukleniyor, tekrar deneyin')
+      return
+    }
 
-    const executionPrice = transactionType === 'BUY' ? currency.sellingRate : currency.buyingRate
+    const executionPrice = Number(transactionType === 'BUY' ? currency.sellingRate : currency.buyingRate)
+    if (!Number.isFinite(executionPrice) || executionPrice <= 0) {
+      toast.error('Bu doviz icin gecerli islem fiyati yok')
+      return
+    }
+
+    const instrumentSymbol = `${currency.currencyCode}TRY`
+    const holdingQuantity = (selectedPortfolio.items || [])
+      .filter((item) => {
+        const itemSymbol = (item.instrumentSymbol || item.symbol || '').toUpperCase()
+        return itemSymbol === instrumentSymbol
+      })
+      .reduce((total, item) => {
+        const itemQuantity = Number(item.quantity || 0)
+        return Number.isFinite(itemQuantity) ? total + itemQuantity : total
+      }, 0)
+
+    if (transactionType === 'SELL') {
+      if (holdingQuantity <= 0) {
+        toast.error(`${currency.currencyCode}/TRY portfoyde yok; satis yapilamaz`)
+        return
+      }
+      if (quantity > holdingQuantity) {
+        toast.error(`Yetersiz doviz pozisyonu. Mevcut: ${holdingQuantity}`)
+        return
+      }
+    }
+
+    if (transactionType === 'BUY') {
+      const cashBalance = Number(selectedPortfolio.cashBalance || 0)
+      const estimatedGross = quantity * executionPrice
+      if (Number.isFinite(cashBalance) && estimatedGross > cashBalance) {
+        toast.error(`Yetersiz nakit bakiye. Tahmini gerekli: ${estimatedGross.toLocaleString('tr-TR')}, mevcut: ${cashBalance.toLocaleString('tr-TR')}`)
+        return
+      }
+    }
+
     try {
       await executeTrade({
         portfolioId: selectedPortfolioId,
-        instrumentSymbol: `${currency.currencyCode}TRY`,
+        instrumentSymbol,
         transactionType,
         orderType: 'MARKET',
         quantity,
@@ -105,8 +154,7 @@ export default function CurrencyPage() {
       toast.success(transactionType === 'BUY' ? 'Doviz portfoye eklendi' : 'Doviz satis emri islendi')
       handleQuantityChange(currency.currencyCode, '')
     } catch (error) {
-      const message = error?.data?.message || error?.data?.error?.message || 'Doviz islemi basarisiz oldu'
-      toast.error(message)
+      toast.error(getApiErrorMessage(error, 'Doviz islemi basarisiz oldu'))
     }
   }
 
@@ -288,7 +336,7 @@ export default function CurrencyPage() {
                           <Button
                             size="sm"
                             variant="success"
-                            disabled={isSubmittingTrade}
+                            disabled={isSubmittingTrade || isPortfolioFetching}
                             onClick={() => handleCurrencyTrade(currency, 'BUY')}
                           >
                             Al
@@ -296,7 +344,7 @@ export default function CurrencyPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            disabled={isSubmittingTrade}
+                            disabled={isSubmittingTrade || isPortfolioFetching}
                             onClick={() => handleCurrencyTrade(currency, 'SELL')}
                           >
                             Sat

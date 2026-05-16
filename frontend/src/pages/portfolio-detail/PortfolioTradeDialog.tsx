@@ -26,6 +26,7 @@ import {
   useGetStocksQuery,
   useGetViopQuery,
 } from '@/store/api/marketApi'
+import { getApiErrorMessage } from '@/lib/apiError'
 
 const ORDER_TYPES = {
   MARKET: 'MARKET',
@@ -154,22 +155,6 @@ export function PortfolioTradeDialog({
     setSelectedInstrumentId(match?.id ?? null)
   }
 
-  const resolveApiErrorMessage = (error, fallbackMessage) => {
-    const responseData = error?.data
-    if (!responseData) {
-      return fallbackMessage
-    }
-    if (typeof responseData === 'string') {
-      return responseData
-    }
-    return (
-      responseData.message ||
-      responseData.error ||
-      responseData.details ||
-      fallbackMessage
-    )
-  }
-
   const handleSubmit = async (event) => {
     event.preventDefault()
 
@@ -238,7 +223,7 @@ export function PortfolioTradeDialog({
       toast.success(isBuy ? 'Alis islemi kaydedildi' : 'Satis islemi kaydedildi')
       onOpenChange(false)
     } catch (error) {
-      toast.error(resolveApiErrorMessage(
+      toast.error(getApiErrorMessage(
         error,
         isBuy ? t('portfolioDetailPage.toast.addError') : t('portfolioDetailPage.toast.deleteError')
       ))

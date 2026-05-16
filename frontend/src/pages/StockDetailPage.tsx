@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { isSimulatedMarketData } from '@/lib/simulationData'
+import { getApiErrorMessage } from '@/lib/apiError'
 import { cn, formatCurrency, formatPercent, formatNumber } from '@/lib/utils'
 import { useGetStockQuery, useGetStockHistoryQuery } from '@/store/api/marketApi'
 import {
@@ -46,17 +47,6 @@ export default function StockDetailPage() {
   const { data: history, isLoading: historyLoading } = useGetStockHistoryQuery({ symbol, period })
   const { data: portfolios = [], isLoading: portfoliosLoading } = useGetPortfoliosQuery()
   const [executeTrade, { isLoading: isSubmittingTrade }] = useExecutePortfolioTradeMutation()
-
-  const resolveApiErrorMessage = (error, fallbackMessage) => {
-    const responseData = error?.data
-    if (!responseData) {
-      return fallbackMessage
-    }
-    if (typeof responseData === 'string') {
-      return responseData
-    }
-    return responseData.message || responseData.error || responseData.details || fallbackMessage
-  }
 
   const openAddDialog = () => {
     if (!stock?.symbol) {
@@ -94,6 +84,15 @@ export default function StockDetailPage() {
       return
     }
 
+    const selectedPortfolio = portfolios.find((portfolio) => portfolio.id === selectedPortfolioId)
+    const currentPrice = Number(stock.currentPrice || 0)
+    const cashBalance = Number(selectedPortfolio?.cashBalance || 0)
+    const estimatedGross = parsedQuantity * currentPrice
+    if (Number.isFinite(currentPrice) && currentPrice > 0 && estimatedGross > cashBalance) {
+      toast.error(`Yetersiz nakit bakiye. Tahmini gerekli: ${estimatedGross.toLocaleString('tr-TR')}, mevcut: ${cashBalance.toLocaleString('tr-TR')}`)
+      return
+    }
+
     try {
       await executeTrade({
         portfolioId: selectedPortfolioId,
@@ -102,12 +101,13 @@ export default function StockDetailPage() {
         transactionType: 'BUY',
         orderType: 'MARKET',
         quantity: parsedQuantity,
+        price: currentPrice > 0 ? currentPrice : undefined,
       }).unwrap()
 
       toast.success('Portfoye eklendi')
       setIsAddDialogOpen(false)
     } catch (error) {
-      toast.error(resolveApiErrorMessage(error, 'Portfoye eklenemedi'))
+      toast.error(getApiErrorMessage(error, 'Portfoye eklenemedi'))
     }
   }
 
