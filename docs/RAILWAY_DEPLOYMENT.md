@@ -70,6 +70,12 @@ KC_PROXY_HEADERS=xforwarded
 KC_HOSTNAME_STRICT=false
 KC_HEALTH_ENABLED=true
 KC_HTTP_MANAGEMENT_HEALTH_ENABLED=false
+KC_DB=postgres
+KC_DB_URL=jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
+KC_DB_USERNAME=${{Postgres.PGUSER}}
+KC_DB_PASSWORD=${{Postgres.PGPASSWORD}}
+KC_TRANSACTION_XA_ENABLED=false
+KC_HOSTNAME=https://${{keycloak.RAILWAY_PUBLIC_DOMAIN}}
 ```
 
 Public Networking altindan domain uretin.
@@ -94,6 +100,7 @@ APP_EXTERNAL_API_FINTABLES_ENABLED=false
 APP_EXTERNAL_API_BIST_DATASTORE_ENABLED=true
 APP_NEWS_LLM_ENABLED=false
 OTEL_SDK_DISABLED=true
+LOGGING_CONFIG=classpath:log4j2-console.xml
 ```
 
 Public Networking altindan domain uretin.

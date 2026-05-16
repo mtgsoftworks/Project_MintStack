@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -62,6 +63,9 @@ public class BistDataStoreClient {
             byte[] zipped = fetchBytes(path);
             String csv = unzipFirstTextFile(zipped);
             return parseBondCsv(csv);
+        } catch (WebClientResponseException.NotFound notFound) {
+            log.debug("BIST DataStore bond bulletin not found for {} at {}", date, path);
+            return List.of();
         } catch (Exception error) {
             throw new ExternalApiException("BIST DataStore", "Bond bulletin could not be fetched: " + date, error);
         }
@@ -73,6 +77,9 @@ public class BistDataStoreClient {
             byte[] csvBytes = fetchBytes(path);
             String csv = new String(csvBytes, TURKISH_CHARSET);
             return parseViopCsv(csv);
+        } catch (WebClientResponseException.NotFound notFound) {
+            log.debug("BIST DataStore VIOP bulletin not found for {} at {}", date, path);
+            return List.of();
         } catch (Exception error) {
             throw new ExternalApiException("BIST DataStore", "VIOP bulletin could not be fetched: " + date, error);
         }

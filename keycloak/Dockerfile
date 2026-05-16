@@ -7,9 +7,10 @@ ENV KC_PROXY_HEADERS=xforwarded
 ENV KC_HOSTNAME_STRICT=false
 ENV KC_HEALTH_ENABLED=true
 ENV KC_HTTP_MANAGEMENT_HEALTH_ENABLED=false
+ENV KC_DB=postgres
 ENV PORT=8080
 
 EXPOSE 8080
 
 ENTRYPOINT []
-CMD ["sh", "-c", "exec /opt/keycloak/bin/kc.sh start-dev --import-realm --http-port=${PORT:-8080}"]
+CMD ["sh", "-c", "exec /opt/keycloak/bin/kc.sh start --import-realm --http-port=${PORT:-8080}"]

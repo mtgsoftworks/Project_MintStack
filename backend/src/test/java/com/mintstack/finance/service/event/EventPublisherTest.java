@@ -7,6 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 
@@ -17,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,7 +31,10 @@ class EventPublisherTest {
 
     @BeforeEach
     void setUp() {
-        eventPublisher = new EventPublisher(kafkaTemplate);
+        eventPublisher = new EventPublisher(
+            kafkaTemplate,
+            new MockEnvironment().withProperty("app.messaging.enabled", "true")
+        );
     }
 
     @Test
@@ -94,5 +99,17 @@ class EventPublisherTest {
         assertThat(event.getType()).isEqualTo("PRICE_ALERT");
         assertThat(event.getTitle()).isEqualTo("Alert Title");
         assertThat(event.getMessage()).isEqualTo("Alert Message");
+    }
+
+    @Test
+    void publishMarketDataEvent_ShouldSkipKafkaWhenMessagingDisabled() {
+        eventPublisher = new EventPublisher(
+            kafkaTemplate,
+            new MockEnvironment().withProperty("app.messaging.enabled", "false")
+        );
+
+        eventPublisher.publishMarketDataEvent("THYAO", "STOCK_PRICE", Map.of("price", 100.0));
+
+        verifyNoInteractions(kafkaTemplate);
     }
 }

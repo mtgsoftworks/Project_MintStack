@@ -4,10 +4,11 @@ import com.mintstack.finance.config.KafkaConfig;
 import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -19,12 +20,13 @@ import java.util.concurrent.CompletableFuture;
 public class EventPublisher {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final Environment environment;
 
-    @Value("${app.messaging.enabled:true}")
-    private boolean messagingEnabled = true;
-
-    public EventPublisher(@Autowired(required = false) KafkaTemplate<String, Object> kafkaTemplate) {
+    public EventPublisher(
+            @Autowired(required = false) KafkaTemplate<String, Object> kafkaTemplate,
+            Environment environment) {
         this.kafkaTemplate = kafkaTemplate;
+        this.environment = environment;
     }
 
     @Observed(name = "kafka.publish.log", contextualName = "publish-log-event")
@@ -71,7 +73,7 @@ public class EventPublisher {
     }
 
     private void send(String topic, String key, Object event) {
-        if (!messagingEnabled || kafkaTemplate == null) {
+        if (!isMessagingEnabled() || kafkaTemplate == null) {
             log.debug("Messaging disabled or Kafka template unavailable. Skipping publish to topic {}", topic);
             return;
         }
@@ -86,5 +88,13 @@ public class EventPublisher {
                         topic, result.getRecordMetadata().offset());
             }
         });
+    }
+
+    private boolean isMessagingEnabled() {
+        String value = environment.getProperty("app.messaging.enabled");
+        if (!StringUtils.hasText(value)) {
+            value = environment.getProperty("APP_MESSAGING_ENABLED");
+        }
+        return !StringUtils.hasText(value) || Boolean.parseBoolean(value);
     }
 }

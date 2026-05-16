@@ -83,6 +83,31 @@ class BistDataStoreClientTest {
         assertThat(price.tradeVolume()).isEqualByComparingTo("222619");
     }
 
+    @Test
+    void fetchViopPrices_ShouldReturnEmptyWhenBulletinMissing() throws Exception {
+        startServer();
+        BistDataStoreClient client = createClient();
+
+        List<BistDataStoreClient.BistViopPrice> prices = client.fetchViopPrices(LocalDate.of(2026, 5, 16));
+
+        assertThat(prices).isEmpty();
+    }
+
+    @Test
+    void fetchBondPrices_ShouldReturnEmptyWhenBulletinMissing() throws Exception {
+        startServer();
+        BistDataStoreClient client = createClient();
+
+        List<BistDataStoreClient.BistBondPrice> prices = client.fetchBondPrices(LocalDate.of(2026, 5, 16));
+
+        assertThat(prices).isEmpty();
+    }
+
+    private void startServer() throws IOException {
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.start();
+    }
+
     private void startServer(String path, byte[] body) throws IOException {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext(path, exchange -> writeBytes(exchange, body));
