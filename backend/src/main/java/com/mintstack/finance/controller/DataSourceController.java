@@ -65,6 +65,7 @@ public class DataSourceController {
      * Called when user activates an API key
      */
     @PostMapping("/trigger/{apiConfigId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> triggerFetch(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID apiConfigId) {

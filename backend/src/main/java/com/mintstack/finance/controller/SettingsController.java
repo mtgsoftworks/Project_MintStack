@@ -47,6 +47,7 @@ public class SettingsController {
     private final HistoricalDataBackfillService historicalDataBackfillService;
 
     @GetMapping("/api-keys")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Kullanıcının API anahtarlarını listele")
     public ResponseEntity<ApiResponse<List<ApiConfigResponse>>> getApiConfigs(
             @AuthenticationPrincipal Jwt jwt) {
@@ -58,6 +59,7 @@ public class SettingsController {
     }
 
     @GetMapping("/api-keys/providers")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "API sağlayıcıları ve varsayılan URL'lerini listele")
     public ResponseEntity<ApiResponse<Map<UserApiConfig.ApiProvider, String>>> getProviders() {
         Map<UserApiConfig.ApiProvider, String> providers = settingsService.getDefaultUrls();
@@ -65,6 +67,7 @@ public class SettingsController {
     }
 
     @PostMapping("/api-keys/test")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "API anahtarını kaydetmeden önce test et")
     public ResponseEntity<ApiResponse<Map<String, Object>>> testApiKey(
             @Valid @RequestBody ApiConfigRequest request) {
@@ -90,6 +93,7 @@ public class SettingsController {
     }
 
     @PostMapping("/api-keys")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Yeni API anahtarı ekle (önce test edilir)")
     public ResponseEntity<ApiResponse<ApiConfigResponse>> addApiConfig(
             @AuthenticationPrincipal Jwt jwt,
@@ -111,6 +115,7 @@ public class SettingsController {
     }
 
     @DeleteMapping("/api-keys/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "API anahtarını sil")
     public ResponseEntity<ApiResponse<Void>> deleteApiConfig(
             @AuthenticationPrincipal Jwt jwt,

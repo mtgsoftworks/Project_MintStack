@@ -88,8 +88,10 @@ const normalizePayload = (data) => {
     }
 }
 
-export function useApiDataSourceSettings({ t }) {
-    const { data: configsData, isLoading } = useGetApiConfigsQuery()
+export function useApiDataSourceSettings({ t, isAdmin = false }) {
+    const { data: configsData, isLoading: isLoadingConfigs } = useGetApiConfigsQuery(undefined, {
+        skip: !isAdmin
+    })
     const [addConfig, { isLoading: isAdding }] = useAddApiConfigMutation()
     const [deleteConfig] = useDeleteApiConfigMutation()
     const [testApiKey, { isLoading: isTesting }] = useTestApiKeyMutation()
@@ -107,7 +109,8 @@ export function useApiDataSourceSettings({ t }) {
     const [formData, setFormData] = useState(DEFAULT_FORM_DATA)
     const [backfillForm, setBackfillForm] = useState(DEFAULT_BACKFILL_FORM)
 
-    const apiConfigs = configsData?.data || []
+    const apiConfigs = isAdmin ? configsData?.data || [] : []
+    const isLoading = isAdmin && isLoadingConfigs
 
     const getInitialProvider = () => {
         const usedProviders = new Set(apiConfigs.map((config) => config.provider))
@@ -124,6 +127,11 @@ export function useApiDataSourceSettings({ t }) {
     }
 
     const handleOpenDialog = (config = null) => {
+        if (!isAdmin) {
+            toast.error(t('common.forbidden', { defaultValue: 'Bu islem icin admin yetkisi gerekir' }))
+            return
+        }
+
         if (config) {
             setEditingConfig(config)
             setFormData({
@@ -161,6 +169,11 @@ export function useApiDataSourceSettings({ t }) {
     }
 
     const handleTestKey = async () => {
+        if (!isAdmin) {
+            toast.error(t('common.forbidden', { defaultValue: 'Bu islem icin admin yetkisi gerekir' }))
+            return
+        }
+
         const requiresValidation = requiresValidationForProvider(formData.provider)
         if (requiresValidation && !formData.apiKey.trim()) {
             toast.error(t('settings.apiKeys.validation.required'))
@@ -187,6 +200,11 @@ export function useApiDataSourceSettings({ t }) {
 
     const handleAddSubmit = async (event) => {
         event.preventDefault()
+
+        if (!isAdmin) {
+            toast.error(t('common.forbidden', { defaultValue: 'Bu islem icin admin yetkisi gerekir' }))
+            return
+        }
 
         const payload = normalizePayload(formData)
         const requiresValidation = requiresValidationForProvider(payload.provider)
@@ -229,6 +247,11 @@ export function useApiDataSourceSettings({ t }) {
     }
 
     const handleDelete = async (id) => {
+        if (!isAdmin) {
+            toast.error(t('common.forbidden', { defaultValue: 'Bu islem icin admin yetkisi gerekir' }))
+            return
+        }
+
         if (!confirm(t('settings.apiKeys.deleteConfirm'))) {
             return
         }
@@ -257,6 +280,11 @@ export function useApiDataSourceSettings({ t }) {
     }
 
     const handleRefreshDataSources = async () => {
+        if (!isAdmin) {
+            toast.error(t('common.forbidden', { defaultValue: 'Bu islem icin admin yetkisi gerekir' }))
+            return
+        }
+
         const activeConfigs = apiConfigs.filter((config) => config.isActive)
         if (activeConfigs.length === 0) {
             return
@@ -323,6 +351,11 @@ export function useApiDataSourceSettings({ t }) {
     }
 
     const handleBackfillMarketData = async () => {
+        if (!isAdmin) {
+            toast.error(t('common.forbidden', { defaultValue: 'Bu islem icin admin yetkisi gerekir' }))
+            return
+        }
+
         if (backfillForm.instrumentTypes.length === 0) {
             toast.error('En az bir enstruman tipi secin')
             return

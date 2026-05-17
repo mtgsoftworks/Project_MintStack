@@ -18,7 +18,7 @@ export default function SettingsPage() {
     const isAdmin = useSelector(selectIsAdmin)
 
     const generalSettings = useGeneralSettings({ t, i18n })
-    const apiDataSourceSettings = useApiDataSourceSettings({ t })
+    const apiDataSourceSettings = useApiDataSourceSettings({ t, isAdmin })
     const simulationSettings = useSimulationSettings({ t })
 
     const providerInfo = getProviderInfo(t)
@@ -31,10 +31,12 @@ export default function SettingsPage() {
                 <p className="text-muted-foreground">{t('settings.apiKeys.manage')}</p>
             </div>
 
-            <Tabs defaultValue="api-keys" className="space-y-4">
+            <Tabs defaultValue={isAdmin ? 'api-keys' : 'general'} className="space-y-4">
                 <TabsList>
                     <TabsTrigger value="general">{t('settingsPage.tabs.general')}</TabsTrigger>
-                    <TabsTrigger value="api-keys">{t('settings.apiKeys.title')}</TabsTrigger>
+                    {isAdmin && (
+                        <TabsTrigger value="api-keys">{t('settings.apiKeys.title')}</TabsTrigger>
+                    )}
                     <TabsTrigger value="data-sources">
                         <Database className="h-4 w-4 mr-2" />
                         {t('settings.dataSources.title', { defaultValue: 'Veri Kaynaklari' })}
@@ -73,28 +75,30 @@ export default function SettingsPage() {
                     />
                 </TabsContent>
 
-                <TabsContent value="api-keys">
-                    <ApiKeysTab
-                        t={t}
-                        apiConfigs={apiDataSourceSettings.apiConfigs}
-                        providerCapabilities={apiDataSourceSettings.providerCapabilities}
-                        isLoading={apiDataSourceSettings.isLoading}
-                        isDialogOpen={apiDataSourceSettings.isDialogOpen}
-                        editingConfig={apiDataSourceSettings.editingConfig}
-                        formData={apiDataSourceSettings.formData}
-                        isValidated={apiDataSourceSettings.isValidated}
-                        isAdding={apiDataSourceSettings.isAdding}
-                        isTesting={apiDataSourceSettings.isTesting}
-                        providerInfo={providerInfo}
-                        getProviderLabel={getProviderLabel}
-                        onOpenDialog={apiDataSourceSettings.handleOpenDialog}
-                        onDialogOpenChange={apiDataSourceSettings.handleDialogOpenChange}
-                        onFormFieldChange={apiDataSourceSettings.handleFormFieldChange}
-                        onSubmit={apiDataSourceSettings.handleAddSubmit}
-                        onTestKey={apiDataSourceSettings.handleTestKey}
-                        onDelete={apiDataSourceSettings.handleDelete}
-                    />
-                </TabsContent>
+                {isAdmin && (
+                    <TabsContent value="api-keys">
+                        <ApiKeysTab
+                            t={t}
+                            apiConfigs={apiDataSourceSettings.apiConfigs}
+                            providerCapabilities={apiDataSourceSettings.providerCapabilities}
+                            isLoading={apiDataSourceSettings.isLoading}
+                            isDialogOpen={apiDataSourceSettings.isDialogOpen}
+                            editingConfig={apiDataSourceSettings.editingConfig}
+                            formData={apiDataSourceSettings.formData}
+                            isValidated={apiDataSourceSettings.isValidated}
+                            isAdding={apiDataSourceSettings.isAdding}
+                            isTesting={apiDataSourceSettings.isTesting}
+                            providerInfo={providerInfo}
+                            getProviderLabel={getProviderLabel}
+                            onOpenDialog={apiDataSourceSettings.handleOpenDialog}
+                            onDialogOpenChange={apiDataSourceSettings.handleDialogOpenChange}
+                            onFormFieldChange={apiDataSourceSettings.handleFormFieldChange}
+                            onSubmit={apiDataSourceSettings.handleAddSubmit}
+                            onTestKey={apiDataSourceSettings.handleTestKey}
+                            onDelete={apiDataSourceSettings.handleDelete}
+                        />
+                    </TabsContent>
+                )}
 
                 <TabsContent value="data-sources">
                     <DataSourcesTab

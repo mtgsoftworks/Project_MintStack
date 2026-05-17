@@ -90,7 +90,7 @@ describe('SettingsPage', () => {
     vi.clearAllMocks()
   })
 
-  it('renders settings tabs and default content', () => {
+  it('hides API key management from regular users', () => {
     renderWithProviders(<SettingsPage />, {
       preloadedState: {
         auth: {
@@ -104,13 +104,13 @@ describe('SettingsPage', () => {
     })
 
     expect(screen.getByText('settingsPage.tabs.general')).toBeInTheDocument()
-    expect(screen.getAllByText('settings.apiKeys.title').length).toBeGreaterThan(0)
     expect(screen.getByText('settings.dataSources.title')).toBeInTheDocument()
     expect(screen.queryByText('settings.simulation.title')).not.toBeInTheDocument()
-    expect(screen.getByText('api-keys-content')).toBeInTheDocument()
+    expect(screen.getByText('general-settings-content')).toBeInTheDocument()
+    expect(screen.queryByText('api-keys-content')).not.toBeInTheDocument()
   })
 
-  it('shows simulation tab for admin users', () => {
+  it('shows API keys and simulation tabs for admin users', () => {
     renderWithProviders(<SettingsPage />, {
       preloadedState: {
         auth: {
@@ -123,6 +123,7 @@ describe('SettingsPage', () => {
       },
     })
 
+    expect(screen.getByText('api-keys-content')).toBeInTheDocument()
     expect(screen.getByText('settings.simulation.title')).toBeInTheDocument()
   })
 })

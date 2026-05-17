@@ -169,10 +169,16 @@ export function DataSourcesTab({
                 {!hasApiConfigs ? (
                     <div className="text-center p-8 border-2 border-dashed rounded-lg text-muted-foreground">
                         <Key className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                        <p className="mb-2">{t('settings.dataSources.noApiKeys', { defaultValue: 'Once API anahtari ekleyin' })}</p>
-                        <Button variant="link" onClick={onOpenApiKeysTab}>
-                            {t('settings.apiKeys.add')}
-                        </Button>
+                        <p className="mb-2">
+                            {isAdmin
+                                ? t('settings.dataSources.noApiKeys', { defaultValue: 'Once API anahtari ekleyin' })
+                                : t('settings.dataSources.adminManaged', { defaultValue: 'API kaynaklari admin tarafindan yonetilir' })}
+                        </p>
+                        {isAdmin && (
+                            <Button variant="link" onClick={onOpenApiKeysTab}>
+                                {t('settings.apiKeys.add')}
+                            </Button>
+                        )}
                     </div>
                 ) : (
                     <div className="space-y-6">

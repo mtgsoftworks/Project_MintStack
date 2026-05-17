@@ -101,7 +101,9 @@ class SettingsControllerTest {
 
         // When & Then
         mockMvc.perform(get("/api/v1/settings/api-keys")
-                .with(jwt().jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID))))
+                .with(jwt()
+                    .jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID))
+                    .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data[0].provider").value("ALPHA_VANTAGE"));
@@ -126,7 +128,9 @@ class SettingsControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/v1/settings/api-keys")
-                .with(jwt().jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID)))
+                .with(jwt()
+                    .jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID))
+                    .authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
@@ -154,7 +158,9 @@ class SettingsControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/v1/settings/api-keys")
-                .with(jwt().jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID)))
+                .with(jwt()
+                    .jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID))
+                    .authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
@@ -174,7 +180,9 @@ class SettingsControllerTest {
 
         // When & Then
         mockMvc.perform(delete("/api/v1/settings/api-keys/{id}", configId)
-                .with(jwt().jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID))))
+                .with(jwt()
+                    .jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID))
+                    .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true));
     }
@@ -184,6 +192,55 @@ class SettingsControllerTest {
         // When & Then
         mockMvc.perform(get("/api/v1/settings/api-keys"))
             .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void getApiConfigs_ShouldReturnForbidden_WhenNotAdmin() throws Exception {
+        mockMvc.perform(get("/api/v1/settings/api-keys")
+                .with(jwt()
+                    .jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID))
+                    .authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void addApiConfig_ShouldReturnForbidden_WhenNotAdmin() throws Exception {
+        ApiConfigRequest request = new ApiConfigRequest();
+        request.setProvider(ApiProvider.ALPHA_VANTAGE);
+        request.setApiKey("test-api-key");
+
+        mockMvc.perform(post("/api/v1/settings/api-keys")
+                .with(jwt()
+                    .jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID))
+                    .authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void testApiKey_ShouldReturnForbidden_WhenNotAdmin() throws Exception {
+        mockMvc.perform(post("/api/v1/settings/api-keys/test")
+                .with(jwt()
+                    .jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID))
+                    .authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "provider": "ALPHA_VANTAGE",
+                      "apiKey": "test-api-key"
+                    }
+                    """))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void deleteApiConfig_ShouldReturnForbidden_WhenNotAdmin() throws Exception {
+        mockMvc.perform(delete("/api/v1/settings/api-keys/{id}", UUID.randomUUID())
+                .with(jwt()
+                    .jwt(jwt -> jwt.subject(TEST_KEYCLOAK_ID))
+                    .authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+            .andExpect(status().isForbidden());
     }
 
     @Test

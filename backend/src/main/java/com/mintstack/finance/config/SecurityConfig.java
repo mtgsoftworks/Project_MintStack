@@ -64,8 +64,15 @@ public class SecurityConfig {
                 // Simulation endpoints - admin only
                 .requestMatchers("/api/v1/simulation/**").hasRole("ADMIN")
 
+                // Data source maintenance actions - admin only
+                .requestMatchers("/api/v1/data-sources/trigger/**").hasRole("ADMIN")
+
                 // Data source endpoints - authenticated users only
                 .requestMatchers("/api/v1/data-sources/**").authenticated()
+
+                // API key management - admin only
+                .requestMatchers("/api/v1/settings/api-keys/**").hasRole("ADMIN")
+                .requestMatchers("/api/v1/settings/api-keys").hasRole("ADMIN")
 
                 // Destructive settings operations - admin only
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/settings/cache").hasRole("ADMIN")
