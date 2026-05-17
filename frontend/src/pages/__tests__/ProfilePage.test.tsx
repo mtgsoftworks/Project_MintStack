@@ -110,8 +110,8 @@ describe('ProfilePage', () => {
       },
     })
 
-    expect(screen.queryByText('Sifre Degistir')).not.toBeInTheDocument()
-    expect(screen.queryByText('Guvenlik Ayarlari')).not.toBeInTheDocument()
-    expect(screen.getByText('Guvenlik islemleri sadece admin kullaniciya aciktir.')).toBeInTheDocument()
+    expect(screen.queryByText('Şifre Değiştir')).not.toBeInTheDocument()
+    expect(screen.queryByText('Güvenlik Ayarları')).not.toBeInTheDocument()
+    expect(screen.getByText('Güvenlik işlemleri sadece admin kullanıcıya açıktır.')).toBeInTheDocument()
   })
 })

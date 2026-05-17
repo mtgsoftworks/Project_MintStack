@@ -168,7 +168,7 @@ export default function ProfilePage() {
                     onClick={() => runKeycloakAction('UPDATE_PASSWORD')}
                   >
                     <Key className="mr-2 h-4 w-4" />
-                    Sifre Degistir
+                    Şifre Değiştir
                   </Button>
                   <Button
                     variant="outline"
@@ -176,12 +176,12 @@ export default function ProfilePage() {
                     onClick={() => runKeycloakAction('CONFIGURE_TOTP')}
                   >
                     <Shield className="mr-2 h-4 w-4" />
-                    Guvenlik Ayarlari
+                    Güvenlik Ayarları
                   </Button>
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Guvenlik islemleri sadece admin kullaniciya aciktir.
+                  Güvenlik işlemleri sadece admin kullanıcıya açıktır.
                 </p>
               )}
             </div>
