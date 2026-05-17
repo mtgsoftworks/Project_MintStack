@@ -46,6 +46,18 @@ class MarketDataInstrumentUpdateService {
         UserApiConfig finnhubConfig,
         EnumMap<DataType, ApiProvider> preferredProviders
     ) {
+        updatePricesForType(type, yahooConfig, alphaConfig, finnhubConfig, preferredProviders, false);
+    }
+
+    @Observed(name = "market-data.update-prices-for-type", contextualName = "update-prices-for-type")
+    public void updatePricesForType(
+        Instrument.InstrumentType type,
+        UserApiConfig yahooConfig,
+        UserApiConfig alphaConfig,
+        UserApiConfig finnhubConfig,
+        EnumMap<DataType, ApiProvider> preferredProviders,
+        boolean fullRefresh
+    ) {
         if (!isExternallyUpdatableType(type)) {
             log.debug("Skipping external price update for unsupported type: {}", type);
             return;
@@ -58,8 +70,8 @@ class MarketDataInstrumentUpdateService {
             return;
         }
 
-        int batchSize = resolveBatchSize();
-        int currentOffset = updateOffsets.getOrDefault(type, 0);
+        int batchSize = fullRefresh ? instruments.size() : resolveBatchSize();
+        int currentOffset = fullRefresh ? 0 : updateOffsets.getOrDefault(type, 0);
         if (currentOffset >= instruments.size()) {
             currentOffset = 0;
         }
@@ -68,7 +80,8 @@ class MarketDataInstrumentUpdateService {
         List<Instrument> batch = instruments.subList(currentOffset, end);
 
         log.info(
-            "Round-Robin {}: Fetching batch {} instruments (Index {}-{} of {})",
+            "{} {}: Fetching batch {} instruments (Index {}-{} of {})",
+            fullRefresh ? "Manual refresh" : "Round-Robin",
             type,
             batch.size(),
             currentOffset,
@@ -101,12 +114,14 @@ class MarketDataInstrumentUpdateService {
             }
         }
 
-        int nextOffset = currentOffset + batchSize;
-        if (nextOffset >= instruments.size()) {
-            nextOffset = 0;
-            log.info("Finished one full cycle of {} updates. Resetting to start.", type);
+        if (!fullRefresh) {
+            int nextOffset = currentOffset + batchSize;
+            if (nextOffset >= instruments.size()) {
+                nextOffset = 0;
+                log.info("Finished one full cycle of {} updates. Resetting to start.", type);
+            }
+            updateOffsets.put(type, nextOffset);
         }
-        updateOffsets.put(type, nextOffset);
     }
 
     @Observed(name = "market-data.update-instrument-price", contextualName = "update-instrument-price")

@@ -4,6 +4,7 @@ import com.mintstack.finance.config.CorsProperties;
 import com.mintstack.finance.config.RateLimitConfig;
 import com.mintstack.finance.config.SecurityConfig;
 import com.mintstack.finance.dto.response.CurrencyRateResponse;
+import com.mintstack.finance.service.MarketDataRefreshService;
 import com.mintstack.finance.service.MarketDataService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,9 @@ class MarketDataControllerTest {
 
     @MockitoBean
     private MarketDataService marketDataService;
+
+    @MockitoBean
+    private MarketDataRefreshService marketDataRefreshService;
 
     @MockitoBean
     private RateLimitConfig rateLimitConfig;

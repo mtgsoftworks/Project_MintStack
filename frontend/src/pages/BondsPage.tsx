@@ -30,6 +30,7 @@ import { isSimulatedMarketData } from '@/lib/simulationData'
 import { cn, formatCurrency, formatPercent, formatDate } from '@/lib/utils'
 import { useGetBondsQuery } from '@/store/api/marketApi'
 import { useAutoRefresh } from '@/hooks/useAutoRefresh'
+import { useMarketDataRefresh } from '@/hooks/useMarketDataRefresh'
 import { useDefaultPortfolioSelection } from '@/hooks/useDefaultPortfolioSelection'
 
 function BondTableSkeleton() {
@@ -49,6 +50,7 @@ export default function BondsPage() {
   const [pageSize, setPageSize] = useState(50)
   const { portfolios, selectedPortfolioId, setSelectedPortfolioId } = useDefaultPortfolioSelection()
   const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
+  const { refreshAndRefetch, isRefreshingMarketData } = useMarketDataRefresh(['BONDS'])
   const {
     data,
     isLoading,
@@ -92,7 +94,7 @@ export default function BondsPage() {
             lastUpdatedAt={fulfilledTimeStamp}
             autoUpdateEnabled={autoUpdate}
             refreshRateSeconds={refreshRate}
-            isFetching={isFetching}
+            isFetching={isFetching || isRefreshingMarketData}
           />
         </div>
         <div className="flex items-center gap-2">
@@ -133,8 +135,8 @@ export default function BondsPage() {
           <RefreshButton
             variant="outline"
             size="icon"
-            isLoading={isFetching}
-            onRefresh={refetch}
+            isLoading={isFetching || isRefreshingMarketData}
+            onRefresh={() => refreshAndRefetch(refetch)}
           />
         </div>
       </div>

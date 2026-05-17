@@ -20,6 +20,14 @@ export const marketApi = baseApi.injectEndpoints({
       }),
       transformResponse: (response) => response.data,
     }),
+    refreshMarketData: builder.mutation({
+      query: (data = {}) => ({
+        url: '/market/refresh',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Currencies', 'Stocks', 'Bonds', 'Funds', 'Viop', 'Indices'],
+    }),
 
     // Stocks
     getStocks: builder.query({
@@ -117,6 +125,7 @@ export const {
   useGetCurrenciesQuery,
   useGetCurrencyQuery,
   useGetCurrencyHistoryQuery,
+  useRefreshMarketDataMutation,
   useGetStocksQuery,
   useGetStockQuery,
   useGetStockHistoryQuery,

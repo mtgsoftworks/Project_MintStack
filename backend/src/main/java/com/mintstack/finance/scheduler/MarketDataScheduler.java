@@ -76,7 +76,15 @@ public class MarketDataScheduler {
     @Observed(name = "scheduler.market-data.stock", contextualName = "fetch-stock-prices")
     @Scheduled(cron = "${app.scheduler.stock-prices-cron}")
     public void fetchStockPrices() {
-        updateInstrumentPricesByType(Instrument.InstrumentType.STOCK, true);
+        updateInstrumentPricesByType(Instrument.InstrumentType.STOCK, true, false);
+    }
+
+    public void refreshStockPricesNow() {
+        updateInstrumentPricesByType(Instrument.InstrumentType.STOCK, true, true);
+    }
+
+    public void refreshIndexPricesNow() {
+        updateInstrumentPricesByType(Instrument.InstrumentType.INDEX, false, true);
     }
 
     @Observed(name = "scheduler.market-data.bond", contextualName = "fetch-bond-prices")
@@ -89,7 +97,7 @@ public class MarketDataScheduler {
                 log.warn("BIST DataStore bond refresh failed, falling back to configured provider updater: {}", error.getMessage());
             }
         }
-        updateInstrumentPricesByType(Instrument.InstrumentType.BOND, false);
+        updateInstrumentPricesByType(Instrument.InstrumentType.BOND, false, false);
     }
 
     @Observed(name = "scheduler.market-data.fund", contextualName = "fetch-fund-prices")
@@ -102,7 +110,7 @@ public class MarketDataScheduler {
                 log.warn("TEFAS fund refresh failed, falling back to configured provider updater: {}", error.getMessage());
             }
         }
-        updateInstrumentPricesByType(Instrument.InstrumentType.FUND, false);
+        updateInstrumentPricesByType(Instrument.InstrumentType.FUND, false, false);
     }
 
     @Observed(name = "scheduler.market-data.viop", contextualName = "fetch-viop-prices")
@@ -115,7 +123,7 @@ public class MarketDataScheduler {
                 log.warn("BIST DataStore VIOP refresh failed, falling back to configured provider updater: {}", error.getMessage());
             }
         }
-        updateInstrumentPricesByType(Instrument.InstrumentType.VIOP, false);
+        updateInstrumentPricesByType(Instrument.InstrumentType.VIOP, false, false);
     }
 
     @Observed(name = "scheduler.market-data.initial-load", contextualName = "initial-data-load")
@@ -219,7 +227,11 @@ public class MarketDataScheduler {
         );
     }
 
-    private void updateInstrumentPricesByType(Instrument.InstrumentType type, boolean bootstrapStocksWhenEmpty) {
+    private void updateInstrumentPricesByType(
+        Instrument.InstrumentType type,
+        boolean bootstrapStocksWhenEmpty,
+        boolean fullRefresh
+    ) {
         if (simulationDataService.isSimulationEnabled()) {
             log.debug("Simulation mode active. Skipping {} prices fetch.", type);
             return;
@@ -257,7 +269,8 @@ public class MarketDataScheduler {
                 providerContext.yahooConfig(),
                 providerContext.alphaConfig(),
                 providerContext.finnhubConfig(),
-                providerContext.preferredProviders()
+                providerContext.preferredProviders(),
+                fullRefresh
             );
             log.info("{} prices fetch completed.", type);
         } catch (Exception error) {

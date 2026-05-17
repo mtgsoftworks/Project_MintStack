@@ -21,6 +21,7 @@ import { useGetCurrenciesQuery, useGetStocksQuery, useGetMarketIndexQuery } from
 import { useGetNewsQuery } from '@/store/api/newsApi'
 import { useGetPortfoliosQuery } from '@/store/api/portfolioApi'
 import { useAutoRefresh } from '@/hooks/useAutoRefresh'
+import { useMarketDataRefresh } from '@/hooks/useMarketDataRefresh'
 import { useDispatch, useSelector } from 'react-redux'
 import { selectIsAuthenticated } from '@/store/slices/authSlice'
 import { Link } from 'react-router-dom'
@@ -280,6 +281,11 @@ export default function DashboardPage() {
   const dispatch = useDispatch()
   const isAuthenticated = useSelector(selectIsAuthenticated)
   const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
+  const { refreshAndRefetch, isRefreshingMarketData } = useMarketDataRefresh([
+    'CURRENCY_RATES',
+    'BIST_STOCKS',
+    'BIST_INDICES',
+  ])
   const {
     data: currencies,
     isLoading: currenciesLoading,
@@ -305,7 +311,7 @@ export default function DashboardPage() {
     ...queryOptions,
     skip: !isAuthenticated,
   })
-  const isRefreshing = currenciesFetching || portfolioFetching || bistFetching
+  const isRefreshing = isRefreshingMarketData || currenciesFetching || portfolioFetching || bistFetching
   const lastUpdatedAt = Math.max(
     currenciesFulfilledAt || 0,
     bistFulfilledAt || 0,
@@ -313,14 +319,16 @@ export default function DashboardPage() {
   ) || null
 
   const handleRefresh = async () => {
-    const requests = [Promise.resolve(refetchCurrencies()), Promise.resolve(refetchBist())]
-    if (isAuthenticated) {
-      requests.push(Promise.resolve(refetchPortfolios()))
-    }
-    await Promise.all(requests)
+    await refreshAndRefetch(async () => {
+      const requests = [Promise.resolve(refetchCurrencies()), Promise.resolve(refetchBist())]
+      if (isAuthenticated) {
+        requests.push(Promise.resolve(refetchPortfolios()))
+      }
+      await Promise.all(requests)
 
-    // Refresh dashboard widgets that subscribe to these tags.
-    dispatch(baseApi.util.invalidateTags(['Stocks', 'News', 'Currencies', 'Indices', 'Portfolios']))
+      // Refresh dashboard widgets that subscribe to these tags.
+      dispatch(baseApi.util.invalidateTags(['Stocks', 'News', 'Currencies', 'Indices', 'Portfolios']))
+    })
   }
 
   // Calculate portfolio summary

@@ -278,7 +278,8 @@ public class DataSourceService {
                         scheduler.fetchViopPrices();
                     }
                     case YAHOO_FINANCE, ALPHA_VANTAGE, FINNHUB -> {
-                        scheduler.fetchStockPrices();
+                        scheduler.refreshStockPricesNow();
+                        scheduler.refreshIndexPricesNow();
                         scheduler.fetchNonTcmbForexRates();
                     }
                     default -> log.info("No immediate fetch handler for provider: {}", provider);

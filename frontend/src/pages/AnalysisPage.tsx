@@ -20,6 +20,7 @@ import {
   useGetTrendAnalysisQuery,
 } from '@/store/api/analysisApi'
 import { useGetFundsQuery, useGetStocksQuery } from '@/store/api/marketApi'
+import { useMarketDataRefresh } from '@/hooks/useMarketDataRefresh'
 
 const formatNumber = (value, digits = 2) => {
   const numeric = Number(value)
@@ -82,6 +83,7 @@ export default function AnalysisPage() {
   const [bollingerStdDev, setBollingerStdDev] = useState('2.0')
   const [stochasticKPeriod, setStochasticKPeriod] = useState('14')
   const [stochasticDPeriod, setStochasticDPeriod] = useState('3')
+  const { refreshAndRefetch, isRefreshingMarketData } = useMarketDataRefresh(['BIST_STOCKS', 'FUNDS'])
 
   const {
     data: stocksResponse,
@@ -255,7 +257,8 @@ export default function AnalysisPage() {
   const rsiStatus = getRsiStatus(rsiData?.data)
   const stochasticSignal = getStochasticSignal(stochasticData?.data?.signal)
   const isRefreshing =
-    stocksFetching
+    isRefreshingMarketData
+    || stocksFetching
     || fundsFetching
     || maFetching
     || trendFetching
@@ -266,19 +269,21 @@ export default function AnalysisPage() {
     || bollingerFetching
     || stochasticFetching
 
-  const handleRefreshAll = () => {
-    refetchStocks()
-    refetchFunds()
-    refetchMa()
-    refetchTrend()
-    refetchRsi()
-    refetchMacd()
-    refetchBollinger()
-    refetchStochastic()
-    refetchAllIndicators()
-    if (compareSymbols.length >= 2) {
-      refetchComparison()
-    }
+  const handleRefreshAll = async () => {
+    await refreshAndRefetch(async () => {
+      refetchStocks()
+      refetchFunds()
+      refetchMa()
+      refetchTrend()
+      refetchRsi()
+      refetchMacd()
+      refetchBollinger()
+      refetchStochastic()
+      refetchAllIndicators()
+      if (compareSymbols.length >= 2) {
+        refetchComparison()
+      }
+    })
   }
 
   const canAddCompareSymbol = Boolean(compareCandidate) && compareSymbols.length < 5

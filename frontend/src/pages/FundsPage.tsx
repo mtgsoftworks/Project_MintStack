@@ -30,6 +30,7 @@ import { isSimulatedMarketData } from '@/lib/simulationData'
 import { formatCurrency, formatPercent } from '@/lib/utils'
 import { useGetFundsQuery } from '@/store/api/marketApi'
 import { useAutoRefresh } from '@/hooks/useAutoRefresh'
+import { useMarketDataRefresh } from '@/hooks/useMarketDataRefresh'
 import { useDefaultPortfolioSelection } from '@/hooks/useDefaultPortfolioSelection'
 
 function FundTableSkeleton() {
@@ -49,6 +50,7 @@ export default function FundsPage() {
   const [pageSize, setPageSize] = useState(50)
   const { portfolios, selectedPortfolioId, setSelectedPortfolioId } = useDefaultPortfolioSelection()
   const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
+  const { refreshAndRefetch, isRefreshingMarketData } = useMarketDataRefresh(['FUNDS'])
   const {
     data,
     isLoading,
@@ -91,7 +93,7 @@ export default function FundsPage() {
             lastUpdatedAt={fulfilledTimeStamp}
             autoUpdateEnabled={autoUpdate}
             refreshRateSeconds={refreshRate}
-            isFetching={isFetching}
+            isFetching={isFetching || isRefreshingMarketData}
           />
         </div>
         <div className="flex items-center gap-2">
@@ -132,8 +134,8 @@ export default function FundsPage() {
           <RefreshButton
             variant="outline"
             size="icon"
-            isLoading={isFetching}
-            onRefresh={refetch}
+            isLoading={isFetching || isRefreshingMarketData}
+            onRefresh={() => refreshAndRefetch(refetch)}
           />
         </div>
       </div>

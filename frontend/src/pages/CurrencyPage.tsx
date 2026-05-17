@@ -24,6 +24,7 @@ import { getApiErrorMessage } from '@/lib/apiError'
 import { cn, formatCurrency, formatNumber, formatPercent, formatDateTime } from '@/lib/utils'
 import { useGetCurrenciesQuery } from '@/store/api/marketApi'
 import { useAutoRefresh } from '@/hooks/useAutoRefresh'
+import { useMarketDataRefresh } from '@/hooks/useMarketDataRefresh'
 import {
   useExecutePortfolioTradeMutation,
   useGetPortfolioQuery,
@@ -55,6 +56,7 @@ export default function CurrencyPage() {
   const [selectedPortfolioId, setSelectedPortfolioId] = useState('')
   const [tradeQuantities, setTradeQuantities] = useState({})
   const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
+  const { refreshAndRefetch, isRefreshingMarketData } = useMarketDataRefresh(['CURRENCY_RATES'])
   const {
     data: currencies,
     isLoading,
@@ -187,7 +189,7 @@ export default function CurrencyPage() {
             lastUpdatedAt={fulfilledTimeStamp}
             autoUpdateEnabled={autoUpdate}
             refreshRateSeconds={refreshRate}
-            isFetching={isFetching}
+            isFetching={isFetching || isRefreshingMarketData}
           />
         </div>
         <div className="flex items-center gap-2">
@@ -216,8 +218,8 @@ export default function CurrencyPage() {
           <RefreshButton
             variant="outline"
             size="icon"
-            isLoading={isFetching}
-            onRefresh={refetch}
+            isLoading={isFetching || isRefreshingMarketData}
+            onRefresh={() => refreshAndRefetch(refetch)}
           />
         </div>
       </div>

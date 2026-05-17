@@ -30,6 +30,7 @@ import { isSimulatedMarketData } from '@/lib/simulationData'
 import { cn, formatCurrency, formatPercent, formatDate } from '@/lib/utils'
 import { useGetViopQuery } from '@/store/api/marketApi'
 import { useAutoRefresh } from '@/hooks/useAutoRefresh'
+import { useMarketDataRefresh } from '@/hooks/useMarketDataRefresh'
 import { useDefaultPortfolioSelection } from '@/hooks/useDefaultPortfolioSelection'
 
 function ViopTableSkeleton() {
@@ -49,6 +50,7 @@ export default function ViopPage() {
   const [pageSize, setPageSize] = useState(50)
   const { portfolios, selectedPortfolioId, setSelectedPortfolioId } = useDefaultPortfolioSelection()
   const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
+  const { refreshAndRefetch, isRefreshingMarketData } = useMarketDataRefresh(['VIOP'])
   const {
     data,
     isLoading,
@@ -101,7 +103,7 @@ export default function ViopPage() {
             lastUpdatedAt={fulfilledTimeStamp}
             autoUpdateEnabled={autoUpdate}
             refreshRateSeconds={refreshRate}
-            isFetching={isFetching}
+            isFetching={isFetching || isRefreshingMarketData}
           />
         </div>
         <div className="flex items-center gap-2">
@@ -142,8 +144,8 @@ export default function ViopPage() {
           <RefreshButton
             variant="outline"
             size="icon"
-            isLoading={isFetching}
-            onRefresh={refetch}
+            isLoading={isFetching || isRefreshingMarketData}
+            onRefresh={() => refreshAndRefetch(refetch)}
           />
         </div>
       </div>

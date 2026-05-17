@@ -1,14 +1,18 @@
 package com.mintstack.finance.controller;
 
+import com.mintstack.finance.dto.request.MarketRefreshRequest;
 import com.mintstack.finance.dto.response.ApiResponse;
 import com.mintstack.finance.dto.response.CurrencyRateResponse;
 import com.mintstack.finance.dto.response.InstrumentResponse;
+import com.mintstack.finance.dto.response.MarketRefreshResponse;
 import com.mintstack.finance.dto.response.PaginationInfo;
 import com.mintstack.finance.dto.response.PriceHistoryResponse;
 import com.mintstack.finance.entity.Instrument.InstrumentType;
+import com.mintstack.finance.service.MarketDataRefreshService;
 import com.mintstack.finance.service.MarketDataService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -28,6 +32,7 @@ import java.util.List;
 public class MarketDataController {
 
     private final MarketDataService marketDataService;
+    private final MarketDataRefreshService marketDataRefreshService;
 
     // Currency Endpoints
     @GetMapping("/currencies")
@@ -35,6 +40,20 @@ public class MarketDataController {
     public ResponseEntity<ApiResponse<List<CurrencyRateResponse>>> getCurrencyRates() {
         List<CurrencyRateResponse> rates = marketDataService.getLatestCurrencyRates();
         return ResponseEntity.ok(ApiResponse.success(rates));
+    }
+
+    @PostMapping("/refresh")
+    @SecurityRequirement(name = "bearer")
+    @Operation(
+        summary = "Piyasa verilerini kaynaklardan yenile",
+        description = "Secilen veri tipleri icin dis kaynak fetch job'larini calistirir ve market cache'lerini temizler"
+    )
+    public ResponseEntity<ApiResponse<MarketRefreshResponse>> refreshMarketData(
+            @RequestBody(required = false) MarketRefreshRequest request) {
+        MarketRefreshResponse response = marketDataRefreshService.refreshMarketData(
+            request != null ? request.dataTypes() : null
+        );
+        return ResponseEntity.ok(ApiResponse.success(response, "Piyasa verileri yenilendi"));
     }
 
     @GetMapping("/currencies/{code}")

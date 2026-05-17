@@ -33,6 +33,7 @@ import { isSimulatedMarketData } from '@/lib/simulationData'
 import { cn, formatCurrency, formatPercent } from '@/lib/utils'
 import { useGetStocksQuery } from '@/store/api/marketApi'
 import { useAutoRefresh } from '@/hooks/useAutoRefresh'
+import { useMarketDataRefresh } from '@/hooks/useMarketDataRefresh'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useDefaultPortfolioSelection } from '@/hooks/useDefaultPortfolioSelection'
 
@@ -113,6 +114,7 @@ export default function StocksPage() {
   const parentRef = useRef(null)
   const { portfolios, selectedPortfolioId, setSelectedPortfolioId } = useDefaultPortfolioSelection()
   const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
+  const { refreshAndRefetch, isRefreshingMarketData } = useMarketDataRefresh(['BIST_STOCKS'])
 
   useEffect(() => {
     setSearchQuery(searchParam)
@@ -182,7 +184,7 @@ export default function StocksPage() {
             lastUpdatedAt={fulfilledTimeStamp}
             autoUpdateEnabled={autoUpdate}
             refreshRateSeconds={refreshRate}
-            isFetching={isFetching}
+            isFetching={isFetching || isRefreshingMarketData}
           />
         </div>
         <div className="flex items-center gap-4">
@@ -245,8 +247,8 @@ export default function StocksPage() {
           <RefreshButton
             variant="outline"
             size="icon"
-            isLoading={isFetching}
-            onRefresh={refetch}
+            isLoading={isFetching || isRefreshingMarketData}
+            onRefresh={() => refreshAndRefetch(refetch)}
           />
         </div>
       </div>

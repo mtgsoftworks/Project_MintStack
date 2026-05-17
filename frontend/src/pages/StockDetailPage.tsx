@@ -30,6 +30,7 @@ import { isSimulatedMarketData } from '@/lib/simulationData'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { cn, formatCurrency, formatPercent, formatNumber } from '@/lib/utils'
 import { useGetStockQuery, useGetStockHistoryQuery } from '@/store/api/marketApi'
+import { useMarketDataRefresh } from '@/hooks/useMarketDataRefresh'
 import {
   useExecutePortfolioTradeMutation,
   useGetPortfoliosQuery,
@@ -42,9 +43,10 @@ export default function StockDetailPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [selectedPortfolioId, setSelectedPortfolioId] = useState('')
   const [quantity, setQuantity] = useState('1')
+  const { refreshAndRefetch, isRefreshingMarketData } = useMarketDataRefresh(['BIST_STOCKS'])
 
   const { data: stock, isLoading: stockLoading, isFetching: stockFetching, refetch } = useGetStockQuery(symbol)
-  const { data: history, isLoading: historyLoading } = useGetStockHistoryQuery({ symbol, period })
+  const { data: history, isLoading: historyLoading, refetch: refetchHistory } = useGetStockHistoryQuery({ symbol, period })
   const { data: portfolios = [], isLoading: portfoliosLoading } = useGetPortfoliosQuery()
   const [executeTrade, { isLoading: isSubmittingTrade }] = useExecutePortfolioTradeMutation()
 
@@ -176,7 +178,11 @@ export default function StockDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <RefreshButton variant="outline" isLoading={stockFetching} onRefresh={refetch}>
+          <RefreshButton
+            variant="outline"
+            isLoading={stockFetching || isRefreshingMarketData}
+            onRefresh={() => refreshAndRefetch(() => Promise.all([refetch(), refetchHistory()]))}
+          >
             Yenile
           </RefreshButton>
           <Button onClick={openAddDialog}>
