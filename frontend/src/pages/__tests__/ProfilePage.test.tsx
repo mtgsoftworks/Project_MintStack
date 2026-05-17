@@ -92,4 +92,26 @@ describe('ProfilePage', () => {
       expect(firstSwitch).toHaveAttribute('aria-checked', 'true')
     })
   })
+
+  it('hides security actions for non-admin users', () => {
+    renderWithProviders(<ProfilePage />, {
+      preloadedState: {
+        auth: {
+          isAuthenticated: true,
+          isInitialized: true,
+          token: 'mock-token',
+          user: {
+            username: 'test',
+            name: 'Test User',
+            email: 'test@mintstack.local',
+          },
+          roles: ['user'],
+        },
+      },
+    })
+
+    expect(screen.queryByText('Sifre Degistir')).not.toBeInTheDocument()
+    expect(screen.queryByText('Guvenlik Ayarlari')).not.toBeInTheDocument()
+    expect(screen.getByText('Guvenlik islemleri sadece admin kullaniciya aciktir.')).toBeInTheDocument()
+  })
 })

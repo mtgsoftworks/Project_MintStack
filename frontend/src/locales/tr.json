@@ -28,7 +28,8 @@
         "noData": "Veri bulunamadı",
         "openMenu": "Menuyu ac",
         "closeMenu": "Menuyu kapat",
-        "simulatedShort": "Simule"
+        "simulatedShort": "Simule",
+        "forbidden": "Bu islem icin yetkiniz yok"
     },
     "auth": {
         "login": "Giriş Yap",
@@ -154,7 +155,8 @@
             "updateSuccess": "Veriler başarıyla güncellendi!",
             "updateError": "Veri çekme başarısız oldu. Lütfen tekrar deneyin.",
             "sourceUpdated": "kaynağı güncellendi",
-            "errorOccurred": "Hata oluştu"
+            "errorOccurred": "Hata oluştu",
+            "adminManaged": "API kaynaklari admin tarafindan yonetilir"
         },
         "simulation": {
             "title": "Simülasyon Modu"

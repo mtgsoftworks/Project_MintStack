@@ -104,7 +104,7 @@ describe('SettingsPage', () => {
     })
 
     expect(screen.getByText('settingsPage.tabs.general')).toBeInTheDocument()
-    expect(screen.getByText('settings.dataSources.title')).toBeInTheDocument()
+    expect(screen.queryByText('settings.dataSources.title')).not.toBeInTheDocument()
     expect(screen.queryByText('settings.simulation.title')).not.toBeInTheDocument()
     expect(screen.getByText('general-settings-content')).toBeInTheDocument()
     expect(screen.queryByText('api-keys-content')).not.toBeInTheDocument()
@@ -124,6 +124,7 @@ describe('SettingsPage', () => {
     })
 
     expect(screen.getByText('api-keys-content')).toBeInTheDocument()
+    expect(screen.getByText('settings.dataSources.title')).toBeInTheDocument()
     expect(screen.getByText('settings.simulation.title')).toBeInTheDocument()
   })
 })

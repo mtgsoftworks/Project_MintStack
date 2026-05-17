@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { selectUser, selectRoles } from '@/store/slices/authSlice'
+import { selectUser, selectRoles, selectIsAdmin } from '@/store/slices/authSlice'
 import { selectTheme, setTheme } from '@/store/slices/uiSlice'
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/store/api/userApi'
 import { getInitials } from '@/lib/utils'
@@ -19,6 +19,7 @@ import { useState, useEffect } from 'react'
 export default function ProfilePage() {
   const user = useSelector(selectUser)
   const roles = useSelector(selectRoles)
+  const isAdmin = useSelector(selectIsAdmin)
   const theme = useSelector(selectTheme)
   const dispatch = useDispatch()
   const { data: profile } = useGetProfileQuery()
@@ -159,22 +160,30 @@ export default function ProfilePage() {
             <Separator className="my-6" />
 
             <div className="space-y-4">
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => runKeycloakAction('UPDATE_PASSWORD')}
-              >
-                <Key className="mr-2 h-4 w-4" />
-                Şifre Değiştir
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => runKeycloakAction('CONFIGURE_TOTP')}
-              >
-                <Shield className="mr-2 h-4 w-4" />
-                Güvenlik Ayarları
-              </Button>
+              {isAdmin ? (
+                <>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => runKeycloakAction('UPDATE_PASSWORD')}
+                  >
+                    <Key className="mr-2 h-4 w-4" />
+                    Sifre Degistir
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => runKeycloakAction('CONFIGURE_TOTP')}
+                  >
+                    <Shield className="mr-2 h-4 w-4" />
+                    Guvenlik Ayarlari
+                  </Button>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Guvenlik islemleri sadece admin kullaniciya aciktir.
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -397,4 +406,3 @@ export default function ProfilePage() {
     </div>
   )
 }
-

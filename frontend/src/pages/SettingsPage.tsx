@@ -27,8 +27,10 @@ export default function SettingsPage() {
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div>
-                <h1 className="text-2xl font-bold">{t('settings.apiKeys.title')}</h1>
-                <p className="text-muted-foreground">{t('settings.apiKeys.manage')}</p>
+                <h1 className="text-2xl font-bold">{isAdmin ? t('settings.apiKeys.title') : t('settings.title')}</h1>
+                <p className="text-muted-foreground">
+                    {isAdmin ? t('settings.apiKeys.manage') : t('settingsPage.general.description')}
+                </p>
             </div>
 
             <Tabs defaultValue={isAdmin ? 'api-keys' : 'general'} className="space-y-4">
@@ -37,10 +39,12 @@ export default function SettingsPage() {
                     {isAdmin && (
                         <TabsTrigger value="api-keys">{t('settings.apiKeys.title')}</TabsTrigger>
                     )}
-                    <TabsTrigger value="data-sources">
-                        <Database className="h-4 w-4 mr-2" />
-                        {t('settings.dataSources.title', { defaultValue: 'Veri Kaynaklari' })}
-                    </TabsTrigger>
+                    {isAdmin && (
+                        <TabsTrigger value="data-sources">
+                            <Database className="h-4 w-4 mr-2" />
+                            {t('settings.dataSources.title', { defaultValue: 'Veri Kaynaklari' })}
+                        </TabsTrigger>
+                    )}
                     {isAdmin && (
                         <TabsTrigger value="simulation">
                             <FlaskConical className="h-4 w-4 mr-2" />
@@ -100,24 +104,26 @@ export default function SettingsPage() {
                     </TabsContent>
                 )}
 
-                <TabsContent value="data-sources">
-                    <DataSourcesTab
-                        t={t}
-                        apiConfigs={apiDataSourceSettings.apiConfigs}
-                        preferencesData={apiDataSourceSettings.preferencesData}
-                        isRefreshing={apiDataSourceSettings.isRefreshingDataSources}
-                        isAdmin={isAdmin}
-                        backfillForm={apiDataSourceSettings.backfillForm}
-                        isBackfillingMarketData={apiDataSourceSettings.isBackfillingMarketData}
-                        getProviderLabel={getProviderLabel}
-                        onSelectDataPreference={apiDataSourceSettings.handleSelectDataPreference}
-                        onRefreshData={apiDataSourceSettings.handleRefreshDataSources}
-                        onOpenApiKeysTab={() => apiDataSourceSettings.handleOpenDialog(null)}
-                        onBackfillFormChange={apiDataSourceSettings.handleBackfillFormChange}
-                        onToggleBackfillType={apiDataSourceSettings.handleToggleBackfillType}
-                        onBackfillMarketData={apiDataSourceSettings.handleBackfillMarketData}
-                    />
-                </TabsContent>
+                {isAdmin && (
+                    <TabsContent value="data-sources">
+                        <DataSourcesTab
+                            t={t}
+                            apiConfigs={apiDataSourceSettings.apiConfigs}
+                            preferencesData={apiDataSourceSettings.preferencesData}
+                            isRefreshing={apiDataSourceSettings.isRefreshingDataSources}
+                            isAdmin={isAdmin}
+                            backfillForm={apiDataSourceSettings.backfillForm}
+                            isBackfillingMarketData={apiDataSourceSettings.isBackfillingMarketData}
+                            getProviderLabel={getProviderLabel}
+                            onSelectDataPreference={apiDataSourceSettings.handleSelectDataPreference}
+                            onRefreshData={apiDataSourceSettings.handleRefreshDataSources}
+                            onOpenApiKeysTab={() => apiDataSourceSettings.handleOpenDialog(null)}
+                            onBackfillFormChange={apiDataSourceSettings.handleBackfillFormChange}
+                            onToggleBackfillType={apiDataSourceSettings.handleToggleBackfillType}
+                            onBackfillMarketData={apiDataSourceSettings.handleBackfillMarketData}
+                        />
+                    </TabsContent>
+                )}
 
                 {isAdmin && (
                     <TabsContent value="simulation">

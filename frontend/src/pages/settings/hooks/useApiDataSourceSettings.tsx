@@ -99,8 +99,12 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
     const [setDataPreference] = useSetDataPreferenceMutation()
     const [backfillMarketData, { isLoading: isBackfillingMarketData }] = useBackfillMarketDataMutation()
 
-    const { data: capabilitiesData } = useGetDataSourceCapabilitiesQuery()
-    const { data: preferencesData, refetch: refetchPreferences } = useGetDataPreferencesQuery()
+    const { data: capabilitiesData } = useGetDataSourceCapabilitiesQuery(undefined, {
+        skip: !isAdmin
+    })
+    const { data: preferencesData, refetch: refetchPreferences } = useGetDataPreferencesQuery(undefined, {
+        skip: !isAdmin
+    })
 
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingConfig, setEditingConfig] = useState(null)
@@ -265,6 +269,11 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
     }
 
     const handleSelectDataPreference = async (dataType, provider) => {
+        if (!isAdmin) {
+            toast.error(t('common.forbidden', { defaultValue: 'Bu islem icin admin yetkisi gerekir' }))
+            return
+        }
+
         try {
             await setDataPreference({
                 dataType: dataType.type,
@@ -383,8 +392,8 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
 
     return {
         apiConfigs,
-        providerCapabilities: capabilitiesData?.data || {},
-        preferencesData,
+        providerCapabilities: isAdmin ? capabilitiesData?.data || {} : {},
+        preferencesData: isAdmin ? preferencesData : { data: [] },
         isLoading,
         isAdding,
         isTesting,

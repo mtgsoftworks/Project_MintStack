@@ -23,7 +23,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Tag(name = "Data Sources", description = "Veri kaynağı yönetimi ve tercihleri")
 @SecurityRequirement(name = "bearer")
-@PreAuthorize("isAuthenticated()")
+@PreAuthorize("hasRole('ADMIN')")
 public class DataSourceController {
 
     private final DataSourceService dataSourceService;

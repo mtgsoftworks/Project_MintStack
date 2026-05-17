@@ -28,7 +28,8 @@
         "noData": "No data found",
         "openMenu": "Open menu",
         "closeMenu": "Close menu",
-        "simulatedShort": "Simulated"
+        "simulatedShort": "Simulated",
+        "forbidden": "You do not have permission for this action"
     },
     "auth": {
         "login": "Login",
@@ -154,7 +155,8 @@
             "updateSuccess": "Data updated successfully!",
             "updateError": "Data fetch failed. Please try again.",
             "sourceUpdated": "source updated",
-            "errorOccurred": "Error occurred"
+            "errorOccurred": "Error occurred",
+            "adminManaged": "API sources are managed by administrators"
         },
         "simulation": {
             "title": "Simulation Mode"
