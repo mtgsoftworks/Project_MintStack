@@ -18,7 +18,7 @@ Aktif ana moduller:
 - Fiyat alarmlari: sembol secimi, hedef fiyat/yuzde alarmi, tetiklenme kaydi.
 - Bildirimler: uygulama ici bildirim kaydi ve okundu yonetimi.
 - Analiz: teknik indikatorler, backtesting, Monte Carlo ve karsilastirma ekranlari.
-- Ayarlar: API anahtarlari, veri kaynagi tercihi, backfill ve profil tercihleri.
+- Ayarlar: ADMIN icin API anahtarlari/backfill, tum kullanicilar icin veri kaynagi tercihi ve profil tercihleri.
 - Admin: sistem yonetimi, rate limit, cache/market data bakimi ve operasyonel aksiyonlar.
 
 ## Veri Kaynaklari
@@ -40,6 +40,7 @@ Notlar:
 - TEFAS icin resmi public API paylasimi olmadigi kabul edilir; sistem TEFAS web tarafinda gorunen servis kontratini adapter mantigi ile kullanir.
 - Yahoo Finance keyless calisir; kullanicidan API key/base URL istenmemelidir.
 - BIST DataStore keyless calisir; tahvil/bono icin `ttbYYYYAAGG3.zip`, VIOP icin `viop_YYYYAAGG.csv` dosyalari okunur.
+- Alpha Vantage, Finnhub ve LLM enrichment anahtarlari sadece ADMIN tarafindan yonetilir; test/normal kullanici kendi API key'ini ekleyemez.
 - Fintables resmi olarak pasif kabul edilir. `APP_EXTERNAL_API_FINTABLES_ENABLED=false` guvenli varsayilandir.
 - GitHub Models kullanimi icin LLM endpoint `https://models.github.ai/inference`, model ornegi `openai/gpt-5`, token ise `GITHUB_TOKEN` veya UI uzerinden girilen provider key'i olabilir.
 

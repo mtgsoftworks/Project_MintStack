@@ -28,8 +28,8 @@
 
 | Rol | Yetki |
 |---|---|
-| `USER` | Portföy, piyasa izleme, alarm, izleme listesi |
-| `ADMIN` | Tüm USER + admin panel, kullanıcı yönetimi, simülasyon |
+| `USER` | Portföy, piyasa izleme, alarm, izleme listesi; API key yönetimi yok |
+| `ADMIN` | Tüm USER + admin panel, kullanıcı yönetimi, simülasyon, API key/backfill yönetimi |
 
 ---
 

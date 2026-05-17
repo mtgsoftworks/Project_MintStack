@@ -168,11 +168,12 @@ grant_type=refresh_token
 | `GET` | `/data-sources/preferences` | Mevcut tercihler |
 | `POST` | `/data-sources/preferences` | Tercihleri güncelle |
 | `GET` | `/data-sources/capabilities` | Mevcut sağlayıcılar ve yetenekleri |
-| `POST` | `/data-sources/trigger/{apiConfigId}` | Seçili API anahtarı için anlık veri çekimini tetikle |
+| `POST` | `/data-sources/trigger/{apiConfigId}` | Seçili API anahtarı için anlık veri çekimini tetikle (`ADMIN`) |
 | `POST` | `/settings/market-data/backfill` | Geçmiş piyasa verisini `price_history` tablosuna doldur |
 
 Not:
 - `TCMB`, `TEFAS` ve `Yahoo Finance` keyless/public çalışır; kullanıcıdan API key/base URL istenmez.
+- `/settings/api-keys/**` endpointleri sadece `ADMIN` rolüne açıktır; test/normal kullanıcı API key listeleyemez, ekleyemez, silemez veya test edemez.
 - `Finnhub` anahtarı hisse/FX için geçerli olsa bile `forex/rates` endpoint erişimi plan bazlı olabilir.
 - Uygulama bu durumda `0` değerli kuru geçerli veri olarak kabul etmez ve alternatif sağlayıcı fallback'i dener.
 - `Fintables` varsayılan olarak policy lock ile pasiftir.

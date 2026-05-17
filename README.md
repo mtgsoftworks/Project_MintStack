@@ -63,7 +63,7 @@ MintStack Finance Portal, Türkiye finans piyasalarına (BIST, döviz, tahvil, f
 - Mobil uygulama bu sürümün kapsamında değildir; proje web portalı olarak sunulur.
 - Kripto para desteği aktif kullanıcı akışından kaldırılmıştır; demo ve jüri anlatımında kripto modülü sunulmamalıdır.
 - TCMB, TEFAS, BIST DataStore ve Yahoo Finance keyless/public kaynak olarak çalışır; kullanıcıdan API key/base URL istenmez.
-- Alpha Vantage ve Finnhub için kullanıcı API key girebilir; Fintables policy lock ile varsayılan kapalıdır.
+- Alpha Vantage, Finnhub ve LLM enrichment API anahtarları sadece `ADMIN` rolü tarafından yönetilir; test/normal kullanıcı kendi API key'ini ekleyemez.
 - RSS haberleri isteğe bağlı LLM enrichment ile zenginleştirilebilir. GitHub Models/OpenAI-compatible endpoint desteklenir.
 - Admin/Ayarlar altında geçmiş veri backfill akışı vardır; 7/30/90 gün ve 1 yıl gibi periyotlarla `price_history` doldurulabilir.
 - Fiyat alarmı uygulama içi bildirim ve opsiyonel e-posta üretir; sesli alarm/browser push bu sürümde tam bağlı değildir.
@@ -553,6 +553,7 @@ Tüm değişkenler `.env.example` dosyasında tanımlıdır:
 
 Kaynak notları:
 
+- External API anahtarları UI üzerinden sadece `ADMIN` rolü ile yönetilir; normal/test kullanıcı API key ekleyemez, silemez veya test edemez.
 - `APP_EXTERNAL_API_TEFAS_ENABLED=true` ile TEFAS fon verisi keyless çalışır.
 - TCMB, BIST DataStore ve Yahoo Finance için API key/base URL gerekmez.
 - `APP_EXTERNAL_API_BIST_DATASTORE_ENABLED=true` ile tahvil/bono günlük bülteni ve VIOP günlük bülteni gerçek Borsa İstanbul dosyalarından okunur.
