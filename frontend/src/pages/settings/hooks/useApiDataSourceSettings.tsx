@@ -132,7 +132,7 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
 
     const handleOpenDialog = (config = null) => {
         if (!isAdmin) {
-            toast.error(t('common.forbidden', { defaultValue: 'Bu islem icin admin yetkisi gerekir' }))
+            toast.error(t('common.forbidden'))
             return
         }
 
@@ -174,7 +174,7 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
 
     const handleTestKey = async () => {
         if (!isAdmin) {
-            toast.error(t('common.forbidden', { defaultValue: 'Bu islem icin admin yetkisi gerekir' }))
+            toast.error(t('common.forbidden'))
             return
         }
 
@@ -206,7 +206,7 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
         event.preventDefault()
 
         if (!isAdmin) {
-            toast.error(t('common.forbidden', { defaultValue: 'Bu islem icin admin yetkisi gerekir' }))
+            toast.error(t('common.forbidden'))
             return
         }
 
@@ -229,7 +229,7 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
                     <div className="flex items-center gap-3">
                         <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
                         <div>
-                            <p className="font-medium">{t('settings.apiKeys.fetchingData', { defaultValue: 'Veriler cekiliyor...' })}</p>
+                            <p className="font-medium">{t('settings.apiKeys.fetchingData')}</p>
                             <p className="text-xs text-muted-foreground">{t('settings.dataSources.pleaseWait')}</p>
                         </div>
                     </div>,
@@ -239,7 +239,7 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
                 try {
                     const triggerResult = await triggerDataFetch(result.data.id).unwrap()
                     toast.dismiss(loadingToastId)
-                    toast.success(triggerResult.message || t('settings.apiKeys.dataFetched', { defaultValue: 'Veriler basariyla cekildi!' }))
+                    toast.success(triggerResult.message || t('settings.apiKeys.dataFetched'))
                     refetchPreferences()
                 } catch {
                     toast.dismiss(loadingToastId)
@@ -252,7 +252,7 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
 
     const handleDelete = async (id) => {
         if (!isAdmin) {
-            toast.error(t('common.forbidden', { defaultValue: 'Bu islem icin admin yetkisi gerekir' }))
+            toast.error(t('common.forbidden'))
             return
         }
 
@@ -270,7 +270,7 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
 
     const handleSelectDataPreference = async (dataType, provider) => {
         if (!isAdmin) {
-            toast.error(t('common.forbidden', { defaultValue: 'Bu islem icin admin yetkisi gerekir' }))
+            toast.error(t('common.forbidden'))
             return
         }
 
@@ -290,7 +290,7 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
 
     const handleRefreshDataSources = async () => {
         if (!isAdmin) {
-            toast.error(t('common.forbidden', { defaultValue: 'Bu islem icin admin yetkisi gerekir' }))
+            toast.error(t('common.forbidden'))
             return
         }
 
@@ -361,12 +361,12 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
 
     const handleBackfillMarketData = async () => {
         if (!isAdmin) {
-            toast.error(t('common.forbidden', { defaultValue: 'Bu islem icin admin yetkisi gerekir' }))
+            toast.error(t('common.forbidden'))
             return
         }
 
         if (backfillForm.instrumentTypes.length === 0) {
-            toast.error('En az bir enstruman tipi secin')
+            toast.error(t('settings.dataSources.backfill.validation.selectType'))
             return
         }
 
@@ -384,9 +384,9 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
         try {
             const result = await backfillMarketData(payload).unwrap()
             const savedRows = (result.data?.savedPriceRows || 0) + (result.data?.savedCurrencyRows || 0)
-            toast.success(`Gecmis veri yazildi: ${savedRows} kayit`)
+            toast.success(t('settings.dataSources.backfill.success', { count: savedRows }))
         } catch (error) {
-            toast.error(getApiErrorMessage(error, 'Gecmis veri backfill basarisiz oldu'))
+            toast.error(getApiErrorMessage(error, t('settings.dataSources.backfill.error')))
         }
     }
 

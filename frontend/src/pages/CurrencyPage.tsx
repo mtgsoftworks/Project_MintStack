@@ -179,7 +179,7 @@ export default function CurrencyPage() {
           </div>
           <p className="text-muted-foreground">
             {dataSource 
-              ? t('currencyPage.subtitleWithSource', { source: getSourceLabel(dataSource), defaultValue: `${getSourceLabel(dataSource)} güncel döviz kurları` })
+              ? t('currencyPage.subtitleWithSource', { source: getSourceLabel(dataSource) })
               : t('currencyPage.subtitle')}
           </p>
           <RefreshStatus

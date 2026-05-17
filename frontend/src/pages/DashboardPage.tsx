@@ -360,7 +360,7 @@ export default function DashboardPage() {
     bistChange = bistData.changePercent
     bistTrend = bistData.changePercent >= 0 ? 'up' : 'down'
   } else {
-    bistValue = t('dashboard.widgets.bist100.noData', { defaultValue: 'Veri yok' })
+    bistValue = t('dashboard.widgets.bist100.noData')
   }
 
   return (

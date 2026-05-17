@@ -210,12 +210,12 @@ export default function StocksPage() {
               {useVirtualScroll ? (
                 <span className="flex items-center gap-1">
                   <LayoutGrid className="h-4 w-4" />
-                  {t('stocksPage.virtualMode', { defaultValue: 'Sanal Liste' })}
+                  {t('stocksPage.virtualMode')}
                 </span>
               ) : (
                 <span className="flex items-center gap-1">
                   <List className="h-4 w-4" />
-                  {t('stocksPage.paginatedMode', { defaultValue: 'Sayfalı' })}
+                  {t('stocksPage.paginatedMode')}
                 </span>
               )}
             </Label>
@@ -303,7 +303,7 @@ export default function StocksPage() {
                 </div>
                 <div className="w-[100px] text-right flex-shrink-0">{t('stocksPage.headers.previousClose')}</div>
                 <div className="w-[100px] text-right flex-shrink-0">{t('stocksPage.headers.volume')}</div>
-                <div className="w-[280px] text-right flex-shrink-0">Islem</div>
+                <div className="w-[280px] text-right flex-shrink-0">{t('stocksPage.headers.action')}</div>
               </div>
 
               {/* Virtual List */}
@@ -348,11 +348,8 @@ export default function StocksPage() {
 
               {/* Info */}
               <div className="px-4 py-2 border-t bg-muted/30 text-xs text-muted-foreground">
-                {t('stocksPage.virtualInfo', { 
-                  visible: filteredStocks.length,
-                  total: totalElements,
-                  defaultValue: `${filteredStocks.length} / ${totalElements} hisse gösteriliyor`
-                })}
+                {t('stocksPage.virtualInfo', { visible: filteredStocks.length,
+                  total: totalElements })}
               </div>
             </div>
           ) : (
@@ -397,7 +394,7 @@ export default function StocksPage() {
                     </TableHead>
                     <TableHead className="text-right">{t('stocksPage.headers.previousClose')}</TableHead>
                     <TableHead className="text-right">{t('stocksPage.headers.volume')}</TableHead>
-                    <TableHead className="text-right">Islem</TableHead>
+                    <TableHead className="text-right">{t('stocksPage.headers.action')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

@@ -13,7 +13,7 @@ export function SimulationDataFlag({ className = '' }) {
         className
       )}
     >
-      {t('common.simulatedShort', { defaultValue: 'Simule' })}
+      {t('common.simulatedShort')}
     </Badge>
   )
 }

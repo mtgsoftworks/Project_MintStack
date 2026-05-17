@@ -42,13 +42,13 @@ export default function SettingsPage() {
                     {isAdmin && (
                         <TabsTrigger value="data-sources">
                             <Database className="h-4 w-4 mr-2" />
-                            {t('settings.dataSources.title', { defaultValue: 'Veri Kaynaklari' })}
+                            {t('settings.dataSources.title')}
                         </TabsTrigger>
                     )}
                     {isAdmin && (
                         <TabsTrigger value="simulation">
                             <FlaskConical className="h-4 w-4 mr-2" />
-                            {t('settings.simulation.title', { defaultValue: 'Simulasyon' })}
+                            {t('settings.simulation.title')}
                         </TabsTrigger>
                     )}
                 </TabsList>
@@ -141,7 +141,7 @@ export default function SettingsPage() {
 
             {isAdmin && simulationSettings.simConfig?.enabled && (
                 <Badge variant="success" className="w-fit">
-                    {t('settings.simulation.active', { defaultValue: 'Simulasyon Aktif' })}
+                    {t('settings.simulation.active')}
                 </Badge>
             )}
         </div>

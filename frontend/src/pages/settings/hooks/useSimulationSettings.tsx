@@ -31,8 +31,8 @@ export function useSimulationSettings({ t }) {
             refetchSimConfig()
             toast.success(
                 simConfig?.enabled
-                    ? t('settings.simulation.disabled', { defaultValue: 'Simulasyon kapatildi' })
-                    : t('settings.simulation.enabled', { defaultValue: 'Simulasyon aktif' })
+                    ? t('settings.simulation.disabled')
+                    : t('settings.simulation.enabled')
             )
         } catch (error) {
             toast.error(getApiErrorMessage(error, t('common.error')))
@@ -49,15 +49,15 @@ export function useSimulationSettings({ t }) {
             refetchSimConfig()
 
             if (Object.prototype.hasOwnProperty.call(payload, 'volatilityLevel')) {
-                toast.success(t('settings.simulation.volatilityUpdated', { defaultValue: 'Volatilite guncellendi' }))
+                toast.success(t('settings.simulation.volatilityUpdated'))
             }
 
             if (Object.prototype.hasOwnProperty.call(payload, 'marketTrend')) {
-                toast.success(t('settings.simulation.trendUpdated', { defaultValue: 'Trend guncellendi' }))
+                toast.success(t('settings.simulation.trendUpdated'))
             }
 
             if (Object.prototype.hasOwnProperty.call(payload, 'updateIntervalSeconds')) {
-                toast.success(t('settings.simulation.intervalUpdated', { defaultValue: 'Guncelleme araligi degistirildi' }))
+                toast.success(t('settings.simulation.intervalUpdated'))
             }
         } catch (error) {
             toast.error(getApiErrorMessage(error, t('common.error')))
@@ -72,7 +72,7 @@ export function useSimulationSettings({ t }) {
         try {
             await resetSimulation().unwrap()
             refetchSimConfig()
-            toast.success(t('settings.simulation.reset', { defaultValue: 'Simulasyon sifirlandi' }))
+            toast.success(t('settings.simulation.reset'))
         } catch (error) {
             toast.error(getApiErrorMessage(error, t('common.error')))
         }

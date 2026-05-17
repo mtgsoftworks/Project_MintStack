@@ -29,7 +29,8 @@
         "openMenu": "Menuyu ac",
         "closeMenu": "Menuyu kapat",
         "simulatedShort": "Simule",
-        "forbidden": "Bu islem icin yetkiniz yok"
+        "forbidden": "Bu islem icin yetkiniz yok",
+        "unauthorized": "Bu i?lem i?in yetkiniz yok"
     },
     "auth": {
         "login": "Giriş Yap",
@@ -156,10 +157,90 @@
             "updateError": "Veri çekme başarısız oldu. Lütfen tekrar deneyin.",
             "sourceUpdated": "kaynağı güncellendi",
             "errorOccurred": "Hata oluştu",
-            "adminManaged": "API kaynaklari admin tarafindan yonetilir"
+            "adminManaged": "API kaynaklari admin tarafindan yonetilir",
+            "description": "Her veri t?r? i?in kaynak se?in",
+            "noApiKeys": "?nce API anahtar? ekleyin",
+            "policyDisabledHint": "Bu sa?lay?c? policy gere?i pasif durumda.",
+            "availableCount": "{{count}} kaynak mevcut",
+            "noSourceAddKey": "Kaynak yok - API anahtar? ekleyin",
+            "verifiedSourceNone": "Do?rulanm?? kaynak yok",
+            "backfill": {
+                "title": "Ge?mi? Veri Backfill",
+                "description": "Yahoo hisse/endeks, TEFAS fon, TCMB d?viz ve BIST DataStore tahvil/V?OP ge?mi?ini price_history tablosuna yazar. Sentetik veri ?retilmez.",
+                "period": "D?nem",
+                "periodOptions": {
+                    "7": "7 G?n",
+                    "30": "1 Ay",
+                    "90": "3 Ay",
+                    "365": "1 Y?l"
+                },
+                "instrumentLimit": "Enstr?man Limiti",
+                "optionalSymbols": "Opsiyonel Semboller",
+                "symbolsPlaceholder": "THYAO,ASELS,USDTRY",
+                "types": {
+                    "stock": "Hisse",
+                    "fund": "Fon",
+                    "currency": "D?viz",
+                    "index": "Endeks",
+                    "bond": "Tahvil/Bono",
+                    "viop": "V?OP"
+                },
+                "loadingTitle": "Ge?mi? veri dolduruluyor",
+                "loadingDescription": "Se?ilen kaynaklardan fiyat ge?mi?i ?ekiliyor; bu i?lem birka? dakika s?rebilir.",
+                "buttonLoading": "Dolduruluyor...",
+                "button": "Ge?mi? Veriyi Doldur",
+                "validation": {
+                    "selectType": "En az bir enstr?man tipi se?in"
+                },
+                "success": "Ge?mi? veri yaz?ld?: {{count}} kay?t",
+                "error": "Ge?mi? veri backfill ba?ar?s?z oldu"
+            }
         },
         "simulation": {
-            "title": "Simülasyon Modu"
+            "title": "Simülasyon Modu",
+            "active": "Sim?lasyon Aktif",
+            "bonds": "Tahvil & Bono",
+            "config": "Sim?lasyon Ayarlar?",
+            "currencies": "D?viz Kuru",
+            "description": "Ger?ek API olmadan ger?ek?i piyasa verileri ile test edin",
+            "disabled": "Sim?lasyon kapat?ld?",
+            "enable": "Sim?lasyon Modunu Aktif Et",
+            "enableDesc": "Aktif oldu?unda ger?ek API yerine sim?le veriler kullan?l?r",
+            "enabled": "Sim?lasyon aktif",
+            "funds": "Yat?r?m Fonu",
+            "indices": "Endeks",
+            "info1": "Hisse, d?viz, endeks, tahvil, fon ve V?OP i?in sim?le piyasa verisi ?retir",
+            "info2": "Ger?ek API ?a?r?s?n? beklemeden cache, listeleme, portf?y ve alarm ak???n? test eder",
+            "info3": "GBM ve Mean Reversion algoritmalar?yla volatilite/trend senaryolar? ?al??t?r?r",
+            "info4": "Kripto para sim?lasyonu sistem kapsam?ndan kald?r?lm??t?r",
+            "infoTitle": "Sim?lasyon Hakk?nda",
+            "interval": "G?ncelleme Aral???",
+            "intervalUpdated": "G?ncelleme aral??? de?i?tirildi",
+            "marketHours": "Piyasa Saatlerini Kullan (10:00-18:00)",
+            "marketHoursDesc": "Kapal?yken 7/24 ?al???r",
+            "randomEvents": "Rastgele Piyasa Olaylar?",
+            "randomEventsDesc": "Beklenmedik fiyat hareketleri sim?le et",
+            "reset": "Sim?lasyon s?f?rland?",
+            "resetButton": "Sim?lasyonu S?f?rla",
+            "seconds": "saniye",
+            "stocks": "Hisse Senedi",
+            "ticks": "G?ncelleme",
+            "trend": {
+                "bearish": "Ay? (D????)",
+                "bullish": "Bo?a (Y?kseli?)",
+                "neutral": "N?tr",
+                "title": "Piyasa Trendi"
+            },
+            "trendUpdated": "Trend g?ncellendi",
+            "viop": "V?OP",
+            "volatility": {
+                "extreme": "Ekstrem (Kriz Modu)",
+                "high": "Y?ksek (Hareketli)",
+                "low": "D???k (Sakin Piyasa)",
+                "medium": "Orta (Normal)",
+                "title": "Volatilite Seviyesi"
+            },
+            "volatilityUpdated": "Volatilite g?ncellendi"
         },
         "emailNotifications": "E-posta Bildirimleri",
         "pushNotifications": "Push Bildirimleri",
@@ -214,14 +295,17 @@
                 "modelName": "openai/gpt-5",
                 "secretKey": "Gizli anahtarınızı girin",
                 "baseUrl": "https://api.example.com",
-                "llmBaseUrl": "https://models.github.ai/inference"
+                "llmBaseUrl": "https://models.github.ai/inference",
+                "unchanged": "De?i?tirmemek i?in bo? b?rak?n"
             },
             "validation": {
                 "required": "Lütfen API anahtarı girin",
                 "testRequired": "Kaydetmeden önce test etmelisiniz",
                 "tcmbInfo": "TCMB ücretsizdir, test ederek doğrulayabilirsiniz.",
                 "optionalInfo": "API anahtarı opsiyoneldir, boş bırakabilirsiniz."
-            }
+            },
+            "fetchingData": "Veriler ?ekiliyor...",
+            "dataFetched": "Veriler ba?ar?yla ?ekildi"
         },
         "providers": {
             "supported": "✅ Desteklenenler:",
@@ -334,6 +418,10 @@
                     ]
                 }
             }
+        },
+        "appearance": {
+            "darkMode": "Koyu moda ge?",
+            "lightMode": "A??k moda ge?"
         }
     },
     "dashboard": {
@@ -352,7 +440,8 @@
                 "noProvider": "Yapılandırılmadı",
                 "noSource": "Kaynaksız",
                 "error": "Veri Alınamadı",
-                "addConfig": "Ayarlardan Ekleyin"
+                "addConfig": "Ayarlardan Ekleyin",
+                "noData": "Veri yok"
             }
         }
     },
@@ -391,7 +480,12 @@
             "tickCount": "Tick Sayısı",
             "stocks": "Hisseler",
             "activeEvents": "Aktif Olaylar",
-            "uptime": "Çalışma Süresi"
+            "uptime": "Çalışma Süresi",
+            "bonds": "Tahvil",
+            "currencies": "D?viz",
+            "funds": "Fon",
+            "indices": "Endeks",
+            "viop": "V?OP"
         },
         "health": {
             "status": "Durum",
@@ -503,7 +597,8 @@
                 "effectiveSelling": "Efektif Satış",
                 "change": "Değişim"
             }
-        }
+        },
+        "subtitleWithSource": "{{source}} g?ncel d?viz kurlar?"
     },
     "bondsPage": {
         "title": "Tahvil & Bono",
@@ -566,8 +661,12 @@
             "price": "Fiyat",
             "change": "Değişim",
             "previousClose": "Önceki Kapanış",
-            "volume": "Hacim"
-        }
+            "volume": "Hacim",
+            "action": "??lem"
+        },
+        "virtualMode": "Sanal Liste",
+        "paginatedMode": "Sayfal?",
+        "virtualInfo": "{{visible}} / {{total}} hisse g?steriliyor"
     },
     "notificationsPage": {
         "title": "Bildirimler",
@@ -834,7 +933,8 @@
                     "loading": "Veriler siliniyor...",
                     "success": "Tüm veriler başarıyla sıfırlandı!",
                     "error": "Veri silme hatası: {{message}}",
-                    "unknownError": "Bilinmeyen hata"
+                    "unknownError": "Bilinmeyen hata",
+                    "progressDescription": "T?m veriler siliniyor..."
                 }
             }
         },
@@ -842,7 +942,8 @@
             "title": "Önbelleği Temizle",
             "description": "Önbellekteki piyasa verilerini ve geçici dosyaları temizle.",
             "toastSuccess": "Önbellek temizlendi!",
-            "button": "Önbelleği Temizle"
+            "button": "Önbelleği Temizle",
+            "toastSuccessDetailed": "{{count}} ?nbellek temizlendi"
         }
     }
 }

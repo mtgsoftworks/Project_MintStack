@@ -163,27 +163,27 @@ export function SimulationDebugPanel() {
                     icon={Activity}
                 />
                 <StatusCard
-                    title={t('simulation.metrics.bonds', { defaultValue: 'Tahvil' })}
+                    title={t('simulation.metrics.bonds')}
                     value={metrics?.bonds || 0}
                     icon={Activity}
                 />
                 <StatusCard
-                    title={t('simulation.metrics.funds', { defaultValue: 'Fon' })}
+                    title={t('simulation.metrics.funds')}
                     value={metrics?.funds || 0}
                     icon={Activity}
                 />
                 <StatusCard
-                    title={t('simulation.metrics.viop', { defaultValue: 'VIOP' })}
+                    title={t('simulation.metrics.viop')}
                     value={metrics?.viop || 0}
                     icon={Activity}
                 />
                 <StatusCard
-                    title={t('simulation.metrics.currencies', { defaultValue: 'Doviz' })}
+                    title={t('simulation.metrics.currencies')}
                     value={metrics?.currencies || 0}
                     icon={Activity}
                 />
                 <StatusCard
-                    title={t('simulation.metrics.indices', { defaultValue: 'Endeks' })}
+                    title={t('simulation.metrics.indices')}
                     value={metrics?.indices || 0}
                     icon={Activity}
                 />

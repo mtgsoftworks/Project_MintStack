@@ -164,7 +164,7 @@ export function ApiKeysTab({
 
                                 {isCurrentProviderPolicyDisabled && (
                                     <p className="text-xs font-medium text-warning-dark">
-                                        {t('settings.dataSources.policyDisabledHint', { defaultValue: 'Bu saglayici policy geregi pasif durumda.' })}
+                                    {t('settings.dataSources.policyDisabledHint')}
                                     </p>
                                 )}
                             </div>
@@ -179,7 +179,7 @@ export function ApiKeysTab({
                                             placeholder={editingConfig
                                                 ? t('settings.apiKeys.placeholder.unchanged')
                                                 : (isLlmProvider
-                                                    ? t('settings.apiKeys.placeholder.githubToken', { defaultValue: 'GitHub token (GITHUB_TOKEN)' })
+                                                    ? t('settings.apiKeys.placeholder.githubToken')
                                                     : formData.provider === 'YAHOO_FINANCE'
                                                     ? t('settings.apiKeys.placeholder.optional')
                                                     : t('settings.apiKeys.placeholder.key'))}
@@ -220,11 +220,11 @@ export function ApiKeysTab({
 
                             {isLlmProvider && (
                                 <div className="space-y-2">
-                                    <Label>{t('settings.apiKeys.modelName', { defaultValue: 'Model Name' })}</Label>
+                                    <Label>{t('settings.apiKeys.modelName')}</Label>
                                     <Input
                                         value={formData.modelName || ''}
                                         onChange={(event) => onFormFieldChange('modelName', event.target.value)}
-                                        placeholder={t('settings.apiKeys.placeholder.modelName', { defaultValue: 'openai/gpt-5' })}
+                                        placeholder={t('settings.apiKeys.placeholder.modelName')}
                                     />
                                 </div>
                             )}
@@ -248,7 +248,7 @@ export function ApiKeysTab({
                                         value={formData.baseUrl}
                                         onChange={(event) => onFormFieldChange('baseUrl', event.target.value)}
                                         placeholder={isLlmProvider
-                                            ? t('settings.apiKeys.placeholder.llmBaseUrl', { defaultValue: 'https://models.github.ai/inference' })
+                                            ? t('settings.apiKeys.placeholder.llmBaseUrl')
                                             : t('settings.apiKeys.placeholder.baseUrl')}
                                     />
                                 </div>

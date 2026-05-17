@@ -22,12 +22,12 @@ import { Database, History, Key, Loader2, Zap } from 'lucide-react'
 import { DATA_SOURCE_TYPES } from './providerInfo'
 
 const BACKFILL_TYPES = [
-    { value: 'STOCK', label: 'Hisse' },
-    { value: 'FUND', label: 'Fon' },
-    { value: 'CURRENCY', label: 'Doviz' },
-    { value: 'INDEX', label: 'Endeks' },
-    { value: 'BOND', label: 'Tahvil/Bono' },
-    { value: 'VIOP', label: 'VIOP' },
+    { value: 'STOCK', i18nKey: 'settings.dataSources.backfill.types.stock' },
+    { value: 'FUND', i18nKey: 'settings.dataSources.backfill.types.fund' },
+    { value: 'CURRENCY', i18nKey: 'settings.dataSources.backfill.types.currency' },
+    { value: 'INDEX', i18nKey: 'settings.dataSources.backfill.types.index' },
+    { value: 'BOND', i18nKey: 'settings.dataSources.backfill.types.bond' },
+    { value: 'VIOP', i18nKey: 'settings.dataSources.backfill.types.viop' },
 ]
 
 export function DataSourcesTab({
@@ -62,16 +62,16 @@ export function DataSourcesTab({
                         <History className="h-5 w-5" />
                     </div>
                     <div>
-                        <h3 className="font-semibold">Gecmis Veri Backfill</h3>
+                        <h3 className="font-semibold">{t('settings.dataSources.backfill.title')}</h3>
                         <p className="text-sm text-muted-foreground">
-                            Yahoo hisse/endeks, TEFAS fon, TCMB doviz ve BIST DataStore tahvil/VIOP gecmisini price_history tablosuna yazar. Sentetik veri uretilmez.
+                            {t('settings.dataSources.backfill.description')}
                         </p>
                     </div>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-3">
                     <div className="space-y-2">
-                        <Label>Donem</Label>
+                        <Label>{t('settings.dataSources.backfill.period')}</Label>
                         <Select
                             value={backfillForm.days}
                             onValueChange={(value) => onBackfillFormChange('days', value)}
@@ -81,15 +81,15 @@ export function DataSourcesTab({
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="7">7 Gun</SelectItem>
-                                <SelectItem value="30">1 Ay</SelectItem>
-                                <SelectItem value="90">3 Ay</SelectItem>
-                                <SelectItem value="365">1 Yil</SelectItem>
+                                <SelectItem value="7">{t('settings.dataSources.backfill.periodOptions.7')}</SelectItem>
+                                <SelectItem value="30">{t('settings.dataSources.backfill.periodOptions.30')}</SelectItem>
+                                <SelectItem value="90">{t('settings.dataSources.backfill.periodOptions.90')}</SelectItem>
+                                <SelectItem value="365">{t('settings.dataSources.backfill.periodOptions.365')}</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label>Enstruman Limiti</Label>
+                        <Label>{t('settings.dataSources.backfill.instrumentLimit')}</Label>
                         <Input
                             type="number"
                             min="1"
@@ -100,11 +100,11 @@ export function DataSourcesTab({
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label>Opsiyonel Semboller</Label>
+                        <Label>{t('settings.dataSources.backfill.optionalSymbols')}</Label>
                         <Input
                             value={backfillForm.symbols}
                             onChange={(event) => onBackfillFormChange('symbols', event.target.value)}
-                            placeholder="THYAO,ASELS,USDTRY"
+                            placeholder={t('settings.dataSources.backfill.symbolsPlaceholder')}
                             disabled={isBackfillingMarketData}
                         />
                     </div>
@@ -118,7 +118,7 @@ export function DataSourcesTab({
                                 onCheckedChange={(checked) => onToggleBackfillType(type.value, Boolean(checked))}
                                 disabled={isBackfillingMarketData}
                             />
-                            {type.label}
+                            {t(type.i18nKey)}
                         </label>
                     ))}
                 </div>
@@ -127,9 +127,9 @@ export function DataSourcesTab({
                     <div className="mt-4 flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         <div>
-                            <p className="font-medium">Gecmis veri dolduruluyor</p>
+                            <p className="font-medium">{t('settings.dataSources.backfill.loadingTitle')}</p>
                             <p className="text-xs text-muted-foreground">
-                                Secilen kaynaklardan fiyat gecmisi cekiliyor; bu islem bir kac dakika surebilir.
+                                {t('settings.dataSources.backfill.loadingDescription')}
                             </p>
                         </div>
                     </div>
@@ -143,10 +143,10 @@ export function DataSourcesTab({
                         {isBackfillingMarketData ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Dolduruluyor...
+                                {t('settings.dataSources.backfill.buttonLoading')}
                             </>
                         ) : (
-                            'Gecmis Veriyi Doldur'
+                            t('settings.dataSources.backfill.button')
                         )}
                     </Button>
                 </div>
@@ -159,10 +159,10 @@ export function DataSourcesTab({
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Database className="h-5 w-5" />
-                    {t('settings.dataSources.title', { defaultValue: 'Veri Kaynaklari' })}
+                    {t('settings.dataSources.title')}
                 </CardTitle>
                 <CardDescription>
-                    {t('settings.dataSources.description', { defaultValue: 'Her veri turu icin kaynak secin' })}
+                    {t('settings.dataSources.description')}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -171,8 +171,8 @@ export function DataSourcesTab({
                         <Key className="h-10 w-10 mx-auto mb-3 opacity-50" />
                         <p className="mb-2">
                             {isAdmin
-                                ? t('settings.dataSources.noApiKeys', { defaultValue: 'Once API anahtari ekleyin' })
-                                : t('settings.dataSources.adminManaged', { defaultValue: 'API kaynaklari admin tarafindan yonetilir' })}
+                                ? t('settings.dataSources.noApiKeys')
+                                : t('settings.dataSources.adminManaged')}
                         </p>
                         {isAdmin && (
                             <Button variant="link" onClick={onOpenApiKeysTab}>
@@ -199,15 +199,15 @@ export function DataSourcesTab({
                                                 {isUnavailable
                                                     ? unavailableReason
                                                     : availableProviders.length > 0
-                                                    ? `${availableProviders.length} kaynak mevcut`
-                                                    : 'Kaynak yok - API anahtari ekleyin'}
+                                                    ? t('settings.dataSources.availableCount', { count: availableProviders.length })
+                                                    : t('settings.dataSources.noSourceAddKey')}
                                             </p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {isUnavailable ? (
                                             <Badge variant="secondary">
-                                                Dogrulanmis kaynak yok
+                                                {t('settings.dataSources.verifiedSourceNone')}
                                             </Badge>
                                         ) : availableProviders.length > 0 ? (
                                             <Select
@@ -227,7 +227,7 @@ export function DataSourcesTab({
                                             </Select>
                                         ) : (
                                             <Badge variant="secondary">
-                                                {t('settings.dataSources.noProvider', { defaultValue: 'Kaynak yok' })}
+                                                {t('settings.dataSources.noProvider')}
                                             </Badge>
                                         )}
                                         {currentPreference && (
@@ -249,7 +249,7 @@ export function DataSourcesTab({
                                 disabled={!apiConfigs.some((config) => config.isActive)}
                                 className="group"
                             >
-                                {t('settings.dataSources.refreshNow', { defaultValue: 'Verileri Simdi Guncelle' })}
+                                {t('settings.dataSources.refreshNow')}
                             </RefreshButton>
                         </div>
                     </div>

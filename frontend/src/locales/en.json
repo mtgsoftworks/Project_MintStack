@@ -29,7 +29,8 @@
         "openMenu": "Open menu",
         "closeMenu": "Close menu",
         "simulatedShort": "Simulated",
-        "forbidden": "You do not have permission for this action"
+        "forbidden": "You do not have permission for this action",
+        "unauthorized": "Unauthorized action"
     },
     "auth": {
         "login": "Login",
@@ -156,10 +157,90 @@
             "updateError": "Data fetch failed. Please try again.",
             "sourceUpdated": "source updated",
             "errorOccurred": "Error occurred",
-            "adminManaged": "API sources are managed by administrators"
+            "adminManaged": "API sources are managed by administrators",
+            "description": "Select a source for each data type",
+            "noApiKeys": "Add an API key first",
+            "policyDisabledHint": "This provider is disabled by policy.",
+            "availableCount": "{{count}} sources available",
+            "noSourceAddKey": "No source - add an API key",
+            "verifiedSourceNone": "No verified source",
+            "backfill": {
+                "title": "Historical Data Backfill",
+                "description": "Writes Yahoo stock/index, TEFAS fund, TCMB FX and BIST DataStore bond/VIOP history into price_history. No synthetic data is generated.",
+                "period": "Period",
+                "periodOptions": {
+                    "7": "7 Days",
+                    "30": "1 Month",
+                    "90": "3 Months",
+                    "365": "1 Year"
+                },
+                "instrumentLimit": "Instrument Limit",
+                "optionalSymbols": "Optional Symbols",
+                "symbolsPlaceholder": "THYAO,ASELS,USDTRY",
+                "types": {
+                    "stock": "Stock",
+                    "fund": "Fund",
+                    "currency": "Currency",
+                    "index": "Index",
+                    "bond": "Bond/Treasury",
+                    "viop": "VIOP"
+                },
+                "loadingTitle": "Backfill is running",
+                "loadingDescription": "Price history is being fetched from selected sources; this may take a few minutes.",
+                "buttonLoading": "Filling...",
+                "button": "Fill Historical Data",
+                "validation": {
+                    "selectType": "Select at least one instrument type"
+                },
+                "success": "Historical data saved: {{count}} records",
+                "error": "Historical data backfill failed"
+            }
         },
         "simulation": {
-            "title": "Simulation Mode"
+            "title": "Simulation Mode",
+            "active": "Simulation Active",
+            "bonds": "Bond & Treasury",
+            "config": "Simulation Settings",
+            "currencies": "Currency Rate",
+            "description": "Test with realistic market data without real APIs",
+            "disabled": "Simulation disabled",
+            "enable": "Enable Simulation Mode",
+            "enableDesc": "When enabled, simulated data is used instead of real APIs",
+            "enabled": "Simulation enabled",
+            "funds": "Investment Fund",
+            "indices": "Index",
+            "info1": "Generates simulated market data for stocks, FX, indices, bonds, funds and VIOP",
+            "info2": "Tests cache, listing, portfolio and alert flows without waiting for real API calls",
+            "info3": "Runs volatility/trend scenarios using GBM and Mean Reversion algorithms",
+            "info4": "Crypto simulation is removed from system scope",
+            "infoTitle": "About Simulation",
+            "interval": "Update Interval",
+            "intervalUpdated": "Update interval changed",
+            "marketHours": "Use Market Hours (10:00-18:00)",
+            "marketHoursDesc": "Runs 24/7 when disabled",
+            "randomEvents": "Random Market Events",
+            "randomEventsDesc": "Simulate unexpected price movements",
+            "reset": "Simulation reset",
+            "resetButton": "Reset Simulation",
+            "seconds": "seconds",
+            "stocks": "Stock",
+            "ticks": "Update",
+            "trend": {
+                "bearish": "Bearish (Downtrend)",
+                "bullish": "Bullish (Uptrend)",
+                "neutral": "Neutral",
+                "title": "Market Trend"
+            },
+            "trendUpdated": "Trend updated",
+            "viop": "VIOP",
+            "volatility": {
+                "extreme": "Extreme (Crisis Mode)",
+                "high": "High (Active Market)",
+                "low": "Low (Calm Market)",
+                "medium": "Medium (Normal)",
+                "title": "Volatility Level"
+            },
+            "volatilityUpdated": "Volatility updated"
         },
         "emailNotifications": "Email Notifications",
         "pushNotifications": "Push Notifications",
@@ -212,14 +293,17 @@
                 "modelName": "openai/gpt-5",
                 "secretKey": "Enter your secret key",
                 "baseUrl": "https://api.example.com",
-                "llmBaseUrl": "https://models.github.ai/inference"
+                "llmBaseUrl": "https://models.github.ai/inference",
+                "unchanged": "Leave blank to keep unchanged"
             },
             "validation": {
                 "required": "Please enter an API key",
                 "testRequired": "You must test before saving",
                 "tcmbInfo": "TCMB is free, test to verify.",
                 "optionalInfo": "API key is optional, you can leave it empty."
-            }
+            },
+            "fetchingData": "Fetching data...",
+            "dataFetched": "Data fetched successfully"
         },
         "providers": {
             "supported": "✅ Supported:",
@@ -332,6 +416,10 @@
                     ]
                 }
             }
+        },
+        "appearance": {
+            "darkMode": "Switch to dark mode",
+            "lightMode": "Switch to light mode"
         }
     },
     "dashboard": {
@@ -350,7 +438,8 @@
                 "noProvider": "Not Configured",
                 "noSource": "No Source",
                 "error": "Fetch Failed",
-                "addConfig": "Add in Settings"
+                "addConfig": "Add in Settings",
+                "noData": "No data"
             }
         }
     },
@@ -389,7 +478,12 @@
             "tickCount": "Tick Count",
             "stocks": "Stocks",
             "activeEvents": "Active Events",
-            "uptime": "Uptime"
+            "uptime": "Uptime",
+            "bonds": "Bond",
+            "currencies": "Currency",
+            "funds": "Fund",
+            "indices": "Index",
+            "viop": "VIOP"
         },
         "health": {
             "status": "Status",
@@ -466,7 +560,8 @@
         },
         "card": {
             "items_one": "{{count}} item",
-            "items_other": "{{count}} items"
+            "items_other": "{{count}} items",
+            "items": "{{count}} assets"
         },
         "dialog": {
             "title": "New Portfolio",
@@ -502,7 +597,8 @@
                 "effectiveSelling": "Effective Selling",
                 "change": "Change"
             }
-        }
+        },
+        "subtitleWithSource": "{{source}} live exchange rates"
     },
     "bondsPage": {
         "title": "Bonds & Treasury",
@@ -565,8 +661,12 @@
             "price": "Price",
             "change": "Change",
             "previousClose": "Previous Close",
-            "volume": "Volume"
-        }
+            "volume": "Volume",
+            "action": "Action"
+        },
+        "virtualMode": "Virtual List",
+        "paginatedMode": "Paginated",
+        "virtualInfo": "Showing {{visible}} / {{total}} stocks"
     },
     "notificationsPage": {
         "title": "Notifications",
@@ -860,7 +960,8 @@
                     "loading": "Deleting data...",
                     "success": "All data has been reset successfully!",
                     "error": "Error while deleting data: {{message}}",
-                    "unknownError": "Unknown error"
+                    "unknownError": "Unknown error",
+                    "progressDescription": "Deleting all data..."
                 }
             }
         },
@@ -868,7 +969,8 @@
             "title": "Clear Cache",
             "description": "Clear cached market data and temporary files.",
             "toastSuccess": "Cache cleared!",
-            "button": "Clear Cache"
+            "button": "Clear Cache",
+            "toastSuccessDetailed": "{{count}} cache entries cleared"
         }
     }
 }

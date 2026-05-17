@@ -30,43 +30,43 @@ export function SimulationTab({
         {
             key: 'stocks',
             value: simStatus?.stockCount || 0,
-            label: t('settings.simulation.stocks', { defaultValue: 'Hisse Senedi' }),
+            label: t('settings.simulation.stocks'),
             className: 'text-blue-600'
         },
         {
             key: 'currencies',
             value: simStatus?.currencyCount || 0,
-            label: t('settings.simulation.currencies', { defaultValue: 'Doviz Kuru' }),
+            label: t('settings.simulation.currencies'),
             className: 'text-green-600'
         },
         {
             key: 'indices',
             value: simStatus?.indexCount || 0,
-            label: t('settings.simulation.indices', { defaultValue: 'Endeks' }),
+            label: t('settings.simulation.indices'),
             className: 'text-purple-600'
         },
         {
             key: 'bonds',
             value: simStatus?.bondCount || 0,
-            label: t('settings.simulation.bonds', { defaultValue: 'Tahvil & Bono' }),
+            label: t('settings.simulation.bonds'),
             className: 'text-amber-600'
         },
         {
             key: 'funds',
             value: simStatus?.fundCount || 0,
-            label: t('settings.simulation.funds', { defaultValue: 'Yatirim Fonu' }),
+            label: t('settings.simulation.funds'),
             className: 'text-cyan-600'
         },
         {
             key: 'viop',
             value: simStatus?.viopCount || 0,
-            label: t('settings.simulation.viop', { defaultValue: 'VIOP' }),
+            label: t('settings.simulation.viop'),
             className: 'text-rose-600'
         },
         {
             key: 'ticks',
             value: simStatus?.tickCount || 0,
-            label: t('settings.simulation.ticks', { defaultValue: 'Guncelleme' }),
+            label: t('settings.simulation.ticks'),
             className: 'text-orange-600'
         }
     ]
@@ -76,10 +76,10 @@ export function SimulationTab({
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <FlaskConical className="h-5 w-5" />
-                    {t('settings.simulation.title', { defaultValue: 'Simulasyon Modu' })}
+                    {t('settings.simulation.title')}
                 </CardTitle>
                 <CardDescription>
-                    {t('settings.simulation.description', { defaultValue: 'Gercek API olmadan gercekci piyasa verileri ile test edin' })}
+                    {t('settings.simulation.description')}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -87,16 +87,16 @@ export function SimulationTab({
                     <div className="space-y-1">
                         <Label className="text-base font-semibold flex items-center gap-2">
                             <FlaskConical className="h-4 w-4" />
-                            {t('settings.simulation.enable', { defaultValue: 'Simulasyon Modunu Aktif Et' })}
+                            {t('settings.simulation.enable')}
                         </Label>
                         <p className="text-sm text-muted-foreground">
-                            {t('settings.simulation.enableDesc', { defaultValue: 'Aktif oldugunda gercek API yerine simule veriler kullanilir' })}
+                            {t('settings.simulation.enableDesc')}
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
                         {simConfig?.enabled && (
                             <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                                {t('settings.simulation.active', { defaultValue: 'Aktif' })}
+                                {t('settings.simulation.active')}
                             </span>
                         )}
                         <Switch checked={simConfig?.enabled || false} onCheckedChange={onToggleSimulation} />
@@ -116,10 +116,10 @@ export function SimulationTab({
 
                 {simConfig?.enabled && (
                     <div className="space-y-4 p-4 border rounded-lg">
-                        <h4 className="font-medium">{t('settings.simulation.config', { defaultValue: 'Simulasyon Ayarlari' })}</h4>
+                        <h4 className="font-medium">{t('settings.simulation.config')}</h4>
 
                         <div className="space-y-2">
-                            <Label>{t('settings.simulation.volatility', { defaultValue: 'Volatilite Seviyesi' })}</Label>
+                            <Label>{t('settings.simulation.volatility.title')}</Label>
                             <Select value={simConfig?.volatilityLevel || 'MEDIUM'} onValueChange={(value) => updateConfig({ volatilityLevel: value })}>
                                 <SelectTrigger>
                                     <SelectValue />
@@ -128,25 +128,25 @@ export function SimulationTab({
                                     <SelectItem value="LOW">
                                         <span className="flex items-center gap-2">
                                             <Minus className="h-4 w-4 text-green-500" />
-                                            {t('settings.simulation.volatility.low', { defaultValue: 'Dusuk (Sakin Piyasa)' })}
+                                            {t('settings.simulation.volatility.low')}
                                         </span>
                                     </SelectItem>
                                     <SelectItem value="MEDIUM">
                                         <span className="flex items-center gap-2">
                                             <TrendingUp className="h-4 w-4 text-blue-500" />
-                                            {t('settings.simulation.volatility.medium', { defaultValue: 'Orta (Normal)' })}
+                                            {t('settings.simulation.volatility.medium')}
                                         </span>
                                     </SelectItem>
                                     <SelectItem value="HIGH">
                                         <span className="flex items-center gap-2">
                                             <TrendingUp className="h-4 w-4 text-orange-500" />
-                                            {t('settings.simulation.volatility.high', { defaultValue: 'Yuksek (Hareketli)' })}
+                                            {t('settings.simulation.volatility.high')}
                                         </span>
                                     </SelectItem>
                                     <SelectItem value="EXTREME">
                                         <span className="flex items-center gap-2">
                                             <AlertCircle className="h-4 w-4 text-red-500" />
-                                            {t('settings.simulation.volatility.extreme', { defaultValue: 'Ekstrem (Kriz Modu)' })}
+                                            {t('settings.simulation.volatility.extreme')}
                                         </span>
                                     </SelectItem>
                                 </SelectContent>
@@ -154,7 +154,7 @@ export function SimulationTab({
                         </div>
 
                         <div className="space-y-2">
-                            <Label>{t('settings.simulation.trend', { defaultValue: 'Piyasa Trendi' })}</Label>
+                            <Label>{t('settings.simulation.trend.title')}</Label>
                             <Select value={simConfig?.marketTrend || 'NEUTRAL'} onValueChange={(value) => updateConfig({ marketTrend: value })}>
                                 <SelectTrigger>
                                     <SelectValue />
@@ -163,19 +163,19 @@ export function SimulationTab({
                                     <SelectItem value="BULLISH">
                                         <span className="flex items-center gap-2">
                                             <TrendingUp className="h-4 w-4 text-green-500" />
-                                            {t('settings.simulation.trend.bullish', { defaultValue: 'Boga (Yukselis)' })}
+                                            {t('settings.simulation.trend.bullish')}
                                         </span>
                                     </SelectItem>
                                     <SelectItem value="NEUTRAL">
                                         <span className="flex items-center gap-2">
                                             <Minus className="h-4 w-4 text-muted-foreground" />
-                                            {t('settings.simulation.trend.neutral', { defaultValue: 'Notr' })}
+                                            {t('settings.simulation.trend.neutral')}
                                         </span>
                                     </SelectItem>
                                     <SelectItem value="BEARISH">
                                         <span className="flex items-center gap-2">
                                             <TrendingDown className="h-4 w-4 text-red-500" />
-                                            {t('settings.simulation.trend.bearish', { defaultValue: 'Ayi (Dusus)' })}
+                                            {t('settings.simulation.trend.bearish')}
                                         </span>
                                     </SelectItem>
                                 </SelectContent>
@@ -183,26 +183,26 @@ export function SimulationTab({
                         </div>
 
                         <div className="space-y-2">
-                            <Label>{t('settings.simulation.interval', { defaultValue: 'Guncelleme Araligi' })}</Label>
+                            <Label>{t('settings.simulation.interval')}</Label>
                             <Select value={String(simConfig?.updateIntervalSeconds || 5)} onValueChange={(value) => updateConfig({ updateIntervalSeconds: parseInt(value, 10) })}>
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="1">1 {t('settings.simulation.seconds', { defaultValue: 'saniye' })}</SelectItem>
-                                    <SelectItem value="3">3 {t('settings.simulation.seconds', { defaultValue: 'saniye' })}</SelectItem>
-                                    <SelectItem value="5">5 {t('settings.simulation.seconds', { defaultValue: 'saniye' })}</SelectItem>
-                                    <SelectItem value="10">10 {t('settings.simulation.seconds', { defaultValue: 'saniye' })}</SelectItem>
-                                    <SelectItem value="30">30 {t('settings.simulation.seconds', { defaultValue: 'saniye' })}</SelectItem>
+                                    <SelectItem value="1">1 {t('settings.simulation.seconds')}</SelectItem>
+                                    <SelectItem value="3">3 {t('settings.simulation.seconds')}</SelectItem>
+                                    <SelectItem value="5">5 {t('settings.simulation.seconds')}</SelectItem>
+                                    <SelectItem value="10">10 {t('settings.simulation.seconds')}</SelectItem>
+                                    <SelectItem value="30">30 {t('settings.simulation.seconds')}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
                         <div className="flex items-center justify-between">
                             <div className="space-y-0.5">
-                                <Label>{t('settings.simulation.randomEvents', { defaultValue: 'Rastgele Piyasa Olaylari' })}</Label>
+                                <Label>{t('settings.simulation.randomEvents')}</Label>
                                 <p className="text-sm text-muted-foreground">
-                                    {t('settings.simulation.randomEventsDesc', { defaultValue: 'Beklenmedik fiyat hareketleri simule et' })}
+                                    {t('settings.simulation.randomEventsDesc')}
                                 </p>
                             </div>
                             <Switch
@@ -213,9 +213,9 @@ export function SimulationTab({
 
                         <div className="flex items-center justify-between">
                             <div className="space-y-0.5">
-                                <Label>{t('settings.simulation.marketHours', { defaultValue: 'Piyasa Saatlerini Kullan (10:00-18:00)' })}</Label>
+                                <Label>{t('settings.simulation.marketHours')}</Label>
                                 <p className="text-sm text-muted-foreground">
-                                    {t('settings.simulation.marketHoursDesc', { defaultValue: 'Kapaliyken 7/24 calisir' })}
+                                    {t('settings.simulation.marketHoursDesc')}
                                 </p>
                             </div>
                             <Switch
@@ -230,20 +230,20 @@ export function SimulationTab({
                     <div className="flex justify-end">
                         <Button variant="outline" onClick={onResetSimulation}>
                             <RotateCcw className="h-4 w-4 mr-2" />
-                            {t('settings.simulation.resetButton', { defaultValue: 'Simulasyonu Sifirla' })}
+                            {t('settings.simulation.resetButton')}
                         </Button>
                     </div>
                 )}
 
                 <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                     <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-                        {t('settings.simulation.infoTitle', { defaultValue: 'Simulasyon Hakkinda' })}
+                        {t('settings.simulation.infoTitle')}
                     </h4>
                     <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
-                        <li>{t('settings.simulation.info1', { defaultValue: 'Hisse, doviz, endeks, tahvil, fon ve VIOP icin simule piyasa verisi uretir' })}</li>
-                        <li>{t('settings.simulation.info2', { defaultValue: 'Gercek API cagrisini beklemeden cache, listeleme, portfoy ve alarm akisini test eder' })}</li>
-                        <li>{t('settings.simulation.info3', { defaultValue: 'GBM ve Mean Reversion algoritmalariyla volatilite/trend senaryolari calistirir' })}</li>
-                        <li>{t('settings.simulation.info4', { defaultValue: 'Kripto para simulasyonu sistem kapsamindan kaldirilmistir' })}</li>
+                        <li>{t('settings.simulation.info1')}</li>
+                        <li>{t('settings.simulation.info2')}</li>
+                        <li>{t('settings.simulation.info3')}</li>
+                        <li>{t('settings.simulation.info4')}</li>
                     </ul>
                 </div>
             </CardContent>

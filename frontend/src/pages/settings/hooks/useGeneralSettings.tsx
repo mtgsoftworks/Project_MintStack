@@ -130,8 +130,7 @@ export function useGeneralSettings({ t, i18n }) {
 
             const backendCaches = result.data?.clearedCaches || 0
             toast.success(t('settingsPage.cache.toastSuccessDetailed', {
-                count: backendCaches,
-                defaultValue: `${backendCaches} onbellek temizlendi`
+                count: backendCaches
             }))
         } catch {
             if ('caches' in window) {
@@ -148,7 +147,7 @@ export function useGeneralSettings({ t, i18n }) {
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-red-500 border-t-transparent" />
                 <div>
                     <p className="font-medium">{t('settingsPage.dangerZone.reset.toast.loading')}</p>
-                    <p className="text-xs text-muted-foreground">Tum veriler siliniyor...</p>
+                    <p className="text-xs text-muted-foreground">{t('settingsPage.dangerZone.reset.toast.progressDescription')}</p>
                 </div>
             </div>,
             { duration: Infinity }
