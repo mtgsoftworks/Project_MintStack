@@ -7,13 +7,16 @@ export function useAutoRefresh() {
   const refreshRate = useSelector(selectRefreshRate)
   const pollingInterval = autoUpdate && refreshRate > 0 ? refreshRate * 1000 : 0
 
+  // The global App refresh loop calls the backend refresh endpoint first, then
+  // invalidates RTK Query tags. Page queries should not run an independent
+  // frontend-only polling loop on the same interval.
   const queryOptions = useMemo(
     () => ({
-      pollingInterval,
+      pollingInterval: 0,
       refetchOnFocus: true,
       refetchOnReconnect: true,
     }),
-    [pollingInterval]
+    []
   )
 
   return {

@@ -3,10 +3,11 @@ import { useEffect, useRef, useCallback, Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import Keycloak from 'keycloak-js'
-import { setAuth, setInitialized } from '@/store/slices/authSlice'
+import { setAuth, setInitialized, selectIsAuthenticated } from '@/store/slices/authSlice'
 import { setKeycloakInstance } from '@/services/api'
 import { setKeycloakInstance as setApiKeycloakInstance } from '@/store/api/baseApi'
 import { baseApi } from '@/store/api/baseApi'
+import { marketApi } from '@/store/api/marketApi'
 import { selectAutoUpdate, selectRefreshRate, selectTheme } from '@/store/slices/uiSlice'
 import { AdminRoute, Layout, ProtectedRoute } from '@/components/layout'
 import websocketService from '@/services/websocketService'
@@ -57,12 +58,33 @@ if (typeof window !== 'undefined') {
 
 export { keycloak }
 
+const MARKET_REFRESH_DATA_TYPES = [
+  'CURRENCY_RATES',
+  'BIST_STOCKS',
+  'BIST_INDICES',
+  'BONDS',
+  'FUNDS',
+  'VIOP',
+]
+
+const MARKET_REFRESH_TAGS = [
+  'Currencies',
+  'Stocks',
+  'Bonds',
+  'Funds',
+  'Viop',
+  'Indices',
+  'Portfolios',
+]
+
 function App() {
   const dispatch = useDispatch()
+  const isAuthenticated = useSelector(selectIsAuthenticated)
   const autoUpdate = useSelector(selectAutoUpdate)
   const refreshRate = useSelector(selectRefreshRate)
   const theme = useSelector(selectTheme)
   const dataRefreshIntervalRef = useRef(null)
+  const dataRefreshInFlightRef = useRef(false)
   const tokenRefreshIntervalRef = useRef(null)
 
   // Apply theme class to document root
@@ -72,20 +94,28 @@ function App() {
     root.classList.add(theme)
   }, [theme])
 
-  // Function to trigger data refresh via WebSocket
-  const triggerDataRefresh = useCallback(() => {
-    dispatch(baseApi.util.invalidateTags([
-      'Currencies',
-      'Stocks',
-      'Bonds',
-      'Funds',
-      'Viop',
-      'Indices',
-      'Portfolios',
-    ]))
+  const triggerDataRefresh = useCallback(async () => {
+    if (dataRefreshInFlightRef.current) {
+      return
+    }
 
-    if (websocketService.isConnected) {
-      websocketService.requestPriceUpdate()
+    dataRefreshInFlightRef.current = true
+    try {
+      await dispatch(
+        marketApi.endpoints.refreshMarketData.initiate(
+          { dataTypes: MARKET_REFRESH_DATA_TYPES },
+          { track: false }
+        )
+      ).unwrap()
+      dispatch(baseApi.util.invalidateTags(MARKET_REFRESH_TAGS))
+    } catch (error) {
+      console.warn('[App] Scheduled backend market refresh failed:', error)
+      dispatch(baseApi.util.invalidateTags(MARKET_REFRESH_TAGS))
+    } finally {
+      if (websocketService.isConnected) {
+        websocketService.requestPriceUpdate()
+      }
+      dataRefreshInFlightRef.current = false
     }
   }, [dispatch])
 
@@ -97,11 +127,11 @@ function App() {
       dataRefreshIntervalRef.current = null
     }
 
-    // Only set up interval if auto-update is enabled
-    if (autoUpdate && refreshRate > 0) {
+    // Only set up interval if auto-update is enabled and the backend can be called with auth.
+    if (autoUpdate && refreshRate > 0 && isAuthenticated) {
       console.log(`[App] Auto-update enabled with ${refreshRate}s refresh rate`)
       dataRefreshIntervalRef.current = setInterval(() => {
-        console.log('[App] Triggering scheduled data refresh')
+        console.log('[App] Triggering scheduled backend data refresh')
         triggerDataRefresh()
       }, refreshRate * 1000)
     } else {
@@ -113,7 +143,7 @@ function App() {
         clearInterval(dataRefreshIntervalRef.current)
       }
     }
-  }, [autoUpdate, refreshRate, triggerDataRefresh])
+  }, [autoUpdate, refreshRate, isAuthenticated, triggerDataRefresh])
 
   useEffect(() => {
     if (import.meta.env.VITE_E2E_BYPASS_AUTH === 'true') {
