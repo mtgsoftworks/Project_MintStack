@@ -113,12 +113,51 @@ class MarketDataMaintenanceServiceTest {
 
         marketDataMaintenanceService.savePriceHistory(incoming);
 
+        assertThat(existing.getOpenPrice()).isEqualByComparingTo("90");
+        assertThat(existing.getHighPrice()).isEqualByComparingTo("110");
+        assertThat(existing.getLowPrice()).isEqualByComparingTo("85");
+        assertThat(existing.getClosePrice()).isEqualByComparingTo("108");
+        assertThat(existing.getAdjustedClose()).isEqualByComparingTo("108");
+        assertThat(existing.getVolume()).isEqualTo(500L);
+        verify(priceHistoryRepository).save(existing);
+    }
+
+    @Test
+    void savePriceHistory_ShouldReplaceSyntheticOhlcWithFullRange() {
+        UUID instrumentId = UUID.randomUUID();
+        LocalDate date = LocalDate.of(2026, 3, 3);
+
+        Instrument instrument = Instrument.builder().symbol("THYAO").build();
+        instrument.setId(instrumentId);
+        PriceHistory existing = PriceHistory.builder()
+            .instrument(instrument)
+            .priceDate(date)
+            .openPrice(new BigDecimal("108"))
+            .highPrice(new BigDecimal("108"))
+            .lowPrice(new BigDecimal("108"))
+            .closePrice(new BigDecimal("108"))
+            .adjustedClose(new BigDecimal("108"))
+            .build();
+
+        PriceHistory incoming = PriceHistory.builder()
+            .instrument(instrument)
+            .priceDate(date)
+            .openPrice(new BigDecimal("100"))
+            .highPrice(new BigDecimal("110"))
+            .lowPrice(new BigDecimal("99"))
+            .closePrice(new BigDecimal("108"))
+            .adjustedClose(new BigDecimal("108"))
+            .build();
+
+        when(priceHistoryRepository.findByInstrumentIdAndPriceDate(instrumentId, date))
+            .thenReturn(Optional.of(existing));
+
+        marketDataMaintenanceService.savePriceHistory(incoming);
+
         assertThat(existing.getOpenPrice()).isEqualByComparingTo("100");
         assertThat(existing.getHighPrice()).isEqualByComparingTo("110");
         assertThat(existing.getLowPrice()).isEqualByComparingTo("99");
         assertThat(existing.getClosePrice()).isEqualByComparingTo("108");
-        assertThat(existing.getAdjustedClose()).isEqualByComparingTo("108");
-        assertThat(existing.getVolume()).isEqualTo(500L);
         verify(priceHistoryRepository).save(existing);
     }
 

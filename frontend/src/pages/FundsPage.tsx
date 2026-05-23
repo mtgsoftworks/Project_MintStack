@@ -45,8 +45,9 @@ function FundTableSkeleton() {
   )
 }
 
-function hasFiniteChange(value) {
-  return value !== null && value !== undefined && Number.isFinite(Number(value))
+function hasMeaningfulChange(value) {
+  const numeric = Number(value)
+  return value !== null && value !== undefined && Number.isFinite(numeric) && numeric !== 0
 }
 
 export default function FundsPage() {
@@ -84,8 +85,10 @@ export default function FundsPage() {
   }, [searchQuery, pageSize, changeRange.queryParams.changeStartDate, changeRange.queryParams.changeEndDate])
 
   const filteredFunds = funds.filter((fund) =>
-    fund.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    fund.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    hasMeaningfulChange(fund.changePercent) && (
+      fund.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      fund.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
   ).sort((left, right) => left.symbol.localeCompare(right.symbol))
 
   return (
@@ -182,7 +185,7 @@ export default function FundsPage() {
                   </TableRow>
                 ) : (
                   filteredFunds.map((fund) => {
-                    const hasChange = hasFiniteChange(fund.changePercent)
+                    const hasChange = hasMeaningfulChange(fund.changePercent)
                     const isPositive = hasChange && Number(fund.changePercent) >= 0
 
                     return (

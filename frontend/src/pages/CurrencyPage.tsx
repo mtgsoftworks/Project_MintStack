@@ -52,8 +52,9 @@ function getDisplayRate(primaryRate, fallbackRate) {
   return Number.isFinite(fallback) && fallback > 0 ? fallbackRate : null
 }
 
-function hasFiniteChange(value) {
-  return value !== null && value !== undefined && Number.isFinite(Number(value))
+function hasMeaningfulChange(value) {
+  const numeric = Number(value)
+  return value !== null && value !== undefined && Number.isFinite(numeric) && numeric !== 0
 }
 
 export default function CurrencyPage() {
@@ -100,8 +101,10 @@ export default function CurrencyPage() {
   }
 
   const filteredCurrencies = currencies?.filter((currency) =>
-    currency.currencyCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    currency.currencyName?.toLowerCase().includes(searchQuery.toLowerCase())
+    hasMeaningfulChange(currency.changePercent) && (
+      currency.currencyCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      currency.currencyName?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
   ) || []
   const hasSimulatedCurrencies = filteredCurrencies.some((currency) => isSimulatedMarketData(currency))
 
@@ -244,7 +247,10 @@ export default function CurrencyPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {['USD', 'EUR', 'GBP', 'CHF'].map((code) => {
           const currency = currencies?.find(c => c.currencyCode === code)
-          const hasChange = hasFiniteChange(currency?.changePercent)
+          const hasChange = hasMeaningfulChange(currency?.changePercent)
+          if (!hasChange) {
+            return null
+          }
           const change = hasChange ? Number(currency.changePercent) : null
           const simulatedCurrency = isSimulatedMarketData(currency)
 
@@ -322,7 +328,7 @@ export default function CurrencyPage() {
                   </TableRow>
                 ) : (
                   filteredCurrencies.map((currency) => {
-                    const hasChange = hasFiniteChange(currency.changePercent)
+                    const hasChange = hasMeaningfulChange(currency.changePercent)
                     const isPositive = hasChange && Number(currency.changePercent) >= 0
 
                     return (

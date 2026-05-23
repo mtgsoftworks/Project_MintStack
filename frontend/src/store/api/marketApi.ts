@@ -64,7 +64,7 @@ export const marketApi = baseApi.injectEndpoints({
           }
         }
 
-        const daysMap = { '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365 }
+        const daysMap = { '1D': 1, '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365 }
         const resolvedDays = days ?? daysMap[period] ?? 30
 
         return {

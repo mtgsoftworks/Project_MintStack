@@ -372,6 +372,95 @@ class MarketDataServiceTest {
     }
 
     @Test
+    @DisplayName("getInstrumentsByType with 1D range should calculate change from today's open")
+    void getInstrumentsByType_WithOneDayRange_ShouldCalculateChangeFromTodayOpen() {
+        Pageable pageable = PageRequest.of(0, 10);
+        LocalDate today = LocalDate.now();
+        thyaoStock.setCurrentPrice(new BigDecimal("120.000000"));
+        thyaoStock.setPreviousClose(new BigDecimal("109.000000"));
+
+        PriceHistory todayHistory = PriceHistory.builder()
+                .instrument(thyaoStock)
+                .priceDate(today)
+                .openPrice(new BigDecimal("110.000000"))
+                .closePrice(new BigDecimal("120.000000"))
+                .build();
+
+        when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType.STOCK, false, pageable))
+                .thenReturn(new PageImpl<>(List.of(thyaoStock), pageable, 1));
+        when(priceHistoryRepository.findByInstrumentIdOrderByPriceDateDesc(eq(thyaoStock.getId()), any(Pageable.class)))
+                .thenReturn(List.of(todayHistory));
+        when(priceHistoryRepository.findByInstrumentIdAndPriceDate(thyaoStock.getId(), today))
+                .thenReturn(Optional.of(todayHistory));
+
+        Page<InstrumentResponse> result = marketDataService.getInstrumentsByType(
+                InstrumentType.STOCK,
+                pageable,
+                today,
+                today
+        );
+
+        InstrumentResponse response = result.getContent().get(0);
+        assertThat(response.getChangeBasePrice()).isEqualByComparingTo(new BigDecimal("110.000000"));
+        assertThat(response.getChange()).isEqualByComparingTo(new BigDecimal("10.000000"));
+        assertThat(response.getChangePercent()).isEqualByComparingTo(new BigDecimal("9.090900"));
+        assertThat(response.getChangeStartDate()).isEqualTo(today);
+        assertThat(response.getChangeEndDate()).isEqualTo(today);
+    }
+
+    @Test
+    @DisplayName("getInstrumentsByType with 1D range should use latest session open when today's history is synthetic")
+    void getInstrumentsByType_WithOneDayRange_ShouldUseLatestSessionOpenForSyntheticTodayHistory() {
+        Pageable pageable = PageRequest.of(0, 10);
+        LocalDate today = LocalDate.now();
+        thyaoStock.setCurrentPrice(new BigDecimal("120.000000"));
+        thyaoStock.setPreviousClose(new BigDecimal("120.000000"));
+
+        PriceHistory todayHistory = PriceHistory.builder()
+                .instrument(thyaoStock)
+                .priceDate(today)
+                .openPrice(new BigDecimal("120.000000"))
+                .highPrice(new BigDecimal("120.000000"))
+                .lowPrice(new BigDecimal("120.000000"))
+                .closePrice(new BigDecimal("120.000000"))
+                .adjustedClose(new BigDecimal("120.000000"))
+                .build();
+        PriceHistory previousHistory = PriceHistory.builder()
+                .instrument(thyaoStock)
+                .priceDate(today.minusDays(1))
+                .openPrice(new BigDecimal("100.000000"))
+                .highPrice(new BigDecimal("125.000000"))
+                .lowPrice(new BigDecimal("99.000000"))
+                .closePrice(new BigDecimal("110.000000"))
+                .adjustedClose(new BigDecimal("110.000000"))
+                .build();
+
+        when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType.STOCK, false, pageable))
+                .thenReturn(new PageImpl<>(List.of(thyaoStock), pageable, 1));
+        when(priceHistoryRepository.findByInstrumentIdOrderByPriceDateDesc(eq(thyaoStock.getId()), any(Pageable.class)))
+                .thenReturn(List.of(todayHistory, previousHistory));
+        when(priceHistoryRepository.findByInstrumentIdAndPriceDate(thyaoStock.getId(), today))
+                .thenReturn(Optional.of(todayHistory));
+        when(priceHistoryRepository.findByInstrumentIdAndPriceDateLessThanEqualOrderByPriceDateDesc(
+                eq(thyaoStock.getId()), eq(today.minusDays(1)), any(Pageable.class)))
+                .thenReturn(List.of(previousHistory));
+
+        Page<InstrumentResponse> result = marketDataService.getInstrumentsByType(
+                InstrumentType.STOCK,
+                pageable,
+                today,
+                today
+        );
+
+        InstrumentResponse response = result.getContent().get(0);
+        assertThat(response.getChangeBasePrice()).isEqualByComparingTo(new BigDecimal("100.000000"));
+        assertThat(response.getChange()).isEqualByComparingTo(new BigDecimal("20.000000"));
+        assertThat(response.getChangePercent()).isEqualByComparingTo(new BigDecimal("20.000000"));
+        assertThat(response.getChangeStartDate()).isEqualTo(today.minusDays(1));
+        assertThat(response.getChangeEndDate()).isEqualTo(today);
+    }
+
+    @Test
     @DisplayName("getInstrumentsByType with pagination should not fabricate stock change for sparse flat history")
     void getInstrumentsByType_WithPagination_ShouldNotFabricateStockChangeForSparseFlatHistory() {
         Pageable pageable = PageRequest.of(0, 10);

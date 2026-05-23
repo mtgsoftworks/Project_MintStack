@@ -49,13 +49,14 @@ function StockTableSkeleton() {
   )
 }
 
-function hasFiniteChange(value) {
-  return value !== null && value !== undefined && Number.isFinite(Number(value))
+function hasMeaningfulChange(value) {
+  const numeric = Number(value)
+  return value !== null && value !== undefined && Number.isFinite(numeric) && numeric !== 0
 }
 
 // Virtual scrolling stock row component
 function VirtualStockRow({ stock, selectedPortfolioId }) {
-  const hasChange = hasFiniteChange(stock.changePercent)
+  const hasChange = hasMeaningfulChange(stock.changePercent)
   const isPositive = hasChange && Number(stock.changePercent) >= 0
 
   return (
@@ -163,8 +164,10 @@ export default function StocksPage() {
   const totalElements = data?.pagination?.totalElements || 0
 
   const filteredStocks = stocks.filter((stock) =>
-    stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    stock.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    hasMeaningfulChange(stock.changePercent) && (
+      stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      stock.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
   )
 
   // Virtual scrolling setup
@@ -423,7 +426,7 @@ export default function StocksPage() {
                     </TableRow>
                   ) : (
                     filteredStocks.map((stock) => {
-                      const hasChange = hasFiniteChange(stock.changePercent)
+                      const hasChange = hasMeaningfulChange(stock.changePercent)
                       const isPositive = hasChange && Number(stock.changePercent) >= 0
 
                       return (

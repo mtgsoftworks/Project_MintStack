@@ -45,6 +45,11 @@ function BondTableSkeleton() {
   )
 }
 
+function hasMeaningfulChange(value) {
+  const numeric = Number(value)
+  return value !== null && value !== undefined && Number.isFinite(numeric) && numeric !== 0
+}
+
 export default function BondsPage() {
   const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
@@ -81,8 +86,10 @@ export default function BondsPage() {
   }, [searchQuery, pageSize, changeRange.queryParams.changeStartDate, changeRange.queryParams.changeEndDate])
 
   const filteredBonds = bonds.filter((bond) =>
-    bond.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    bond.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    hasMeaningfulChange(bond.changePercent) && (
+      bond.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      bond.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
   ).sort((left, right) => left.symbol.localeCompare(right.symbol))
 
   return (
@@ -180,7 +187,7 @@ export default function BondsPage() {
                   </TableRow>
                 ) : (
                   filteredBonds.map((bond) => {
-                    const hasChange = bond.changePercent !== null && bond.changePercent !== undefined
+                    const hasChange = hasMeaningfulChange(bond.changePercent)
                     const isPositive = hasChange && bond.changePercent >= 0
 
                     return (

@@ -39,7 +39,7 @@ import {
 import PriceChart from '@/components/charts/PriceChart'
 
 const PERIOD_DAYS = {
-  '1D': 1,
+  '1D': 0,
   '1W': 7,
   '1M': 30,
   '3M': 90,
@@ -54,7 +54,8 @@ function formatDateInput(date: Date) {
 }
 
 function hasFiniteChange(value) {
-  return value !== null && value !== undefined && Number.isFinite(Number(value))
+  const numeric = Number(value)
+  return value !== null && value !== undefined && Number.isFinite(numeric) && numeric !== 0
 }
 
 export default function StockDetailPage() {
@@ -66,7 +67,7 @@ export default function StockDetailPage() {
   const [quantity, setQuantity] = useState('1')
   const { refreshAndRefetch, isRefreshingMarketData } = useMarketDataRefresh(['BIST_STOCKS'])
   const changeRangeParams = useMemo(() => {
-    const days = PERIOD_DAYS[period] || 30
+    const days = PERIOD_DAYS[period] ?? 30
     const endDate = new Date()
     const startDate = new Date(endDate)
     startDate.setDate(startDate.getDate() - days)

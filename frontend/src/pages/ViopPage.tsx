@@ -45,6 +45,11 @@ function ViopTableSkeleton() {
   )
 }
 
+function hasMeaningfulChange(value) {
+  const numeric = Number(value)
+  return value !== null && value !== undefined && Number.isFinite(numeric) && numeric !== 0
+}
+
 export default function ViopPage() {
   const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
@@ -82,8 +87,10 @@ export default function ViopPage() {
 
   const filteredViop = viop
     .filter((contract) =>
-      contract.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      contract.name?.toLowerCase().includes(searchQuery.toLowerCase())
+      hasMeaningfulChange(contract.changePercent) && (
+        contract.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        contract.name?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
     )
     .sort((left, right) => {
       const leftVolume = Number(left.volume ?? 0)
@@ -190,9 +197,7 @@ export default function ViopPage() {
                 ) : (
                   filteredViop.map((contract) => {
                     const hasVolume = contract.volume !== null && contract.volume !== undefined
-                    const hasChange = contract.changePercent !== null
-                      && contract.changePercent !== undefined
-                      && Number.isFinite(Number(contract.changePercent))
+                    const hasChange = hasMeaningfulChange(contract.changePercent)
                     const isPositive = hasChange && Number(contract.changePercent) > 0
 
                     return (

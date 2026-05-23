@@ -730,7 +730,7 @@ public class MarketDataService {
         CurrencyRate startRate = findCurrencyRateAtOrBefore(
             currentRate.getCurrencyCode(),
             currentRate.getSource(),
-            changeRange.startDate().atTime(23, 59, 59)
+            changeRange.startDate().atStartOfDay()
         );
         CurrencyRate endRate = changeRange.endDate().isBefore(LocalDate.now())
             ? findCurrencyRateAtOrBefore(
@@ -807,7 +807,12 @@ public class MarketDataService {
         }
 
         if (changeRange != null) {
-            InstrumentRangeChange rangeChange = calculateInstrumentRangeChange(instrument, currentPrice, changeRange);
+            InstrumentRangeChange rangeChange = calculateInstrumentRangeChange(
+                instrument,
+                currentPrice,
+                positiveOrFallback(instrument.getPreviousClose(), metrics.previousClose()),
+                changeRange
+            );
             change = rangeChange.change();
             changePercent = rangeChange.changePercent();
             changeBasePrice = rangeChange.basePrice();
@@ -847,15 +852,19 @@ public class MarketDataService {
     private InstrumentRangeChange calculateInstrumentRangeChange(
             Instrument instrument,
             BigDecimal currentPrice,
+            BigDecimal openingBasePrice,
             ChangeDateRange changeRange) {
         if (instrument == null || instrument.getId() == null || changeRange == null) {
             return InstrumentRangeChange.empty();
         }
 
-        PricePoint startPoint = findPricePointAtOrBefore(instrument.getId(), changeRange.startDate());
-        PricePoint endPoint = changeRange.endDate().isBefore(LocalDate.now())
+        LocalDate today = LocalDate.now();
+        PricePoint startPoint = changeRange.startDate().isEqual(today)
+            ? findOpeningPricePoint(instrument.getId(), today, openingBasePrice)
+            : findPricePointAtOrBefore(instrument.getId(), changeRange.startDate());
+        PricePoint endPoint = changeRange.endDate().isBefore(today)
             ? findPricePointAtOrBefore(instrument.getId(), changeRange.endDate())
-            : new PricePoint(currentPrice, LocalDate.now());
+            : new PricePoint(currentPrice, today);
 
         if (startPoint == null || endPoint == null) {
             return InstrumentRangeChange.empty();
@@ -875,6 +884,84 @@ public class MarketDataService {
             startPoint.date(),
             endPoint.date()
         );
+    }
+
+    private PricePoint findOpeningPricePoint(UUID instrumentId, LocalDate date, BigDecimal fallbackOpenPrice) {
+        if (instrumentId == null || date == null) {
+            return null;
+        }
+
+        PricePoint previousClosePoint = findPricePointAtOrBefore(instrumentId, date.minusDays(1));
+        PriceHistory todayHistory = priceHistoryRepository.findByInstrumentIdAndPriceDate(instrumentId, date).orElse(null);
+        BigDecimal historyOpen = todayHistory != null
+            ? positiveOrFallback(todayHistory.getOpenPrice(), todayHistory.getClosePrice())
+            : null;
+        if (isPositive(historyOpen) && !isSinglePriceHistory(todayHistory)) {
+            return new PricePoint(historyOpen, date);
+        }
+
+        if (isSinglePriceHistory(todayHistory)) {
+            PricePoint latestSessionOpen = findLatestSessionOpenAtOrBefore(instrumentId, date.minusDays(1));
+            if (latestSessionOpen != null && isPositive(latestSessionOpen.price())) {
+                return latestSessionOpen;
+            }
+        }
+
+        if (previousClosePoint != null && isPositive(previousClosePoint.price())) {
+            return new PricePoint(previousClosePoint.price(), date);
+        }
+
+        if (isPositive(fallbackOpenPrice)) {
+            return new PricePoint(fallbackOpenPrice, date);
+        }
+
+        if (isPositive(historyOpen)) {
+            return new PricePoint(historyOpen, date);
+        }
+
+        return null;
+    }
+
+    private PricePoint findLatestSessionOpenAtOrBefore(UUID instrumentId, LocalDate date) {
+        if (instrumentId == null || date == null) {
+            return null;
+        }
+        List<PriceHistory> history = priceHistoryRepository
+            .findByInstrumentIdAndPriceDateLessThanEqualOrderByPriceDateDesc(
+                instrumentId,
+                date,
+                PageRequest.of(0, 20)
+            );
+        if (history == null || history.isEmpty()) {
+            return null;
+        }
+        for (PriceHistory point : history) {
+            if (point == null || isSinglePriceHistory(point)) {
+                continue;
+            }
+            BigDecimal open = positiveOrFallback(point.getOpenPrice(), point.getClosePrice());
+            if (isPositive(open)) {
+                return new PricePoint(open, point.getPriceDate());
+            }
+        }
+        return null;
+    }
+
+    private boolean isSinglePriceHistory(PriceHistory history) {
+        if (history == null) {
+            return false;
+        }
+        BigDecimal close = positiveOrFallback(history.getAdjustedClose(), history.getClosePrice());
+        if (!isPositive(close)) {
+            return false;
+        }
+        return matchesOrMissing(history.getOpenPrice(), close)
+            && matchesOrMissing(history.getHighPrice(), close)
+            && matchesOrMissing(history.getLowPrice(), close);
+    }
+
+    private boolean matchesOrMissing(BigDecimal value, BigDecimal reference) {
+        return value == null || value.compareTo(reference) == 0;
     }
 
     private PricePoint findPricePointAtOrBefore(UUID instrumentId, LocalDate date) {

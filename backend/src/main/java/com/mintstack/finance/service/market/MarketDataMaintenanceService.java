@@ -59,14 +59,19 @@ public class MarketDataMaintenanceService {
         Optional<PriceHistory> existing = priceHistoryRepository.findByInstrumentIdAndPriceDate(instrumentId, priceDate);
         if (existing.isPresent()) {
             PriceHistory current = existing.get();
-            if (priceHistory.getOpenPrice() != null) {
+            boolean replaceSyntheticOhlc = isSinglePriceHistory(current) && hasIntradayRange(priceHistory);
+            if (priceHistory.getOpenPrice() != null && (!isPositive(current.getOpenPrice()) || replaceSyntheticOhlc)) {
                 current.setOpenPrice(priceHistory.getOpenPrice());
             }
             if (priceHistory.getHighPrice() != null) {
-                current.setHighPrice(priceHistory.getHighPrice());
+                current.setHighPrice(replaceSyntheticOhlc
+                    ? priceHistory.getHighPrice()
+                    : maxPositive(current.getHighPrice(), priceHistory.getHighPrice()));
             }
             if (priceHistory.getLowPrice() != null) {
-                current.setLowPrice(priceHistory.getLowPrice());
+                current.setLowPrice(replaceSyntheticOhlc
+                    ? priceHistory.getLowPrice()
+                    : minPositive(current.getLowPrice(), priceHistory.getLowPrice()));
             }
             if (priceHistory.getClosePrice() != null) {
                 current.setClosePrice(priceHistory.getClosePrice());
@@ -82,6 +87,76 @@ public class MarketDataMaintenanceService {
         }
 
         priceHistoryRepository.save(priceHistory);
+    }
+
+    private boolean isSinglePriceHistory(PriceHistory history) {
+        if (history == null) {
+            return false;
+        }
+        BigDecimal close = firstPositive(history.getAdjustedClose(), history.getClosePrice());
+        if (!isPositive(close)) {
+            return false;
+        }
+        return matchesOrMissing(history.getOpenPrice(), close)
+            && matchesOrMissing(history.getHighPrice(), close)
+            && matchesOrMissing(history.getLowPrice(), close);
+    }
+
+    private boolean hasIntradayRange(PriceHistory history) {
+        if (history == null) {
+            return false;
+        }
+        BigDecimal close = firstPositive(history.getAdjustedClose(), history.getClosePrice());
+        if (!isPositive(close)) {
+            return false;
+        }
+        return differsFrom(history.getOpenPrice(), close)
+            || differsFrom(history.getHighPrice(), close)
+            || differsFrom(history.getLowPrice(), close);
+    }
+
+    private boolean differsFrom(BigDecimal value, BigDecimal reference) {
+        return value != null && value.compareTo(reference) != 0;
+    }
+
+    private boolean matchesOrMissing(BigDecimal value, BigDecimal reference) {
+        return value == null || value.compareTo(reference) == 0;
+    }
+
+    private BigDecimal maxPositive(BigDecimal current, BigDecimal incoming) {
+        if (!isPositive(current)) {
+            return incoming;
+        }
+        if (!isPositive(incoming)) {
+            return current;
+        }
+        return current.max(incoming);
+    }
+
+    private BigDecimal minPositive(BigDecimal current, BigDecimal incoming) {
+        if (!isPositive(current)) {
+            return incoming;
+        }
+        if (!isPositive(incoming)) {
+            return current;
+        }
+        return current.min(incoming);
+    }
+
+    private BigDecimal firstPositive(BigDecimal... values) {
+        if (values == null) {
+            return null;
+        }
+        for (BigDecimal value : values) {
+            if (isPositive(value)) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private boolean isPositive(BigDecimal value) {
+        return value != null && value.compareTo(BigDecimal.ZERO) > 0;
     }
 
     @Transactional
