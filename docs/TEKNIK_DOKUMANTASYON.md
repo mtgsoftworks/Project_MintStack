@@ -6,11 +6,22 @@
 |---|---|
 | Proje | MintStack Finance Portal |
 | Tarih | 2026-05-15 |
-| Backend | Java 17, Spring Boot 3.4.2 |
+| Backend | Java 21, Spring Boot 3.4.2 |
 | Frontend | React 18, TypeScript 5.9, Vite 5 |
 | DB | PostgreSQL 15, Flyway |
 | Cache | Redis 7 |
 | Auth | Keycloak 26 |
+
+## Teslim Durumu
+
+7 Haziran teslim checklisti `docs/DELIVERY_CHECKLIST.md` dosyasinda tutulur. Finans Portali kapsamindaki teknik isterler tamamlanmistir; IT Servis - Ticket Yonetimi ve jBPM maddesi bu repo icin kapsam disidir.
+
+Teslim artifactleri:
+
+- Analiz dokumani: `docs/MintStack_Finance_Portal_Analiz_Raporu.md/.docx`
+- Teknik analiz dokumani: `docs/TEKNIK_DOKUMANTASYON.md`, `docs/MintStack_Finance_Portal_Teknik_Analiz.docx`
+- Javadocs: `docs/MintStack_Backend_Javadocs.zip`
+- Sunum: `docs/MintStack_Finance_Portal_Sunum.pptx`
 
 ## Amac
 
@@ -24,6 +35,7 @@ Kullanicilarin portfoylerini, doviz/fon/hisse gibi finansal enstrumanlari, haber
 - Teknik analiz: RSI, MACD, Bollinger, SMA/EMA, Stochastic, ATR, ADX, OBV, VWAP, CCI, MFI, Williams %R.
 - Admin: kullanici, rate limit, runtime settings, glossary, simulation, observability.
 - CI/CD: backend verify, Flyway migrate+validate, frontend kalite kontrolleri ve compose validation.
+- Observability: Prometheus metrikleri, OpenSearch log arama, Log4j2 -> Kafka -> Logstash -> OpenSearch log hatti ve OTLP tracing.
 
 ## Mimari
 
@@ -107,6 +119,8 @@ Not: Kripto para destegi aktif kullanici akisi kapsamindan cikarilmistir; schedu
 | `APP_NEWS_*` | RSS haber ayarlari |
 | `APP_NEWS_LLM_*` | LLM enrichment endpoint/model/key ayarlari |
 | `APP_ALERT_WEBHOOK_*` | Alert webhook signature ve IP allowlist ayarlari |
+| `MANAGEMENT_OTLP_TRACING_ENDPOINT` | Backend trace verisini OTEL Collector HTTP endpointine gonderir |
+| `MANAGEMENT_TRACING_ENABLED` | Light ortamda tracing exportunu kapatmak icin kullanilir |
 
 LLM GitHub Models ornegi:
 

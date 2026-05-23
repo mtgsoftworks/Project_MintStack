@@ -26,11 +26,12 @@
         "next": "İleri",
         "submit": "Gönder",
         "noData": "Veri bulunamadı",
+        "unknown": "Bilinmiyor",
         "openMenu": "Menuyu ac",
         "closeMenu": "Menuyu kapat",
         "simulatedShort": "Simule",
         "forbidden": "Bu islem icin yetkiniz yok",
-        "unauthorized": "Bu i?lem i?in yetkiniz yok"
+        "unauthorized": "Bu işlem için yetkiniz yok"
     },
     "auth": {
         "login": "Giriş Yap",
@@ -119,7 +120,41 @@
         "addInstrument": "Enstrüman Ekle",
         "removeInstrument": "Enstrümanı Kaldır",
         "empty": "Listeniz boş",
-        "maxItems": "Maksimum {{count}} enstrüman ekleyebilirsiniz"
+        "maxItems": "Maksimum {{count}} enstrüman ekleyebilirsiniz",
+        "invalidSymbol": "Geçerli sembol bulunamadı",
+        "addedToList": "{{symbol}} {{list}} listesine eklendi",
+        "addFailed": "Watchlist ekleme başarısız oldu",
+        "addDefaultTitle": "Varsayılan watchlist'e ekle",
+        "columns": {
+            "type": "Tür",
+            "price": "Fiyat",
+            "change": "Değişim",
+            "addedAt": "Eklenme",
+            "note": "Not"
+        },
+        "nameRequired": "Watchlist adı zorunludur",
+        "created": "Watchlist oluşturuldu",
+        "settingsSaved": "Watchlist ayarları kaydedildi",
+        "deleted": "Watchlist silindi",
+        "selectListAndSymbol": "Önce izleme listesi ve sembol seçin",
+        "assetAdded": "Varlık izleme listesine eklendi",
+        "noteUpdated": "{{symbol}} notu güncellendi",
+        "saveSettings": "Liste Ayarlarını Kaydet",
+        "listName": "Liste Adı",
+        "description": "Açıklama",
+        "tag": "Etiket",
+        "tagPlaceholder": "ör: temettü",
+        "listNote": "Liste Notu",
+        "listNotePlaceholder": "Bu liste için genel not",
+        "customColumns": "Özel Kolonlar",
+        "rowHelp": "Sürükle-bırak ile sırala, varlık notlarını satırdan düzenle.",
+        "symbolsLoading": "Semboller yükleniyor...",
+        "symbolPlaceholder": "Sembol seçin veya yazın",
+        "addAsset": "Varlık Ekle",
+        "deleteTitle": "İzleme listesini sil",
+        "addNote": "Not ekle",
+        "emptyAddFirst": "Yukarıdaki sembol alanından ilk varlığı ekleyin.",
+        "shortDescription": "Kısa açıklama"
     },
     "alerts": {
         "title": "Fiyat Alarmları",
@@ -131,14 +166,16 @@
         "targetPrice": "Hedef Fiyat",
         "triggered": "Tetiklendi",
         "active": "Aktif",
-        "inactive": "Pasif"
+        "inactive": "Pasif",
+        "instrumentHelp": "Hisse, tahvil/bono, fon, VİOP ve döviz sembolleri sıralı listeden seçilebilir."
     },
     "news": {
         "title": "Finansal Haberler",
         "latest": "Son Haberler",
         "featured": "Öne Çıkanlar",
         "readMore": "Devamını Oku",
-        "categories": "Kategoriler"
+        "categories": "Kategoriler",
+        "imageAlt": "Haber görseli"
     },
     "settings": {
         "title": "Ayarlar",
@@ -158,89 +195,89 @@
             "sourceUpdated": "kaynağı güncellendi",
             "errorOccurred": "Hata oluştu",
             "adminManaged": "API kaynaklari admin tarafindan yonetilir",
-            "description": "Her veri t?r? i?in kaynak se?in",
-            "noApiKeys": "?nce API anahtar? ekleyin",
-            "policyDisabledHint": "Bu sa?lay?c? policy gere?i pasif durumda.",
+            "description": "Her veri türü için kaynak seçin",
+            "noApiKeys": "Önce API anahtarı ekleyin",
+            "policyDisabledHint": "Bu sağlayıcı policy gereği pasif durumda.",
             "availableCount": "{{count}} kaynak mevcut",
-            "noSourceAddKey": "Kaynak yok - API anahtar? ekleyin",
-            "verifiedSourceNone": "Do?rulanm?? kaynak yok",
+            "noSourceAddKey": "Kaynak yok - API anahtarı ekleyin",
+            "verifiedSourceNone": "Doğrulanmış kaynak yok",
             "backfill": {
-                "title": "Ge?mi? Veri Backfill",
-                "description": "Yahoo hisse/endeks, TEFAS fon, TCMB d?viz ve BIST DataStore tahvil/V?OP ge?mi?ini price_history tablosuna yazar. Sentetik veri ?retilmez.",
-                "period": "D?nem",
+                "title": "Geçmiş Veri Backfill",
+                "description": "Yahoo hisse/endeks, TEFAS fon, TCMB döviz ve BIST DataStore tahvil/VİOP geçmişini price_history tablosuna yazar. Sentetik veri üretilmez.",
+                "period": "Dönem",
                 "periodOptions": {
-                    "7": "7 G?n",
+                    "7": "7 Gün",
                     "30": "1 Ay",
                     "90": "3 Ay",
-                    "365": "1 Y?l"
+                    "365": "1 Yıl"
                 },
-                "instrumentLimit": "Enstr?man Limiti",
+                "instrumentLimit": "Enstrüman Limiti",
                 "optionalSymbols": "Opsiyonel Semboller",
                 "symbolsPlaceholder": "THYAO,ASELS,USDTRY",
                 "types": {
                     "stock": "Hisse",
                     "fund": "Fon",
-                    "currency": "D?viz",
+                    "currency": "Döviz",
                     "index": "Endeks",
                     "bond": "Tahvil/Bono",
-                    "viop": "V?OP"
+                    "viop": "VİOP"
                 },
-                "loadingTitle": "Ge?mi? veri dolduruluyor",
-                "loadingDescription": "Se?ilen kaynaklardan fiyat ge?mi?i ?ekiliyor; bu i?lem birka? dakika s?rebilir.",
+                "loadingTitle": "Geçmiş veri dolduruluyor",
+                "loadingDescription": "Seçilen kaynaklardan fiyat geçmişi çekiliyor; bu işlem birkaç dakika sürebilir.",
                 "buttonLoading": "Dolduruluyor...",
-                "button": "Ge?mi? Veriyi Doldur",
+                "button": "Geçmiş Veriyi Doldur",
                 "validation": {
-                    "selectType": "En az bir enstr?man tipi se?in"
+                    "selectType": "En az bir enstrüman tipi seçin"
                 },
-                "success": "Ge?mi? veri yaz?ld?: {{count}} kay?t",
-                "error": "Ge?mi? veri backfill ba?ar?s?z oldu"
+                "success": "Geçmiş veri yazıldı: {{count}} kayıt",
+                "error": "Geçmiş veri backfill başarısız oldu"
             }
         },
         "simulation": {
             "title": "Simülasyon Modu",
-            "active": "Sim?lasyon Aktif",
+            "active": "Simülasyon Aktif",
             "bonds": "Tahvil & Bono",
-            "config": "Sim?lasyon Ayarlar?",
-            "currencies": "D?viz Kuru",
-            "description": "Ger?ek API olmadan ger?ek?i piyasa verileri ile test edin",
-            "disabled": "Sim?lasyon kapat?ld?",
-            "enable": "Sim?lasyon Modunu Aktif Et",
-            "enableDesc": "Aktif oldu?unda ger?ek API yerine sim?le veriler kullan?l?r",
-            "enabled": "Sim?lasyon aktif",
-            "funds": "Yat?r?m Fonu",
+            "config": "Simülasyon Ayarları",
+            "currencies": "Döviz Kuru",
+            "description": "Gerçek API olmadan gerçekçi piyasa verileri ile test edin",
+            "disabled": "Simülasyon kapatıldı",
+            "enable": "Simülasyon Modunu Aktif Et",
+            "enableDesc": "Aktif olduğunda gerçek API yerine simüle veriler kullanılır",
+            "enabled": "Simülasyon aktif",
+            "funds": "Yatırım Fonu",
             "indices": "Endeks",
-            "info1": "Hisse, d?viz, endeks, tahvil, fon ve V?OP i?in sim?le piyasa verisi ?retir",
-            "info2": "Ger?ek API ?a?r?s?n? beklemeden cache, listeleme, portf?y ve alarm ak???n? test eder",
-            "info3": "GBM ve Mean Reversion algoritmalar?yla volatilite/trend senaryolar? ?al??t?r?r",
-            "info4": "Kripto para sim?lasyonu sistem kapsam?ndan kald?r?lm??t?r",
-            "infoTitle": "Sim?lasyon Hakk?nda",
-            "interval": "G?ncelleme Aral???",
-            "intervalUpdated": "G?ncelleme aral??? de?i?tirildi",
+            "info1": "Hisse, döviz, endeks, tahvil, fon ve VİOP için simüle piyasa verisi üretir",
+            "info2": "Gerçek API çağrısını beklemeden cache, listeleme, portföy ve alarm akışını test eder",
+            "info3": "GBM ve Mean Reversion algoritmalarıyla volatilite/trend senaryoları çalıştırır",
+            "info4": "Kripto para simülasyonu sistem kapsamından kaldırılmıştır",
+            "infoTitle": "Simülasyon Hakkında",
+            "interval": "Güncelleme Aralığı",
+            "intervalUpdated": "Güncelleme aralığı değiştirildi",
             "marketHours": "Piyasa Saatlerini Kullan (10:00-18:00)",
-            "marketHoursDesc": "Kapal?yken 7/24 ?al???r",
-            "randomEvents": "Rastgele Piyasa Olaylar?",
-            "randomEventsDesc": "Beklenmedik fiyat hareketleri sim?le et",
-            "reset": "Sim?lasyon s?f?rland?",
-            "resetButton": "Sim?lasyonu S?f?rla",
+            "marketHoursDesc": "Kapalıyken 7/24 çalışır",
+            "randomEvents": "Rastgele Piyasa Olayları",
+            "randomEventsDesc": "Beklenmedik fiyat hareketleri simüle et",
+            "reset": "Simülasyon sıfırlandı",
+            "resetButton": "Simülasyonu Sıfırla",
             "seconds": "saniye",
             "stocks": "Hisse Senedi",
-            "ticks": "G?ncelleme",
+            "ticks": "Güncelleme",
             "trend": {
-                "bearish": "Ay? (D????)",
-                "bullish": "Bo?a (Y?kseli?)",
-                "neutral": "N?tr",
+                "bearish": "Ayı (Düşüş)",
+                "bullish": "Boğa (Yükseliş)",
+                "neutral": "Nötr",
                 "title": "Piyasa Trendi"
             },
-            "trendUpdated": "Trend g?ncellendi",
-            "viop": "V?OP",
+            "trendUpdated": "Trend güncellendi",
+            "viop": "VİOP",
             "volatility": {
                 "extreme": "Ekstrem (Kriz Modu)",
-                "high": "Y?ksek (Hareketli)",
-                "low": "D???k (Sakin Piyasa)",
+                "high": "Yüksek (Hareketli)",
+                "low": "Düşük (Sakin Piyasa)",
                 "medium": "Orta (Normal)",
                 "title": "Volatilite Seviyesi"
             },
-            "volatilityUpdated": "Volatilite g?ncellendi"
+            "volatilityUpdated": "Volatilite güncellendi"
         },
         "emailNotifications": "E-posta Bildirimleri",
         "pushNotifications": "Push Bildirimleri",
@@ -296,7 +333,7 @@
                 "secretKey": "Gizli anahtarınızı girin",
                 "baseUrl": "https://api.example.com",
                 "llmBaseUrl": "https://models.github.ai/inference",
-                "unchanged": "De?i?tirmemek i?in bo? b?rak?n"
+                "unchanged": "Değiştirmemek için boş bırakın"
             },
             "validation": {
                 "required": "Lütfen API anahtarı girin",
@@ -304,8 +341,8 @@
                 "tcmbInfo": "TCMB ücretsizdir, test ederek doğrulayabilirsiniz.",
                 "optionalInfo": "API anahtarı opsiyoneldir, boş bırakabilirsiniz."
             },
-            "fetchingData": "Veriler ?ekiliyor...",
-            "dataFetched": "Veriler ba?ar?yla ?ekildi"
+            "fetchingData": "Veriler çekiliyor...",
+            "dataFetched": "Veriler başarıyla çekildi"
         },
         "providers": {
             "supported": "✅ Desteklenenler:",
@@ -420,8 +457,17 @@
             }
         },
         "appearance": {
-            "darkMode": "Koyu moda ge?",
-            "lightMode": "A??k moda ge?"
+            "darkMode": "Koyu moda geç",
+            "lightMode": "Açık moda geç"
+        },
+        "dataSourceTypes": {
+            "currencyRates": "Döviz Kurları",
+            "bistStocks": "BIST Hisseleri",
+            "bistIndices": "BIST Endeksleri",
+            "funds": "Yatırım Fonları",
+            "bonds": "Tahvil & Bono",
+            "viop": "VİOP",
+            "usStocks": "ABD Hisseleri"
         }
     },
     "dashboard": {
@@ -482,10 +528,10 @@
             "activeEvents": "Aktif Olaylar",
             "uptime": "Çalışma Süresi",
             "bonds": "Tahvil",
-            "currencies": "D?viz",
+            "currencies": "Döviz",
             "funds": "Fon",
             "indices": "Endeks",
-            "viop": "V?OP"
+            "viop": "VİOP"
         },
         "health": {
             "status": "Durum",
@@ -549,7 +595,8 @@
             "totalValue": "Toplam Değer",
             "totalCost": "Toplam Maliyet",
             "totalProfitLoss": "Toplam K/Z",
-            "portfolioCount": "Portföy Sayısı"
+            "portfolioCount": "Portföy Sayısı",
+            "netAsset": "Net Varlık"
         },
         "empty": {
             "title": "Henüz portföyünüz yok",
@@ -561,7 +608,9 @@
             "delete": "Sil"
         },
         "card": {
-            "items": "{{count}} varlık"
+            "items": "{{count}} varlık",
+            "items_one": "{{count}} varlık",
+            "items_other": "{{count}} varlık"
         },
         "dialog": {
             "title": "Yeni Portföy",
@@ -595,10 +644,24 @@
                 "selling": "Döviz Satış",
                 "effectiveBuying": "Efektif Alış",
                 "effectiveSelling": "Efektif Satış",
-                "change": "Değişim"
+                "change": "Değişim",
+                "portfolio": "Portföy"
             }
         },
-        "subtitleWithSource": "{{source}} g?ncel d?viz kurlar?"
+        "subtitleWithSource": "{{source}} güncel döviz kurları",
+        "trade": {
+            "invalidQuantity": "Geçerli döviz miktarı girin",
+            "invalidPrice": "Bu döviz için geçerli işlem fiyatı yok",
+            "notHeld": "{{symbol}} portföyde yok; satış yapılamaz",
+            "insufficientPosition": "Yetersiz döviz pozisyonu. Mevcut: {{quantity}}",
+            "insufficientCash": "Yetersiz nakit bakiye. Tahmini gerekli: {{required}}, mevcut: {{current}}",
+            "note": "{{symbol}} döviz {{side}} işlemi",
+            "buySide": "alım",
+            "sellSide": "satış",
+            "buySuccess": "Döviz portföye eklendi",
+            "sellSuccess": "Döviz satış emri işlendi",
+            "failed": "Döviz işlemi başarısız oldu"
+        }
     },
     "bondsPage": {
         "title": "Tahvil & Bono",
@@ -613,7 +676,8 @@
             "price": "Fiyat",
             "yield": "Getiri",
             "change": "Değişim",
-            "maturity": "Vade"
+            "maturity": "Vade",
+            "action": "İşlem"
         }
     },
     "fundsPage": {
@@ -662,11 +726,11 @@
             "change": "Değişim",
             "previousClose": "Önceki Kapanış",
             "volume": "Hacim",
-            "action": "??lem"
+            "action": "İşlem"
         },
         "virtualMode": "Sanal Liste",
-        "paginatedMode": "Sayfal?",
-        "virtualInfo": "{{visible}} / {{total}} hisse g?steriliyor"
+        "paginatedMode": "Sayfalı",
+        "virtualInfo": "{{visible}} / {{total}} hisse gösteriliyor"
     },
     "notificationsPage": {
         "title": "Bildirimler",
@@ -694,6 +758,33 @@
         "cardDescription": {
             "empty": "Henüz bildirim yok",
             "count": "{{count}} bildirim"
+        },
+        "mockNotifications": {
+            "priceAlert": {
+                "title": "Fiyat alarmı tetiklendi",
+                "message": "{{symbol}} hedef fiyat {{price}} seviyesine ulaştı",
+                "timestamp": "5 dakika önce"
+            },
+            "portfolio": {
+                "title": "Portföy güncellendi",
+                "message": "{{symbol}} bugün %{{change}} yükseldi",
+                "timestamp": "1 saat önce"
+            },
+            "news": {
+                "title": "Önemli haber",
+                "message": "Merkez Bankası faiz kararını açıkladı",
+                "timestamp": "2 saat önce"
+            },
+            "priceDrop": {
+                "title": "Fiyat düşüş alarmı",
+                "message": "{{pair}} alt limitinize yaklaşıyor",
+                "timestamp": "5 saat önce"
+            },
+            "system": {
+                "title": "Sistem bildirimi",
+                "message": "API anahtarınız doğrulandı ve kaydedildi",
+                "timestamp": "Dün"
+            }
         }
     },
     "alertsPage": {
@@ -746,7 +837,8 @@
             "totalValue": "Toplam Değer",
             "totalCost": "Toplam Maliyet",
             "profitLoss": "Kar/Zarar",
-            "profitLossRatio": "K/Z Oranı"
+            "profitLossRatio": "K/Z Oranı",
+            "netAssetValue": "Net Varlık Değeri"
         },
         "items": {
             "title": "Varlıklar",
@@ -824,7 +916,49 @@
                 "market": "Piyasa",
                 "limit": "Limit",
                 "stop": "Stop"
-            }
+            },
+            "buyTitle": "Alış İşlemi",
+            "sellTitle": "Satış İşlemi",
+            "invalidQuantity": "Geçerli miktar girin",
+            "maxSellQuantity": "Maksimum satış miktarı: {{quantity}}",
+            "symbolRequired": "Sembol zorunludur",
+            "invalidPrice": "Geçerli fiyat girin",
+            "invalidLimitPrice": "Geçerli limit fiyat girin",
+            "invalidStopPrice": "Geçerli stop fiyat girin",
+            "limitPriceRequired": "Limit emir için limit fiyat zorunludur",
+            "stopPriceRequired": "Stop emir için stop fiyat zorunludur",
+            "buySuccess": "Alış işlemi kaydedildi",
+            "sellSuccess": "Satış işlemi kaydedildi",
+            "buyDescription": "Portföye alım emri girin. Nakit bakiye ve komisyon kontrol edilir.",
+            "sellDescription": "Pozisyonunuzdan kısmi veya tam satış emri girin.",
+            "symbol": "Sembol",
+            "symbolPlaceholder": "Sembol yazın ve listeden seçin",
+            "instrumentCount": "{{count}} varlık listelendi. Sembol yazarak seçim yapabilirsiniz.",
+            "quantity": "Miktar",
+            "orderType": "Emir Tipi",
+            "priceOptional": "Fiyat (Opsiyonel)",
+            "pricePlaceholder": "Boş bırakırsanız anlık fiyat kullanılır",
+            "limitPrice": "Limit Fiyat",
+            "stopPrice": "Stop Fiyat",
+            "tradeDate": "İşlem Tarihi",
+            "note": "Not",
+            "optionalNote": "Opsiyonel not"
+        },
+        "cashDialog": {
+            "invalidAmount": "Geçerli bir tutar girin",
+            "insufficientBalance": "Yetersiz bakiye. Mevcut: {{amount}}",
+            "depositSuccess": "Nakit eklendi",
+            "withdrawSuccess": "Nakit çekildi",
+            "failed": "Nakit işlemi başarısız oldu",
+            "title": "Nakit İşlem",
+            "description": "Portföy nakit bakiyesini artırabilir veya azaltabilirsiniz.",
+            "actionType": "İşlem Türü",
+            "deposit": "Yatır",
+            "withdraw": "Çek",
+            "amount": "Tutar",
+            "amountHelp": "Virgül veya nokta ile tutar girebilirsiniz.",
+            "note": "Not",
+            "optionalNote": "Opsiyonel not"
         }
     },
     "settingsPage": {
@@ -934,7 +1068,7 @@
                     "success": "Tüm veriler başarıyla sıfırlandı!",
                     "error": "Veri silme hatası: {{message}}",
                     "unknownError": "Bilinmeyen hata",
-                    "progressDescription": "T?m veriler siliniyor..."
+                    "progressDescription": "Tüm veriler siliniyor..."
                 }
             }
         },
@@ -943,7 +1077,253 @@
             "description": "Önbellekteki piyasa verilerini ve geçici dosyaları temizle.",
             "toastSuccess": "Önbellek temizlendi!",
             "button": "Önbelleği Temizle",
-            "toastSuccessDetailed": "{{count}} ?nbellek temizlendi"
+            "toastSuccessDetailed": "{{count}} önbellek temizlendi"
         }
+    },
+    "marketRefresh": {
+        "success": "Piyasa verileri yenilendi",
+        "partial": "Piyasa verileri kısmen yenilendi. Atlanan iş: {{count}}",
+        "failed": "Piyasa verileri yenilenemedi",
+        "loginRequired": "Giriş yapmadan yalnızca ekrandaki veriler tekrar yüklendi. Kaynaklardan veri çekmek için giriş yapın."
+    },
+    "connection": {
+        "connected": "Bağlı",
+        "connecting": "Bağlanıyor...",
+        "reconnecting": "Yeniden bağlanıyor ({{attempt}}/5)",
+        "disconnected": "Bağlantı kesildi"
+    },
+    "marketStatus": {
+        "bist": "BIST",
+        "open": "Açık",
+        "closed": "Kapalı",
+        "lastUpdate": "Son güncelleme",
+        "closesIn": "{{time}} içinde kapanır",
+        "timeToClose": "{{hours}}s {{minutes}}d"
+    },
+    "refreshStatus": {
+        "lastDataRefresh": "Son veri yenileme",
+        "autoRefresh": "Otomatik yenileme",
+        "enabled": "Açık ({{seconds}} sn)",
+        "disabled": "Kapalı",
+        "refreshing": "Yenileniyor"
+    },
+    "quickTrade": {
+        "selectPortfolio": "Önce bir portföy seçin veya oluşturun",
+        "invalidPrice": "Bu varlık için geçerli fiyat bulunamadı",
+        "invalidQuantity": "Geçerli miktar girin",
+        "portfolioLoading": "Portföy bilgisi yükleniyor, tekrar deneyin",
+        "notHeld": "{{symbol}} portföyde yok; satış yapılamaz",
+        "insufficientPosition": "Yetersiz pozisyon. Mevcut: {{quantity}}",
+        "insufficientCash": "Yetersiz nakit bakiye. Tahmini gerekli: {{required}}, mevcut: {{current}}",
+        "buyNote": "{{symbol}} alım işlemi",
+        "sellNote": "{{symbol}} satış işlemi",
+        "buySuccess": "Varlık portföye eklendi",
+        "sellSuccess": "Satış emri işlendi",
+        "failed": "Portföy işlemi başarısız oldu",
+        "quantity": "Miktar",
+        "buy": "Al",
+        "sell": "Sat"
+    },
+    "marketSearch": {
+        "subtitle": "Hisse, tahvil, fon, VİOP ve döviz enstrümanlarında arama yapın.",
+        "resultTitle": "Arama Sonuçları",
+        "resultCount": "{{count}} sonuç bulundu",
+        "prompt": "Arama yapmak için sembol, ad veya ISIN girin.",
+        "examples": "Örnek: THYAO, USD, TRT, fon adı",
+        "noResults": "Sonuç bulunamadı",
+        "headers": {
+            "symbol": "Sembol",
+            "name": "Ad",
+            "type": "Tür",
+            "price": "Fiyat",
+            "action": "İşlem"
+        },
+        "open": "Aç",
+        "type": {
+            "unknown": "Bilinmeyen",
+            "stock": "Hisse",
+            "bond": "Tahvil",
+            "fund": "Fon",
+            "viop": "VİOP",
+            "currency": "Döviz",
+            "index": "Endeks",
+            "crypto": "Kripto"
+        }
+    },
+    "newsPage": {
+        "title": "Piyasa Haberleri",
+        "subtitle": "Piyasalara dair son haberler ve analizler",
+        "searchPlaceholder": "Haberlerde ara...",
+        "featured": "Öne Çıkan Haberler",
+        "simulationNews": "Simülasyon Haberleri",
+        "all": "Tümü",
+        "emptyCategory": "Bu kategoride haber bulunamadı.",
+        "previous": "Önceki",
+        "next": "Sonraki",
+        "page": "Sayfa {{page}} / {{total}}"
+    },
+    "stockDetail": {
+        "addToPortfolio": "Portföye Ekle",
+        "addDescription": "{{symbol}} için portföyünüze pozisyon ekleyin.",
+        "portfolio": "Portföy",
+        "selectPortfolio": "Portföy seçin",
+        "quantity": "Miktar",
+        "cancel": "İptal",
+        "saving": "Ekleniyor...",
+        "add": "Ekle",
+        "instrumentMissing": "Enstrüman bilgisi bulunamadı",
+        "portfoliosLoading": "Portföyler yükleniyor, tekrar deneyin",
+        "portfolioMissing": "Portföy seçin",
+        "invalidQuantity": "Geçerli miktar girin",
+        "selectPortfolioError": "Portföy seçin",
+        "insufficientCash": "Yetersiz nakit bakiye. Tahmini gerekli: {{required}}, mevcut: {{current}}",
+        "addSuccess": "{{symbol}} portföye eklendi",
+        "addError": "Portföye ekleme başarısız oldu",
+        "noPortfolio": "Portföy bulunamadı. Önce bir portföy oluşturun",
+        "notFound": "Hisse senedi bulunamadı.",
+        "backToStocks": "Hisselere Dön",
+        "details": "Detaylar",
+        "previousClose": "Önceki Kapanış",
+        "open": "Açılış",
+        "high": "En Yüksek",
+        "low": "En Düşük",
+        "volume": "Hacim",
+        "marketCap": "Piyasa Değeri",
+        "week52Range": "52 Hafta Aralığı"
+    },
+    "profile": {
+        "title": "Profil",
+        "subtitle": "Hesap bilgilerinizi ve tercihlerinizi yönetin",
+        "updated": "Profil güncellendi",
+        "updateFailed": "Profil güncellenemedi",
+        "settingsUpdated": "Ayarlar güncellendi",
+        "settingsUpdateFailed": "Ayarlar güncellenemedi",
+        "keycloakSessionFailed": "Keycloak oturumu başlatılamadı",
+        "keycloakSecurityFailed": "Keycloak güvenlik sayfası açılamadı",
+        "changePassword": "Şifreyi Değiştir",
+        "securitySettings": "Güvenlik Ayarları",
+        "securityAdminOnly": "Güvenlik ayarları için Keycloak yönetim panelini kullanın.",
+        "tabs": {
+            "general": "Genel",
+            "notifications": "Bildirimler",
+            "preferences": "Tercihler"
+        },
+        "username": "Kullanıcı adı",
+        "usernameReadonly": "Kullanıcı adı değiştirilemez",
+        "firstName": "Ad",
+        "firstNamePlaceholder": "Adınız",
+        "lastName": "Soyad",
+        "lastNamePlaceholder": "Soyadınız",
+        "email": "E-posta",
+        "emailKeycloakHint": "E-posta Keycloak hesabından yönetilir",
+        "phone": "Telefon",
+        "location": "Konum",
+        "locationPlaceholder": "Şehir, Ülke",
+        "bio": "Biyografi",
+        "bioPlaceholder": "Kendiniz hakkında kısa bir bilgi yazın",
+        "saveChanges": "Değişiklikleri Kaydet",
+        "saving": "Kaydediliyor...",
+        "emailNotifications": "E-posta Bildirimleri",
+        "emailNotificationsDesc": "Önemli hesap ve piyasa bildirimlerini e-posta ile alın",
+        "pushNotifications": "Anlık Bildirimler",
+        "pushNotificationsDesc": "Tarayıcı üzerinden anlık bildirim alın",
+        "priceAlerts": "Fiyat Alarmları",
+        "priceAlertsDesc": "Fiyat hedefleri gerçekleştiğinde bildirim alın",
+        "portfolioUpdates": "Portföy Güncellemeleri",
+        "portfolioUpdatesDesc": "Portföy performansı değişikliklerini takip edin",
+        "compactView": "Kompakt Görünüm",
+        "compactViewDesc": "Tablo ve kartlarda daha yoğun görünüm kullanın",
+        "theme": "Tema",
+        "darkMode": "Koyu mod",
+        "darkModeDesc": "Koyu tema kullan",
+        "defaultCurrency": "Varsayılan Para Birimi",
+        "defaultCurrencyDesc": "Fiyatlar için varsayılan para birimi"
+    },
+    "time": {
+        "justNow": "Şimdi",
+        "minutesAgo": "{{count}} dakika önce",
+        "hoursAgo": "{{count}} saat önce",
+        "daysAgo": "{{count}} gün önce"
+    },
+    "analysis": {
+        "title": "Teknik Analiz",
+        "subtitle": "MA, trend, RSI, MACD, Bollinger, Stochastic ve karşılaştırma",
+        "selectSymbol": "Sembol seçin",
+        "periods": {
+            "oneWeek": "1 Hafta",
+            "oneMonth": "1 Ay",
+            "threeMonths": "3 Ay",
+            "sixMonths": "6 Ay",
+            "oneYear": "1 Yıl"
+        },
+        "days": "{{count}} Gün",
+        "generalSignal": "Genel Teknik Sinyal",
+        "combinedDescription": "Seçili sembol için tüm indikatörlerin birleşik yorumu",
+        "combinedDescriptionForSymbol": "{{symbol}} için tüm indikatörlerin birleşik yorumu",
+        "totalSignal": "Toplam Sinyal",
+        "analysisReady": "Analiz bilgisi hazır",
+        "tabs": {
+            "movingAverage": "Hareketli Ortalama",
+            "trend": "Trend Analizi",
+            "compare": "Karşılaştırma"
+        },
+        "priceAndMovingAverage": "Fiyat ve hareketli ortalama",
+        "statistics": "İstatistikler",
+        "lastPrice": "Son Fiyat",
+        "difference": "Fark",
+        "signal": {
+            "label": "Sinyal",
+            "buy": "AL",
+            "sell": "SAT",
+            "hold": "BEKLE"
+        },
+        "status": {
+            "noData": "Veri Yok",
+            "oversold": "Aşırı Satım",
+            "overbought": "Aşırı Alım",
+            "neutral": "Nötr",
+            "bullish": "Yükseliş",
+            "bearish": "Düşüş",
+            "sideways": "Yatay"
+        },
+        "trendDescription": "Destek/direnç seviyeleri ile trend yorumu",
+        "trendInfo": "Trend Bilgileri",
+        "trendDirection": "Trend Yönü",
+        "support": "Destek",
+        "resistance": "Direnç",
+        "strength": "Güç",
+        "rsiDescription": "Göreceli Güç Endeksi (0-100)",
+        "rsiValue": "RSI Değeri",
+        "rsiReady": "RSI yorumu hazır",
+        "macdDescription": "12-26-9 standart ayarları ile momentum analizi",
+        "macdLine": "MACD Çizgisi",
+        "signalLine": "Sinyal Çizgisi",
+        "bullishMomentum": "Yükseliş Momentumu",
+        "bearishMomentum": "Düşüş Momentumu",
+        "stdDev": "Std Sapma {{value}}",
+        "bollingerBands": "Bollinger Bantları",
+        "bollingerDescription": "Bant genişliği ve %B ile volatilite analizi",
+        "upperBand": "Üst Bant",
+        "middleBand": "Orta Bant",
+        "lowerBand": "Alt Bant",
+        "bandwidth": "Bant Genişliği",
+        "comment": "Yorum",
+        "bollingerReady": "Bant analizi hazır",
+        "stochasticDescription": "%K ve %D ile aşırı alım/satım tespiti",
+        "stochasticReady": "Stochastic yorumu hazır",
+        "symbolSelection": "Sembol Seçimi",
+        "compareDescription": "Karşılaştırma için en az 2, en fazla 5 sembol seçin",
+        "removeSymbol": "{{symbol}} kaldır",
+        "selectedCount": "Seçili: {{count}}/5",
+        "performanceComparison": "Performans Karşılaştırması",
+        "selectedSymbols": "Seçilen semboller: {{symbols}}",
+        "compareRequiresTwo": "Karşılaştırma için en az 2 sembol gerekli",
+        "compareNoData": "Karşılaştırma verisi yok"
+    },
+    "glossary": {
+        "title": "Borsa Kavram Sözlüğü",
+        "subtitle": "TEFAS fon kavramları, borsa emir tipleri ve portföy terimleri için hızlı referans.",
+        "badge": "TEFAS kaynaklı fon terimleri dahil",
+        "searchPlaceholder": "TEFAS, fon fiyatı, limit emir..."
     }
 }

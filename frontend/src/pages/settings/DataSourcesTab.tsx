@@ -194,7 +194,7 @@ export function DataSourcesTab({
                                 <div key={dataType.type} className="flex items-center justify-between py-4 border-b last:border-0">
                                     <div className="flex items-center gap-3">
                                         <div>
-                                            <Label className="text-base font-medium">{dataType.label}</Label>
+                                            <Label className="text-base font-medium">{t(dataType.labelKey)}</Label>
                                             <p className="text-sm text-muted-foreground">
                                                 {isUnavailable
                                                     ? unavailableReason

@@ -194,6 +194,7 @@ services:
       # OpenTelemetry and OpenSearch services are not started in light mode.
       # Keep a syntactically valid OpenSearch host so the optional client bean
       # can initialize; calls will fail closed and return empty admin log data.
+      MANAGEMENT_TRACING_ENABLED: "false"
       OTEL_EXPORTER_OTLP_ENDPOINT: ""
       OTEL_SERVICE_NAME: finance-portal
       OPENSEARCH_HOST: localhost

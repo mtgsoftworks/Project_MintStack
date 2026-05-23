@@ -46,17 +46,36 @@ public interface InstrumentRepository extends JpaRepository<Instrument, UUID> {
     @Query("SELECT i FROM Instrument i WHERE i.isActive = true AND (i.isSimulated IS NULL OR i.isSimulated = false)")
     List<Instrument> findByIsActiveTrue();
 
-    @Query("SELECT i FROM Instrument i WHERE i.isActive = true AND " +
+    @Query("SELECT i FROM Instrument i WHERE i.isActive = true AND (i.isSimulated IS NULL OR i.isSimulated = false) AND " +
            "(LOWER(i.symbol) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(i.name) LIKE LOWER(CONCAT('%', :query, '%')))")
     Page<Instrument> searchBySymbolOrName(@Param("query") String query, Pageable pageable);
 
-    @Query("SELECT i FROM Instrument i WHERE i.type = :type AND i.isActive = true AND " +
+    @Query("SELECT i FROM Instrument i WHERE i.isActive = true AND " +
+           "((:isSimulated = true AND i.isSimulated = true) OR " +
+           "(:isSimulated = false AND (i.isSimulated IS NULL OR i.isSimulated = false))) AND " +
+           "(LOWER(i.symbol) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(i.name) LIKE LOWER(CONCAT('%', :query, '%')))")
+    Page<Instrument> searchBySymbolOrNameAndSimulationMode(@Param("query") String query,
+                                                           @Param("isSimulated") boolean isSimulated,
+                                                           Pageable pageable);
+
+    @Query("SELECT i FROM Instrument i WHERE i.type = :type AND i.isActive = true AND (i.isSimulated IS NULL OR i.isSimulated = false) AND " +
            "(LOWER(i.symbol) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(i.name) LIKE LOWER(CONCAT('%', :query, '%')))")
     Page<Instrument> searchByTypeAndQuery(@Param("type") InstrumentType type, 
                                           @Param("query") String query, 
                                           Pageable pageable);
+
+    @Query("SELECT i FROM Instrument i WHERE i.type = :type AND i.isActive = true AND " +
+           "((:isSimulated = true AND i.isSimulated = true) OR " +
+           "(:isSimulated = false AND (i.isSimulated IS NULL OR i.isSimulated = false))) AND " +
+           "(LOWER(i.symbol) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(i.name) LIKE LOWER(CONCAT('%', :query, '%')))")
+    Page<Instrument> searchByTypeAndQueryAndSimulationMode(@Param("type") InstrumentType type,
+                                                           @Param("query") String query,
+                                                           @Param("isSimulated") boolean isSimulated,
+                                                           Pageable pageable);
 
     @Query("SELECT i FROM Instrument i WHERE i.type = :type AND (i.isSimulated IS NULL OR i.isSimulated = false) AND " +
            "(LOWER(i.symbol) LIKE LOWER(CONCAT('%', :query, '%')) OR " +

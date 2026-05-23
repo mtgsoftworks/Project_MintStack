@@ -171,7 +171,7 @@ export default function ViopPage() {
                   <TableHead className="text-right">{t('viopPage.headers.change')}</TableHead>
                   <TableHead className="text-right">{t('viopPage.headers.volume')}</TableHead>
                   <TableHead className="text-right">{t('viopPage.headers.maturity')}</TableHead>
-                  <TableHead className="text-right">Islem</TableHead>
+                  <TableHead className="text-right">{t('viopPage.headers.action')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -227,7 +227,7 @@ export default function ViopPage() {
                         {hasVolume ? Number(contract.volume).toLocaleString('tr-TR') : '-'}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
-                        {contract.maturityDate ? formatDate(contract.maturityDate) : '-'}
+                        {contract.maturityDate ? formatDate(contract.maturityDate) : t('common.unknown')}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -49,7 +49,7 @@ export function Header() {
   const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
 
-  const { data: notificationsData } = useGetNotificationsQuery(
+  const { data: notificationsData, refetch: refetchNotifications } = useGetNotificationsQuery(
     { page: 0, size: 10 },
     { skip: !isAuthenticated }
   )
@@ -63,6 +63,21 @@ export function Header() {
   const notificationCount = useMemo(() => {
     return notifications.filter(n => !n.isRead).length
   }, [notifications])
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return undefined
+    }
+
+    const topic = '/user/queue/notifications'
+    const handleNotification = () => {
+      dispatch(baseApi.util.invalidateTags([{ type: 'User', id: 'NOTIFICATIONS' }]))
+      refetchNotifications()
+    }
+
+    websocketService.subscribe(topic, handleNotification)
+    return () => websocketService.unsubscribe(topic)
+  }, [dispatch, isAuthenticated, refetchNotifications])
 
   const handleNotificationClick = async (notification) => {
     if (!notification.isRead) {

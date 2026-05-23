@@ -1,6 +1,6 @@
 # MintStack Finance Portal Analiz Raporu
 
-Tarih: 2026-05-14
+Tarih: 2026-05-23
 
 ## 1. Amac
 
@@ -14,6 +14,7 @@ Bu calismada hedeflenenler:
 - Swagger/OpenAPI erisim problemini gidermek.
 - CI/CD, rate limiting, scheduler, alarm ve dokumantasyon eksiklerini kapatmak.
 - Admin/user yetki sinirlarini netlestirmek.
+- 7 Haziran teslim isterlerini kanitlanabilir artifactlerle eslestirmek.
 
 ## 2. Kapsam
 
@@ -25,6 +26,7 @@ Degerlendirilen ve uygulanan alanlar:
 - Docker: Compose ve Nginx reverse proxy.
 - CI/CD: GitHub Actions validation.
 - Dokumantasyon: teknik analiz raporu, ER diyagrami, yonetim modulu diyagrami.
+- Teslim artifactleri: checklist, DOCX analiz/teknik analiz, Javadocs ZIP ve PPTX sunum.
 
 ## 3. Teknikler ve Uygulanan Cozumler
 
@@ -40,6 +42,9 @@ Degerlendirilen ve uygulanan alanlar:
 | Kavram sozlugu | `glossary_terms` tablosu, public API ve frontend sayfasi eklendi. | Borsa/fon terimleri TEFAS kaynakli seed verilerle baslar. |
 | Runtime ayarlar | `runtime_settings` tablosu ve admin endpointi eklendi. | Dinamik yonetilebilir ayarlar icin temel olustu. |
 | Alarm | Alertmanager webhook endpointi eklendi. | CIDR allowlist + HMAC SHA-256 imza dogrulamasi ile production hardening uygulandi. |
+| Java 21 | Maven, Docker ve CI hedefi Java 21'e tasindi. | Teslimde istenen tercih ile uyum saglandi. |
+| OpenTelemetry | Backend Micrometer tracing OTLP HTTP endpointine baglandi. | Trace verisi OTEL Collector uzerinden OpenSearch'e aktarilabilir. |
+| 2FA demo | Seed admin/test kullanicilarina `CONFIGURE_TOTP` required action eklendi. | Ilk giriste TOTP kurulumu gosterilebilir. |
 
 ## 4. Mimari Degerlendirme
 
@@ -160,7 +165,7 @@ ER diyagrami: `docs/diagrams/er-diagram.mmd`
 
 | Katman | Teknoloji |
 |---|---|
-| Backend | Java 17, Spring Boot 3.4.2, Spring Security, Spring Data JPA |
+| Backend | Java 21, Spring Boot 3.4.2, Spring Security, Spring Data JPA |
 | API Docs | springdoc-openapi 2.8.6 |
 | DB | PostgreSQL 15, Flyway |
 | Cache/Rate Limit | Redis 7, Bucket4j 8.7.0 |
@@ -182,9 +187,11 @@ Tamamlanan kritik eksikler:
 - Doviz portfoy alim/satim akisi eklendi.
 - Teknik gosterge kapsami genisletildi.
 - Alert webhook ve runtime setting altyapisi eklendi.
+- Java 21, Javadocs ve teslim sunumu artifactleri eklendi.
 
 Kalan riskler:
 
+- IT Servis - Ticket Yonetimi ve jBPM bu finans portali reposunda kapsam disidir; sunumda eksik degil kapsam disi olarak belirtilmelidir.
 - Fintables policy lock su an bilincli olarak kapalidir; aktif etmeden once endpoint kontrati ve lisans/kota dogrulamasini tamamlayin.
 - `runtime_settings` su an ayar envanteri ve admin yonetimi saglar; tum ayarlarin hot-reload edilmesi icin ek adaptor gerekir.
 - Frontend TypeScript strict modu kapali; orta vadede strict migration onerilir.

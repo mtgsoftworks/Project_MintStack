@@ -5,19 +5,20 @@
 
 | Belge Alani | Deger |
 |---|---|
-| Surum | 1.1 |
-| Tarih | 2026-05-14 |
+| Surum | 2.0 |
+| Tarih | 2026-05-23 |
 | Dokuman Turu | Teknik Analiz, Mimari ve Modelleme |
 | Kaynak Template | `teknik_analiz_pdf_turkce.md` |
 
 ## 1) Yonetici Ozeti
 
-MintStack Finance Portal; portfoy yonetimi, RSS haber akisi, TEFAS fon verisi, teknik analiz, alarm ve yonetim modullerini tek bir platformda birlestirir. Bu surumde kalan 4 kritik bosluk kapatilmistir:
+MintStack Finance Portal; portfoy yonetimi, RSS haber akisi, TEFAS fon verisi, teknik analiz, alarm ve yonetim modullerini tek bir platformda birlestirir. Bu surum 7 Haziran teslim isterlerine gore Java 21, 2FA, OTEL tracing, Javadocs ve PPTX sunum artifactleriyle guncellenmistir.
 
 - RSS haberleri icin LLM enrichment akisi canli zincire baglandi.
 - Fintables provider resmi olarak policy lock ile pasif hale getirildi.
 - Template basliklariyla birebir doldurulmus teknik dokuman olusturuldu.
 - Alert webhook icin production hardening (IP allowlist + HMAC signature) uygulandi.
+- IT Servis - Ticket Yonetimi ve jBPM maddesi finans portali reposu icin kapsam disi olarak belgelendi.
 
 ## 2) Kapsam
 

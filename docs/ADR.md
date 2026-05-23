@@ -15,11 +15,11 @@ Finans portalı için güvenilir, ölçeklenebilir ve kurumsal standartlara uygu
 
 ### Karar
 
-Spring Boot 3.4 (Java 17+) backend framework olarak seçildi.
+Spring Boot 3.4 (Java 21) backend framework olarak seçildi.
 
 ### Gerekçe
 
-- **Java 17+:** Modern dil özellikleri (records, pattern matching, text blocks) ile daha okunabilir ve bakımı kolay kod
+- **Java 21:** Modern dil özellikleri (records, pattern matching, text blocks) ile daha okunabilir ve bakımı kolay kod
 - **OAuth2/OIDC:** Spring Security ile Keycloak entegrasyonu için yerleşik destek
 - **WebSocket:** STOMP protokolü ile gerçek zamanlı piyasa verisi yayını
 - **Kurumsal destek:** Geniş topluluk, Pivotal/VMware desteği, uzun vadeli LTS sürümleri

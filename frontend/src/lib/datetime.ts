@@ -2,11 +2,11 @@
  * Date & Time Formatting Utilities
  * Uses user's preferred timezone from Redux store
  */
+import i18n from '@/i18n'
 
-// Timezone display names
 const TIMEZONE_NAMES = {
-    'Europe/Istanbul': 'İstanbul (GMT+3)',
-    'Europe/London': 'Londra (GMT+0/+1)',
+    'Europe/Istanbul': 'Istanbul (GMT+3)',
+    'Europe/London': 'London (GMT+0/+1)',
     'America/New_York': 'New York (GMT-5/-4)',
 }
 
@@ -110,7 +110,7 @@ export function formatTime(date: any, timezone = 'Europe/Istanbul', options: any
 }
 
 /**
- * Get relative time string (e.g., "5 dakika önce")
+ * Get relative time string.
  * @param {Date|string|number} date - Date to compare
  * @param {string} locale - Locale for formatting
  */
@@ -126,25 +126,23 @@ export function formatRelativeTime(date: any, locale = 'tr') {
     const now = new Date()
     const diffInSeconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000)
 
-    // Turkish relative time strings
     if (locale === 'tr') {
         if (diffInSeconds < 60) {
-            return 'Az önce'
+            return i18n.t('time.justNow')
         } else if (diffInSeconds < 3600) {
             const minutes = Math.floor(diffInSeconds / 60)
-            return `${minutes} dakika önce`
+            return i18n.t('time.minutesAgo', { count: minutes })
         } else if (diffInSeconds < 86400) {
             const hours = Math.floor(diffInSeconds / 3600)
-            return `${hours} saat önce`
+            return i18n.t('time.hoursAgo', { count: hours })
         } else if (diffInSeconds < 604800) {
             const days = Math.floor(diffInSeconds / 86400)
-            return `${days} gün önce`
+            return i18n.t('time.daysAgo', { count: days })
         } else {
             return formatDate(dateObj)
         }
     }
 
-    // English fallback
     try {
         const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
 

@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -62,8 +63,7 @@ class TechnicalIndicatorServiceTest {
         
         // 15 günlük fiyat verisi oluştur (14 period + 1)
         List<PriceHistory> priceHistory = createPriceHistory(20, 100.0, 0.02);
-        when(priceHistoryRepository.findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
-                eq(instrumentId), any(), any())).thenReturn(priceHistory);
+        mockLatestHistory(priceHistory);
 
         // When
         Double rsi = technicalIndicatorService.calculateRSI("THYAO", 14);
@@ -81,8 +81,7 @@ class TechnicalIndicatorServiceTest {
         
         // Sadece 5 günlük veri (14 için yetersiz)
         List<PriceHistory> priceHistory = createPriceHistory(5, 100.0, 0.02);
-        when(priceHistoryRepository.findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
-                eq(instrumentId), any(), any())).thenReturn(priceHistory);
+        mockLatestHistory(priceHistory);
 
         // When
         Double rsi = technicalIndicatorService.calculateRSI("THYAO", 14);
@@ -98,8 +97,7 @@ class TechnicalIndicatorServiceTest {
         when(instrumentRepository.findBySymbol("THYAO")).thenReturn(Optional.of(testInstrument));
         
         List<PriceHistory> priceHistory = createPriceHistory(50, 100.0, 0.02);
-        when(priceHistoryRepository.findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
-                eq(instrumentId), any(), any())).thenReturn(priceHistory);
+        mockLatestHistory(priceHistory);
 
         // When
         MACDResult macd = technicalIndicatorService.calculateMACD("THYAO");
@@ -118,8 +116,7 @@ class TechnicalIndicatorServiceTest {
         when(instrumentRepository.findBySymbol("THYAO")).thenReturn(Optional.of(testInstrument));
         
         List<PriceHistory> priceHistory = createPriceHistory(25, 100.0, 0.02);
-        when(priceHistoryRepository.findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
-                eq(instrumentId), any(), any())).thenReturn(priceHistory);
+        mockLatestHistory(priceHistory);
 
         // When
         BollingerBandsResult bollinger = technicalIndicatorService.calculateBollingerBands("THYAO", 20, 2.0);
@@ -150,8 +147,7 @@ class TechnicalIndicatorServiceTest {
             priceHistory.add(ph);
         }
         
-        when(priceHistoryRepository.findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
-                eq(instrumentId), any(), any())).thenReturn(priceHistory);
+        mockLatestHistory(priceHistory);
 
         // When
         Double sma = technicalIndicatorService.calculateSMA("THYAO", 10);
@@ -168,8 +164,7 @@ class TechnicalIndicatorServiceTest {
         when(instrumentRepository.findBySymbol("THYAO")).thenReturn(Optional.of(testInstrument));
         
         List<PriceHistory> priceHistory = createPriceHistory(50, 100.0, 0.02);
-        when(priceHistoryRepository.findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
-                eq(instrumentId), any(), any())).thenReturn(priceHistory);
+        mockLatestHistory(priceHistory);
 
         // When
         Double ema = technicalIndicatorService.calculateEMA("THYAO", 20);
@@ -186,8 +181,7 @@ class TechnicalIndicatorServiceTest {
         when(instrumentRepository.findBySymbol("THYAO")).thenReturn(Optional.of(testInstrument));
         
         List<PriceHistory> priceHistory = createPriceHistory(20, 100.0, 0.05);
-        when(priceHistoryRepository.findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
-                eq(instrumentId), any(), any())).thenReturn(priceHistory);
+        mockLatestHistory(priceHistory);
 
         // When
         StochasticResult stochastic = technicalIndicatorService.calculateStochastic("THYAO", 14, 3);
@@ -223,8 +217,7 @@ class TechnicalIndicatorServiceTest {
         when(instrumentRepository.findBySymbol("THYAO")).thenReturn(Optional.of(testInstrument));
         
         List<PriceHistory> priceHistory = createPriceHistory(250, 100.0, 0.02);
-        when(priceHistoryRepository.findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
-                eq(instrumentId), any(), any())).thenReturn(priceHistory);
+        mockLatestHistory(priceHistory);
 
         // When
         var result = technicalIndicatorService.calculateAllIndicators("THYAO");
@@ -236,6 +229,13 @@ class TechnicalIndicatorServiceTest {
     }
 
     // =================== HELPER METHODS ===================
+
+    private void mockLatestHistory(List<PriceHistory> priceHistory) {
+        List<PriceHistory> latestDesc = new ArrayList<>(priceHistory);
+        Collections.reverse(latestDesc);
+        when(priceHistoryRepository.findByInstrumentIdOrderByPriceDateDesc(eq(instrumentId), any()))
+            .thenReturn(latestDesc);
+    }
 
     private List<PriceHistory> createPriceHistory(int days, double startPrice, double volatility) {
         List<PriceHistory> history = new ArrayList<>();

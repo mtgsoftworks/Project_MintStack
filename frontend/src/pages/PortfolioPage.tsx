@@ -220,7 +220,7 @@ export default function PortfolioPage() {
           <Card className="card-hover">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-medium text-muted-foreground">Net Varlik</span>
+                <span className="text-sm font-medium text-muted-foreground">{t('portfolioPage.summary.netAsset')}</span>
                 <div className="p-2 rounded-lg bg-muted">
                   <Wallet className="h-5 w-5 text-muted-foreground" />
                 </div>

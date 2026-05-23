@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { TrendingDown, TrendingUp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -32,46 +33,47 @@ const formatNumber = (value, digits = 2) => {
 
 const getRsiStatus = (rsi) => {
   if (!Number.isFinite(Number(rsi))) {
-    return { label: 'Veri Yok', variant: 'secondary' }
+    return { labelKey: 'analysis.status.noData', variant: 'secondary' }
   }
   if (rsi < 30) {
-    return { label: 'Asiri Satim', variant: 'success' }
+    return { labelKey: 'analysis.status.oversold', variant: 'success' }
   }
   if (rsi > 70) {
-    return { label: 'Asiri Alim', variant: 'danger' }
+    return { labelKey: 'analysis.status.overbought', variant: 'danger' }
   }
-  return { label: 'Notr', variant: 'secondary' }
+  return { labelKey: 'analysis.status.neutral', variant: 'secondary' }
 }
 
 const getSignalBadge = (signal) => {
   switch (signal) {
     case 'BUY':
     case 'BULLISH':
-      return { label: 'AL', variant: 'success' }
+      return { labelKey: 'analysis.signal.buy', variant: 'success' }
     case 'SELL':
     case 'BEARISH':
-      return { label: 'SAT', variant: 'danger' }
+      return { labelKey: 'analysis.signal.sell', variant: 'danger' }
     default:
-      return { label: signal || 'BEKLE', variant: 'secondary' }
+      return { label: signal || null, labelKey: signal ? null : 'analysis.signal.hold', variant: 'secondary' }
   }
 }
 
 const getStochasticSignal = (signal) => {
   switch (signal) {
     case 'OVERSOLD':
-      return { label: 'Asiri Satim', variant: 'success' }
+      return { labelKey: 'analysis.status.oversold', variant: 'success' }
     case 'OVERBOUGHT':
-      return { label: 'Asiri Alim', variant: 'danger' }
+      return { labelKey: 'analysis.status.overbought', variant: 'danger' }
     case 'BULLISH':
-      return { label: 'Yukselis', variant: 'success' }
+      return { labelKey: 'analysis.status.bullish', variant: 'success' }
     case 'BEARISH':
-      return { label: 'Dusus', variant: 'danger' }
+      return { labelKey: 'analysis.status.bearish', variant: 'danger' }
     default:
-      return { label: 'Notr', variant: 'secondary' }
+      return { labelKey: 'analysis.status.neutral', variant: 'secondary' }
   }
 }
 
 export default function AnalysisPage() {
+  const { t } = useTranslation()
   const [symbol, setSymbol] = useState('')
   const [period, setPeriod] = useState('1M')
   const [maType, setMaType] = useState('SMA')
@@ -253,7 +255,11 @@ export default function AnalysisPage() {
     })
     .filter(Boolean)
 
-  const overallSignal = getSignalBadge(allIndicatorsData?.data?.overallSignal)
+  const allIndicators = allIndicatorsData?.success ? allIndicatorsData.data : null
+  const macd = macdData?.success ? macdData.data : null
+  const macdHistogram = Number(macd?.histogram)
+  const hasMacdData = Boolean(macd) && Number.isFinite(macdHistogram)
+  const overallSignal = getSignalBadge(allIndicators?.overallSignal)
   const rsiStatus = getRsiStatus(rsiData?.data)
   const stochasticSignal = getStochasticSignal(stochasticData?.data?.signal)
   const isRefreshing =
@@ -299,22 +305,23 @@ export default function AnalysisPage() {
     setCompareSymbols((previous) => previous.filter((item) => item !== value))
   }
 
+  const renderBadgeLabel = (badge) => badge.labelKey ? t(badge.labelKey) : badge.label
   const buildSymbolTitle = (title: string) => (symbol ? `${symbol} - ${title}` : title)
   const combinedSignalDescription = symbol
-    ? `${symbol} icin tum indikatorlerin birlesik yorumu`
-    : 'Secili sembol icin tum indikatorlerin birlesik yorumu'
+    ? t('analysis.combinedDescriptionForSymbol', { symbol })
+    : t('analysis.combinedDescription')
 
   return (
     <div className="space-y-6 animate-in">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Teknik Analiz</h1>
-          <p className="text-muted-foreground">MA, trend, RSI, MACD, Bollinger, Stochastic ve karsilastirma</p>
+          <h1 className="text-2xl font-bold">{t('analysis.title')}</h1>
+          <p className="text-muted-foreground">{t('analysis.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={symbol} onValueChange={setSymbol} disabled={availableInstruments.length === 0}>
             <SelectTrigger className="w-[280px]">
-              <SelectValue placeholder="Sembol secin" />
+              <SelectValue placeholder={t('analysis.selectSymbol')} />
             </SelectTrigger>
             <SelectContent>
               {availableInstruments.map((instrument) => (
@@ -329,11 +336,11 @@ export default function AnalysisPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1W">1 Hafta</SelectItem>
-              <SelectItem value="1M">1 Ay</SelectItem>
-              <SelectItem value="3M">3 Ay</SelectItem>
-              <SelectItem value="6M">6 Ay</SelectItem>
-              <SelectItem value="1Y">1 Yil</SelectItem>
+              <SelectItem value="1W">{t('analysis.periods.oneWeek')}</SelectItem>
+              <SelectItem value="1M">{t('analysis.periods.oneMonth')}</SelectItem>
+              <SelectItem value="3M">{t('analysis.periods.threeMonths')}</SelectItem>
+              <SelectItem value="6M">{t('analysis.periods.sixMonths')}</SelectItem>
+              <SelectItem value="1Y">{t('analysis.periods.oneYear')}</SelectItem>
             </SelectContent>
           </Select>
           <RefreshButton variant="outline" size="icon" onRefresh={handleRefreshAll} isLoading={isRefreshing} />
@@ -342,7 +349,7 @@ export default function AnalysisPage() {
 
       <Card className="border-dashed">
         <CardHeader>
-          <CardTitle>Genel Teknik Sinyal</CardTitle>
+          <CardTitle>{t('analysis.generalSignal')}</CardTitle>
           <CardDescription>{combinedSignalDescription}</CardDescription>
         </CardHeader>
         <CardContent>
@@ -351,10 +358,10 @@ export default function AnalysisPage() {
           ) : (
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Toplam Sinyal</p>
-                <p className="text-sm text-muted-foreground">{allIndicatorsData?.message || 'Analiz bilgisi hazir'}</p>
+                <p className="text-sm text-muted-foreground">{t('analysis.totalSignal')}</p>
+                <p className="text-sm text-muted-foreground">{allIndicatorsData?.message || t('analysis.analysisReady')}</p>
               </div>
-              <Badge variant={overallSignal.variant}>{overallSignal.label}</Badge>
+              <Badge variant={overallSignal.variant}>{renderBadgeLabel(overallSignal)}</Badge>
             </div>
           )}
         </CardContent>
@@ -362,13 +369,13 @@ export default function AnalysisPage() {
 
       <Tabs defaultValue="ma" className="space-y-6">
         <TabsList className="h-auto flex-wrap justify-start">
-          <TabsTrigger value="ma">Hareketli Ortalama</TabsTrigger>
-          <TabsTrigger value="trend">Trend Analizi</TabsTrigger>
+          <TabsTrigger value="ma">{t('analysis.tabs.movingAverage')}</TabsTrigger>
+          <TabsTrigger value="trend">{t('analysis.tabs.trend')}</TabsTrigger>
           <TabsTrigger value="rsi">RSI</TabsTrigger>
           <TabsTrigger value="macd">MACD</TabsTrigger>
           <TabsTrigger value="bollinger">Bollinger</TabsTrigger>
           <TabsTrigger value="stochastic">Stochastic</TabsTrigger>
-          <TabsTrigger value="compare">Karsilastirma</TabsTrigger>
+          <TabsTrigger value="compare">{t('analysis.tabs.compare')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="ma" className="space-y-6">
@@ -388,11 +395,11 @@ export default function AnalysisPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="10">10 Gun</SelectItem>
-                <SelectItem value="20">20 Gun</SelectItem>
-                <SelectItem value="50">50 Gun</SelectItem>
-                <SelectItem value="100">100 Gun</SelectItem>
-                <SelectItem value="200">200 Gun</SelectItem>
+                <SelectItem value="10">{t('analysis.days', { count: 10 })}</SelectItem>
+                <SelectItem value="20">{t('analysis.days', { count: 20 })}</SelectItem>
+                <SelectItem value="50">{t('analysis.days', { count: 50 })}</SelectItem>
+                <SelectItem value="100">{t('analysis.days', { count: 100 })}</SelectItem>
+                <SelectItem value="200">{t('analysis.days', { count: 200 })}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -403,18 +410,18 @@ export default function AnalysisPage() {
                 <CardTitle>
                   {buildSymbolTitle(`${maType} (${maPeriod})`)}
                 </CardTitle>
-                <CardDescription>Fiyat ve hareketli ortalama</CardDescription>
+                <CardDescription>{t('analysis.priceAndMovingAverage')}</CardDescription>
               </CardHeader>
               <CardContent>{maLoading ? <Skeleton className="h-64" /> : <PriceChart data={maData?.data || []} />}</CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Istatistikler</CardTitle>
+                <CardTitle>{t('analysis.statistics')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between border-b py-2">
-                  <span className="text-muted-foreground">Son Fiyat</span>
+                  <span className="text-muted-foreground">{t('analysis.lastPrice')}</span>
                   <span className="font-semibold">{maData ? formatCurrency(maData.currentPrice, 'TRY') : '-'}</span>
                 </div>
                 <div className="flex justify-between border-b py-2">
@@ -422,19 +429,23 @@ export default function AnalysisPage() {
                   <span className="font-semibold">{maData ? formatCurrency(maData.maValue, 'TRY') : '-'}</span>
                 </div>
                 <div className="flex justify-between border-b py-2">
-                  <span className="text-muted-foreground">Fark</span>
+                  <span className="text-muted-foreground">{t('analysis.difference')}</span>
                   <span className={cn('font-semibold', maData?.difference >= 0 ? 'text-success' : 'text-danger')}>
                     {maData ? formatPercent(maData.differencePercent) : '-'}
                   </span>
                 </div>
                 <div className="flex justify-between py-2">
-                  <span className="text-muted-foreground">Sinyal</span>
+                  <span className="text-muted-foreground">{t('analysis.signal.label')}</span>
                   <Badge
                     variant={
                       maData?.signal === 'BUY' ? 'success' : maData?.signal === 'SELL' ? 'danger' : 'secondary'
                     }
                   >
-                    {maData?.signal === 'BUY' ? 'AL' : maData?.signal === 'SELL' ? 'SAT' : 'BEKLE'}
+                    {maData?.signal === 'BUY'
+                      ? t('analysis.signal.buy')
+                      : maData?.signal === 'SELL'
+                        ? t('analysis.signal.sell')
+                        : t('analysis.signal.hold')}
                   </Badge>
                 </div>
               </CardContent>
@@ -446,8 +457,8 @@ export default function AnalysisPage() {
           <div className="grid gap-6 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>{buildSymbolTitle('Trend Analizi')}</CardTitle>
-                <CardDescription>Destek/direnc seviyeleri ile trend yorumu</CardDescription>
+                <CardTitle>{buildSymbolTitle(t('analysis.tabs.trend'))}</CardTitle>
+                <CardDescription>{t('analysis.trendDescription')}</CardDescription>
               </CardHeader>
               <CardContent>
                 {trendLoading ? <Skeleton className="h-64" /> : <PriceChart data={trendData?.data || []} />}
@@ -456,25 +467,29 @@ export default function AnalysisPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Trend Bilgileri</CardTitle>
+                <CardTitle>{t('analysis.trendInfo')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between border-b py-2">
-                  <span className="text-muted-foreground">Trend Yonu</span>
+                  <span className="text-muted-foreground">{t('analysis.trendDirection')}</span>
                   <Badge variant={trendDirection === 'UP' ? 'success' : trendDirection === 'DOWN' ? 'danger' : 'secondary'}>
-                    {trendDirection === 'UP' ? 'Yukselis' : trendDirection === 'DOWN' ? 'Dusus' : 'Yatay'}
+                    {trendDirection === 'UP'
+                      ? t('analysis.status.bullish')
+                      : trendDirection === 'DOWN'
+                        ? t('analysis.status.bearish')
+                        : t('analysis.status.sideways')}
                   </Badge>
                 </div>
                 <div className="flex justify-between border-b py-2">
-                  <span className="text-muted-foreground">Destek</span>
+                  <span className="text-muted-foreground">{t('analysis.support')}</span>
                   <span className="font-semibold">{trendData ? formatCurrency(trendData.support, 'TRY') : '-'}</span>
                 </div>
                 <div className="flex justify-between border-b py-2">
-                  <span className="text-muted-foreground">Direnc</span>
+                  <span className="text-muted-foreground">{t('analysis.resistance')}</span>
                   <span className="font-semibold">{trendData ? formatCurrency(trendData.resistance, 'TRY') : '-'}</span>
                 </div>
                 <div className="flex justify-between py-2">
-                  <span className="text-muted-foreground">Guc</span>
+                  <span className="text-muted-foreground">{t('analysis.strength')}</span>
                   <span className="font-semibold">{trendData ? `${trendData.strength}%` : '-'}</span>
                 </div>
               </CardContent>
@@ -487,16 +502,16 @@ export default function AnalysisPage() {
             <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <CardTitle>{buildSymbolTitle('RSI')}</CardTitle>
-                <CardDescription>Goreceli Guc Endeksi (0-100)</CardDescription>
+                <CardDescription>{t('analysis.rsiDescription')}</CardDescription>
               </div>
               <Select value={rsiPeriod} onValueChange={setRsiPeriod}>
                 <SelectTrigger className="w-28">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="7">7 Gun</SelectItem>
-                  <SelectItem value="14">14 Gun</SelectItem>
-                  <SelectItem value="21">21 Gun</SelectItem>
+                  <SelectItem value="7">{t('analysis.days', { count: 7 })}</SelectItem>
+                  <SelectItem value="14">{t('analysis.days', { count: 14 })}</SelectItem>
+                  <SelectItem value="21">{t('analysis.days', { count: 21 })}</SelectItem>
                 </SelectContent>
               </Select>
             </CardHeader>
@@ -507,12 +522,12 @@ export default function AnalysisPage() {
                 <div className="space-y-4">
                   <div className="flex items-end justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">RSI Degeri</p>
+                      <p className="text-sm text-muted-foreground">{t('analysis.rsiValue')}</p>
                       <p className="text-4xl font-bold">{formatNumber(rsiData?.data)}</p>
                     </div>
-                    <Badge variant={rsiStatus.variant}>{rsiStatus.label}</Badge>
+                    <Badge variant={rsiStatus.variant}>{renderBadgeLabel(rsiStatus)}</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{rsiData?.message || 'RSI yorumu hazir'}</p>
+                  <p className="text-sm text-muted-foreground">{rsiData?.message || t('analysis.rsiReady')}</p>
                 </div>
               )}
             </CardContent>
@@ -523,26 +538,32 @@ export default function AnalysisPage() {
           <Card>
             <CardHeader>
               <CardTitle>{buildSymbolTitle('MACD')}</CardTitle>
-              <CardDescription>12-26-9 standart ayarlari ile momentum analizi</CardDescription>
+              <CardDescription>{t('analysis.macdDescription')}</CardDescription>
             </CardHeader>
             <CardContent>
               {macdLoading ? (
                 <Skeleton className="h-36" />
+              ) : !hasMacdData ? (
+                <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  {macdData?.message || t('analysis.status.noData')}
+                </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="rounded-lg border p-4">
-                    <p className="text-xs text-muted-foreground">MACD Cizgisi</p>
-                    <p className="text-2xl font-semibold">{formatNumber(macdData?.data?.macdLine, 4)}</p>
+                    <p className="text-xs text-muted-foreground">{t('analysis.macdLine')}</p>
+                    <p className="text-2xl font-semibold">{formatNumber(macd.macdLine, 4)}</p>
                   </div>
                   <div className="rounded-lg border p-4">
-                    <p className="text-xs text-muted-foreground">Sinyal Cizgisi</p>
-                    <p className="text-2xl font-semibold">{formatNumber(macdData?.data?.signalLine, 4)}</p>
+                    <p className="text-xs text-muted-foreground">{t('analysis.signalLine')}</p>
+                    <p className="text-2xl font-semibold">{formatNumber(macd.signalLine, 4)}</p>
                   </div>
                   <div className="rounded-lg border p-4">
                     <p className="text-xs text-muted-foreground">Histogram</p>
-                    <p className="text-2xl font-semibold">{formatNumber(macdData?.data?.histogram, 4)}</p>
-                    <Badge variant={Number(macdData?.data?.histogram) >= 0 ? 'success' : 'danger'} className="mt-2">
-                      {Number(macdData?.data?.histogram) >= 0 ? 'Yukselis Momentumu' : 'Dusus Momentumu'}
+                    <p className="text-2xl font-semibold">{formatNumber(macd.histogram, 4)}</p>
+                    <Badge variant={macdHistogram >= 0 ? 'success' : 'danger'} className="mt-2">
+                      {macdHistogram >= 0
+                        ? t('analysis.bullishMomentum')
+                        : t('analysis.bearishMomentum')}
                     </Badge>
                   </div>
                 </div>
@@ -558,9 +579,9 @@ export default function AnalysisPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="10">10 Gun</SelectItem>
-                <SelectItem value="20">20 Gun</SelectItem>
-                <SelectItem value="50">50 Gun</SelectItem>
+                <SelectItem value="10">{t('analysis.days', { count: 10 })}</SelectItem>
+                <SelectItem value="20">{t('analysis.days', { count: 20 })}</SelectItem>
+                <SelectItem value="50">{t('analysis.days', { count: 50 })}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={bollingerStdDev} onValueChange={setBollingerStdDev}>
@@ -568,17 +589,17 @@ export default function AnalysisPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1.5">Std Sapma 1.5</SelectItem>
-                <SelectItem value="2.0">Std Sapma 2.0</SelectItem>
-                <SelectItem value="2.5">Std Sapma 2.5</SelectItem>
+                <SelectItem value="1.5">{t('analysis.stdDev', { value: '1.5' })}</SelectItem>
+                <SelectItem value="2.0">{t('analysis.stdDev', { value: '2.0' })}</SelectItem>
+                <SelectItem value="2.5">{t('analysis.stdDev', { value: '2.5' })}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>{buildSymbolTitle('Bollinger Bantlari')}</CardTitle>
-              <CardDescription>Bant genisligi ve %B ile volatilite analizi</CardDescription>
+              <CardTitle>{buildSymbolTitle(t('analysis.bollingerBands'))}</CardTitle>
+              <CardDescription>{t('analysis.bollingerDescription')}</CardDescription>
             </CardHeader>
             <CardContent>
               {bollingerLoading ? (
@@ -586,19 +607,19 @@ export default function AnalysisPage() {
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   <div className="rounded-lg border p-4">
-                    <p className="text-xs text-muted-foreground">Ust Bant</p>
+                    <p className="text-xs text-muted-foreground">{t('analysis.upperBand')}</p>
                     <p className="text-xl font-semibold">{formatNumber(bollingerData?.data?.upperBand, 4)}</p>
                   </div>
                   <div className="rounded-lg border p-4">
-                    <p className="text-xs text-muted-foreground">Orta Bant</p>
+                    <p className="text-xs text-muted-foreground">{t('analysis.middleBand')}</p>
                     <p className="text-xl font-semibold">{formatNumber(bollingerData?.data?.middleBand, 4)}</p>
                   </div>
                   <div className="rounded-lg border p-4">
-                    <p className="text-xs text-muted-foreground">Alt Bant</p>
+                    <p className="text-xs text-muted-foreground">{t('analysis.lowerBand')}</p>
                     <p className="text-xl font-semibold">{formatNumber(bollingerData?.data?.lowerBand, 4)}</p>
                   </div>
                   <div className="rounded-lg border p-4">
-                    <p className="text-xs text-muted-foreground">Bant Genisligi</p>
+                    <p className="text-xs text-muted-foreground">{t('analysis.bandwidth')}</p>
                     <p className="text-xl font-semibold">{formatNumber(bollingerData?.data?.bandwidth, 2)}</p>
                   </div>
                   <div className="rounded-lg border p-4">
@@ -606,8 +627,8 @@ export default function AnalysisPage() {
                     <p className="text-xl font-semibold">{formatNumber(bollingerData?.data?.percentB, 2)}</p>
                   </div>
                   <div className="rounded-lg border p-4">
-                    <p className="text-xs text-muted-foreground">Yorum</p>
-                    <p className="text-sm font-medium">{bollingerData?.message || 'Bant analizi hazir'}</p>
+                    <p className="text-xs text-muted-foreground">{t('analysis.comment')}</p>
+                    <p className="text-sm font-medium">{bollingerData?.message || t('analysis.bollingerReady')}</p>
                   </div>
                 </div>
               )}
@@ -642,7 +663,7 @@ export default function AnalysisPage() {
           <Card>
             <CardHeader>
               <CardTitle>{buildSymbolTitle('Stochastic')}</CardTitle>
-              <CardDescription>%K ve %D ile asiri alim/satim tespiti</CardDescription>
+              <CardDescription>{t('analysis.stochasticDescription')}</CardDescription>
             </CardHeader>
             <CardContent>
               {stochasticLoading ? (
@@ -659,11 +680,11 @@ export default function AnalysisPage() {
                       <p className="text-2xl font-semibold">{formatNumber(stochasticData?.data?.percentD, 2)}</p>
                     </div>
                     <div className="rounded-lg border p-4">
-                      <p className="text-xs text-muted-foreground">Sinyal</p>
-                      <Badge variant={stochasticSignal.variant}>{stochasticSignal.label}</Badge>
+                      <p className="text-xs text-muted-foreground">{t('analysis.signal.label')}</p>
+                      <Badge variant={stochasticSignal.variant}>{renderBadgeLabel(stochasticSignal)}</Badge>
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">{stochasticData?.message || 'Stochastic yorumu hazir'}</p>
+                  <p className="text-sm text-muted-foreground">{stochasticData?.message || t('analysis.stochasticReady')}</p>
                 </div>
               )}
             </CardContent>
@@ -673,14 +694,14 @@ export default function AnalysisPage() {
         <TabsContent value="compare" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Sembol Secimi</CardTitle>
-              <CardDescription>Karsilastirma icin en az 2, en fazla 5 sembol secin</CardDescription>
+              <CardTitle>{t('analysis.symbolSelection')}</CardTitle>
+              <CardDescription>{t('analysis.compareDescription')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <Select value={compareCandidate} onValueChange={setCompareCandidate} disabled={availableInstruments.length === 0}>
                   <SelectTrigger className="w-[320px]">
-                    <SelectValue placeholder="Sembol secin" />
+                    <SelectValue placeholder={t('analysis.selectSymbol')} />
                   </SelectTrigger>
                   <SelectContent>
                     {availableInstruments
@@ -693,7 +714,7 @@ export default function AnalysisPage() {
                   </SelectContent>
                 </Select>
                 <Button type="button" onClick={handleAddCompareSymbol} disabled={!canAddCompareSymbol}>
-                  Ekle
+                  {t('common.add')}
                 </Button>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -704,25 +725,25 @@ export default function AnalysisPage() {
                       type="button"
                       className="text-muted-foreground transition-colors hover:text-foreground"
                       onClick={() => handleRemoveCompareSymbol(itemSymbol)}
-                      aria-label={`${itemSymbol} kaldir`}
+                      aria-label={t('analysis.removeSymbol', { symbol: itemSymbol })}
                     >
                       x
                     </button>
                   </Badge>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">Secili: {compareSymbols.length}/5</p>
+              <p className="text-xs text-muted-foreground">{t('analysis.selectedCount', { count: compareSymbols.length })}</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Performans Karsilastirmasi</CardTitle>
-              <CardDescription>Secilen semboller: {compareSymbols.join(', ') || '-'}</CardDescription>
+              <CardTitle>{t('analysis.performanceComparison')}</CardTitle>
+              <CardDescription>{t('analysis.selectedSymbols', { symbols: compareSymbols.join(', ') || '-' })}</CardDescription>
             </CardHeader>
             <CardContent>
               {compareSymbols.length < 2 ? (
-                <div className="py-8 text-center text-muted-foreground">Karsilastirma icin en az 2 sembol gerekli</div>
+                <div className="py-8 text-center text-muted-foreground">{t('analysis.compareRequiresTwo')}</div>
               ) : comparisonLoading ? (
                 <Skeleton className="h-64" />
               ) : comparisonItems.length > 0 ? (
@@ -757,7 +778,7 @@ export default function AnalysisPage() {
                   ))}
                 </div>
               ) : (
-                <div className="py-8 text-center text-muted-foreground">Karsilastirma verisi yok</div>
+                <div className="py-8 text-center text-muted-foreground">{t('analysis.compareNoData')}</div>
               )}
             </CardContent>
           </Card>

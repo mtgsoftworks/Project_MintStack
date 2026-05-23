@@ -35,7 +35,7 @@ export function PortfolioSummarySection({ t, portfolio, items, chartData }) {
                         <span className="font-semibold">{formatCurrency(portfolio.cashBalance || 0, 'TRY')}</span>
                     </div>
                     <div className="flex justify-between py-2 border-b">
-                        <span className="text-muted-foreground">Net Varlik Degeri</span>
+                        <span className="text-muted-foreground">{t('portfolioDetailPage.summary.netAssetValue')}</span>
                         <span className="font-semibold">{formatCurrency(portfolio.netAssetValue || 0, 'TRY')}</span>
                     </div>
                     <div className="flex justify-between py-2 border-b">

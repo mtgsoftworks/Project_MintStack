@@ -4,6 +4,7 @@ import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.PriceHistory;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
+import com.mintstack.finance.service.PriceUpdateService;
 import com.mintstack.finance.service.external.BistDataStoreClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,9 @@ class BistDataStoreMarketDataServiceTest {
     @Mock
     private PriceHistoryRepository priceHistoryRepository;
 
+    @Mock
+    private PriceUpdateService priceUpdateService;
+
     private BistDataStoreMarketDataService service;
 
     @BeforeEach
@@ -46,7 +50,8 @@ class BistDataStoreMarketDataServiceTest {
         service = new BistDataStoreMarketDataService(
             bistDataStoreClient,
             instrumentRepository,
-            priceHistoryRepository
+            priceHistoryRepository,
+            priceUpdateService
         );
         ReflectionTestUtils.setField(service, "enabled", true);
         ReflectionTestUtils.setField(service, "latestLookbackDays", 1);
@@ -97,6 +102,12 @@ class BistDataStoreMarketDataServiceTest {
         ArgumentCaptor<Instrument> instrumentCaptor = ArgumentCaptor.forClass(Instrument.class);
         verify(instrumentRepository).save(instrumentCaptor.capture());
         assertThat(instrumentCaptor.getValue().getMaturityDate()).isEqualTo(maturityDate);
+        verify(priceUpdateService).broadcastMarketUpdate(
+            eq("BOND"),
+            eq("TRDABVK72615"),
+            eq(new BigDecimal("99.62")),
+            any()
+        );
     }
 
     @Test
@@ -114,6 +125,7 @@ class BistDataStoreMarketDataServiceTest {
             new BigDecimal("97.00"),
             new BigDecimal("95.20"),
             new BigDecimal("-5.00"),
+            LocalDate.of(2026, 5, 29),
             new BigDecimal("12345"),
             new BigDecimal("1172775")
         );
@@ -127,5 +139,12 @@ class BistDataStoreMarketDataServiceTest {
         ArgumentCaptor<Instrument> instrumentCaptor = ArgumentCaptor.forClass(Instrument.class);
         verify(instrumentRepository).save(instrumentCaptor.capture());
         assertThat(instrumentCaptor.getValue().getPreviousClose()).isEqualByComparingTo("100.000000");
+        assertThat(instrumentCaptor.getValue().getMaturityDate()).isEqualTo(LocalDate.of(2026, 5, 29));
+        verify(priceUpdateService).broadcastMarketUpdate(
+            eq("VIOP"),
+            eq("F_TEST0526"),
+            eq(new BigDecimal("95.00")),
+            any()
+        );
     }
 }

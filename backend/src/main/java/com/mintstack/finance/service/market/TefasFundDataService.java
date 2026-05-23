@@ -4,6 +4,7 @@ import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.PriceHistory;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
+import com.mintstack.finance.service.PriceUpdateService;
 import com.mintstack.finance.service.external.TefasFundClient;
 import com.mintstack.finance.service.external.TefasFundClient.TefasFundPrice;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Slf4j
@@ -28,6 +31,7 @@ public class TefasFundDataService {
     private final TefasFundClient tefasFundClient;
     private final InstrumentRepository instrumentRepository;
     private final PriceHistoryRepository priceHistoryRepository;
+    private final PriceUpdateService priceUpdateService;
 
     @Value("${app.external-api.tefas.enabled:true}")
     private boolean enabled;
@@ -107,6 +111,18 @@ public class TefasFundDataService {
         history.setAdjustedClose(fundPrice.price());
         history.setVolume(toLong(fundPrice.sharesOutstanding()));
         priceHistoryRepository.save(history);
+
+        Map<String, Object> additionalData = new HashMap<>();
+        if (fundPrice.date() != null) {
+            additionalData.put("tradeDate", fundPrice.date());
+        }
+        if (fundPrice.portfolioSize() != null) {
+            additionalData.put("portfolioSize", fundPrice.portfolioSize());
+        }
+        if (fundPrice.investorCount() != null) {
+            additionalData.put("investorCount", fundPrice.investorCount());
+        }
+        priceUpdateService.broadcastMarketUpdate("FUND", saved.getSymbol(), fundPrice.price(), additionalData);
     }
 
     private BigDecimal resolvePreviousCloseForDate(Instrument instrument, LocalDate effectiveDate) {

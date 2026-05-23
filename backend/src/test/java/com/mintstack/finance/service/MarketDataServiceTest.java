@@ -530,6 +530,50 @@ class MarketDataServiceTest {
     }
 
     @Test
+    @DisplayName("searchInstruments should use simulated search only when simulation is enabled")
+    void searchInstruments_ShouldUseSimulatedSearch_WhenSimulationEnabled() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Instrument simulatedStock = Instrument.builder()
+                .symbol("SIMTHY")
+                .name("Simulated THY")
+                .type(InstrumentType.STOCK)
+                .exchange("BIST")
+                .currency("TRY")
+                .currentPrice(new BigDecimal("285.50"))
+                .previousClose(new BigDecimal("280.00"))
+                .isActive(true)
+                .isSimulated(true)
+                .build();
+        Page<Instrument> instrumentPage = new PageImpl<>(List.of(simulatedStock), pageable, 1);
+
+        when(simulationDataService.isSimulationEnabled()).thenReturn(true);
+        when(instrumentRepository.searchBySymbolOrNameAndSimulationMode("SIM", true, pageable))
+                .thenReturn(instrumentPage);
+
+        Page<InstrumentResponse> result = marketDataService.searchInstruments("SIM", pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getSymbol()).isEqualTo("SIMTHY");
+        assertThat(result.getContent().get(0).getIsSimulated()).isTrue();
+    }
+
+    @Test
+    @DisplayName("searchInstruments by type should use real search when simulation is disabled")
+    void searchInstrumentsByType_ShouldUseRealSearch_WhenSimulationDisabled() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Instrument> instrumentPage = new PageImpl<>(List.of(thyaoStock), pageable, 1);
+
+        when(instrumentRepository.searchByTypeAndQuery(InstrumentType.STOCK, "THY", pageable))
+                .thenReturn(instrumentPage);
+
+        Page<InstrumentResponse> result = marketDataService.searchInstruments(InstrumentType.STOCK, "THY", pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getSymbol()).isEqualTo("THYAO");
+        assertThat(result.getContent().get(0).getIsSimulated()).isFalse();
+    }
+
+    @Test
     @DisplayName("getInstrumentsByType should fallback to real data for unsupported simulation types")
     void getInstrumentsByType_ShouldFallbackToRealData_WhenSimulationDataEmpty() {
         Instrument bondInstrument = Instrument.builder()

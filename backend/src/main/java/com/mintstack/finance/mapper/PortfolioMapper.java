@@ -22,7 +22,7 @@ public interface PortfolioMapper {
 
     @Mapping(target = "profitLoss", expression = "java(portfolio.getTotalProfitLoss())")
     @Mapping(target = "profitLossPercent", expression = "java(portfolio.getProfitLossPercent())")
-    @Mapping(target = "totalValue", expression = "java(portfolio.getTotalValue())")
+    @Mapping(target = "totalValue", expression = "java(portfolio.getPositionValue())")
     @Mapping(target = "positionValue", expression = "java(portfolio.getPositionValue())")
     @Mapping(target = "cashBalance", expression = "java(portfolio.getCashBalance())")
     @Mapping(target = "initialCashBalance", expression = "java(portfolio.getInitialCashBalance())")

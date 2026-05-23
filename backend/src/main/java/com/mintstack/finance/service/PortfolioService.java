@@ -363,19 +363,13 @@ public class PortfolioService {
         List<Portfolio> portfolios = portfolioRepository.findByUserIdWithItems(user.getId());
 
         BigDecimal totalValue = portfolios.stream()
-            .map(Portfolio::getTotalValue)
+            .map(Portfolio::getPositionValue)
+            .map(this::safe)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalCost = portfolios.stream()
             .map(Portfolio::getTotalCost)
+            .map(this::safe)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalProfitLoss = totalValue.subtract(totalCost);
-
-        BigDecimal totalProfitLossPercent = BigDecimal.ZERO;
-        if (totalCost.compareTo(BigDecimal.ZERO) > 0) {
-            totalProfitLossPercent = totalProfitLoss
-                .divide(totalCost, 6, RoundingMode.HALF_UP)
-                .multiply(new BigDecimal("100"));
-        }
 
         BigDecimal totalCashBalance = portfolios.stream()
             .map(Portfolio::getCashBalance)
@@ -392,6 +386,8 @@ public class PortfolioService {
             .map(Portfolio::getTotalProfitLoss)
             .map(this::safe)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalProfitLoss = totalRealizedProfitLoss.add(totalUnrealizedProfitLoss);
+        BigDecimal totalProfitLossPercent = calculateProfitLossPercent(totalProfitLoss, totalCost);
 
         return PortfolioSummaryResponse.builder()
             .totalValue(totalValue)
@@ -448,6 +444,8 @@ public class PortfolioService {
         BigDecimal cashBalance = safe(portfolio.getCashBalance());
         BigDecimal realizedProfitLoss = safe(portfolioTransactionRepository.sumRealizedProfitLossByPortfolioId(portfolio.getId()));
         BigDecimal unrealizedProfitLoss = safe(portfolio.getTotalProfitLoss());
+        BigDecimal totalProfitLoss = realizedProfitLoss.add(unrealizedProfitLoss);
+        BigDecimal profitLossPercent = calculateProfitLossPercent(totalProfitLoss, safe(portfolio.getTotalCost()));
 
         return PortfolioResponse.builder()
             .id(portfolio.getId())
@@ -457,8 +455,8 @@ public class PortfolioService {
             .totalValue(positionValue)
             .positionValue(positionValue)
             .totalCost(portfolio.getTotalCost())
-            .profitLoss(unrealizedProfitLoss)
-            .profitLossPercent(portfolio.getProfitLossPercent())
+            .profitLoss(totalProfitLoss)
+            .profitLossPercent(profitLossPercent)
             .cashBalance(cashBalance)
             .initialCashBalance(safe(portfolio.getInitialCashBalance()))
             .commissionRate(safe(portfolio.getCommissionRate()))
@@ -606,6 +604,16 @@ public class PortfolioService {
 
     private BigDecimal safe(BigDecimal value) {
         return value != null ? value : BigDecimal.ZERO;
+    }
+
+    private BigDecimal calculateProfitLossPercent(BigDecimal profitLoss, BigDecimal totalCost) {
+        BigDecimal safeTotalCost = safe(totalCost);
+        if (safeTotalCost.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+        return safe(profitLoss)
+            .divide(safeTotalCost, 6, RoundingMode.HALF_UP)
+            .multiply(new BigDecimal("100"));
     }
 
     private boolean isOrderDueForExecution(LocalDate transactionDate) {

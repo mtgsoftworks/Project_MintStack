@@ -28,25 +28,25 @@ function SearchSkeleton() {
   )
 }
 
-function labelForType(type: string | undefined) {
+function labelForType(type: string | undefined, t: (key: string) => string) {
   if (!type) {
-    return 'Bilinmiyor'
+    return t('marketSearch.type.unknown')
   }
   switch (type) {
     case 'STOCK':
-      return 'Hisse'
+      return t('marketSearch.type.stock')
     case 'BOND':
-      return 'Tahvil/Bono'
+      return t('marketSearch.type.bond')
     case 'FUND':
-      return 'Yatirim Fonu'
+      return t('marketSearch.type.fund')
     case 'VIOP':
-      return 'VIOP'
+      return t('marketSearch.type.viop')
     case 'CURRENCY':
-      return 'Doviz'
+      return t('marketSearch.type.currency')
     case 'INDEX':
-      return 'Endeks'
+      return t('marketSearch.type.index')
     case 'CRYPTO':
-      return 'Kripto'
+      return t('marketSearch.type.crypto')
     default:
       return type
   }
@@ -95,11 +95,11 @@ export default function MarketSearchPage() {
   const groupedCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const item of results) {
-      const key = labelForType(item.type)
+      const key = labelForType(item.type, t)
       counts[key] = (counts[key] || 0) + 1
     }
     return counts
-  }, [results])
+  }, [results, t])
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -115,9 +115,7 @@ export default function MarketSearchPage() {
     <div className="space-y-6 animate-in">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-bold">{t('common.search')}</h1>
-        <p className="text-muted-foreground">
-          Tum piyasalarda sembol ve isim bazli arama
-        </p>
+        <p className="text-muted-foreground">{t('marketSearch.subtitle')}</p>
       </div>
 
       <Card>
@@ -139,11 +137,11 @@ export default function MarketSearchPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Arama Sonuclari</CardTitle>
+          <CardTitle>{t('marketSearch.resultTitle')}</CardTitle>
           <CardDescription>
             {shouldSearch
-              ? `"${query}" icin ${results.length} sonuc bulundu`
-              : 'Aramak istediginiz kelimeyi yazin'}
+              ? `"${query}" ${t('marketSearch.resultCount', { count: results.length })}`
+              : t('marketSearch.prompt')}
           </CardDescription>
           {shouldSearch && results.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -158,23 +156,23 @@ export default function MarketSearchPage() {
         <CardContent>
           {!shouldSearch ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
-              Ornek: THYAO, USD, XU100, FROTO, TUREX
+              {t('marketSearch.examples')}
             </div>
           ) : isLoading || isFetching ? (
             <SearchSkeleton />
           ) : results.length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
-              Sonuc bulunamadi.
+              {t('marketSearch.noResults')}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Sembol</TableHead>
-                  <TableHead>Ad</TableHead>
-                  <TableHead>Tur</TableHead>
-                  <TableHead className="text-right">Fiyat</TableHead>
-                  <TableHead className="text-right">Aksiyon</TableHead>
+                  <TableHead>{t('marketSearch.headers.symbol')}</TableHead>
+                  <TableHead>{t('marketSearch.headers.name')}</TableHead>
+                  <TableHead>{t('marketSearch.headers.type')}</TableHead>
+                  <TableHead className="text-right">{t('marketSearch.headers.price')}</TableHead>
+                  <TableHead className="text-right">{t('marketSearch.headers.action')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -183,7 +181,7 @@ export default function MarketSearchPage() {
                     <TableCell className="font-semibold">{item.symbol}</TableCell>
                     <TableCell className="text-muted-foreground">{item.name || '-'}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{labelForType(item.type)}</Badge>
+                      <Badge variant="secondary">{labelForType(item.type, t)}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       {item.currentPrice != null ? formatCurrency(item.currentPrice, item.currency || 'TRY') : '-'}
@@ -194,7 +192,7 @@ export default function MarketSearchPage() {
                         size="sm"
                         onClick={() => navigate(routeForInstrument(item.symbol, item.type))}
                       >
-                        Ac
+                        {t('marketSearch.open')}
                         <ArrowRight className="ml-1 h-4 w-4" />
                       </Button>
                     </TableCell>

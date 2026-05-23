@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -66,10 +67,12 @@ function resolveApiErrorMessage(error, fallbackMessage) {
 }
 
 export function PortfolioCashDialog({ portfolioId, open, onOpenChange, currentCashBalance = null }) {
+  const { t, i18n } = useTranslation()
   const [action, setAction] = useState('DEPOSIT')
   const [amount, setAmount] = useState('')
   const [notes, setNotes] = useState('')
   const [adjustCash, { isLoading }] = useAdjustPortfolioCashMutation()
+  const numberLocale = i18n.language === 'en' ? 'en-US' : 'tr-TR'
 
   useEffect(() => {
     if (open) {
@@ -84,14 +87,14 @@ export function PortfolioCashDialog({ portfolioId, open, onOpenChange, currentCa
 
     const parsedAmount = parseLocalizedAmount(amount)
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      toast.error('Gecerli bir tutar girin')
+      toast.error(t('portfolioDetailPage.cashDialog.invalidAmount'))
       return
     }
 
     if (action === 'WITHDRAW' && Number.isFinite(Number(currentCashBalance))) {
       const availableCash = Number(currentCashBalance)
       if (parsedAmount > availableCash) {
-        toast.error(`Yetersiz bakiye. Mevcut: ${availableCash.toLocaleString('tr-TR')}`)
+        toast.error(t('portfolioDetailPage.cashDialog.insufficientBalance', { amount: availableCash.toLocaleString(numberLocale) }))
         return
       }
     }
@@ -104,10 +107,10 @@ export function PortfolioCashDialog({ portfolioId, open, onOpenChange, currentCa
         notes: notes.trim() || undefined,
       }).unwrap()
 
-      toast.success(action === 'DEPOSIT' ? 'Nakit eklendi' : 'Nakit cekildi')
+      toast.success(t(action === 'DEPOSIT' ? 'portfolioDetailPage.cashDialog.depositSuccess' : 'portfolioDetailPage.cashDialog.withdrawSuccess'))
       onOpenChange(false)
     } catch (error) {
-      toast.error(resolveApiErrorMessage(error, 'Nakit islemi basarisiz oldu'))
+      toast.error(resolveApiErrorMessage(error, t('portfolioDetailPage.cashDialog.failed')))
     }
   }
 
@@ -115,34 +118,34 @@ export function PortfolioCashDialog({ portfolioId, open, onOpenChange, currentCa
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nakit Islem</DialogTitle>
-          <DialogDescription>Portfoy nakit bakiyesini artirabilir veya azaltabilirsiniz.</DialogDescription>
+          <DialogTitle>{t('portfolioDetailPage.cashDialog.title')}</DialogTitle>
+          <DialogDescription>{t('portfolioDetailPage.cashDialog.description')}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Islem Turu</Label>
+              <Label>{t('portfolioDetailPage.cashDialog.actionType')}</Label>
               <div className="flex gap-2">
                 <Button
                   type="button"
                   variant={action === 'DEPOSIT' ? 'default' : 'outline'}
                   onClick={() => setAction('DEPOSIT')}
                 >
-                  Yatir
+                  {t('portfolioDetailPage.cashDialog.deposit')}
                 </Button>
                 <Button
                   type="button"
                   variant={action === 'WITHDRAW' ? 'default' : 'outline'}
                   onClick={() => setAction('WITHDRAW')}
                 >
-                  Cek
+                  {t('portfolioDetailPage.cashDialog.withdraw')}
                 </Button>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cash-amount">Tutar</Label>
+              <Label htmlFor="cash-amount">{t('portfolioDetailPage.cashDialog.amount')}</Label>
               <Input
                 id="cash-amount"
                 type="text"
@@ -152,26 +155,30 @@ export function PortfolioCashDialog({ portfolioId, open, onOpenChange, currentCa
                 placeholder="1000 veya 1.000,50"
                 required
               />
-              <p className="text-xs text-muted-foreground">Virgul veya nokta ile tutar girebilirsiniz.</p>
+              <p className="text-xs text-muted-foreground">{t('portfolioDetailPage.cashDialog.amountHelp')}</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cash-notes">Not</Label>
+              <Label htmlFor="cash-notes">{t('portfolioDetailPage.cashDialog.note')}</Label>
               <Input
                 id="cash-notes"
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
-                placeholder="Opsiyonel not"
+                placeholder={t('portfolioDetailPage.cashDialog.optionalNote')}
               />
             </div>
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Vazgec
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Kaydediliyor...' : action === 'DEPOSIT' ? 'Yatir' : 'Cek'}
+              {isLoading
+                ? t('profile.saving')
+                : action === 'DEPOSIT'
+                  ? t('portfolioDetailPage.cashDialog.deposit')
+                  : t('portfolioDetailPage.cashDialog.withdraw')}
             </Button>
           </DialogFooter>
         </form>

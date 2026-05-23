@@ -126,8 +126,12 @@ management:
       export:
         enabled: true
   tracing:
+    enabled: ${MANAGEMENT_TRACING_ENABLED:true}
     sampling:
       probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
 
 # Resilience4j Circuit Breaker Configuration
 resilience4j:
@@ -192,7 +196,7 @@ opensearch:
 otel:
   exporter:
     otlp:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}
   service:
     name: ${OTEL_SERVICE_NAME:finance-portal}
   resource:

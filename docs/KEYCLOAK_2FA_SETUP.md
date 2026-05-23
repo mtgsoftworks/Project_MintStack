@@ -31,6 +31,10 @@ Bu doküman, MintStack Finance Portal projesinde Keycloak ile 2FA (TOTP tabanlı
 | OTP Periyodu | 30 saniye |
 | Desteklenen Uygulamalar | Google Authenticator, Microsoft Authenticator, FreeOTP |
 
+### Teslim Demo Notu
+
+`keycloak/realm-export.json` icindeki seed `admin` ve `test` kullanicilarinda `CONFIGURE_TOTP` required action tanimlidir. Bu nedenle kullanici ilk giriste OTP kurulum ekranina yonlendirilir ve TOTP kurulumu sunumda gosterilebilir.
+
 ---
 
 ## 2. Keycloak Yapılandırması

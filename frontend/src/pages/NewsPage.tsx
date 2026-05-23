@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Clock, Eye, Search } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -18,6 +19,7 @@ import {
 } from '@/store/api/newsApi'
 
 function NewsCard({ news }) {
+  const { t } = useTranslation()
   const categoryLabel = news?.category?.name || news?.categoryName
   const simulationNews = isSimulationNews(news)
   const displayTitle = getNewsDisplayTitle(news)
@@ -36,12 +38,12 @@ function NewsCard({ news }) {
             )}
             {news.isFeatured && (
               <Badge variant="info" className="text-xs">
-                One Cikan
+                {t('newsPage.featured')}
               </Badge>
             )}
             {simulationNews && (
               <Badge variant="warning" className="text-xs">
-                Simulasyon Haberi
+                {t('newsPage.simulationNews')}
               </Badge>
             )}
           </div>
@@ -92,6 +94,7 @@ function NewsCardSkeleton() {
 }
 
 export default function NewsPage() {
+  const { t } = useTranslation()
   const [page, setPage] = useState(0)
   const [category, setCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -143,14 +146,14 @@ export default function NewsPage() {
     <div className="space-y-6 animate-in">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Haberler</h1>
-          <p className="text-muted-foreground">Guncel finans ve ekonomi haberleri</p>
+          <h1 className="text-2xl font-bold">{t('newsPage.title')}</h1>
+          <p className="text-muted-foreground">{t('newsPage.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Haberlerde ara..."
+              placeholder={t('newsPage.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-64 pl-9"
@@ -167,7 +170,7 @@ export default function NewsPage() {
         }}
       >
         <TabsList className="w-full justify-start overflow-x-auto">
-          <TabsTrigger value="all">Tumu</TabsTrigger>
+          <TabsTrigger value="all">{t('newsPage.all')}</TabsTrigger>
           {categoriesLoading ? (
             <Skeleton className="h-8 w-24" />
           ) : (
@@ -189,7 +192,7 @@ export default function NewsPage() {
           ) : news.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <p className="text-muted-foreground">Bu kategoride haber bulunamadi.</p>
+                <p className="text-muted-foreground">{t('newsPage.emptyCategory')}</p>
               </CardContent>
             </Card>
           ) : (
@@ -207,17 +210,17 @@ export default function NewsPage() {
                     onClick={() => setPage((p) => Math.max(0, p - 1))}
                     disabled={page === 0 || isFetching}
                   >
-                    Onceki
+                    {t('newsPage.previous')}
                   </Button>
                   <span className="px-4 text-sm text-muted-foreground">
-                    Sayfa {page + 1} / {totalPages}
+                    {t('newsPage.page', { page: page + 1, total: totalPages })}
                   </span>
                   <Button
                     variant="outline"
                     onClick={() => setPage((p) => p + 1)}
                     disabled={page >= totalPages - 1 || isFetching}
                   >
-                    Sonraki
+                    {t('newsPage.next')}
                   </Button>
                 </div>
               )}

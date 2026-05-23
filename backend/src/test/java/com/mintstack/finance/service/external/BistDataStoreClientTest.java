@@ -99,6 +99,7 @@ class BistDataStoreClientTest {
         assertThat(price.settlementPrice()).isEqualByComparingTo("19.76");
         assertThat(price.previousSettlementPrice()).isEqualByComparingTo("20.76");
         assertThat(price.changePercent()).isEqualByComparingTo("-4.82");
+        assertThat(price.maturityDate()).isEqualTo(LocalDate.of(2026, 5, 25));
         assertThat(price.tradeVolume()).isEqualByComparingTo("222619");
     }
 

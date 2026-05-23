@@ -112,6 +112,6 @@ describe('ProfilePage', () => {
 
     expect(screen.queryByText('Şifre Değiştir')).not.toBeInTheDocument()
     expect(screen.queryByText('Güvenlik Ayarları')).not.toBeInTheDocument()
-    expect(screen.getByText('Güvenlik işlemleri sadece admin kullanıcıya açıktır.')).toBeInTheDocument()
+    expect(screen.getByText('Güvenlik ayarları için Keycloak yönetim panelini kullanın.')).toBeInTheDocument()
   })
 })

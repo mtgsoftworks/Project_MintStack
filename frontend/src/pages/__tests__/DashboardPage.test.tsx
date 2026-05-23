@@ -25,6 +25,12 @@ vi.mock('@/store/api/marketApi', () => ({
     isLoading: false,
     error: null,
   })),
+  useRefreshMarketDataMutation: vi.fn(() => [
+    vi.fn(() => ({
+      unwrap: vi.fn().mockResolvedValue({}),
+    })),
+    { isLoading: false },
+  ]),
 }))
 
 vi.mock('@/store/api/newsApi', () => ({

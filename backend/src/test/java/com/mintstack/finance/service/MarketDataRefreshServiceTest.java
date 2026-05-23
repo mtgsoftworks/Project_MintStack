@@ -17,6 +17,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -63,6 +64,31 @@ class MarketDataRefreshServiceTest {
         verify(marketDataScheduler).refreshStockPricesNow();
         verify(marketDataScheduler).refreshIndexPricesNow();
         verify(cache).clear();
+    }
+
+    @Test
+    void refreshMarketData_ShouldRunAllMarketFetches_WhenRequestIsEmpty() {
+        when(marketDataSchedulerProvider.getIfAvailable()).thenReturn(marketDataScheduler);
+
+        MarketRefreshResponse response = refreshService.refreshMarketData(List.of());
+
+        assertThat(response.refreshedDataTypes()).containsExactly(
+            "CURRENCY_RATES",
+            "BIST_STOCKS",
+            "BIST_INDICES",
+            "BONDS",
+            "FUNDS",
+            "VIOP"
+        );
+        assertThat(response.skippedDataTypes()).isEmpty();
+        verify(marketDataScheduler).fetchTcmbRates();
+        verify(marketDataScheduler).fetchNonTcmbForexRates();
+        verify(marketDataScheduler).refreshStockPricesNow();
+        verify(marketDataScheduler).refreshIndexPricesNow();
+        verify(marketDataScheduler).fetchBondPrices();
+        verify(marketDataScheduler).fetchFundPrices();
+        verify(marketDataScheduler).fetchViopPrices();
+        verify(marketDataScheduler, never()).initialDataLoad();
     }
 
     @Test

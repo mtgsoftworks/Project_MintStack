@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,10 +31,13 @@ public class MarketDataRefreshService {
         "index-values"
     );
 
-    private static final EnumSet<DataType> DEFAULT_REFRESH_TYPES = EnumSet.of(
+    private static final List<DataType> DEFAULT_REFRESH_TYPES = List.of(
         DataType.CURRENCY_RATES,
         DataType.BIST_STOCKS,
-        DataType.BIST_INDICES
+        DataType.BIST_INDICES,
+        DataType.BONDS,
+        DataType.FUNDS,
+        DataType.VIOP
     );
 
     private final ObjectProvider<MarketDataScheduler> marketDataSchedulerProvider;
@@ -52,6 +54,8 @@ public class MarketDataRefreshService {
         LinkedHashSet<DataType> refreshed = new LinkedHashSet<>();
         LinkedHashSet<DataType> skipped = new LinkedHashSet<>();
 
+        log.info("Manual market refresh started. requested={}", requested);
+
         for (DataType dataType : requested) {
             try {
                 if (refreshByType(scheduler, dataType)) {
@@ -66,6 +70,12 @@ public class MarketDataRefreshService {
         }
 
         evictMarketCaches();
+
+        log.info(
+            "Manual market refresh completed. refreshed={}, skipped={}",
+            refreshed,
+            skipped
+        );
 
         return new MarketRefreshResponse(
             namesOf(requested),

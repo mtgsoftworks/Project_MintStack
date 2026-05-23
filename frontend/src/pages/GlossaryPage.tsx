@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { BookOpen, Search } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -7,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useGetGlossaryTermsQuery } from '@/store/api/glossaryApi'
 
 export default function GlossaryPage() {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('')
   const { data: terms = [], isLoading } = useGetGlossaryTermsQuery({ query, category, size: 200 })
@@ -25,13 +27,13 @@ export default function GlossaryPage() {
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
               <BookOpen className="h-6 w-6" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">Borsa Kavram Sozlugu</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{t('glossary.title')}</h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-200">
-              TEFAS fon kavramlari, borsa emir tipleri ve portfoy terimleri icin hizli referans.
+              {t('glossary.subtitle')}
             </p>
           </div>
           <Badge className="w-fit bg-white/15 text-white hover:bg-white/20">
-            TEFAS kaynakli fon terimleri dahil
+            {t('glossary.badge')}
           </Badge>
         </div>
       </div>
@@ -47,7 +49,7 @@ export default function GlossaryPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9"
-                placeholder="TEFAS, fon fiyati, limit emir..."
+                  placeholder={t('glossary.searchPlaceholder')}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />

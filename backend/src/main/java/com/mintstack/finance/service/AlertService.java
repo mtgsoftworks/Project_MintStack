@@ -6,11 +6,11 @@ import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.PriceAlert;
 import com.mintstack.finance.entity.PriceAlert.AlertType;
 import com.mintstack.finance.entity.User;
+import com.mintstack.finance.entity.UserNotification.NotificationType;
 import com.mintstack.finance.exception.BusinessException;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PriceAlertRepository;
-import com.mintstack.finance.service.event.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,7 +20,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -35,7 +34,7 @@ public class AlertService {
     private final UserService userService;
     private final InstrumentRepository instrumentRepository;
     private final EmailService emailService;
-    private final EventPublisher eventPublisher;
+    private final UserNotificationService userNotificationService;
 
     private static final int MAX_ACTIVE_ALERTS_PER_USER = 20;
 
@@ -136,23 +135,23 @@ public class AlertService {
                 alert.getAlertType(), instrument.getSymbol(), currentPrice, alert.getTargetValue());
 
         // Publish notification event to Kafka
-        eventPublisher.publishNotificationEvent(
-                user.getKeycloakId(),
-                "PRICE_ALERT",
-                "Fiyat Alarmı: " + instrument.getSymbol(),
-                String.format("%s için %s alarmı tetiklendi. Hedef: %s, Mevcut: %s",
-                        instrument.getSymbol(), getAlertTypeLabel(alert.getAlertType()),
-                        alert.getTargetValue(), currentPrice),
-                Map.of(
-                        "symbol", instrument.getSymbol(),
-                        "alertType", alert.getAlertType().name(),
-                        "targetValue", alert.getTargetValue().toString(),
-                        "currentPrice", currentPrice.toString(),
-                        "alertId", alert.getId().toString()
-                )
-        );
+        if (Boolean.TRUE.equals(user.getPriceAlerts())) {
+            userNotificationService.createAndDispatch(
+                    user,
+                    NotificationType.ALERT,
+                    "Fiyat Alarmı: " + instrument.getSymbol(),
+                    String.format("%s için %s alarmı tetiklendi. Hedef: %s, Mevcut: %s",
+                            instrument.getSymbol(), getAlertTypeLabel(alert.getAlertType()),
+                            alert.getTargetValue(), currentPrice),
+                    alert.getId(),
+                    "PRICE_ALERT"
+            );
+        }
 
         // Send email notification
+        if (!Boolean.TRUE.equals(user.getEmailNotifications())) {
+            return;
+        }
         emailService.sendPriceAlertEmail(
                 user.getEmail(),
                 user.getFirstName() != null ? user.getFirstName() : user.getEmail(),

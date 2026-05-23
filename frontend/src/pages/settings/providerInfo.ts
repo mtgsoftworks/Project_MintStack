@@ -72,37 +72,37 @@ export const getProviderInfo = (t) => ({
 export const DATA_SOURCE_TYPES = [
     {
         type: 'CURRENCY_RATES',
-        label: 'Doviz Kurlari',
+        labelKey: 'settings.dataSourceTypes.currencyRates',
         providers: ['TCMB', 'YAHOO_FINANCE', 'ALPHA_VANTAGE', 'FINNHUB']
     },
     {
         type: 'BIST_STOCKS',
-        label: 'BIST Hisseleri',
+        labelKey: 'settings.dataSourceTypes.bistStocks',
         providers: ['YAHOO_FINANCE']
     },
     {
         type: 'BIST_INDICES',
-        label: 'BIST Endeksleri',
+        labelKey: 'settings.dataSourceTypes.bistIndices',
         providers: ['YAHOO_FINANCE']
     },
     {
         type: 'FUNDS',
-        label: 'Yatirim Fonlari',
+        labelKey: 'settings.dataSourceTypes.funds',
         providers: ['TEFAS', 'FINTABLES']
     },
     {
         type: 'BONDS',
-        label: 'Tahvil & Bono',
+        labelKey: 'settings.dataSourceTypes.bonds',
         providers: ['BIST_DATASTORE']
     },
     {
         type: 'VIOP',
-        label: 'VIOP',
+        labelKey: 'settings.dataSourceTypes.viop',
         providers: ['BIST_DATASTORE']
     },
     {
         type: 'US_STOCKS',
-        label: 'ABD Hisseleri',
+        labelKey: 'settings.dataSourceTypes.usStocks',
         providers: ['YAHOO_FINANCE', 'ALPHA_VANTAGE', 'FINNHUB']
     }
 ]

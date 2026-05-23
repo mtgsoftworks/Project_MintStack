@@ -26,6 +26,7 @@
         "next": "Next",
         "submit": "Submit",
         "noData": "No data found",
+        "unknown": "Unknown",
         "openMenu": "Open menu",
         "closeMenu": "Close menu",
         "simulatedShort": "Simulated",
@@ -119,7 +120,41 @@
         "addInstrument": "Add Instrument",
         "removeInstrument": "Remove Instrument",
         "empty": "Your list is empty",
-        "maxItems": "You can add up to {{count}} instruments"
+        "maxItems": "You can add up to {{count}} instruments",
+        "invalidSymbol": "No valid symbol was found",
+        "addedToList": "{{symbol}} added to {{list}}",
+        "addFailed": "Failed to add to watchlist",
+        "addDefaultTitle": "Add to default watchlist",
+        "columns": {
+            "type": "Type",
+            "price": "Price",
+            "change": "Change",
+            "addedAt": "Added",
+            "note": "Note"
+        },
+        "nameRequired": "Watchlist name is required",
+        "created": "Watchlist created",
+        "settingsSaved": "Watchlist settings saved",
+        "deleted": "Watchlist deleted",
+        "selectListAndSymbol": "Select a watchlist and symbol first",
+        "assetAdded": "Asset added to watchlist",
+        "noteUpdated": "{{symbol}} note updated",
+        "saveSettings": "Save List Settings",
+        "listName": "List Name",
+        "description": "Description",
+        "tag": "Tag",
+        "tagPlaceholder": "e.g. dividends",
+        "listNote": "List Note",
+        "listNotePlaceholder": "General note for this list",
+        "customColumns": "Custom Columns",
+        "rowHelp": "Drag to sort and edit asset notes inline.",
+        "symbolsLoading": "Symbols loading...",
+        "symbolPlaceholder": "Select or type a symbol",
+        "addAsset": "Add Asset",
+        "deleteTitle": "Delete watchlist",
+        "addNote": "Add note",
+        "emptyAddFirst": "Add the first asset from the symbol field above.",
+        "shortDescription": "Short description"
     },
     "alerts": {
         "title": "Price Alerts",
@@ -131,14 +166,16 @@
         "targetPrice": "Target Price",
         "triggered": "Triggered",
         "active": "Active",
-        "inactive": "Inactive"
+        "inactive": "Inactive",
+        "instrumentHelp": "Stock, bond, fund, VIOP and FX symbols can be selected from the sorted list."
     },
     "news": {
         "title": "Financial News",
         "latest": "Latest News",
         "featured": "Featured",
         "readMore": "Read More",
-        "categories": "Categories"
+        "categories": "Categories",
+        "imageAlt": "News image"
     },
     "settings": {
         "title": "Settings",
@@ -261,7 +298,9 @@
                 "tefas": "TEFAS",
                 "bistDataStore": "BIST DataStore",
                 "fintables": "Fintables",
-                "llmEnrichment": "LLM Enrichment"
+                "llmEnrichment": "LLM Enrichment",
+                "tcmb": "CBRT (Central Bank)",
+                "other": "Other"
             },
             "apiKey": "API Key",
             "modelName": "Model Name",
@@ -420,6 +459,15 @@
         "appearance": {
             "darkMode": "Switch to dark mode",
             "lightMode": "Switch to light mode"
+        },
+        "dataSourceTypes": {
+            "currencyRates": "Currency Rates",
+            "bistStocks": "BIST Stocks",
+            "bistIndices": "BIST Indices",
+            "funds": "Investment Funds",
+            "bonds": "Bond & Treasury",
+            "viop": "VIOP",
+            "usStocks": "US Stocks"
         }
     },
     "dashboard": {
@@ -547,7 +595,8 @@
             "totalValue": "Total Value",
             "totalCost": "Total Cost",
             "totalProfitLoss": "Total P/L",
-            "portfolioCount": "Portfolio Count"
+            "portfolioCount": "Portfolio Count",
+            "netAsset": "Net Asset"
         },
         "empty": {
             "title": "You don't have a portfolio yet",
@@ -595,10 +644,24 @@
                 "selling": "Selling",
                 "effectiveBuying": "Effective Buying",
                 "effectiveSelling": "Effective Selling",
-                "change": "Change"
+                "change": "Change",
+                "portfolio": "Portfolio"
             }
         },
-        "subtitleWithSource": "{{source}} live exchange rates"
+        "subtitleWithSource": "{{source}} live exchange rates",
+        "trade": {
+            "invalidQuantity": "Enter a valid FX quantity",
+            "invalidPrice": "No valid execution price exists for this currency",
+            "notHeld": "{{symbol}} is not in the portfolio; it cannot be sold",
+            "insufficientPosition": "Insufficient FX position. Current: {{quantity}}",
+            "insufficientCash": "Insufficient cash balance. Estimated required: {{required}}, current: {{current}}",
+            "note": "{{symbol}} FX {{side}} transaction",
+            "buySide": "buy",
+            "sellSide": "sell",
+            "buySuccess": "FX added to portfolio",
+            "sellSuccess": "FX sell order processed",
+            "failed": "FX transaction failed"
+        }
     },
     "bondsPage": {
         "title": "Bonds & Treasury",
@@ -613,7 +676,8 @@
             "price": "Price",
             "yield": "Yield",
             "change": "Change",
-            "maturity": "Maturity"
+            "maturity": "Maturity",
+            "action": "Action"
         }
     },
     "fundsPage": {
@@ -773,7 +837,8 @@
             "totalValue": "Total Value",
             "totalCost": "Total Cost",
             "profitLoss": "Profit/Loss",
-            "profitLossRatio": "P/L Ratio"
+            "profitLossRatio": "P/L Ratio",
+            "netAssetValue": "Net Asset Value"
         },
         "items": {
             "title": "Assets",
@@ -851,7 +916,49 @@
                 "market": "Market",
                 "limit": "Limit",
                 "stop": "Stop"
-            }
+            },
+            "buyTitle": "Buy Transaction",
+            "sellTitle": "Sell Transaction",
+            "invalidQuantity": "Enter a valid quantity",
+            "maxSellQuantity": "Maximum sell quantity: {{quantity}}",
+            "symbolRequired": "Symbol is required",
+            "invalidPrice": "Enter a valid price",
+            "invalidLimitPrice": "Enter a valid limit price",
+            "invalidStopPrice": "Enter a valid stop price",
+            "limitPriceRequired": "Limit price is required for limit orders",
+            "stopPriceRequired": "Stop price is required for stop orders",
+            "buySuccess": "Buy transaction saved",
+            "sellSuccess": "Sell transaction saved",
+            "buyDescription": "Enter a buy order for the portfolio. Cash balance and commission are checked.",
+            "sellDescription": "Enter a partial or full sell order for your position.",
+            "symbol": "Symbol",
+            "symbolPlaceholder": "Type a symbol and select from the list",
+            "instrumentCount": "{{count}} assets listed. You can type a symbol to select.",
+            "quantity": "Quantity",
+            "orderType": "Order Type",
+            "priceOptional": "Price (Optional)",
+            "pricePlaceholder": "Leave blank to use the live price",
+            "limitPrice": "Limit Price",
+            "stopPrice": "Stop Price",
+            "tradeDate": "Transaction Date",
+            "note": "Note",
+            "optionalNote": "Optional note"
+        },
+        "cashDialog": {
+            "invalidAmount": "Enter a valid amount",
+            "insufficientBalance": "Insufficient balance. Current: {{amount}}",
+            "depositSuccess": "Cash added",
+            "withdrawSuccess": "Cash withdrawn",
+            "failed": "Cash transaction failed",
+            "title": "Cash Transaction",
+            "description": "You can increase or decrease the portfolio cash balance.",
+            "actionType": "Transaction Type",
+            "deposit": "Deposit",
+            "withdraw": "Withdraw",
+            "amount": "Amount",
+            "amountHelp": "You can enter amounts with a comma or dot.",
+            "note": "Note",
+            "optionalNote": "Optional note"
         }
     },
     "settingsPage": {
@@ -972,5 +1079,251 @@
             "button": "Clear Cache",
             "toastSuccessDetailed": "{{count}} cache entries cleared"
         }
+    },
+    "marketRefresh": {
+        "success": "Market data refreshed",
+        "partial": "Market data partially refreshed. Skipped jobs: {{count}}",
+        "failed": "Market data refresh failed",
+        "loginRequired": "Only the visible data was reloaded. Sign in to refresh data from source systems."
+    },
+    "connection": {
+        "connected": "Connected",
+        "connecting": "Connecting...",
+        "reconnecting": "Reconnecting ({{attempt}}/5)",
+        "disconnected": "Disconnected"
+    },
+    "marketStatus": {
+        "bist": "BIST",
+        "open": "Open",
+        "closed": "Closed",
+        "lastUpdate": "Last update",
+        "closesIn": "closes in {{time}}",
+        "timeToClose": "{{hours}}h {{minutes}}m"
+    },
+    "refreshStatus": {
+        "lastDataRefresh": "Last data refresh",
+        "autoRefresh": "Auto refresh",
+        "enabled": "On ({{seconds}} sec)",
+        "disabled": "Off",
+        "refreshing": "Refreshing"
+    },
+    "quickTrade": {
+        "selectPortfolio": "Select or create a portfolio first",
+        "invalidPrice": "No valid price was found for this asset",
+        "invalidQuantity": "Enter a valid quantity",
+        "portfolioLoading": "Portfolio details are loading, try again",
+        "notHeld": "{{symbol}} is not in the portfolio; it cannot be sold",
+        "insufficientPosition": "Insufficient position. Current: {{quantity}}",
+        "insufficientCash": "Insufficient cash balance. Estimated required: {{required}}, current: {{current}}",
+        "buyNote": "{{symbol}} buy transaction",
+        "sellNote": "{{symbol}} sell transaction",
+        "buySuccess": "Asset added to portfolio",
+        "sellSuccess": "Sell order processed",
+        "failed": "Portfolio transaction failed",
+        "quantity": "Quantity",
+        "buy": "Buy",
+        "sell": "Sell"
+    },
+    "marketSearch": {
+        "subtitle": "Search stocks, bonds, funds, VIOP and FX instruments.",
+        "resultTitle": "Search Results",
+        "resultCount": "{{count}} results found",
+        "prompt": "Enter a symbol, name or ISIN to search.",
+        "examples": "Example: THYAO, USD, TRT, fund name",
+        "noResults": "No results found",
+        "headers": {
+            "symbol": "Symbol",
+            "name": "Name",
+            "type": "Type",
+            "price": "Price",
+            "action": "Action"
+        },
+        "open": "Open",
+        "type": {
+            "unknown": "Unknown",
+            "stock": "Stock",
+            "bond": "Bond",
+            "fund": "Fund",
+            "viop": "VIOP",
+            "currency": "Currency",
+            "index": "Index",
+            "crypto": "Crypto"
+        }
+    },
+    "newsPage": {
+        "title": "Market News",
+        "subtitle": "Latest market news and analysis",
+        "searchPlaceholder": "Search news...",
+        "featured": "Featured News",
+        "simulationNews": "Simulation News",
+        "all": "All",
+        "emptyCategory": "No news found in this category.",
+        "previous": "Previous",
+        "next": "Next",
+        "page": "Page {{page}} / {{total}}"
+    },
+    "stockDetail": {
+        "addToPortfolio": "Add to Portfolio",
+        "addDescription": "Add a position for {{symbol}} to your portfolio.",
+        "portfolio": "Portfolio",
+        "selectPortfolio": "Select portfolio",
+        "quantity": "Quantity",
+        "cancel": "Cancel",
+        "saving": "Adding...",
+        "add": "Add",
+        "instrumentMissing": "Instrument details were not found",
+        "portfoliosLoading": "Portfolios are loading, try again",
+        "portfolioMissing": "Select a portfolio",
+        "invalidQuantity": "Enter a valid quantity",
+        "selectPortfolioError": "Select a portfolio",
+        "insufficientCash": "Insufficient cash balance. Estimated required: {{required}}, current: {{current}}",
+        "addSuccess": "{{symbol}} added to portfolio",
+        "addError": "Failed to add to portfolio",
+        "noPortfolio": "No portfolio found. Create a portfolio first",
+        "notFound": "Stock was not found.",
+        "backToStocks": "Back to Stocks",
+        "details": "Details",
+        "previousClose": "Previous Close",
+        "open": "Open",
+        "high": "High",
+        "low": "Low",
+        "volume": "Volume",
+        "marketCap": "Market Cap",
+        "week52Range": "52 Week Range"
+    },
+    "profile": {
+        "title": "Profile",
+        "subtitle": "Manage your account details and preferences",
+        "updated": "Profile updated",
+        "updateFailed": "Profile could not be updated",
+        "settingsUpdated": "Settings updated",
+        "settingsUpdateFailed": "Settings could not be updated",
+        "keycloakSessionFailed": "Keycloak session could not be started",
+        "keycloakSecurityFailed": "Keycloak security page could not be opened",
+        "changePassword": "Change Password",
+        "securitySettings": "Security Settings",
+        "securityAdminOnly": "Use the Keycloak admin console for security settings.",
+        "tabs": {
+            "general": "General",
+            "notifications": "Notifications",
+            "preferences": "Preferences"
+        },
+        "username": "Username",
+        "usernameReadonly": "Username cannot be changed",
+        "firstName": "First name",
+        "firstNamePlaceholder": "Your first name",
+        "lastName": "Last name",
+        "lastNamePlaceholder": "Your last name",
+        "email": "Email",
+        "emailKeycloakHint": "Email is managed by your Keycloak account",
+        "phone": "Phone",
+        "location": "Location",
+        "locationPlaceholder": "City, Country",
+        "bio": "Bio",
+        "bioPlaceholder": "Write a short note about yourself",
+        "saveChanges": "Save Changes",
+        "saving": "Saving...",
+        "emailNotifications": "Email Notifications",
+        "emailNotificationsDesc": "Receive important account and market notifications by email",
+        "pushNotifications": "Push Notifications",
+        "pushNotificationsDesc": "Receive instant notifications in the browser",
+        "priceAlerts": "Price Alerts",
+        "priceAlertsDesc": "Get notified when price targets are reached",
+        "portfolioUpdates": "Portfolio Updates",
+        "portfolioUpdatesDesc": "Track portfolio performance changes",
+        "compactView": "Compact View",
+        "compactViewDesc": "Use a denser layout in tables and cards",
+        "theme": "Theme",
+        "darkMode": "Dark mode",
+        "darkModeDesc": "Use dark theme",
+        "defaultCurrency": "Default Currency",
+        "defaultCurrencyDesc": "Default currency for prices"
+    },
+    "time": {
+        "justNow": "Just now",
+        "minutesAgo": "{{count}} minutes ago",
+        "hoursAgo": "{{count}} hours ago",
+        "daysAgo": "{{count}} days ago"
+    },
+    "analysis": {
+        "title": "Technical Analysis",
+        "subtitle": "MA, trend, RSI, MACD, Bollinger, Stochastic and comparison",
+        "selectSymbol": "Select symbol",
+        "periods": {
+            "oneWeek": "1 Week",
+            "oneMonth": "1 Month",
+            "threeMonths": "3 Months",
+            "sixMonths": "6 Months",
+            "oneYear": "1 Year"
+        },
+        "days": "{{count}} Days",
+        "generalSignal": "Overall Technical Signal",
+        "combinedDescription": "Combined view of all indicators for the selected symbol",
+        "combinedDescriptionForSymbol": "Combined view of all indicators for {{symbol}}",
+        "totalSignal": "Overall Signal",
+        "analysisReady": "Analysis is ready",
+        "tabs": {
+            "movingAverage": "Moving Average",
+            "trend": "Trend Analysis",
+            "compare": "Comparison"
+        },
+        "priceAndMovingAverage": "Price and moving average",
+        "statistics": "Statistics",
+        "lastPrice": "Last Price",
+        "difference": "Difference",
+        "signal": {
+            "label": "Signal",
+            "buy": "BUY",
+            "sell": "SELL",
+            "hold": "HOLD"
+        },
+        "status": {
+            "noData": "No Data",
+            "oversold": "Oversold",
+            "overbought": "Overbought",
+            "neutral": "Neutral",
+            "bullish": "Bullish",
+            "bearish": "Bearish",
+            "sideways": "Sideways"
+        },
+        "trendDescription": "Trend view with support/resistance levels",
+        "trendInfo": "Trend Details",
+        "trendDirection": "Trend Direction",
+        "support": "Support",
+        "resistance": "Resistance",
+        "strength": "Strength",
+        "rsiDescription": "Relative Strength Index (0-100)",
+        "rsiValue": "RSI Value",
+        "rsiReady": "RSI comment is ready",
+        "macdDescription": "Momentum analysis with standard 12-26-9 settings",
+        "macdLine": "MACD Line",
+        "signalLine": "Signal Line",
+        "bullishMomentum": "Bullish Momentum",
+        "bearishMomentum": "Bearish Momentum",
+        "stdDev": "Std Dev {{value}}",
+        "bollingerBands": "Bollinger Bands",
+        "bollingerDescription": "Volatility analysis with bandwidth and %B",
+        "upperBand": "Upper Band",
+        "middleBand": "Middle Band",
+        "lowerBand": "Lower Band",
+        "bandwidth": "Bandwidth",
+        "comment": "Comment",
+        "bollingerReady": "Band analysis is ready",
+        "stochasticDescription": "Overbought/oversold detection with %K and %D",
+        "stochasticReady": "Stochastic comment is ready",
+        "symbolSelection": "Symbol Selection",
+        "compareDescription": "Select at least 2 and at most 5 symbols for comparison",
+        "removeSymbol": "Remove {{symbol}}",
+        "selectedCount": "Selected: {{count}}/5",
+        "performanceComparison": "Performance Comparison",
+        "selectedSymbols": "Selected symbols: {{symbols}}",
+        "compareRequiresTwo": "At least 2 symbols are required for comparison",
+        "compareNoData": "No comparison data"
+    },
+    "glossary": {
+        "title": "Market Glossary",
+        "subtitle": "Quick reference for TEFAS fund concepts, exchange order types and portfolio terms.",
+        "badge": "Includes TEFAS-sourced fund terms",
+        "searchPlaceholder": "TEFAS, fund price, limit order..."
     }
 }

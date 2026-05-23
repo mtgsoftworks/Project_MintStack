@@ -16,7 +16,7 @@ import {
     DollarSign,
     Loader2
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatRelativeTime } from '@/lib/utils'
 import { 
     useGetNotificationsQuery, 
     useMarkNotificationReadMutation,
@@ -36,21 +36,6 @@ const getNotificationIcon = (type) => {
         default:
             return { icon: AlertCircle, color: 'text-muted-foreground' }
     }
-}
-
-const formatTimeAgo = (dateString: any) => {
-    if (!dateString) return ''
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
-    
-    if (diffMins < 1) return 'Az önce'
-    if (diffMins < 60) return `${diffMins} dk önce`
-    if (diffHours < 24) return `${diffHours} saat önce`
-    return `${diffDays} gün önce`
 }
 
 export default function NotificationsPage() {
@@ -204,7 +189,7 @@ export default function NotificationsPage() {
                                                                 {notification.message}
                                                             </p>
                                                             <p className="text-xs text-muted-foreground mt-2">
-                                                                {formatTimeAgo(notification.createdAt)}
+                                                                {formatRelativeTime(notification.createdAt)}
                                                             </p>
                                                         </div>
                                                         <div className="flex items-center gap-1">

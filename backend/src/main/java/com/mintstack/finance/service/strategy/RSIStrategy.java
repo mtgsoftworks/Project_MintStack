@@ -7,8 +7,8 @@ import java.util.List;
 
 /**
  * RSI Stratejisi
- * RSI < 30 (Oversold) ise AL
- * RSI > 70 (Overbought) ise SAT
+ * RSI &lt; 30 (Oversold) ise AL
+ * RSI &gt; 70 (Overbought) ise SAT
  */
 @Component
 public class RSIStrategy implements TradingStrategy {

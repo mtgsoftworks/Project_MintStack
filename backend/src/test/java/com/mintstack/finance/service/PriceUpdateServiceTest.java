@@ -121,6 +121,7 @@ class PriceUpdateServiceTest {
 
         // Then
         verify(messagingTemplate).convertAndSend(eq("/topic/prices"), any(PriceUpdateMessage.class));
+        verify(alertService).checkAlertsForSymbol(eq(symbol), eq(price));
     }
 
     @Test

@@ -10,7 +10,7 @@ Bu tablo doğrudan proje dosyalarından (`backend/pom.xml`, Maven dependency tre
 
 | Katman | Teknoloji | Sürüm |
 |---|---|---|
-| Backend | Java | 17 |
+| Backend | Java | 21 |
 | Backend | Spring Boot | 3.4.2 |
 | Backend | Spring Security Config | 6.4.2 |
 | Backend | Spring Data JPA | 3.4.2 |

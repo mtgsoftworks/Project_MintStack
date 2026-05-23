@@ -151,6 +151,35 @@ class PortfolioServiceTest {
     }
 
     @Test
+    void getUserPortfolioSummary_ShouldExcludeCashBalanceFromProfitLoss() {
+        PortfolioItem item = PortfolioItem.builder()
+            .portfolio(testPortfolio)
+            .instrument(testInstrument)
+            .quantity(BigDecimal.TEN)
+            .purchasePrice(BigDecimal.valueOf(100))
+            .purchaseDate(LocalDate.now())
+            .build();
+        testPortfolio.setCashBalance(new BigDecimal("100000.000000"));
+        testInstrument.setCurrentPrice(BigDecimal.valueOf(120));
+        testPortfolio.getItems().add(item);
+
+        when(userService.getUserByKeycloakId(keycloakId)).thenReturn(testUser);
+        when(portfolioRepository.findByUserIdWithItems(testUser.getId()))
+            .thenReturn(List.of(testPortfolio));
+        when(portfolioTransactionRepository.sumRealizedProfitLossByUserId(testUser.getId()))
+            .thenReturn(new BigDecimal("50.000000"));
+
+        var result = portfolioService.getUserPortfolioSummary(keycloakId);
+
+        assertThat(result.getTotalValue()).isEqualByComparingTo("1200.000000");
+        assertThat(result.getTotalNetAssetValue()).isEqualByComparingTo("101200.000000");
+        assertThat(result.getTotalUnrealizedProfitLoss()).isEqualByComparingTo("200.000000");
+        assertThat(result.getTotalRealizedProfitLoss()).isEqualByComparingTo("50.000000");
+        assertThat(result.getTotalProfitLoss()).isEqualByComparingTo("250.000000");
+        assertThat(result.getTotalProfitLossPercent()).isEqualByComparingTo("25.000000");
+    }
+
+    @Test
     void getPortfolio_ShouldReturnPortfolio_WhenExists() {
         // Given
         UUID portfolioId = testPortfolio.getId();

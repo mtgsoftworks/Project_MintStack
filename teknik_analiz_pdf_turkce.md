@@ -2,7 +2,7 @@
 title: "MintStack Finance Portal"
 subtitle: "Teknik Analiz, Mimari ve Modelleme Dokümanı"
 author: "Mesut Taha Güven"
-date: "05 Mart 2026"
+date: "23 Mayıs 2026"
 lang: "tr-TR"
 papersize: a4
 geometry: margin=2.2cm
@@ -18,8 +18,8 @@ numbersections: false
 
 ## Teknik Analiz, Mimari ve Modelleme Dokümanı
 
-**Sürüm:** 1.0  
-**Tarih:** 05 Mart 2026  
+**Sürüm:** 2.0
+**Tarih:** 23 Mayıs 2026
 **Hazırlayan:** Mesut Taha Güven
 
 </div>
@@ -38,11 +38,17 @@ Teknik ve tasarımsal değerlendirme için hazırlanmıştır.
 
 | Belge Alanı | Değer |
 |---|---|
-| Sürüm | 1.0 |
-| Tarih | 05 Mart 2026 |
+| Sürüm | 2.0 |
+| Tarih | 23 Mayıs 2026 |
 | Hazırlayan | Mesut Taha Güven |
 | Doküman Türü | Teknik Analiz, Mimari ve Modelleme Dokümanı |
 | Amaç | Teknik ve tasarımsal değerlendirme için referans belge |
+
+### Teslim Güncellemesi
+
+Bu sürüm 7 Haziran proje teslim isterlerine göre güncellenmiştir. Backend hedefi Java 21 olarak kilitlenmiş, OpenTelemetry OTLP trace aktarımı bağlanmış, Keycloak TOTP 2FA demo akışı hazırlanmış, Javadocs üretimi eklenmiş ve Finans Portalı kapsamındaki isterler `docs/DELIVERY_CHECKLIST.md` dosyasında kanıtlarıyla eşleştirilmiştir.
+
+IT Servis - Ticket Yönetimi ve jBPM bu repo kapsamında değildir; sunumda kapsam dışı olarak belirtilir.
 
 ### İçindekiler
 

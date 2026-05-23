@@ -1,5 +1,6 @@
 import { clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import i18n from '@/i18n'
 
 /**
  * Utility function to merge Tailwind CSS classes
@@ -86,7 +87,7 @@ export function formatDateTimeWithSeconds(date: any) {
 }
 
 /**
- * Format relative time (e.g., "2 hours ago")
+ * Format relative time.
  */
 export function formatRelativeTime(date: any) {
   if (!date) return '-'
@@ -94,11 +95,11 @@ export function formatRelativeTime(date: any) {
   const past = new Date(date)
   const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000)
 
-  if (diffInSeconds < 60) return 'Az önce'
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} dakika önce`
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} saat önce`
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} gün önce`
-  
+  if (diffInSeconds < 60) return i18n.t('time.justNow')
+  if (diffInSeconds < 3600) return i18n.t('time.minutesAgo', { count: Math.floor(diffInSeconds / 60) })
+  if (diffInSeconds < 86400) return i18n.t('time.hoursAgo', { count: Math.floor(diffInSeconds / 3600) })
+  if (diffInSeconds < 604800) return i18n.t('time.daysAgo', { count: Math.floor(diffInSeconds / 86400) })
+
   return formatDate(date)
 }
 

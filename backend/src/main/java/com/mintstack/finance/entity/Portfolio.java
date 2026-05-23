@@ -81,7 +81,7 @@ public class Portfolio extends BaseEntity {
     }
 
     public BigDecimal getTotalProfitLoss() {
-        return getTotalValue().subtract(getTotalCost());
+        return getPositionValue().subtract(getTotalCost());
     }
 
     public BigDecimal getProfitLossPercent() {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getNewsImageFallback } from '@/lib/news'
 
 type NewsImageProps = {
@@ -8,6 +9,7 @@ type NewsImageProps = {
 }
 
 export default function NewsImage({ imageUrl, title, categorySlug }: NewsImageProps) {
+  const { t } = useTranslation()
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export default function NewsImage({ imageUrl, title, categorySlug }: NewsImagePr
     <div className="aspect-video overflow-hidden rounded-t-xl bg-muted">
       <img
         src={src}
-        alt={title || 'Haber gorseli'}
+        alt={title || t('news.imageAlt')}
         loading="lazy"
         onError={() => setFailed(true)}
         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"

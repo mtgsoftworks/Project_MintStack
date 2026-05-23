@@ -1,12 +1,14 @@
 # MintStack Current Status
 
-Son guncelleme: 2026-05-15
+Son guncelleme: 2026-05-23
 
 Bu dokuman README ve teknik dokumanlar icin kisa, guncel durum referansidir.
 
 ## Kapsam
 
 MintStack Finance Portal web tabanli bir finans portali olarak konumlanir. Mobil uygulama bu surumun kapsami disindadir.
+
+IT Servis - Ticket Yonetimi ve jBPM bu repo kapsaminda degildir. 7 Haziran tesliminde bu madde finans portali icin kapsam disi olarak sunulmalidir.
 
 Aktif ana moduller:
 
@@ -86,6 +88,7 @@ Alertmanager:
 GitHub Actions guncel CI akisi:
 
 - Backend: `./mvnw -B -ntp clean verify`.
+- Backend runtime/CI hedefi: Java 21.
 - Backend coverage: JaCoCo line minimum `0.50`, branch minimum `0.35`.
 - Flyway: bos CI PostgreSQL uzerinde once `migrate`, sonra `validate`.
 - Frontend: lint, typecheck, Vitest ve build.
@@ -100,6 +103,8 @@ Flyway notu:
 
 - `README.md`: proje tanimi, hizli baslangic, servisler ve gelistirme komutlari.
 - `docs/TEKNIK_DOKUMANTASYON.md`: teknik kapsam, moduller, kaynaklar, scheduler ve CI/CD.
+- `docs/DELIVERY_CHECKLIST.md`: 7 Haziran teslim isterleri ve kanit dosyalari.
+- `docs/MintStack_Finance_Portal_Sunum.pptx`: PDF olmayan teslim sunumu.
 - `docs/ARCHITECTURE.md`: mimari, servis sorumluluklari ve veri modeli.
 - `docs/DEPLOYMENT.md`: Docker, ortam degiskenleri, CI/CD ve monitoring.
 - `docs/OPERATIONS.md`: isletim, secret, alerting, backfill ve sorun giderme.

@@ -252,7 +252,7 @@ export default function AlertsPage() {
                                     ))}
                                 </datalist>
                                 <p className="mt-1 text-xs text-muted-foreground">
-                                    Hisse, tahvil/bono, fon, VIOP ve doviz sembolleri sirali listeden secilebilir.
+                                    {t('alerts.instrumentHelp')}
                                 </p>
                             </div>
 

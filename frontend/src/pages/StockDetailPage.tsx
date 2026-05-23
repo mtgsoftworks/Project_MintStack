@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, TrendingUp, TrendingDown, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,6 +39,7 @@ import {
 import PriceChart from '@/components/charts/PriceChart'
 
 export default function StockDetailPage() {
+  const { t, i18n } = useTranslation()
   const { symbol } = useParams()
   const [period, setPeriod] = useState('1M')
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
@@ -49,20 +51,21 @@ export default function StockDetailPage() {
   const { data: history, isLoading: historyLoading, refetch: refetchHistory } = useGetStockHistoryQuery({ symbol, period })
   const { data: portfolios = [], isLoading: portfoliosLoading } = useGetPortfoliosQuery()
   const [executeTrade, { isLoading: isSubmittingTrade }] = useExecutePortfolioTradeMutation()
+  const numberLocale = i18n.language === 'en' ? 'en-US' : 'tr-TR'
 
   const openAddDialog = () => {
     if (!stock?.symbol) {
-      toast.error('Enstruman bilgisi alinamadi')
+      toast.error(t('stockDetail.instrumentMissing'))
       return
     }
 
     if (portfoliosLoading) {
-      toast.error('Portfoyler yukleniyor, tekrar deneyin')
+      toast.error(t('stockDetail.portfoliosLoading'))
       return
     }
 
     if (!portfolios.length) {
-      toast.error('Portfoy bulunamadi. Once bir portfoy olusturun')
+      toast.error(t('stockDetail.noPortfolio'))
       return
     }
 
@@ -77,12 +80,12 @@ export default function StockDetailPage() {
 
     const parsedQuantity = Number.parseFloat(quantity)
     if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
-      toast.error('Gecerli miktar girin')
+      toast.error(t('stockDetail.invalidQuantity'))
       return
     }
 
     if (!selectedPortfolioId) {
-      toast.error('Portfoy secin')
+      toast.error(t('stockDetail.selectPortfolioError'))
       return
     }
 
@@ -91,7 +94,10 @@ export default function StockDetailPage() {
     const cashBalance = Number(selectedPortfolio?.cashBalance || 0)
     const estimatedGross = parsedQuantity * currentPrice
     if (Number.isFinite(currentPrice) && currentPrice > 0 && estimatedGross > cashBalance) {
-      toast.error(`Yetersiz nakit bakiye. Tahmini gerekli: ${estimatedGross.toLocaleString('tr-TR')}, mevcut: ${cashBalance.toLocaleString('tr-TR')}`)
+      toast.error(t('stockDetail.insufficientCash', {
+        required: estimatedGross.toLocaleString(numberLocale),
+        current: cashBalance.toLocaleString(numberLocale),
+      }))
       return
     }
 
@@ -106,10 +112,10 @@ export default function StockDetailPage() {
         price: currentPrice > 0 ? currentPrice : undefined,
       }).unwrap()
 
-      toast.success('Portfoye eklendi')
+      toast.success(t('stockDetail.addSuccess', { symbol: stock.symbol }))
       setIsAddDialogOpen(false)
     } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Portfoye eklenemedi'))
+      toast.error(getApiErrorMessage(error, t('stockDetail.addError')))
     }
   }
 
@@ -131,11 +137,11 @@ export default function StockDetailPage() {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
-          <p className="mb-4 text-muted-foreground">Hisse senedi bulunamadi.</p>
+          <p className="mb-4 text-muted-foreground">{t('stockDetail.notFound')}</p>
           <Button asChild>
             <Link to="/market/stocks">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Hisselere Don
+              {t('stockDetail.backToStocks')}
             </Link>
           </Button>
         </CardContent>
@@ -151,7 +157,7 @@ export default function StockDetailPage() {
       <Button variant="ghost" asChild>
         <Link to="/market/stocks">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Hisselere Don
+          {t('stockDetail.backToStocks')}
         </Link>
       </Button>
 
@@ -183,11 +189,11 @@ export default function StockDetailPage() {
             isLoading={stockFetching || isRefreshingMarketData}
             onRefresh={() => refreshAndRefetch(() => Promise.all([refetch(), refetchHistory()]))}
           >
-            Yenile
+            {t('common.refresh')}
           </RefreshButton>
           <Button onClick={openAddDialog}>
             <Plus className="mr-2 h-4 w-4" />
-            Portfoye Ekle
+            {t('stockDetail.addToPortfolio')}
           </Button>
         </div>
       </div>
@@ -227,43 +233,43 @@ export default function StockDetailPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Detaylar</CardTitle>
+            <CardTitle>{t('stockDetail.details')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between border-b py-2">
-              <span className="text-muted-foreground">Onceki Kapanis</span>
+              <span className="text-muted-foreground">{t('stockDetail.previousClose')}</span>
               <span className="font-medium">{formatCurrency(stock.previousClose, 'TRY')}</span>
             </div>
             <div className="flex justify-between border-b py-2">
-              <span className="text-muted-foreground">Acilis</span>
+              <span className="text-muted-foreground">{t('stockDetail.open')}</span>
               <span className="font-medium">
                 {formatCurrency(stock.openPrice || stock.previousClose, 'TRY')}
               </span>
             </div>
             <div className="flex justify-between border-b py-2">
-              <span className="text-muted-foreground">En Yuksek</span>
+              <span className="text-muted-foreground">{t('stockDetail.high')}</span>
               <span className="font-medium">
                 {formatCurrency(stock.highPrice || stock.currentPrice, 'TRY')}
               </span>
             </div>
             <div className="flex justify-between border-b py-2">
-              <span className="text-muted-foreground">En Dusuk</span>
+              <span className="text-muted-foreground">{t('stockDetail.low')}</span>
               <span className="font-medium">
                 {formatCurrency(stock.lowPrice || stock.currentPrice, 'TRY')}
               </span>
             </div>
             <div className="flex justify-between border-b py-2">
-              <span className="text-muted-foreground">Hacim</span>
-              <span className="font-medium">{stock.volume?.toLocaleString('tr-TR') || '-'}</span>
+              <span className="text-muted-foreground">{t('stockDetail.volume')}</span>
+              <span className="font-medium">{stock.volume?.toLocaleString(numberLocale) || '-'}</span>
             </div>
             <div className="flex justify-between border-b py-2">
-              <span className="text-muted-foreground">Piyasa Degeri</span>
+              <span className="text-muted-foreground">{t('stockDetail.marketCap')}</span>
               <span className="font-medium">
                 {stock.marketCap ? formatCurrency(stock.marketCap, 'TRY') : '-'}
               </span>
             </div>
             <div className="flex justify-between py-2">
-              <span className="text-muted-foreground">52 Hafta Araligi</span>
+              <span className="text-muted-foreground">{t('stockDetail.week52Range')}</span>
               <span className="text-sm font-medium">
                 {stock.week52Low != null && stock.week52High != null
                   ? `${formatNumber(stock.week52Low)} - ${formatNumber(stock.week52High)}`
@@ -277,16 +283,16 @@ export default function StockDetailPage() {
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Portfoye Ekle</DialogTitle>
-            <DialogDescription>{stock.symbol} icin alim emri olusturulur.</DialogDescription>
+            <DialogTitle>{t('stockDetail.addToPortfolio')}</DialogTitle>
+            <DialogDescription>{t('stockDetail.addDescription', { symbol: stock.symbol })}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddToPortfolio}>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="add-portfolio">Portfoy</Label>
+                <Label htmlFor="add-portfolio">{t('stockDetail.portfolio')}</Label>
                 <Select value={selectedPortfolioId} onValueChange={setSelectedPortfolioId}>
                   <SelectTrigger id="add-portfolio">
-                    <SelectValue placeholder="Portfoy secin" />
+                    <SelectValue placeholder={t('stockDetail.selectPortfolio')} />
                   </SelectTrigger>
                   <SelectContent>
                     {portfolios.map((portfolio) => (
@@ -298,7 +304,7 @@ export default function StockDetailPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="add-quantity">Miktar</Label>
+                <Label htmlFor="add-quantity">{t('stockDetail.quantity')}</Label>
                 <Input
                   id="add-quantity"
                   type="number"
@@ -312,10 +318,10 @@ export default function StockDetailPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                Vazgec
+                {t('stockDetail.cancel')}
               </Button>
               <Button type="submit" disabled={isSubmittingTrade}>
-                {isSubmittingTrade ? 'Kaydediliyor...' : 'Ekle'}
+                {isSubmittingTrade ? t('stockDetail.saving') : t('stockDetail.add')}
               </Button>
             </DialogFooter>
           </form>

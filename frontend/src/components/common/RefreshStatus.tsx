@@ -1,4 +1,5 @@
 import { RefreshCw } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cn, formatDateTimeWithSeconds } from '@/lib/utils'
 
 type RefreshStatusProps = {
@@ -16,21 +17,25 @@ export default function RefreshStatus({
   isFetching = false,
   className,
 }: RefreshStatusProps) {
+  const { t } = useTranslation()
+
   return (
     <div className={cn('flex flex-wrap items-center gap-2 text-xs text-muted-foreground', className)}>
       <span>
-        Son veri yenileme: {lastUpdatedAt ? formatDateTimeWithSeconds(lastUpdatedAt) : '-'}
+        {t('refreshStatus.lastDataRefresh')}: {lastUpdatedAt ? formatDateTimeWithSeconds(lastUpdatedAt) : '-'}
       </span>
       <span aria-hidden="true">|</span>
       <span>
-        Otomatik yenileme: {autoUpdateEnabled ? `Acik (${refreshRateSeconds} sn)` : 'Kapali'}
+        {t('refreshStatus.autoRefresh')}: {autoUpdateEnabled
+          ? t('refreshStatus.enabled', { seconds: refreshRateSeconds })
+          : t('refreshStatus.disabled')}
       </span>
       {isFetching && (
         <>
           <span aria-hidden="true">|</span>
           <span className="inline-flex items-center gap-1 text-primary">
             <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-            Yenileniyor
+            {t('refreshStatus.refreshing')}
           </span>
         </>
       )}

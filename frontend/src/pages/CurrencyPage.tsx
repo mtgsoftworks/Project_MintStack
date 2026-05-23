@@ -51,7 +51,7 @@ function getDisplayRate(primaryRate, fallbackRate) {
 }
 
 export default function CurrencyPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPortfolioId, setSelectedPortfolioId] = useState('')
   const [tradeQuantities, setTradeQuantities] = useState({})
@@ -70,6 +70,7 @@ export default function CurrencyPage() {
     { skip: !selectedPortfolioId }
   )
   const [executeTrade, { isLoading: isSubmittingTrade }] = useExecutePortfolioTradeMutation()
+  const numberLocale = i18n.language === 'en' ? 'en-US' : 'tr-TR'
 
   useEffect(() => {
     if (!selectedPortfolioId && portfolios.length > 0) {
@@ -103,21 +104,21 @@ export default function CurrencyPage() {
   const handleCurrencyTrade = async (currency, transactionType) => {
     const quantity = Number(tradeQuantities[currency.currencyCode])
     if (!selectedPortfolioId) {
-      toast.error('Once bir portfoy secin veya olusturun')
+      toast.error(t('quickTrade.selectPortfolio'))
       return
     }
     if (!Number.isFinite(quantity) || quantity <= 0) {
-      toast.error('Gecerli doviz miktari girin')
+      toast.error(t('currencyPage.trade.invalidQuantity'))
       return
     }
     if (!selectedPortfolio) {
-      toast.error('Portfoy bilgisi yukleniyor, tekrar deneyin')
+      toast.error(t('quickTrade.portfolioLoading'))
       return
     }
 
     const executionPrice = Number(transactionType === 'BUY' ? currency.sellingRate : currency.buyingRate)
     if (!Number.isFinite(executionPrice) || executionPrice <= 0) {
-      toast.error('Bu doviz icin gecerli islem fiyati yok')
+      toast.error(t('currencyPage.trade.invalidPrice'))
       return
     }
 
@@ -134,11 +135,11 @@ export default function CurrencyPage() {
 
     if (transactionType === 'SELL') {
       if (holdingQuantity <= 0) {
-        toast.error(`${currency.currencyCode}/TRY portfoyde yok; satis yapilamaz`)
+        toast.error(t('currencyPage.trade.notHeld', { symbol: `${currency.currencyCode}/TRY` }))
         return
       }
       if (quantity > holdingQuantity) {
-        toast.error(`Yetersiz doviz pozisyonu. Mevcut: ${holdingQuantity}`)
+        toast.error(t('currencyPage.trade.insufficientPosition', { quantity: holdingQuantity }))
         return
       }
     }
@@ -147,7 +148,10 @@ export default function CurrencyPage() {
       const cashBalance = Number(selectedPortfolio.cashBalance || 0)
       const estimatedGross = quantity * executionPrice
       if (Number.isFinite(cashBalance) && estimatedGross > cashBalance) {
-        toast.error(`Yetersiz nakit bakiye. Tahmini gerekli: ${estimatedGross.toLocaleString('tr-TR')}, mevcut: ${cashBalance.toLocaleString('tr-TR')}`)
+        toast.error(t('currencyPage.trade.insufficientCash', {
+          required: estimatedGross.toLocaleString(numberLocale),
+          current: cashBalance.toLocaleString(numberLocale),
+        }))
         return
       }
     }
@@ -161,12 +165,15 @@ export default function CurrencyPage() {
         quantity,
         price: executionPrice,
         transactionDate: new Date().toISOString().slice(0, 10),
-        notes: `${currency.currencyCode}/TRY doviz ${transactionType === 'BUY' ? 'alim' : 'satis'} islemi`,
+        notes: t('currencyPage.trade.note', {
+          symbol: `${currency.currencyCode}/TRY`,
+          side: t(transactionType === 'BUY' ? 'currencyPage.trade.buySide' : 'currencyPage.trade.sellSide'),
+        }),
       }).unwrap()
-      toast.success(transactionType === 'BUY' ? 'Doviz portfoye eklendi' : 'Doviz satis emri islendi')
+      toast.success(t(transactionType === 'BUY' ? 'currencyPage.trade.buySuccess' : 'currencyPage.trade.sellSuccess'))
       handleQuantityChange(currency.currencyCode, '')
     } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Doviz islemi basarisiz oldu'))
+      toast.error(getApiErrorMessage(error, t('currencyPage.trade.failed')))
     }
   }
 
@@ -291,7 +298,7 @@ export default function CurrencyPage() {
                   <TableHead className="text-right">{t('currencyPage.table.headers.effectiveBuying')}</TableHead>
                   <TableHead className="text-right">{t('currencyPage.table.headers.effectiveSelling')}</TableHead>
                   <TableHead className="text-right">{t('currencyPage.table.headers.change')}</TableHead>
-                  <TableHead className="text-right">Portfoy</TableHead>
+                  <TableHead className="text-right">{t('currencyPage.table.headers.portfolio')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -349,7 +356,7 @@ export default function CurrencyPage() {
                             type="number"
                             min="0"
                             step="0.01"
-                            placeholder="Miktar"
+                            placeholder={t('quickTrade.quantity')}
                             value={tradeQuantities[currency.currencyCode] || ''}
                             onChange={(event) => handleQuantityChange(currency.currencyCode, event.target.value)}
                           />
@@ -359,7 +366,7 @@ export default function CurrencyPage() {
                             disabled={isSubmittingTrade || isPortfolioFetching}
                             onClick={() => handleCurrencyTrade(currency, 'BUY')}
                           >
-                            Al
+                            {t('quickTrade.buy')}
                           </Button>
                           <Button
                             size="sm"
@@ -367,7 +374,7 @@ export default function CurrencyPage() {
                             disabled={isSubmittingTrade || isPortfolioFetching}
                             onClick={() => handleCurrencyTrade(currency, 'SELL')}
                           >
-                            Sat
+                            {t('quickTrade.sell')}
                           </Button>
                         </div>
                       </TableCell>

@@ -1,5 +1,8 @@
+import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { Key, Shield } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,10 +16,9 @@ import { selectUser, selectRoles, selectIsAdmin } from '@/store/slices/authSlice
 import { selectTheme, setTheme } from '@/store/slices/uiSlice'
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/store/api/userApi'
 import { getInitials } from '@/lib/utils'
-import { toast } from 'sonner'
-import { useState, useEffect } from 'react'
 
 export default function ProfilePage() {
+  const { t } = useTranslation()
   const user = useSelector(selectUser)
   const roles = useSelector(selectRoles)
   const isAdmin = useSelector(selectIsAdmin)
@@ -37,7 +39,6 @@ export default function ProfilePage() {
   const [portfolioUpdates, setPortfolioUpdates] = useState(true)
   const [compactView, setCompactView] = useState(false)
 
-  // Sync state with fetching profile
   useEffect(() => {
     if (profile) {
       setFirstName(profile.firstName || '')
@@ -63,9 +64,9 @@ export default function ProfilePage() {
         bio,
         location
       }).unwrap()
-      toast.success('Profil güncellendi')
+      toast.success(t('profile.updated'))
     } catch (_error) {
-      toast.error('Profil güncellenemedi')
+      toast.error(t('profile.updateFailed'))
     }
   }
 
@@ -79,7 +80,6 @@ export default function ProfilePage() {
     }
 
     try {
-      // Optimistic update
       if (key === 'emailNotifications') setEmailNotifications(value)
       if (key === 'pushNotifications') setPushNotifications(value)
       if (key === 'priceAlerts') setPriceAlerts(value)
@@ -88,18 +88,14 @@ export default function ProfilePage() {
 
       await updateProfile({ [key]: value }).unwrap()
 
-      // Handle theme dispatch if it's the theme toggle (although that's separate in UI, let's keep it clean)
-      // Note: Theme is handled by Redux purely in the current UI logic, not persisted to backend user profile yet unless we add theme to user profile too.
-      // For now, only the new fields are persisted via updateProfile.
-
-      toast.success('Ayarlar güncellendi')
+      toast.success(t('profile.settingsUpdated'))
     } catch (_error) {
       setEmailNotifications(previousState.emailNotifications)
       setPushNotifications(previousState.pushNotifications)
       setPriceAlerts(previousState.priceAlerts)
       setPortfolioUpdates(previousState.portfolioUpdates)
       setCompactView(previousState.compactView)
-      toast.error('Ayarlar güncellenemedi')
+      toast.error(t('profile.settingsUpdateFailed'))
     }
   }
 
@@ -108,7 +104,7 @@ export default function ProfilePage() {
     const client = window.keycloak
 
     if (!client?.login) {
-      toast.error('Keycloak oturum islemi baslatilamadi')
+      toast.error(t('profile.keycloakSessionFailed'))
       return
     }
 
@@ -121,22 +117,18 @@ export default function ProfilePage() {
       })
     } catch (error) {
       console.error(`Keycloak action failed: ${action}`, error)
-      toast.error('Keycloak guvenlik islemi baslatilamadi')
+      toast.error(t('profile.keycloakSecurityFailed'))
     }
   }
 
   return (
     <div className="space-y-6 animate-in">
-      {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold">Profil</h1>
-        <p className="text-muted-foreground">
-          Hesap ayarlarınızı yönetin
-        </p>
+        <h1 className="text-2xl font-bold">{t('profile.title')}</h1>
+        <p className="text-muted-foreground">{t('profile.subtitle')}</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Profile Card */}
         <Card className="lg:col-span-1">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center text-center">
@@ -168,7 +160,7 @@ export default function ProfilePage() {
                     onClick={() => runKeycloakAction('UPDATE_PASSWORD')}
                   >
                     <Key className="mr-2 h-4 w-4" />
-                    Şifre Değiştir
+                    {t('profile.changePassword')}
                   </Button>
                   <Button
                     variant="outline"
@@ -176,35 +168,33 @@ export default function ProfilePage() {
                     onClick={() => runKeycloakAction('CONFIGURE_TOTP')}
                   >
                     <Shield className="mr-2 h-4 w-4" />
-                    Güvenlik Ayarları
+                    {t('profile.securitySettings')}
                   </Button>
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Güvenlik işlemleri sadece admin kullanıcıya açıktır.
+                  {t('profile.securityAdminOnly')}
                 </p>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Settings Tabs */}
         <Card className="lg:col-span-2">
           <Tabs defaultValue="general" className="w-full">
             <CardHeader>
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="general">Genel</TabsTrigger>
-                <TabsTrigger value="notifications">Bildirimler</TabsTrigger>
-                <TabsTrigger value="preferences">Tercihler</TabsTrigger>
+                <TabsTrigger value="general">{t('profile.tabs.general')}</TabsTrigger>
+                <TabsTrigger value="notifications">{t('profile.tabs.notifications')}</TabsTrigger>
+                <TabsTrigger value="preferences">{t('profile.tabs.preferences')}</TabsTrigger>
               </TabsList>
             </CardHeader>
 
             <CardContent>
-              {/* General Tab */}
               <TabsContent value="general" className="space-y-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="username">Kullanıcı Adı</Label>
+                    <Label htmlFor="username">{t('profile.username')}</Label>
                     <Input
                       id="username"
                       value={user?.username || ''}
@@ -212,33 +202,33 @@ export default function ProfilePage() {
                       className="bg-muted"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Kullanıcı adı değiştirilemez
+                      {t('profile.usernameReadonly')}
                     </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="firstName">Ad</Label>
+                      <Label htmlFor="firstName">{t('profile.firstName')}</Label>
                       <Input
                         id="firstName"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="Adınız"
+                        placeholder={t('profile.firstNamePlaceholder')}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="lastName">Soyad</Label>
+                      <Label htmlFor="lastName">{t('profile.lastName')}</Label>
                       <Input
                         id="lastName"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
-                        placeholder="Soyadınız"
+                        placeholder={t('profile.lastNamePlaceholder')}
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email">E-posta</Label>
+                    <Label htmlFor="email">{t('profile.email')}</Label>
                     <Input
                       id="email"
                       type="email"
@@ -247,13 +237,13 @@ export default function ProfilePage() {
                       className="bg-muted"
                     />
                     <p className="text-xs text-muted-foreground">
-                      E-posta değişikliği için Keycloak panelini kullanın
+                      {t('profile.emailKeycloakHint')}
                     </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="phoneNumber">Telefon</Label>
+                      <Label htmlFor="phoneNumber">{t('profile.phone')}</Label>
                       <Input
                         id="phoneNumber"
                         value={phoneNumber}
@@ -262,24 +252,24 @@ export default function ProfilePage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="location">Konum</Label>
+                      <Label htmlFor="location">{t('profile.location')}</Label>
                       <Input
                         id="location"
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
-                        placeholder="Şehir, Ülke"
+                        placeholder={t('profile.locationPlaceholder')}
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="bio">Hakkımda</Label>
+                    <Label htmlFor="bio">{t('profile.bio')}</Label>
                     <textarea
                       id="bio"
                       className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       value={bio}
                       onChange={(e) => setBio(e.target.value)}
-                      placeholder="Kendinizden bahsedin..."
+                      placeholder={t('profile.bioPlaceholder')}
                     />
                   </div>
 
@@ -287,19 +277,18 @@ export default function ProfilePage() {
                     onClick={handleUpdateProfile}
                     disabled={updating}
                   >
-                    {updating ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+                    {updating ? t('profile.saving') : t('profile.saveChanges')}
                   </Button>
                 </div>
               </TabsContent>
 
-              {/* Notifications Tab */}
               <TabsContent value="notifications" className="space-y-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between py-2">
                     <div className="space-y-0.5">
-                      <Label>E-posta Bildirimleri</Label>
+                      <Label>{t('profile.emailNotifications')}</Label>
                       <p className="text-sm text-muted-foreground">
-                        Önemli güncellemeler için e-posta alın
+                        {t('profile.emailNotificationsDesc')}
                       </p>
                     </div>
                     <Switch
@@ -312,9 +301,9 @@ export default function ProfilePage() {
 
                   <div className="flex items-center justify-between py-2">
                     <div className="space-y-0.5">
-                      <Label>Push Bildirimleri</Label>
+                      <Label>{t('profile.pushNotifications')}</Label>
                       <p className="text-sm text-muted-foreground">
-                        Tarayıcı bildirimleri alın
+                        {t('profile.pushNotificationsDesc')}
                       </p>
                     </div>
                     <Switch
@@ -327,9 +316,9 @@ export default function ProfilePage() {
 
                   <div className="flex items-center justify-between py-2">
                     <div className="space-y-0.5">
-                      <Label>Fiyat Alarmları</Label>
+                      <Label>{t('profile.priceAlerts')}</Label>
                       <p className="text-sm text-muted-foreground">
-                        Hedef fiyatlara ulaşıldığında bildirim alın
+                        {t('profile.priceAlertsDesc')}
                       </p>
                     </div>
                     <Switch
@@ -342,9 +331,9 @@ export default function ProfilePage() {
 
                   <div className="flex items-center justify-between py-2">
                     <div className="space-y-0.5">
-                      <Label>Portföy Güncellemeleri</Label>
+                      <Label>{t('profile.portfolioUpdates')}</Label>
                       <p className="text-sm text-muted-foreground">
-                        Portföyünüzdeki önemli değişiklikler
+                        {t('profile.portfolioUpdatesDesc')}
                       </p>
                     </div>
                     <Switch
@@ -355,14 +344,13 @@ export default function ProfilePage() {
                 </div>
               </TabsContent>
 
-              {/* Preferences Tab */}
               <TabsContent value="preferences" className="space-y-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between py-2">
                     <div className="space-y-0.5">
-                      <Label>Karanlık Mod</Label>
+                      <Label>{t('profile.darkMode')}</Label>
                       <p className="text-sm text-muted-foreground">
-                        Karanlık tema kullan
+                        {t('profile.darkModeDesc')}
                       </p>
                     </div>
                     <Switch
@@ -375,9 +363,9 @@ export default function ProfilePage() {
 
                   <div className="flex items-center justify-between py-2">
                     <div className="space-y-0.5">
-                      <Label>Kompakt Görünüm</Label>
+                      <Label>{t('profile.compactView')}</Label>
                       <p className="text-sm text-muted-foreground">
-                        Daha fazla veri göster
+                        {t('profile.compactViewDesc')}
                       </p>
                     </div>
                     <Switch
@@ -390,9 +378,9 @@ export default function ProfilePage() {
 
                   <div className="flex items-center justify-between py-2">
                     <div className="space-y-0.5">
-                      <Label>Varsayılan Para Birimi</Label>
+                      <Label>{t('profile.defaultCurrency')}</Label>
                       <p className="text-sm text-muted-foreground">
-                        Fiyatlar için varsayılan para birimi
+                        {t('profile.defaultCurrencyDesc')}
                       </p>
                     </div>
                     <Badge>TRY</Badge>

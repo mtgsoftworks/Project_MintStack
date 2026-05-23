@@ -164,6 +164,7 @@ public class BistDataStoreClient {
             }
             BigDecimal tradeVolume = normalizeTradeVolume(decimal(row, 19), decimal(row, 17), settlementPrice);
             BigDecimal changePercent = normalizeChangePercent(decimal(row, 11), tradeVolume);
+            LocalDate maturityDate = parseDate(value(row, 8));
 
             BistViopPrice item = new BistViopPrice(
                 symbol,
@@ -177,6 +178,7 @@ public class BistDataStoreClient {
                 decimal(row, 14),
                 firstPositive(decimal(row, 15), settlementPrice),
                 changePercent,
+                maturityDate,
                 tradeVolume,
                 decimal(row, 17)
             );
@@ -493,6 +495,7 @@ public class BistDataStoreClient {
         BigDecimal highPrice,
         BigDecimal closingPrice,
         BigDecimal changePercent,
+        LocalDate maturityDate,
         BigDecimal tradeVolume,
         BigDecimal tradedValue
     ) {

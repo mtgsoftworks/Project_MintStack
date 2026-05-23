@@ -4,6 +4,7 @@ import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.PriceHistory;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
+import com.mintstack.finance.service.PriceUpdateService;
 import com.mintstack.finance.service.external.BistDataStoreClient;
 import com.mintstack.finance.service.external.BistDataStoreClient.BistBondPrice;
 import com.mintstack.finance.service.external.BistDataStoreClient.BistViopPrice;
@@ -19,9 +20,11 @@ import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -42,6 +45,7 @@ public class BistDataStoreMarketDataService {
     private final BistDataStoreClient bistDataStoreClient;
     private final InstrumentRepository instrumentRepository;
     private final PriceHistoryRepository priceHistoryRepository;
+    private final PriceUpdateService priceUpdateService;
 
     @Value("${app.external-api.bist-datastore.enabled:true}")
     private boolean enabled;
@@ -224,6 +228,14 @@ public class BistDataStoreMarketDataService {
                 price.closePrice(),
                 toLong(price.quantity())
             );
+            broadcastMarketUpdate(
+                "BOND",
+                savedInstrument,
+                price.closePrice(),
+                "previousClose", price.previousClose(),
+                "maturityDate", price.maturityDate(),
+                "tradeDate", price.date()
+            );
             processed.add(price.symbol());
             saved++;
         }
@@ -257,6 +269,9 @@ public class BistDataStoreMarketDataService {
             instrument.setCurrency(normalizeCurrency(price.currency()));
             instrument.setIsActive(true);
             instrument.setIsSimulated(false);
+            if (price.maturityDate() != null) {
+                instrument.setMaturityDate(price.maturityDate());
+            }
             instrument.setPreviousClose(resolvePreviousSettlementPrice(price, instrument));
             instrument.setCurrentPrice(price.settlementPrice());
             Instrument savedInstrument = instrumentRepository.save(instrument);
@@ -269,10 +284,38 @@ public class BistDataStoreMarketDataService {
                 firstPositive(price.closingPrice(), price.settlementPrice()),
                 toLong(price.tradeVolume())
             );
+            broadcastMarketUpdate(
+                "VIOP",
+                savedInstrument,
+                price.settlementPrice(),
+                "previousSettlementPrice", price.previousSettlementPrice(),
+                "maturityDate", price.maturityDate(),
+                "tradeDate", price.date(),
+                "tradeVolume", price.tradeVolume()
+            );
             processed.add(price.symbol());
             saved++;
         }
         return saved;
+    }
+
+    private void broadcastMarketUpdate(String type, Instrument instrument, BigDecimal price, Object... keyValues) {
+        if (instrument == null || instrument.getSymbol() == null || price == null) {
+            return;
+        }
+
+        Map<String, Object> additionalData = new HashMap<>();
+        if (keyValues != null) {
+            for (int index = 0; index + 1 < keyValues.length; index += 2) {
+                Object key = keyValues[index];
+                Object value = keyValues[index + 1];
+                if (key instanceof String keyText && value != null) {
+                    additionalData.put(keyText, value);
+                }
+            }
+        }
+
+        priceUpdateService.broadcastMarketUpdate(type, instrument.getSymbol(), price, additionalData);
     }
 
     private void upsertHistory(

@@ -29,11 +29,7 @@ export class ErrorBoundary extends Component<any, any> {
   render() {
     const translate = typeof this.props.t === 'function'
       ? this.props.t
-      : (key: string) => ({
-          'errors.boundaryTitle': 'Beklenmeyen bir hata olustu',
-          'errors.boundaryDescription': 'Sayfa islenirken bir hata olustu. Yenileyerek tekrar deneyin.',
-          'common.refreshPage': 'Sayfayi yenile',
-        }[key] || key)
+      : (key: string) => key
 
     if (this.state.hasError) {
       return (

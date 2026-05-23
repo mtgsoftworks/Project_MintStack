@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,6 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -47,7 +49,7 @@ class AlertServiceTest {
     private EmailService emailService;
 
     @Mock
-    private com.mintstack.finance.service.event.EventPublisher eventPublisher;
+    private UserNotificationService userNotificationService;
 
     @InjectMocks
     private AlertService alertService;
@@ -230,6 +232,48 @@ class AlertServiceTest {
         // Then
         verify(alertRepository).save(alert);
         assertThat(alert.getIsActive()).isFalse();
+    }
+
+    @Test
+    void checkAlertsForSymbol_ShouldCreateNotification_WhenPriceAlertTriggers() {
+        User user = createTestUser();
+        Instrument instrument = createTestInstrument();
+        PriceAlert alert = createTestAlert(user, instrument);
+
+        when(alertRepository.findActiveAlertsBySymbol("USD/TRY")).thenReturn(List.of(alert));
+        when(alertRepository.save(any(PriceAlert.class))).thenAnswer(i -> i.getArgument(0));
+        when(emailService.sendPriceAlertEmail(anyString(), anyString(), anyString(), anyString(), anyString(), anyString()))
+            .thenReturn(CompletableFuture.completedFuture(true));
+
+        alertService.checkAlertsForSymbol("USD/TRY", BigDecimal.valueOf(35.50));
+
+        assertThat(alert.getIsTriggered()).isTrue();
+        assertThat(alert.getIsActive()).isFalse();
+        verify(userNotificationService).createAndDispatch(
+            any(User.class),
+            any(),
+            anyString(),
+            anyString(),
+            any(UUID.class),
+            anyString()
+        );
+    }
+
+    @Test
+    void checkAlertsForSymbol_ShouldRespectDisabledPriceAlertNotifications() {
+        User user = createTestUser();
+        user.setPriceAlerts(false);
+        Instrument instrument = createTestInstrument();
+        PriceAlert alert = createTestAlert(user, instrument);
+
+        when(alertRepository.findActiveAlertsBySymbol("USD/TRY")).thenReturn(List.of(alert));
+        when(alertRepository.save(any(PriceAlert.class))).thenAnswer(i -> i.getArgument(0));
+        when(emailService.sendPriceAlertEmail(anyString(), anyString(), anyString(), anyString(), anyString(), anyString()))
+            .thenReturn(CompletableFuture.completedFuture(true));
+
+        alertService.checkAlertsForSymbol("USD/TRY", BigDecimal.valueOf(35.50));
+
+        verify(userNotificationService, never()).createAndDispatch(any(), any(), anyString(), anyString(), any(), anyString());
     }
 
     @Test

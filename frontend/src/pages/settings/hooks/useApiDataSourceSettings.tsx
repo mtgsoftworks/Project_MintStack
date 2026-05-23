@@ -281,7 +281,7 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
                 isEnabled: true
             }).unwrap()
 
-            toast.success(`${dataType.label} ${t('settings.dataSources.sourceUpdated')}`)
+            toast.success(`${t(dataType.labelKey)} ${t('settings.dataSources.sourceUpdated')}`)
             refetchPreferences()
         } catch (error) {
             toast.error(getApiErrorMessage(error, t('settings.dataSources.errorOccurred')))

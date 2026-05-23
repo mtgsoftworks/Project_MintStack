@@ -13,8 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -231,8 +231,8 @@ public class TechnicalIndicatorService {
             
             for (int j = i - kPeriod + 1; j <= i; j++) {
                 PriceHistory ph = priceHistory.get(j);
-                highestHigh = Math.max(highestHigh, ph.getHighPrice().doubleValue());
-                lowestLow = Math.min(lowestLow, ph.getLowPrice().doubleValue());
+                highestHigh = Math.max(highestHigh, safeHigh(ph));
+                lowestLow = Math.min(lowestLow, safeLow(ph));
             }
             
             double currentClose = priceHistory.get(i).getClosePrice().doubleValue();
@@ -486,22 +486,11 @@ public class TechnicalIndicatorService {
     }
 
     private List<PriceHistory> getRecentStoredHistory(Instrument instrument, int limit) {
-        LocalDate endDate = LocalDate.now();
-        LocalDate startDate = endDate.minusDays(limit * 2L);
-
-        List<PriceHistory> fullHistory = priceHistoryRepository
-                .findByInstrumentIdAndPriceDateBetweenOrderByPriceDateAsc(
-                        instrument.getId(), startDate, endDate);
-
-        // Technical indicators must use the most recent records, not the oldest records in range.
-        int size = fullHistory.size();
-        if (size <= limit) {
-            return fullHistory;
-        }
-
-        return fullHistory.stream()
-                .skip(size - limit)
-                .toList();
+        List<PriceHistory> latestDesc = priceHistoryRepository
+                .findByInstrumentIdOrderByPriceDateDesc(instrument.getId(), org.springframework.data.domain.PageRequest.of(0, limit));
+        List<PriceHistory> latestAsc = new ArrayList<>(latestDesc);
+        Collections.reverse(latestAsc);
+        return latestAsc;
     }
 
     private double calculateEMAFromPrices(double[] prices, int period) {

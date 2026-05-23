@@ -243,15 +243,38 @@ public class MarketDataService {
 
     @Transactional(readOnly = true)
     public Page<InstrumentResponse> searchInstruments(String query, Pageable pageable) {
-        Page<Instrument> instruments = instrumentRepository.searchBySymbolOrName(query, pageable);
+        boolean isSimulation = simulationDataService.isSimulationEnabled();
+        Page<Instrument> instruments = isSimulation
+            ? instrumentRepository.searchBySymbolOrNameAndSimulationMode(query, true, pageable)
+            : instrumentRepository.searchBySymbolOrName(query, pageable);
+
+        if (isSimulation && instruments.isEmpty()) {
+            List<InstrumentResponse> filtered = List.of(
+                    InstrumentType.STOCK,
+                    InstrumentType.BOND,
+                    InstrumentType.FUND,
+                    InstrumentType.VIOP
+                ).stream()
+                .flatMap(type -> getSimulatedInstrumentsFromCache(type).stream())
+                .filter(item -> matchesInstrumentQuery(item, query))
+                .sorted(Comparator.comparing(InstrumentResponse::getSymbol))
+                .toList();
+            if (!filtered.isEmpty()) {
+                return paginateResponses(filtered, pageable);
+            }
+        }
+
         return instruments.map(this::mapToInstrumentResponse);
     }
 
     @Transactional(readOnly = true)
     public Page<InstrumentResponse> searchInstruments(InstrumentType type, String query, Pageable pageable) {
-        Page<Instrument> instruments = instrumentRepository.searchByTypeAndQuery(type, query, pageable);
+        boolean isSimulation = simulationDataService.isSimulationEnabled();
+        Page<Instrument> instruments = isSimulation
+            ? instrumentRepository.searchByTypeAndQueryAndSimulationMode(type, query, true, pageable)
+            : instrumentRepository.searchByTypeAndQuery(type, query, pageable);
 
-        if (simulationDataService.isSimulationEnabled() && instruments.isEmpty()) {
+        if (isSimulation && instruments.isEmpty()) {
             List<InstrumentResponse> filtered = getSimulatedInstrumentsFromCache(type).stream()
                 .filter(item -> matchesInstrumentQuery(item, query))
                 .toList();
@@ -260,7 +283,7 @@ public class MarketDataService {
             }
         }
 
-        if (shouldFallbackToInactiveCatalog(type, simulationDataService.isSimulationEnabled(), instruments.isEmpty())) {
+        if (shouldFallbackToInactiveCatalog(type, isSimulation, instruments.isEmpty())) {
             instruments = instrumentRepository.searchRealByTypeAndQuery(type, query, pageable);
         }
 

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,6 +11,7 @@ export default function PortfolioQuickTradeCell({
   selectedPortfolioId,
   className = '',
 }) {
+  const { t, i18n } = useTranslation()
   const [quantity, setQuantity] = useState('')
   const [executeTrade, { isLoading }] = useExecutePortfolioTradeMutation()
   const { data: selectedPortfolio, isFetching: isPortfolioFetching } = useGetPortfolioQuery(
@@ -19,6 +21,7 @@ export default function PortfolioQuickTradeCell({
   const symbol = (instrument?.symbol || '').toUpperCase()
   const price = Number(instrument?.currentPrice || 0)
   const canTrade = Boolean(symbol && Number.isFinite(price) && price > 0)
+  const numberLocale = i18n.language === 'en' ? 'en-US' : 'tr-TR'
   const holdingQuantity = (selectedPortfolio?.items || [])
     .filter((item) => {
       const itemSymbol = (item.instrumentSymbol || item.symbol || '').toUpperCase()
@@ -34,29 +37,29 @@ export default function PortfolioQuickTradeCell({
     const parsedQuantity = Number(quantity)
 
     if (!selectedPortfolioId) {
-      toast.error('Once bir portfoy secin veya olusturun')
+      toast.error(t('quickTrade.selectPortfolio'))
       return
     }
     if (!canTrade) {
-      toast.error('Bu varlik icin gecerli fiyat bulunamadi')
+      toast.error(t('quickTrade.invalidPrice'))
       return
     }
     if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
-      toast.error('Gecerli miktar girin')
+      toast.error(t('quickTrade.invalidQuantity'))
       return
     }
     if (!selectedPortfolio) {
-      toast.error('Portfoy bilgisi yukleniyor, tekrar deneyin')
+      toast.error(t('quickTrade.portfolioLoading'))
       return
     }
 
     if (transactionType === 'SELL') {
       if (holdingQuantity <= 0) {
-        toast.error(`${symbol} portfoyde yok; satis yapilamaz`)
+        toast.error(t('quickTrade.notHeld', { symbol }))
         return
       }
       if (parsedQuantity > holdingQuantity) {
-        toast.error(`Yetersiz pozisyon. Mevcut: ${holdingQuantity}`)
+        toast.error(t('quickTrade.insufficientPosition', { quantity: holdingQuantity }))
         return
       }
     }
@@ -64,7 +67,10 @@ export default function PortfolioQuickTradeCell({
     if (transactionType === 'BUY') {
       const estimatedGross = parsedQuantity * price
       if (Number.isFinite(cashBalance) && estimatedGross > cashBalance) {
-        toast.error(`Yetersiz nakit bakiye. Tahmini gerekli: ${estimatedGross.toLocaleString('tr-TR')}, mevcut: ${cashBalance.toLocaleString('tr-TR')}`)
+        toast.error(t('quickTrade.insufficientCash', {
+          required: estimatedGross.toLocaleString(numberLocale),
+          current: cashBalance.toLocaleString(numberLocale),
+        }))
         return
       }
     }
@@ -79,13 +85,13 @@ export default function PortfolioQuickTradeCell({
         quantity: parsedQuantity,
         price,
         transactionDate: new Date().toISOString().slice(0, 10),
-        notes: `${symbol} ${transactionType === 'BUY' ? 'alim' : 'satis'} islemi`,
+        notes: t(transactionType === 'BUY' ? 'quickTrade.buyNote' : 'quickTrade.sellNote', { symbol }),
       }).unwrap()
 
-      toast.success(transactionType === 'BUY' ? 'Varlik portfoye eklendi' : 'Satis emri islendi')
+      toast.success(t(transactionType === 'BUY' ? 'quickTrade.buySuccess' : 'quickTrade.sellSuccess'))
       setQuantity('')
     } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Portfoy islemi basarisiz oldu'))
+      toast.error(getApiErrorMessage(error, t('quickTrade.failed')))
     }
   }
 
@@ -96,7 +102,7 @@ export default function PortfolioQuickTradeCell({
         type="number"
         min="0"
         step="0.000001"
-        placeholder="Miktar"
+        placeholder={t('quickTrade.quantity')}
         value={quantity}
         onChange={(event) => setQuantity(event.target.value)}
       />
@@ -106,7 +112,7 @@ export default function PortfolioQuickTradeCell({
         disabled={isLoading || isPortfolioFetching || !canTrade}
         onClick={() => handleTrade('BUY')}
       >
-        Al
+        {t('quickTrade.buy')}
       </Button>
       <Button
         size="sm"
@@ -114,7 +120,7 @@ export default function PortfolioQuickTradeCell({
         disabled={isLoading || isPortfolioFetching || !canTrade}
         onClick={() => handleTrade('SELL')}
       >
-        Sat
+        {t('quickTrade.sell')}
       </Button>
     </div>
   )

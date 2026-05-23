@@ -146,7 +146,10 @@ export function PortfolioTradeDialog({
   const isBuy = mode === 'BUY'
   const resolvedSymbol = (symbol || '').toUpperCase().trim()
 
-  const title = useMemo(() => (isBuy ? 'Alis Islemi' : 'Satis Islemi'), [isBuy])
+  const title = useMemo(
+    () => t(isBuy ? 'portfolioDetailPage.tradeDialog.buyTitle' : 'portfolioDetailPage.tradeDialog.sellTitle'),
+    [isBuy, t]
+  )
 
   const handleInstrumentInputChange = (value) => {
     const normalizedValue = value.toUpperCase().trim()
@@ -160,45 +163,45 @@ export function PortfolioTradeDialog({
 
     const parsedQuantity = parseFloat(quantity)
     if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
-      toast.error('Gecerli miktar girin')
+      toast.error(t('portfolioDetailPage.tradeDialog.invalidQuantity'))
       return
     }
 
     if (maxQuantity != null && parsedQuantity > maxQuantity) {
-      toast.error(`Maksimum satis miktari: ${maxQuantity}`)
+      toast.error(t('portfolioDetailPage.tradeDialog.maxSellQuantity', { quantity: maxQuantity }))
       return
     }
 
     if (!resolvedSymbol && !selectedInstrumentId) {
-      toast.error('Sembol zorunludur')
+      toast.error(t('portfolioDetailPage.tradeDialog.symbolRequired'))
       return
     }
 
     const parsedPrice = price !== '' ? parseFloat(price) : undefined
     if (parsedPrice != null && (!Number.isFinite(parsedPrice) || parsedPrice <= 0)) {
-      toast.error('Gecerli fiyat girin')
+      toast.error(t('portfolioDetailPage.tradeDialog.invalidPrice'))
       return
     }
 
     const parsedLimit = limitPrice !== '' ? parseFloat(limitPrice) : undefined
     if (parsedLimit != null && (!Number.isFinite(parsedLimit) || parsedLimit <= 0)) {
-      toast.error('Gecerli limit fiyat girin')
+      toast.error(t('portfolioDetailPage.tradeDialog.invalidLimitPrice'))
       return
     }
 
     const parsedStop = stopPrice !== '' ? parseFloat(stopPrice) : undefined
     if (parsedStop != null && (!Number.isFinite(parsedStop) || parsedStop <= 0)) {
-      toast.error('Gecerli stop fiyat girin')
+      toast.error(t('portfolioDetailPage.tradeDialog.invalidStopPrice'))
       return
     }
 
     if (orderType === ORDER_TYPES.LIMIT && parsedLimit == null) {
-      toast.error('Limit emir icin limit fiyat zorunludur')
+      toast.error(t('portfolioDetailPage.tradeDialog.limitPriceRequired'))
       return
     }
 
     if (orderType === ORDER_TYPES.STOP && parsedStop == null) {
-      toast.error('Stop emir icin stop fiyat zorunludur')
+      toast.error(t('portfolioDetailPage.tradeDialog.stopPriceRequired'))
       return
     }
 
@@ -220,7 +223,7 @@ export function PortfolioTradeDialog({
         notes: notes.trim() || undefined,
       }).unwrap()
 
-      toast.success(isBuy ? 'Alis islemi kaydedildi' : 'Satis islemi kaydedildi')
+      toast.success(t(isBuy ? 'portfolioDetailPage.tradeDialog.buySuccess' : 'portfolioDetailPage.tradeDialog.sellSuccess'))
       onOpenChange(false)
     } catch (error) {
       toast.error(getApiErrorMessage(
@@ -237,21 +240,21 @@ export function PortfolioTradeDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
             {isBuy
-              ? 'Portfoye alim emri girin. Nakit bakiye ve komisyon kontrol edilir.'
-              : 'Pozisyonunuzdan kisimli veya tam satis emri girin.'}
+              ? t('portfolioDetailPage.tradeDialog.buyDescription')
+              : t('portfolioDetailPage.tradeDialog.sellDescription')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="trade-symbol">Sembol</Label>
+              <Label htmlFor="trade-symbol">{t('portfolioDetailPage.tradeDialog.symbol')}</Label>
               <Input
                 id="trade-symbol"
                 value={resolvedSymbol}
                 onChange={(event) => handleInstrumentInputChange(event.target.value)}
                 list="trade-instruments-list"
-                placeholder="Sembol yazin ve listeden secin"
+                placeholder={t('portfolioDetailPage.tradeDialog.symbolPlaceholder')}
                 required
                 disabled={isLockedInstrument}
               />
@@ -267,13 +270,13 @@ export function PortfolioTradeDialog({
               </datalist>
               {!isLockedInstrument && (
                 <p className="text-xs text-muted-foreground">
-                  {instruments.length} varlik listelendi. Sembol yazarak secim yapabilirsiniz.
+                  {t('portfolioDetailPage.tradeDialog.instrumentCount', { count: instruments.length })}
                 </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="trade-quantity">Miktar</Label>
+              <Label htmlFor="trade-quantity">{t('portfolioDetailPage.tradeDialog.quantity')}</Label>
               <Input
                 id="trade-quantity"
                 type="number"
@@ -286,12 +289,12 @@ export function PortfolioTradeDialog({
                 max={isSell && maxQuantity != null ? String(maxQuantity) : undefined}
               />
               {isSell && maxQuantity != null && (
-                <p className="text-xs text-muted-foreground">Maksimum satis miktari: {maxQuantity}</p>
+                <p className="text-xs text-muted-foreground">{t('portfolioDetailPage.tradeDialog.maxSellQuantity', { quantity: maxQuantity })}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label>Emir Tipi</Label>
+              <Label>{t('portfolioDetailPage.tradeDialog.orderType')}</Label>
               <Select value={orderType} onValueChange={setOrderType}>
                 <SelectTrigger>
                   <SelectValue />
@@ -312,7 +315,7 @@ export function PortfolioTradeDialog({
 
             {orderType === ORDER_TYPES.MARKET && (
               <div className="space-y-2">
-                <Label htmlFor="trade-price">Fiyat (Opsiyonel)</Label>
+                <Label htmlFor="trade-price">{t('portfolioDetailPage.tradeDialog.priceOptional')}</Label>
                 <Input
                   id="trade-price"
                   type="number"
@@ -320,14 +323,14 @@ export function PortfolioTradeDialog({
                   min="0.000001"
                   value={price}
                   onChange={(event) => setPrice(event.target.value)}
-                  placeholder="Bos birakirsaniz anlik fiyat kullanilir"
+                  placeholder={t('portfolioDetailPage.tradeDialog.pricePlaceholder')}
                 />
               </div>
             )}
 
             {orderType === ORDER_TYPES.LIMIT && (
               <div className="space-y-2">
-                <Label htmlFor="trade-limit-price">Limit Fiyat</Label>
+                <Label htmlFor="trade-limit-price">{t('portfolioDetailPage.tradeDialog.limitPrice')}</Label>
                 <Input
                   id="trade-limit-price"
                   type="number"
@@ -335,7 +338,7 @@ export function PortfolioTradeDialog({
                   min="0.000001"
                   value={limitPrice}
                   onChange={(event) => setLimitPrice(event.target.value)}
-                  placeholder="Limit fiyat"
+                  placeholder={t('portfolioDetailPage.tradeDialog.limitPrice')}
                   required
                 />
               </div>
@@ -343,7 +346,7 @@ export function PortfolioTradeDialog({
 
             {orderType === ORDER_TYPES.STOP && (
               <div className="space-y-2">
-                <Label htmlFor="trade-stop-price">Stop Fiyat</Label>
+                <Label htmlFor="trade-stop-price">{t('portfolioDetailPage.tradeDialog.stopPrice')}</Label>
                 <Input
                   id="trade-stop-price"
                   type="number"
@@ -351,14 +354,14 @@ export function PortfolioTradeDialog({
                   min="0.000001"
                   value={stopPrice}
                   onChange={(event) => setStopPrice(event.target.value)}
-                  placeholder="Stop fiyat"
+                  placeholder={t('portfolioDetailPage.tradeDialog.stopPrice')}
                   required
                 />
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="trade-date">Islem Tarihi</Label>
+              <Label htmlFor="trade-date">{t('portfolioDetailPage.tradeDialog.tradeDate')}</Label>
               <Input
                 id="trade-date"
                 type="date"
@@ -369,12 +372,12 @@ export function PortfolioTradeDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="trade-notes">Not</Label>
+              <Label htmlFor="trade-notes">{t('portfolioDetailPage.tradeDialog.note')}</Label>
               <Input
                 id="trade-notes"
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
-                placeholder="Opsiyonel not"
+                placeholder={t('portfolioDetailPage.tradeDialog.optionalNote')}
               />
             </div>
           </div>
@@ -384,7 +387,11 @@ export function PortfolioTradeDialog({
               {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Kaydediliyor...' : isBuy ? 'Al' : 'Sat'}
+              {isLoading
+                ? t('profile.saving')
+                : isBuy
+                  ? t('quickTrade.buy')
+                  : t('quickTrade.sell')}
             </Button>
           </DialogFooter>
         </form>

@@ -285,6 +285,9 @@ export default function DashboardPage() {
     'CURRENCY_RATES',
     'BIST_STOCKS',
     'BIST_INDICES',
+    'BONDS',
+    'FUNDS',
+    'VIOP',
   ])
   const {
     data: currencies,

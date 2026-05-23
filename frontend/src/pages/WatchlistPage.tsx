@@ -28,11 +28,11 @@ import { useInstrumentOptions } from '@/hooks/useInstrumentOptions'
 
 const DEFAULT_COLUMNS = ['SYMBOL', 'NAME', 'TYPE', 'PRICE', 'CHANGE', 'NOTES']
 const OPTIONAL_COLUMNS = [
-  { key: 'TYPE', label: 'Tur' },
-  { key: 'PRICE', label: 'Fiyat' },
-  { key: 'CHANGE', label: 'Degisim' },
-  { key: 'ADDED_AT', label: 'Eklenme' },
-  { key: 'NOTES', label: 'Not' },
+  { key: 'TYPE', labelKey: 'watchlist.columns.type' },
+  { key: 'PRICE', labelKey: 'watchlist.columns.price' },
+  { key: 'CHANGE', labelKey: 'watchlist.columns.change' },
+  { key: 'ADDED_AT', labelKey: 'watchlist.columns.addedAt' },
+  { key: 'NOTES', labelKey: 'watchlist.columns.note' },
 ]
 
 export default function WatchlistPage() {
@@ -141,7 +141,7 @@ export default function WatchlistPage() {
   const handleCreateWatchlist = async () => {
     const name = newWatchlistForm.name.trim()
     if (!name) {
-      toast.error('Watchlist adi zorunludur')
+      toast.error(t('watchlist.nameRequired'))
       return
     }
 
@@ -161,7 +161,7 @@ export default function WatchlistPage() {
         setSelectedWatchlistId(created.id)
       }
 
-      toast.success('Watchlist olusturuldu')
+      toast.success(t('watchlist.created'))
     } catch (error) {
       toast.error(getApiErrorMessage(error, t('common.error')))
     }
@@ -174,7 +174,7 @@ export default function WatchlistPage() {
 
     const normalizedName = metadataForm.name.trim()
     if (!normalizedName) {
-      toast.error('Watchlist adi zorunludur')
+      toast.error(t('watchlist.nameRequired'))
       return
     }
 
@@ -188,7 +188,7 @@ export default function WatchlistPage() {
         columnPreferences: metadataForm.columnPreferences,
       }).unwrap()
 
-      toast.success('Watchlist ayarlari kaydedildi')
+      toast.success(t('watchlist.settingsSaved'))
     } catch (error) {
       toast.error(getApiErrorMessage(error, t('common.error')))
     }
@@ -204,7 +204,7 @@ export default function WatchlistPage() {
       if (selectedWatchlistId === id) {
         setSelectedWatchlistId(null)
       }
-      toast.success('Watchlist silindi')
+      toast.success(t('watchlist.deleted'))
     } catch (error) {
       toast.error(getApiErrorMessage(error, t('common.error')))
     }
@@ -225,14 +225,14 @@ export default function WatchlistPage() {
   const handleAddItem = async () => {
     const symbol = newInstrumentSymbol.trim().toUpperCase()
     if (!selectedWatchlistId || !symbol) {
-      toast.error('Once izleme listesi ve sembol secin')
+      toast.error(t('watchlist.selectListAndSymbol'))
       return
     }
 
     try {
       await addWatchlistInstrument({ watchlistId: selectedWatchlistId, symbol }).unwrap()
       setNewInstrumentSymbol('')
-      toast.success('Varlik izleme listesine eklendi')
+      toast.success(t('watchlist.assetAdded'))
     } catch (error) {
       toast.error(getApiErrorMessage(error, t('common.error')))
     }
@@ -283,7 +283,7 @@ export default function WatchlistPage() {
         itemId: item.id,
         notes: draftValue || null,
       }).unwrap()
-      toast.success(`${item.symbol} notu guncellendi`)
+      toast.success(t('watchlist.noteUpdated', { symbol: item.symbol }))
     } catch (error) {
       toast.error(getApiErrorMessage(error, t('common.error')))
     }
@@ -440,13 +440,13 @@ export default function WatchlistPage() {
                     className="inline-flex items-center gap-2 rounded-lg border border-input px-3 py-2 text-sm hover:bg-muted disabled:opacity-50"
                   >
                     <Save className="h-4 w-4" />
-                    Liste Ayarlarini Kaydet
+                    {t('watchlist.saveSettings')}
                   </button>
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-3">
                   <div>
-                    <label className="mb-1 block text-xs text-muted-foreground">Liste Adi</label>
+                    <label className="mb-1 block text-xs text-muted-foreground">{t('watchlist.listName')}</label>
                     <input
                       value={metadataForm.name}
                       onChange={(event) => setMetadataForm((prev) => ({ ...prev, name: event.target.value }))}
@@ -454,7 +454,7 @@ export default function WatchlistPage() {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs text-muted-foreground">Aciklama</label>
+                    <label className="mb-1 block text-xs text-muted-foreground">{t('watchlist.description')}</label>
                     <input
                       value={metadataForm.description}
                       onChange={(event) => setMetadataForm((prev) => ({ ...prev, description: event.target.value }))}
@@ -462,29 +462,29 @@ export default function WatchlistPage() {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs text-muted-foreground">Etiket</label>
+                    <label className="mb-1 block text-xs text-muted-foreground">{t('watchlist.tag')}</label>
                     <input
                       value={metadataForm.tag}
                       onChange={(event) => setMetadataForm((prev) => ({ ...prev, tag: event.target.value }))}
-                      placeholder="or: temettu"
+                      placeholder={t('watchlist.tagPlaceholder')}
                       className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                     />
                   </div>
                 </div>
 
                 <div className="mt-3">
-                  <label className="mb-1 block text-xs text-muted-foreground">Liste Notu</label>
+                  <label className="mb-1 block text-xs text-muted-foreground">{t('watchlist.listNote')}</label>
                   <textarea
                     value={metadataForm.notes}
                     onChange={(event) => setMetadataForm((prev) => ({ ...prev, notes: event.target.value }))}
                     rows={2}
                     className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                    placeholder="Bu liste icin genel not"
+                    placeholder={t('watchlist.listNotePlaceholder')}
                   />
                 </div>
 
                 <div className="mt-3">
-                  <p className="mb-2 text-xs text-muted-foreground">Ozel Kolonlar</p>
+                  <p className="mb-2 text-xs text-muted-foreground">{t('watchlist.customColumns')}</p>
                   <div className="flex flex-wrap gap-3">
                     {OPTIONAL_COLUMNS.map((column) => (
                       <label key={column.key} className="inline-flex items-center gap-2 text-sm">
@@ -493,7 +493,7 @@ export default function WatchlistPage() {
                           checked={hasColumn(column.key)}
                           onChange={(event) => handleToggleColumn(column.key, event.target.checked)}
                         />
-                        {column.label}
+                        {t(column.labelKey)}
                       </label>
                     ))}
                   </div>
@@ -505,7 +505,7 @@ export default function WatchlistPage() {
                   <div>
                     <h3 className="font-semibold text-foreground">{selectedWatchlist.name}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Surukle-birak ile sirala, varlik notlarini satirdan duzenle.
+                      {t('watchlist.rowHelp')}
                     </p>
                   </div>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -515,7 +515,7 @@ export default function WatchlistPage() {
                         list="watchlist-symbol-options"
                         value={newInstrumentSymbol}
                         onChange={(event) => setNewInstrumentSymbol(event.target.value.toUpperCase())}
-                        placeholder={instrumentsFetching ? 'Semboller yukleniyor...' : 'Sembol secin veya yazin'}
+                        placeholder={instrumentsFetching ? t('watchlist.symbolsLoading') : t('watchlist.symbolPlaceholder')}
                         className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
                         disabled={addingItem}
                       />
@@ -533,13 +533,13 @@ export default function WatchlistPage() {
                       className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 disabled:opacity-50"
                     >
                       <Plus className="h-4 w-4" />
-                      Varlik Ekle
+                      {t('watchlist.addAsset')}
                     </button>
                     <button
                       onClick={() => handleDeleteWatchlist(selectedWatchlist.id)}
                       disabled={mutating}
                       className="inline-flex items-center justify-center rounded-lg border border-red-200 px-3 py-2 text-red-500 hover:bg-red-50 disabled:opacity-50 dark:border-red-900/60 dark:hover:bg-red-950/30"
-                      title="Izleme listesini sil"
+                      title={t('watchlist.deleteTitle')}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -552,11 +552,11 @@ export default function WatchlistPage() {
                       <tr>
                         <th className="w-10 px-2 py-3" />
                         <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('portfolio.symbol')}</th>
-                        {hasColumn('TYPE') && <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Tur</th>}
+                        {hasColumn('TYPE') && <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('watchlist.columns.type')}</th>}
                         {hasColumn('PRICE') && <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('market.currentPrice')}</th>}
                         {hasColumn('CHANGE') && <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('market.change')}</th>}
-                        {hasColumn('ADDED_AT') && <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Eklenme</th>}
-                        {hasColumn('NOTES') && <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Not</th>}
+                        {hasColumn('ADDED_AT') && <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('watchlist.columns.addedAt')}</th>}
+                        {hasColumn('NOTES') && <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{t('watchlist.columns.note')}</th>}
                         <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground" />
                       </tr>
                     </thead>
@@ -619,7 +619,7 @@ export default function WatchlistPage() {
                                   onChange={(event) => handleItemNoteChange(item.id, event.target.value)}
                                   onBlur={() => handleItemNoteBlur(item)}
                                   disabled={updatingItem}
-                                  placeholder="Not ekle"
+                                  placeholder={t('watchlist.addNote')}
                                   className="w-full min-w-[180px] rounded-lg border border-input bg-background px-2 py-1 text-xs"
                                 />
                               </td>
@@ -642,7 +642,7 @@ export default function WatchlistPage() {
                           <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                             <div className="space-y-2">
                               <p>{t('watchlist.empty')}</p>
-                              <p className="text-sm">Yukaridaki sembol alanindan ilk varligi ekleyin.</p>
+                              <p className="text-sm">{t('watchlist.emptyAddFirst')}</p>
                             </div>
                           </td>
                         </tr>
@@ -687,27 +687,27 @@ export default function WatchlistPage() {
                 type="text"
                 value={newWatchlistForm.name}
                 onChange={(event) => setNewWatchlistForm((prev) => ({ ...prev, name: event.target.value }))}
-                placeholder="Liste adi"
+                placeholder={t('watchlist.listName')}
                 className="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground placeholder:text-muted-foreground"
               />
               <input
                 type="text"
                 value={newWatchlistForm.description}
                 onChange={(event) => setNewWatchlistForm((prev) => ({ ...prev, description: event.target.value }))}
-                placeholder="Kisa aciklama"
+                placeholder={t('watchlist.shortDescription')}
                 className="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground placeholder:text-muted-foreground"
               />
               <input
                 type="text"
                 value={newWatchlistForm.tag}
                 onChange={(event) => setNewWatchlistForm((prev) => ({ ...prev, tag: event.target.value }))}
-                placeholder="Etiket"
+                placeholder={t('watchlist.tag')}
                 className="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground placeholder:text-muted-foreground"
               />
               <textarea
                 value={newWatchlistForm.notes}
                 onChange={(event) => setNewWatchlistForm((prev) => ({ ...prev, notes: event.target.value }))}
-                placeholder="Liste notu"
+                placeholder={t('watchlist.listNote')}
                 rows={2}
                 className="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground placeholder:text-muted-foreground"
               />

@@ -152,6 +152,14 @@ public class PriceUpdateService {
         sendMessage("/topic/prices", message);
         
         log.debug("Broadcast market update: {} {} = {}", type, symbol, price);
+
+        if (price != null) {
+            try {
+                alertService.checkAlertsForSymbol(symbol, price);
+            } catch (Exception e) {
+                log.warn("Error checking alerts for {} {}: {}", type, symbol, e.getMessage());
+            }
+        }
     }
 
     /**

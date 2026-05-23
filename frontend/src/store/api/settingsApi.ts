@@ -71,7 +71,17 @@ export const settingsApi = baseApi.injectEndpoints({
                 url: `/data-sources/trigger/${apiConfigId}`,
                 method: 'POST',
             }),
-            invalidatesTags: ['DataSources', 'Settings'],
+            invalidatesTags: [
+                'DataSources',
+                'Settings',
+                'Currencies',
+                'Stocks',
+                'Bonds',
+                'Funds',
+                'Viop',
+                'Indices',
+                'News',
+            ],
         }),
     }),
 })
