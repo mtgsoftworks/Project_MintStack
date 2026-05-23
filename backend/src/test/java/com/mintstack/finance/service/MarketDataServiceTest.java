@@ -334,6 +334,44 @@ class MarketDataServiceTest {
     }
 
     @Test
+    @DisplayName("getInstrumentsByType with pagination should calculate change from requested date range")
+    void getInstrumentsByType_WithPagination_ShouldCalculateChangeFromRequestedDateRange() {
+        Pageable pageable = PageRequest.of(0, 10);
+        LocalDate startDate = LocalDate.of(2026, 5, 1);
+        LocalDate endDate = LocalDate.now();
+        thyaoStock.setCurrentPrice(new BigDecimal("120.000000"));
+        thyaoStock.setPreviousClose(new BigDecimal("119.000000"));
+
+        PriceHistory rangeStart = PriceHistory.builder()
+                .instrument(thyaoStock)
+                .priceDate(startDate)
+                .closePrice(new BigDecimal("100.000000"))
+                .build();
+
+        when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType.STOCK, false, pageable))
+                .thenReturn(new PageImpl<>(List.of(thyaoStock), pageable, 1));
+        when(priceHistoryRepository.findByInstrumentIdOrderByPriceDateDesc(eq(thyaoStock.getId()), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(priceHistoryRepository.findByInstrumentIdAndPriceDateLessThanEqualOrderByPriceDateDesc(
+                eq(thyaoStock.getId()), eq(startDate), any(Pageable.class)))
+                .thenReturn(List.of(rangeStart));
+
+        Page<InstrumentResponse> result = marketDataService.getInstrumentsByType(
+                InstrumentType.STOCK,
+                pageable,
+                startDate,
+                endDate
+        );
+
+        InstrumentResponse response = result.getContent().get(0);
+        assertThat(response.getChangeBasePrice()).isEqualByComparingTo(new BigDecimal("100.000000"));
+        assertThat(response.getChange()).isEqualByComparingTo(new BigDecimal("20.000000"));
+        assertThat(response.getChangePercent()).isEqualByComparingTo(new BigDecimal("20.000000"));
+        assertThat(response.getChangeStartDate()).isEqualTo(startDate);
+        assertThat(response.getChangeEndDate()).isEqualTo(LocalDate.now());
+    }
+
+    @Test
     @DisplayName("getInstrumentsByType with pagination should not fabricate stock change for sparse flat history")
     void getInstrumentsByType_WithPagination_ShouldNotFabricateStockChangeForSparseFlatHistory() {
         Pageable pageable = PageRequest.of(0, 10);

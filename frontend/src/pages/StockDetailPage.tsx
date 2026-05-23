@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, TrendingUp, TrendingDown, Plus } from 'lucide-react'
+import { ArrowLeft, TrendingUp, TrendingDown, Plus, Minus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -38,6 +38,25 @@ import {
 } from '@/store/api/portfolioApi'
 import PriceChart from '@/components/charts/PriceChart'
 
+const PERIOD_DAYS = {
+  '1D': 1,
+  '1W': 7,
+  '1M': 30,
+  '3M': 90,
+  '1Y': 365,
+}
+
+function formatDateInput(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function hasFiniteChange(value) {
+  return value !== null && value !== undefined && Number.isFinite(Number(value))
+}
+
 export default function StockDetailPage() {
   const { t, i18n } = useTranslation()
   const { symbol } = useParams()
@@ -46,8 +65,21 @@ export default function StockDetailPage() {
   const [selectedPortfolioId, setSelectedPortfolioId] = useState('')
   const [quantity, setQuantity] = useState('1')
   const { refreshAndRefetch, isRefreshingMarketData } = useMarketDataRefresh(['BIST_STOCKS'])
+  const changeRangeParams = useMemo(() => {
+    const days = PERIOD_DAYS[period] || 30
+    const endDate = new Date()
+    const startDate = new Date(endDate)
+    startDate.setDate(startDate.getDate() - days)
+    return {
+      changeStartDate: formatDateInput(startDate),
+      changeEndDate: formatDateInput(endDate),
+    }
+  }, [period])
 
-  const { data: stock, isLoading: stockLoading, isFetching: stockFetching, refetch } = useGetStockQuery(symbol)
+  const { data: stock, isLoading: stockLoading, isFetching: stockFetching, refetch } = useGetStockQuery({
+    symbol,
+    ...changeRangeParams,
+  })
   const { data: history, isLoading: historyLoading, refetch: refetchHistory } = useGetStockHistoryQuery({ symbol, period })
   const { data: portfolios = [], isLoading: portfoliosLoading } = useGetPortfoliosQuery()
   const [executeTrade, { isLoading: isSubmittingTrade }] = useExecutePortfolioTradeMutation()
@@ -149,8 +181,9 @@ export default function StockDetailPage() {
     )
   }
 
-  const change = stock.changePercent || 0
-  const isUp = change >= 0
+  const hasChange = hasFiniteChange(stock.changePercent)
+  const change = hasChange ? Number(stock.changePercent) : null
+  const isUp = hasChange && change >= 0
 
   return (
     <div className="space-y-6 animate-in">
@@ -166,10 +199,12 @@ export default function StockDetailPage() {
           <div
             className={cn(
               'flex h-14 w-14 items-center justify-center rounded-xl',
-              isUp ? 'bg-success/10' : 'bg-danger/10'
+              !hasChange ? 'bg-muted' : isUp ? 'bg-success/10' : 'bg-danger/10'
             )}
           >
-            {isUp ? (
+            {!hasChange ? (
+              <Minus className="h-7 w-7 text-muted-foreground" />
+            ) : isUp ? (
               <TrendingUp className="h-7 w-7 text-success" />
             ) : (
               <TrendingDown className="h-7 w-7 text-danger" />
@@ -207,17 +242,18 @@ export default function StockDetailPage() {
                   {formatCurrency(stock.currentPrice, 'TRY')}
                 </CardTitle>
                 <div className="mt-1 flex items-center gap-2">
-                  <Badge variant={isUp ? 'success' : 'danger'} className="text-sm">
-                    {isUp ? '+' : ''}
-                    {formatCurrency(stock.currentPrice - stock.previousClose, 'TRY')}
+                  <Badge variant={!hasChange ? 'secondary' : isUp ? 'success' : 'danger'} className="text-sm">
+                    {hasChange && isUp ? '+' : ''}
+                    {hasChange ? formatCurrency(stock.change, 'TRY') : '-'}
                   </Badge>
-                  <Badge variant={isUp ? 'success' : 'danger'} className="text-sm">
-                    {formatPercent(change)}
+                  <Badge variant={!hasChange ? 'secondary' : isUp ? 'success' : 'danger'} className="text-sm">
+                    {hasChange ? formatPercent(change) : '-'}
                   </Badge>
                 </div>
               </div>
               <Tabs value={period} onValueChange={setPeriod}>
                 <TabsList>
+                  <TabsTrigger value="1D">1G</TabsTrigger>
                   <TabsTrigger value="1W">1H</TabsTrigger>
                   <TabsTrigger value="1M">1A</TabsTrigger>
                   <TabsTrigger value="3M">3A</TabsTrigger>

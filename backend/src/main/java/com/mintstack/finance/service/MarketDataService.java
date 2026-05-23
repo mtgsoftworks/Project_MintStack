@@ -41,6 +41,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -61,11 +62,17 @@ public class MarketDataService {
     private final InstrumentMetricsService instrumentMetricsService;
 
     // Currency Rates
-    @Cacheable(value = "currencyRates", key = "'latest-' + @simulationDataService.isSimulationEnabled()")
     @Transactional(readOnly = true)
     public List<CurrencyRateResponse> getLatestCurrencyRates() {
+        return getLatestCurrencyRates(null, null);
+    }
+
+    @Cacheable(value = "currencyRates", key = "'latest-' + @simulationDataService.isSimulationEnabled() + '-' + #changeStartDate + '-' + #changeEndDate")
+    @Transactional(readOnly = true)
+    public List<CurrencyRateResponse> getLatestCurrencyRates(LocalDate changeStartDate, LocalDate changeEndDate) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
         RateSource preferredSource = resolveCurrencyRateSource(isSimulation);
+        ChangeDateRange changeRange = normalizeChangeRange(changeStartDate, changeEndDate);
         List<CurrencyRate> rates = currencyRateRepository.findLatestBySource(preferredSource);
         if (isSimulation && rates.isEmpty()) {
             return simulationDataService.getCurrencies().entrySet().stream()
@@ -76,7 +83,7 @@ public class MarketDataService {
             rates = currencyRateRepository.findLatestBySource(RateSource.TCMB);
         }
         return rates.stream()
-            .map(this::mapToRateResponse)
+            .map(rate -> mapToRateResponse(rate, changeRange))
             .collect(Collectors.toList());
     }
 
@@ -174,7 +181,13 @@ public class MarketDataService {
     @Cacheable(value = "instruments", key = "#type.name() + '-' + @simulationDataService.isSimulationEnabled()")
     @Transactional(readOnly = true)
     public List<InstrumentResponse> getInstrumentsByType(InstrumentType type) {
+        return getInstrumentsByType(type, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<InstrumentResponse> getInstrumentsByType(InstrumentType type, LocalDate changeStartDate, LocalDate changeEndDate) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
+        ChangeDateRange changeRange = normalizeChangeRange(changeStartDate, changeEndDate);
         List<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(type, isSimulation);
 
         if (isSimulation && instruments.isEmpty()) {
@@ -193,13 +206,23 @@ public class MarketDataService {
         }
 
         return instruments.stream()
-            .map(this::mapToInstrumentResponse)
+            .map(instrument -> mapToInstrumentResponse(instrument, changeRange))
             .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public Page<InstrumentResponse> getInstrumentsByType(InstrumentType type, Pageable pageable) {
+        return getInstrumentsByType(type, pageable, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<InstrumentResponse> getInstrumentsByType(
+            InstrumentType type,
+            Pageable pageable,
+            LocalDate changeStartDate,
+            LocalDate changeEndDate) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
+        ChangeDateRange changeRange = normalizeChangeRange(changeStartDate, changeEndDate);
         Page<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(type, isSimulation, pageable);
 
         if (isSimulation && instruments.isEmpty()) {
@@ -217,24 +240,30 @@ public class MarketDataService {
             instruments = instrumentRepository.findRealByType(type, pageable);
         }
 
-        return instruments.map(this::mapToInstrumentResponse);
+        return instruments.map(instrument -> mapToInstrumentResponse(instrument, changeRange));
     }
 
     @Transactional(readOnly = true)
     public InstrumentResponse getInstrument(String symbol) {
+        return getInstrument(symbol, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public InstrumentResponse getInstrument(String symbol, LocalDate changeStartDate, LocalDate changeEndDate) {
+        ChangeDateRange changeRange = normalizeChangeRange(changeStartDate, changeEndDate);
         boolean isSimulation = simulationDataService.isSimulationEnabled();
         String normalizedSymbol = symbol != null ? symbol.toUpperCase() : "";
         Instrument instrument = instrumentRepository.findBySymbolAndIsSimulated(normalizedSymbol, isSimulation)
             .orElseGet(() -> instrumentRepository.findBySymbol(normalizedSymbol).orElse(null));
 
         if (instrument != null) {
-            return mapToInstrumentResponse(instrument);
+            return mapToInstrumentResponse(instrument, changeRange);
         }
 
         if (isSimulation) {
             Instrument cachedInstrument = resolveSimulatedInstrumentBySymbol(normalizedSymbol);
             if (cachedInstrument != null) {
-                return mapToInstrumentResponse(cachedInstrument);
+                return mapToInstrumentResponse(cachedInstrument, changeRange);
             }
         }
 
@@ -243,7 +272,17 @@ public class MarketDataService {
 
     @Transactional(readOnly = true)
     public Page<InstrumentResponse> searchInstruments(String query, Pageable pageable) {
+        return searchInstruments(query, pageable, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<InstrumentResponse> searchInstruments(
+            String query,
+            Pageable pageable,
+            LocalDate changeStartDate,
+            LocalDate changeEndDate) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
+        ChangeDateRange changeRange = normalizeChangeRange(changeStartDate, changeEndDate);
         Page<Instrument> instruments = isSimulation
             ? instrumentRepository.searchBySymbolOrNameAndSimulationMode(query, true, pageable)
             : instrumentRepository.searchBySymbolOrName(query, pageable);
@@ -264,12 +303,23 @@ public class MarketDataService {
             }
         }
 
-        return instruments.map(this::mapToInstrumentResponse);
+        return instruments.map(instrument -> mapToInstrumentResponse(instrument, changeRange));
     }
 
     @Transactional(readOnly = true)
     public Page<InstrumentResponse> searchInstruments(InstrumentType type, String query, Pageable pageable) {
+        return searchInstruments(type, query, pageable, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<InstrumentResponse> searchInstruments(
+            InstrumentType type,
+            String query,
+            Pageable pageable,
+            LocalDate changeStartDate,
+            LocalDate changeEndDate) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
+        ChangeDateRange changeRange = normalizeChangeRange(changeStartDate, changeEndDate);
         Page<Instrument> instruments = isSimulation
             ? instrumentRepository.searchByTypeAndQueryAndSimulationMode(type, query, true, pageable)
             : instrumentRepository.searchByTypeAndQuery(type, query, pageable);
@@ -287,7 +337,7 @@ public class MarketDataService {
             instruments = instrumentRepository.searchRealByTypeAndQuery(type, query, pageable);
         }
 
-        return instruments.map(this::mapToInstrumentResponse);
+        return instruments.map(instrument -> mapToInstrumentResponse(instrument, changeRange));
     }
 
     // Price History
@@ -317,6 +367,11 @@ public class MarketDataService {
 
     // Market Index (e.g. BIST 100)
     public InstrumentResponse getMarketIndex(String symbol) {
+        return getMarketIndex(symbol, null, null);
+    }
+
+    public InstrumentResponse getMarketIndex(String symbol, LocalDate changeStartDate, LocalDate changeEndDate) {
+        ChangeDateRange changeRange = normalizeChangeRange(changeStartDate, changeEndDate);
         List<String> symbolCandidates = resolveIndexSymbolCandidates(symbol);
 
         if (simulationDataService.isSimulationEnabled()) {
@@ -331,7 +386,7 @@ public class MarketDataService {
         
         // If instrument exists and has recent price, return it
         if (instrument != null && instrument.getCurrentPrice() != null) {
-            return mapToInstrumentResponse(instrument);
+            return mapToInstrumentResponse(instrument, changeRange);
         }
 
         // Try Yahoo Finance direct fallback even without explicit API config.
@@ -369,7 +424,7 @@ public class MarketDataService {
 
         // Return existing instrument data only when it has a price.
         if (instrument != null && instrument.getCurrentPrice() != null) {
-            return mapToInstrumentResponse(instrument);
+            return mapToInstrumentResponse(instrument, changeRange);
         }
 
         log.info("No market index data available for {}. Candidates checked: {}", symbol, symbolCandidates);
@@ -602,7 +657,13 @@ public class MarketDataService {
 
     // Mapping methods
     private CurrencyRateResponse mapToRateResponse(CurrencyRate rate) {
-        BigDecimal changePercent = calculateChangePercent(rate);
+        return mapToRateResponse(rate, null);
+    }
+
+    private CurrencyRateResponse mapToRateResponse(CurrencyRate rate, ChangeDateRange changeRange) {
+        CurrencyRateChange rateChange = changeRange != null
+            ? calculateCurrencyRangeChange(rate, changeRange)
+            : calculateCurrencyDefaultChange(rate);
         BigDecimal buyingRate = positiveOrFallback(rate.getBuyingRate(), rate.getSellingRate());
         BigDecimal sellingRate = positiveOrFallback(rate.getSellingRate(), buyingRate);
         BigDecimal effectiveBuyingRate = positiveOrFallback(rate.getEffectiveBuyingRate(), buyingRate);
@@ -617,17 +678,20 @@ public class MarketDataService {
             .effectiveBuyingRate(effectiveBuyingRate)
             .effectiveSellingRate(effectiveSellingRate)
             .averageRate(buyingRate.add(sellingRate).divide(new BigDecimal("2"), 6, RoundingMode.HALF_UP))
-            .changePercent(changePercent)
+            .changePercent(rateChange.changePercent())
+            .changeBaseRate(rateChange.baseRate())
+            .changeStartAt(rateChange.startAt())
+            .changeEndAt(rateChange.endAt())
             .source(rate.getSource().name())
             .fetchedAt(rate.getFetchedAt())
             .rateDate(rate.getRateDate())
             .build();
     }
     
-    private BigDecimal calculateChangePercent(CurrencyRate currentRate) {
+    private CurrencyRateChange calculateCurrencyDefaultChange(CurrencyRate currentRate) {
         try {
             if (currentRate.getRateDate() == null) {
-                return BigDecimal.ZERO;
+                return new CurrencyRateChange(BigDecimal.ZERO, null, null, null);
             }
             List<CurrencyRate> previousRates = currencyRateRepository
                 .findPreviousRatesByRateDate(
@@ -638,23 +702,69 @@ public class MarketDataService {
                     PageRequest.of(0, 1)
                 );
             if (previousRates.isEmpty()) {
-                return BigDecimal.ZERO;
+                return new CurrencyRateChange(BigDecimal.ZERO, null, null, null);
             }
 
             CurrencyRate previousRate = previousRates.get(0);
             BigDecimal current = positiveOrFallback(currentRate.getSellingRate(), currentRate.getBuyingRate());
             BigDecimal previous = positiveOrFallback(previousRate.getSellingRate(), previousRate.getBuyingRate());
             if (!isPositive(current) || !isPositive(previous)) {
-                return BigDecimal.ZERO;
+                return new CurrencyRateChange(BigDecimal.ZERO, previous, previousRate.getFetchedAt(), currentRate.getFetchedAt());
             }
-            return current.subtract(previous)
+            BigDecimal changePercent = current.subtract(previous)
                 .divide(previous, 6, RoundingMode.HALF_UP)
                 .multiply(new BigDecimal("100"));
+            return new CurrencyRateChange(changePercent, previous, previousRate.getFetchedAt(), currentRate.getFetchedAt());
         } catch (Exception e) {
             log.warn("Error calculating change percent for {}: {}", 
                 currentRate.getCurrencyCode(), e.getMessage());
-            return BigDecimal.ZERO;
+            return new CurrencyRateChange(BigDecimal.ZERO, null, null, null);
         }
+    }
+
+    private CurrencyRateChange calculateCurrencyRangeChange(CurrencyRate currentRate, ChangeDateRange changeRange) {
+        if (currentRate == null || changeRange == null || currentRate.getSource() == null) {
+            return new CurrencyRateChange(null, null, null, null);
+        }
+
+        CurrencyRate startRate = findCurrencyRateAtOrBefore(
+            currentRate.getCurrencyCode(),
+            currentRate.getSource(),
+            changeRange.startDate().atTime(23, 59, 59)
+        );
+        CurrencyRate endRate = changeRange.endDate().isBefore(LocalDate.now())
+            ? findCurrencyRateAtOrBefore(
+                currentRate.getCurrencyCode(),
+                currentRate.getSource(),
+                changeRange.endDate().atTime(23, 59, 59)
+            )
+            : currentRate;
+
+        if (startRate == null || endRate == null) {
+            return new CurrencyRateChange(null, null, null, null);
+        }
+
+        BigDecimal start = positiveOrFallback(startRate.getSellingRate(), startRate.getBuyingRate());
+        BigDecimal end = positiveOrFallback(endRate.getSellingRate(), endRate.getBuyingRate());
+        if (!isPositive(start) || !isPositive(end)) {
+            return new CurrencyRateChange(null, start, startRate.getFetchedAt(), endRate.getFetchedAt());
+        }
+
+        BigDecimal changePercent = end.subtract(start)
+            .divide(start, 6, RoundingMode.HALF_UP)
+            .multiply(new BigDecimal("100"));
+        return new CurrencyRateChange(changePercent, start, startRate.getFetchedAt(), endRate.getFetchedAt());
+    }
+
+    private CurrencyRate findCurrencyRateAtOrBefore(String currencyCode, RateSource source, java.time.LocalDateTime at) {
+        List<CurrencyRate> rates = currencyRateRepository.findLatestAtOrBefore(
+            currencyCode,
+            source,
+            at,
+            BigDecimal.ZERO,
+            PageRequest.of(0, 1)
+        );
+        return rates.isEmpty() ? null : rates.get(0);
     }
 
     private BigDecimal positiveOrFallback(BigDecimal value, BigDecimal fallback) {
@@ -672,11 +782,18 @@ public class MarketDataService {
     }
 
     private InstrumentResponse mapToInstrumentResponse(Instrument instrument) {
+        return mapToInstrumentResponse(instrument, null);
+    }
+
+    private InstrumentResponse mapToInstrumentResponse(Instrument instrument, ChangeDateRange changeRange) {
         InstrumentMetricsService.InstrumentMetrics metrics = instrumentMetricsService.resolveMetrics(instrument);
         BigDecimal currentPrice = metrics.currentPrice();
         BigDecimal previousClose = metrics.previousClose();
         BigDecimal change = null;
         BigDecimal changePercent = null;
+        BigDecimal changeBasePrice = previousClose;
+        LocalDate changeStartDate = null;
+        LocalDate changeEndDate = null;
 
         if (currentPrice != null && previousClose != null) {
             change = currentPrice.subtract(previousClose);
@@ -687,6 +804,15 @@ public class MarketDataService {
             } else {
                 changePercent = BigDecimal.ZERO;
             }
+        }
+
+        if (changeRange != null) {
+            InstrumentRangeChange rangeChange = calculateInstrumentRangeChange(instrument, currentPrice, changeRange);
+            change = rangeChange.change();
+            changePercent = rangeChange.changePercent();
+            changeBasePrice = rangeChange.basePrice();
+            changeStartDate = rangeChange.startDate();
+            changeEndDate = rangeChange.endDate();
         }
 
         return InstrumentResponse.builder()
@@ -700,6 +826,9 @@ public class MarketDataService {
             .previousClose(previousClose)
             .change(change)
             .changePercent(changePercent)
+            .changeBasePrice(changeBasePrice)
+            .changeStartDate(changeStartDate)
+            .changeEndDate(changeEndDate)
             .openPrice(metrics.openPrice())
             .highPrice(metrics.highPrice())
             .lowPrice(metrics.lowPrice())
@@ -715,6 +844,57 @@ public class MarketDataService {
             .build();
     }
 
+    private InstrumentRangeChange calculateInstrumentRangeChange(
+            Instrument instrument,
+            BigDecimal currentPrice,
+            ChangeDateRange changeRange) {
+        if (instrument == null || instrument.getId() == null || changeRange == null) {
+            return InstrumentRangeChange.empty();
+        }
+
+        PricePoint startPoint = findPricePointAtOrBefore(instrument.getId(), changeRange.startDate());
+        PricePoint endPoint = changeRange.endDate().isBefore(LocalDate.now())
+            ? findPricePointAtOrBefore(instrument.getId(), changeRange.endDate())
+            : new PricePoint(currentPrice, LocalDate.now());
+
+        if (startPoint == null || endPoint == null) {
+            return InstrumentRangeChange.empty();
+        }
+        if (!isPositive(startPoint.price()) || endPoint.price() == null) {
+            return new InstrumentRangeChange(null, null, startPoint.price(), startPoint.date(), endPoint.date());
+        }
+
+        BigDecimal change = endPoint.price().subtract(startPoint.price());
+        BigDecimal changePercent = change
+            .divide(startPoint.price(), 6, RoundingMode.HALF_UP)
+            .multiply(new BigDecimal("100"));
+        return new InstrumentRangeChange(
+            change,
+            changePercent,
+            startPoint.price(),
+            startPoint.date(),
+            endPoint.date()
+        );
+    }
+
+    private PricePoint findPricePointAtOrBefore(UUID instrumentId, LocalDate date) {
+        if (instrumentId == null || date == null) {
+            return null;
+        }
+        List<PriceHistory> history = priceHistoryRepository
+            .findByInstrumentIdAndPriceDateLessThanEqualOrderByPriceDateDesc(
+                instrumentId,
+                date,
+                PageRequest.of(0, 1)
+            );
+        if (history == null || history.isEmpty()) {
+            return null;
+        }
+        PriceHistory point = history.get(0);
+        BigDecimal price = positiveOrFallback(point.getAdjustedClose(), point.getClosePrice());
+        return price != null ? new PricePoint(price, point.getPriceDate()) : null;
+    }
+
     private PriceHistoryResponse mapToPriceHistoryResponse(PriceHistory history) {
         return PriceHistoryResponse.builder()
             .date(history.getPriceDate())
@@ -725,6 +905,49 @@ public class MarketDataService {
             .adjustedClose(history.getAdjustedClose())
             .volume(history.getVolume())
             .build();
+    }
+
+    private ChangeDateRange normalizeChangeRange(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null && endDate == null) {
+            return null;
+        }
+
+        LocalDate resolvedEnd = endDate != null ? endDate : LocalDate.now();
+        LocalDate resolvedStart = startDate != null ? startDate : resolvedEnd.minusDays(1);
+
+        if (resolvedStart.isAfter(resolvedEnd)) {
+            LocalDate temp = resolvedStart;
+            resolvedStart = resolvedEnd;
+            resolvedEnd = temp;
+        }
+
+        return new ChangeDateRange(resolvedStart, resolvedEnd);
+    }
+
+    private record ChangeDateRange(LocalDate startDate, LocalDate endDate) {
+    }
+
+    private record CurrencyRateChange(
+        BigDecimal changePercent,
+        BigDecimal baseRate,
+        java.time.LocalDateTime startAt,
+        java.time.LocalDateTime endAt
+    ) {
+    }
+
+    private record PricePoint(BigDecimal price, LocalDate date) {
+    }
+
+    private record InstrumentRangeChange(
+        BigDecimal change,
+        BigDecimal changePercent,
+        BigDecimal basePrice,
+        LocalDate startDate,
+        LocalDate endDate
+    ) {
+        static InstrumentRangeChange empty() {
+            return new InstrumentRangeChange(null, null, null, null, null);
+        }
     }
 }
 

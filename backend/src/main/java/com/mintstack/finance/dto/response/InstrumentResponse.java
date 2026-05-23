@@ -36,6 +36,12 @@ public class InstrumentResponse {
     
     private BigDecimal changePercent;
 
+    private BigDecimal changeBasePrice;
+
+    private LocalDate changeStartDate;
+
+    private LocalDate changeEndDate;
+
     private BigDecimal openPrice;
 
     private BigDecimal highPrice;

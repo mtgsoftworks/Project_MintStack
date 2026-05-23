@@ -15,11 +15,13 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -55,7 +57,8 @@ class MarketDataControllerTest {
             .rateDate(LocalDateTime.now())
             .build();
 
-        when(marketDataService.getLatestCurrencyRates()).thenReturn(List.of(usdRate));
+        when(marketDataService.getLatestCurrencyRates(isNull(LocalDate.class), isNull(LocalDate.class)))
+            .thenReturn(List.of(usdRate));
 
         // When & Then
         mockMvc.perform(get("/api/v1/market/currencies"))

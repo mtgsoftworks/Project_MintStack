@@ -102,6 +102,21 @@
         "buyingRate": "Alış",
         "sellingRate": "Satış"
     },
+    "marketChangeRange": {
+        "label": "Değişim aralığı",
+        "startDate": "Başlangıç tarihi",
+        "endDate": "Bitiş tarihi",
+        "changeHeader": "Değişim ({{range}})",
+        "periods": {
+            "1D": "1 Gün",
+            "1W": "1 Hafta",
+            "1M": "1 Ay",
+            "3M": "3 Ay",
+            "6M": "6 Ay",
+            "1Y": "1 Yıl",
+            "CUSTOM": "Özel"
+        }
+    },
     "portfolio": {
         "title": "Portföyüm",
         "totalValue": "Toplam Değer",

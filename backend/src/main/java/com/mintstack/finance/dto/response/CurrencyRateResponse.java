@@ -32,6 +32,12 @@ public class CurrencyRateResponse {
     private BigDecimal averageRate;
     
     private BigDecimal changePercent;
+
+    private BigDecimal changeBaseRate;
+
+    private LocalDateTime changeStartAt;
+
+    private LocalDateTime changeEndAt;
     
     private String source;
     

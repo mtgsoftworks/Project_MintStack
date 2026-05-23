@@ -4,7 +4,10 @@ export const marketApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // Currencies
     getCurrencies: builder.query({
-      query: () => '/market/currencies',
+      query: (params = {}) => ({
+        url: '/market/currencies',
+        params,
+      }),
       transformResponse: (response) => response.data,
       providesTags: ['Currencies'],
     }),
@@ -39,9 +42,18 @@ export const marketApi = baseApi.injectEndpoints({
       providesTags: ['Stocks'],
     }),
     getStock: builder.query({
-      query: (symbol) => `/market/stocks/${symbol}`,
+      query: (arg) => {
+        if (typeof arg === 'string') {
+          return `/market/stocks/${arg}`
+        }
+        const { symbol, ...params } = arg || {}
+        return {
+          url: `/market/stocks/${symbol}`,
+          params,
+        }
+      },
       transformResponse: (response) => response.data,
-      providesTags: (result, error, symbol) => [{ type: 'Stocks', id: symbol }],
+      providesTags: (result, error, arg) => [{ type: 'Stocks', id: typeof arg === 'string' ? arg : arg?.symbol }],
     }),
     getStockHistory: builder.query({
       query: ({ symbol, period = '1M', days, startDate, endDate }) => {
@@ -105,9 +117,18 @@ export const marketApi = baseApi.injectEndpoints({
 
     // Index
     getMarketIndex: builder.query({
-      query: (symbol) => `/market/indices/${symbol}`,
+      query: (arg) => {
+        if (typeof arg === 'string') {
+          return `/market/indices/${arg}`
+        }
+        const { symbol, ...params } = arg || {}
+        return {
+          url: `/market/indices/${symbol}`,
+          params,
+        }
+      },
       transformResponse: (response) => response.data,
-      providesTags: (result, error, symbol) => [{ type: 'Indices', id: symbol }],
+      providesTags: (result, error, arg) => [{ type: 'Indices', id: typeof arg === 'string' ? arg : arg?.symbol }],
     }),
 
     // Search

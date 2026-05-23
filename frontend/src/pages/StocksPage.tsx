@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Search, TrendingUp, TrendingDown, ArrowUpDown, List, LayoutGrid } from 'lucide-react'
+import { Search, TrendingUp, TrendingDown, ArrowUpDown, List, LayoutGrid, Minus } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +12,7 @@ import RefreshButton from '@/components/common/RefreshButton'
 import RefreshStatus from '@/components/common/RefreshStatus'
 import PortfolioQuickTradeCell from '@/components/market/PortfolioQuickTradeCell'
 import WatchlistQuickAddButton from '@/components/market/WatchlistQuickAddButton'
+import MarketChangeRangeSelector from '@/components/market/MarketChangeRangeSelector'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import {
@@ -34,6 +35,7 @@ import { cn, formatCurrency, formatPercent } from '@/lib/utils'
 import { useGetStocksQuery } from '@/store/api/marketApi'
 import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 import { useMarketDataRefresh } from '@/hooks/useMarketDataRefresh'
+import { getMarketChangeRangeLabel, useMarketChangeRange } from '@/hooks/useMarketChangeRange'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useDefaultPortfolioSelection } from '@/hooks/useDefaultPortfolioSelection'
 
@@ -47,8 +49,15 @@ function StockTableSkeleton() {
   )
 }
 
+function hasFiniteChange(value) {
+  return value !== null && value !== undefined && Number.isFinite(Number(value))
+}
+
 // Virtual scrolling stock row component
 function VirtualStockRow({ stock, selectedPortfolioId }) {
+  const hasChange = hasFiniteChange(stock.changePercent)
+  const isPositive = hasChange && Number(stock.changePercent) >= 0
+
   return (
     <div className="flex items-center px-4 gap-4 h-14 border-b hover:bg-muted/50 transition-colors">
       <div className="w-[180px] flex-shrink-0">
@@ -58,9 +67,11 @@ function VirtualStockRow({ stock, selectedPortfolioId }) {
         >
           <div className={cn(
             "flex h-10 w-10 items-center justify-center rounded-lg",
-            stock.changePercent >= 0 ? "bg-success/10" : "bg-danger/10"
+            !hasChange ? "bg-muted" : isPositive ? "bg-success/10" : "bg-danger/10"
           )}>
-            {stock.changePercent >= 0 ? (
+            {!hasChange ? (
+              <Minus className="h-5 w-5 text-muted-foreground" />
+            ) : isPositive ? (
               <TrendingUp className="h-5 w-5 text-success" />
             ) : (
               <TrendingDown className="h-5 w-5 text-danger" />
@@ -81,8 +92,8 @@ function VirtualStockRow({ stock, selectedPortfolioId }) {
         {formatCurrency(stock.currentPrice, 'TRY')}
       </div>
       <div className="w-[100px] text-right flex-shrink-0">
-        <Badge variant={stock.changePercent >= 0 ? 'success' : 'danger'}>
-          {formatPercent(stock.changePercent || 0)}
+        <Badge variant={!hasChange ? 'secondary' : isPositive ? 'success' : 'danger'}>
+          {hasChange ? formatPercent(stock.changePercent) : '-'}
         </Badge>
       </div>
       <div className="w-[100px] text-right text-muted-foreground flex-shrink-0">
@@ -115,6 +126,8 @@ export default function StocksPage() {
   const { portfolios, selectedPortfolioId, setSelectedPortfolioId } = useDefaultPortfolioSelection()
   const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
   const { refreshAndRefetch, isRefreshingMarketData } = useMarketDataRefresh(['BIST_STOCKS'])
+  const changeRange = useMarketChangeRange()
+  const changeRangeLabel = getMarketChangeRangeLabel(t, changeRange)
 
   useEffect(() => {
     setSearchQuery(searchParam)
@@ -123,7 +136,7 @@ export default function StocksPage() {
 
   useEffect(() => {
     setPage(0)
-  }, [searchQuery, pageSize, sortBy, sortOrder])
+  }, [searchQuery, pageSize, sortBy, sortOrder, changeRange.queryParams.changeStartDate, changeRange.queryParams.changeEndDate])
 
   // Load more items when virtual scrolling is enabled
   const requestSize = useVirtualScroll ? Math.max(pageSize, 100) : pageSize
@@ -140,6 +153,7 @@ export default function StocksPage() {
       size: requestSize,
       sort: `${sortBy},${sortOrder}`,
       search: searchQuery.trim() || undefined,
+      ...changeRange.queryParams,
     },
     queryOptions
   )
@@ -187,7 +201,7 @@ export default function StocksPage() {
             isFetching={isFetching || isRefreshingMarketData}
           />
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {portfolios.length > 0 && (
             <select
               className="h-10 rounded-md border border-input bg-background px-3 text-sm"
@@ -232,6 +246,7 @@ export default function StocksPage() {
               className="pl-9 w-64"
             />
           </div>
+          <MarketChangeRangeSelector {...changeRange} />
           <Select value={String(pageSize)} onValueChange={(value) => setPageSize(Number(value))}>
             <SelectTrigger className="w-28">
               <SelectValue />
@@ -299,7 +314,7 @@ export default function StocksPage() {
                     className="-mr-3 h-8"
                     onClick={() => handleSort('changePercent')}
                   >
-                    {t('stocksPage.headers.change')}
+                    {t('marketChangeRange.changeHeader', { range: changeRangeLabel })}
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
@@ -390,7 +405,7 @@ export default function StocksPage() {
                         className="-mr-3 h-8"
                         onClick={() => handleSort('changePercent')}
                       >
-                        {t('stocksPage.headers.change')}
+                        {t('marketChangeRange.changeHeader', { range: changeRangeLabel })}
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </Button>
                     </TableHead>
@@ -407,7 +422,11 @@ export default function StocksPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredStocks.map((stock) => (
+                    filteredStocks.map((stock) => {
+                      const hasChange = hasFiniteChange(stock.changePercent)
+                      const isPositive = hasChange && Number(stock.changePercent) >= 0
+
+                      return (
                       <TableRow key={stock.symbol}>
                         <TableCell>
                           <Link
@@ -416,9 +435,11 @@ export default function StocksPage() {
                           >
                             <div className={cn(
                               "flex h-10 w-10 items-center justify-center rounded-lg",
-                              stock.changePercent >= 0 ? "bg-success/10" : "bg-danger/10"
+                              !hasChange ? "bg-muted" : isPositive ? "bg-success/10" : "bg-danger/10"
                             )}>
-                              {stock.changePercent >= 0 ? (
+                              {!hasChange ? (
+                                <Minus className="h-5 w-5 text-muted-foreground" />
+                              ) : isPositive ? (
                                 <TrendingUp className="h-5 w-5 text-success" />
                               ) : (
                                 <TrendingDown className="h-5 w-5 text-danger" />
@@ -441,8 +462,8 @@ export default function StocksPage() {
                           {formatCurrency(stock.currentPrice, 'TRY')}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Badge variant={stock.changePercent >= 0 ? 'success' : 'danger'}>
-                            {formatPercent(stock.changePercent || 0)}
+                          <Badge variant={!hasChange ? 'secondary' : isPositive ? 'success' : 'danger'}>
+                            {hasChange ? formatPercent(stock.changePercent) : '-'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground">
@@ -458,7 +479,8 @@ export default function StocksPage() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
+                      )
+                    })
                   )}
                 </TableBody>
               </Table>

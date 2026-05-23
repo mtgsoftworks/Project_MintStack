@@ -41,6 +41,17 @@ public interface CurrencyRateRepository extends JpaRepository<CurrencyRate, UUID
             @Param("minimumRate") BigDecimal minimumRate,
             Pageable pageable);
 
+    @Query("SELECT c FROM CurrencyRate c WHERE c.currencyCode = :code " +
+           "AND c.source = :source AND c.fetchedAt <= :at " +
+           "AND (c.sellingRate > :minimumRate OR c.buyingRate > :minimumRate) " +
+           "ORDER BY c.fetchedAt DESC")
+    List<CurrencyRate> findLatestAtOrBefore(
+            @Param("code") String currencyCode,
+            @Param("source") RateSource source,
+            @Param("at") LocalDateTime at,
+            @Param("minimumRate") BigDecimal minimumRate,
+            Pageable pageable);
+
     @Query("SELECT c FROM CurrencyRate c WHERE c.source = :source AND " +
            "c.fetchedAt = (SELECT MAX(c2.fetchedAt) FROM CurrencyRate c2 " +
            "WHERE c2.currencyCode = c.currencyCode AND c2.source = :source)")

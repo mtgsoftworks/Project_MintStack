@@ -11,6 +11,7 @@ import RefreshButton from '@/components/common/RefreshButton'
 import RefreshStatus from '@/components/common/RefreshStatus'
 import PortfolioQuickTradeCell from '@/components/market/PortfolioQuickTradeCell'
 import WatchlistQuickAddButton from '@/components/market/WatchlistQuickAddButton'
+import MarketChangeRangeSelector from '@/components/market/MarketChangeRangeSelector'
 import {
   Select,
   SelectContent,
@@ -32,6 +33,7 @@ import { useGetBondsQuery } from '@/store/api/marketApi'
 import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 import { useMarketDataRefresh } from '@/hooks/useMarketDataRefresh'
 import { useDefaultPortfolioSelection } from '@/hooks/useDefaultPortfolioSelection'
+import { getMarketChangeRangeLabel, useMarketChangeRange } from '@/hooks/useMarketChangeRange'
 
 function BondTableSkeleton() {
   return (
@@ -51,6 +53,8 @@ export default function BondsPage() {
   const { portfolios, selectedPortfolioId, setSelectedPortfolioId } = useDefaultPortfolioSelection()
   const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
   const { refreshAndRefetch, isRefreshingMarketData } = useMarketDataRefresh(['BONDS'])
+  const changeRange = useMarketChangeRange()
+  const changeRangeLabel = getMarketChangeRangeLabel(t, changeRange)
   const {
     data,
     isLoading,
@@ -63,6 +67,7 @@ export default function BondsPage() {
       size: pageSize,
       sort: 'symbol,asc',
       search: searchQuery.trim() || undefined,
+      ...changeRange.queryParams,
     },
     queryOptions
   )
@@ -73,7 +78,7 @@ export default function BondsPage() {
 
   useEffect(() => {
     setPage(0)
-  }, [searchQuery, pageSize])
+  }, [searchQuery, pageSize, changeRange.queryParams.changeStartDate, changeRange.queryParams.changeEndDate])
 
   const filteredBonds = bonds.filter((bond) =>
     bond.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -97,7 +102,7 @@ export default function BondsPage() {
             isFetching={isFetching || isRefreshingMarketData}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {portfolios.length > 0 && (
             <select
               className="h-10 rounded-md border border-input bg-background px-3 text-sm"
@@ -120,6 +125,7 @@ export default function BondsPage() {
               className="pl-9 w-64"
             />
           </div>
+          <MarketChangeRangeSelector {...changeRange} />
           <Select value={String(pageSize)} onValueChange={(value) => setPageSize(Number(value))}>
             <SelectTrigger className="w-28">
               <SelectValue />
@@ -160,7 +166,7 @@ export default function BondsPage() {
                   <TableHead>{t('bondsPage.headers.name')}</TableHead>
                   <TableHead className="text-right">{t('bondsPage.headers.price')}</TableHead>
                   <TableHead className="text-right">{t('bondsPage.headers.yield')}</TableHead>
-                  <TableHead className="text-right">{t('bondsPage.headers.change')}</TableHead>
+                  <TableHead className="text-right">{t('marketChangeRange.changeHeader', { range: changeRangeLabel })}</TableHead>
                   <TableHead className="text-right">{t('bondsPage.headers.maturity')}</TableHead>
                   <TableHead className="text-right">Islem</TableHead>
                 </TableRow>
@@ -212,7 +218,7 @@ export default function BondsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <Badge variant={!hasChange ? 'secondary' : isPositive ? 'success' : 'danger'}>
-                          {formatPercent(bond.changePercent)}
+                          {hasChange ? formatPercent(bond.changePercent) : '-'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">

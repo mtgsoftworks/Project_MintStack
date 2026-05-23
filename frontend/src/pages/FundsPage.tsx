@@ -11,6 +11,7 @@ import RefreshButton from '@/components/common/RefreshButton'
 import RefreshStatus from '@/components/common/RefreshStatus'
 import PortfolioQuickTradeCell from '@/components/market/PortfolioQuickTradeCell'
 import WatchlistQuickAddButton from '@/components/market/WatchlistQuickAddButton'
+import MarketChangeRangeSelector from '@/components/market/MarketChangeRangeSelector'
 import {
   Select,
   SelectContent,
@@ -32,6 +33,7 @@ import { useGetFundsQuery } from '@/store/api/marketApi'
 import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 import { useMarketDataRefresh } from '@/hooks/useMarketDataRefresh'
 import { useDefaultPortfolioSelection } from '@/hooks/useDefaultPortfolioSelection'
+import { getMarketChangeRangeLabel, useMarketChangeRange } from '@/hooks/useMarketChangeRange'
 
 function FundTableSkeleton() {
   return (
@@ -43,6 +45,10 @@ function FundTableSkeleton() {
   )
 }
 
+function hasFiniteChange(value) {
+  return value !== null && value !== undefined && Number.isFinite(Number(value))
+}
+
 export default function FundsPage() {
   const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
@@ -51,6 +57,8 @@ export default function FundsPage() {
   const { portfolios, selectedPortfolioId, setSelectedPortfolioId } = useDefaultPortfolioSelection()
   const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
   const { refreshAndRefetch, isRefreshingMarketData } = useMarketDataRefresh(['FUNDS'])
+  const changeRange = useMarketChangeRange()
+  const changeRangeLabel = getMarketChangeRangeLabel(t, changeRange)
   const {
     data,
     isLoading,
@@ -62,6 +70,7 @@ export default function FundsPage() {
       page,
       size: pageSize,
       search: searchQuery.trim() || undefined,
+      ...changeRange.queryParams,
     },
     queryOptions
   )
@@ -72,7 +81,7 @@ export default function FundsPage() {
 
   useEffect(() => {
     setPage(0)
-  }, [searchQuery, pageSize])
+  }, [searchQuery, pageSize, changeRange.queryParams.changeStartDate, changeRange.queryParams.changeEndDate])
 
   const filteredFunds = funds.filter((fund) =>
     fund.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -96,7 +105,7 @@ export default function FundsPage() {
             isFetching={isFetching || isRefreshingMarketData}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {portfolios.length > 0 && (
             <select
               className="h-10 rounded-md border border-input bg-background px-3 text-sm"
@@ -119,6 +128,7 @@ export default function FundsPage() {
               className="pl-9 w-64"
             />
           </div>
+          <MarketChangeRangeSelector {...changeRange} />
           <Select value={String(pageSize)} onValueChange={(value) => setPageSize(Number(value))}>
             <SelectTrigger className="w-28">
               <SelectValue />
@@ -158,7 +168,7 @@ export default function FundsPage() {
                   <TableHead>{t('fundsPage.headers.code')}</TableHead>
                   <TableHead>{t('fundsPage.headers.name')}</TableHead>
                   <TableHead className="text-right">{t('fundsPage.headers.price')}</TableHead>
-                  <TableHead className="text-right">{t('fundsPage.headers.change')}</TableHead>
+                  <TableHead className="text-right">{t('marketChangeRange.changeHeader', { range: changeRangeLabel })}</TableHead>
                   <TableHead className="text-right">{t('fundsPage.headers.totalValue')}</TableHead>
                   <TableHead className="text-right">Islem</TableHead>
                 </TableRow>
@@ -171,7 +181,11 @@ export default function FundsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredFunds.map((fund) => (
+                  filteredFunds.map((fund) => {
+                    const hasChange = hasFiniteChange(fund.changePercent)
+                    const isPositive = hasChange && Number(fund.changePercent) >= 0
+
+                    return (
                     <TableRow key={fund.symbol}>
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -193,8 +207,8 @@ export default function FundsPage() {
                         {formatCurrency(fund.currentPrice, 'TRY')}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Badge variant={fund.changePercent >= 0 ? 'success' : 'danger'}>
-                          {formatPercent(fund.changePercent || 0)}
+                        <Badge variant={!hasChange ? 'secondary' : isPositive ? 'success' : 'danger'}>
+                          {hasChange ? formatPercent(fund.changePercent) : '-'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
@@ -207,7 +221,8 @@ export default function FundsPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                    )
+                  })
                 )}
               </TableBody>
             </Table>

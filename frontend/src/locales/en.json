@@ -102,6 +102,21 @@
         "buyingRate": "Buy",
         "sellingRate": "Sell"
     },
+    "marketChangeRange": {
+        "label": "Change range",
+        "startDate": "Start date",
+        "endDate": "End date",
+        "changeHeader": "Change ({{range}})",
+        "periods": {
+            "1D": "1 Day",
+            "1W": "1 Week",
+            "1M": "1 Month",
+            "3M": "3 Months",
+            "6M": "6 Months",
+            "1Y": "1 Year",
+            "CUSTOM": "Custom"
+        }
+    },
     "portfolio": {
         "title": "My Portfolio",
         "totalValue": "Total Value",

@@ -11,6 +11,7 @@ import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import RefreshButton from '@/components/common/RefreshButton'
 import RefreshStatus from '@/components/common/RefreshStatus'
 import WatchlistQuickAddButton from '@/components/market/WatchlistQuickAddButton'
+import MarketChangeRangeSelector from '@/components/market/MarketChangeRangeSelector'
 import {
   Table,
   TableBody,
@@ -25,6 +26,7 @@ import { cn, formatCurrency, formatNumber, formatPercent, formatDateTime } from 
 import { useGetCurrenciesQuery } from '@/store/api/marketApi'
 import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 import { useMarketDataRefresh } from '@/hooks/useMarketDataRefresh'
+import { getMarketChangeRangeLabel, useMarketChangeRange } from '@/hooks/useMarketChangeRange'
 import {
   useExecutePortfolioTradeMutation,
   useGetPortfolioQuery,
@@ -50,6 +52,10 @@ function getDisplayRate(primaryRate, fallbackRate) {
   return Number.isFinite(fallback) && fallback > 0 ? fallbackRate : null
 }
 
+function hasFiniteChange(value) {
+  return value !== null && value !== undefined && Number.isFinite(Number(value))
+}
+
 export default function CurrencyPage() {
   const { t, i18n } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
@@ -57,13 +63,15 @@ export default function CurrencyPage() {
   const [tradeQuantities, setTradeQuantities] = useState({})
   const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
   const { refreshAndRefetch, isRefreshingMarketData } = useMarketDataRefresh(['CURRENCY_RATES'])
+  const changeRange = useMarketChangeRange()
+  const changeRangeLabel = getMarketChangeRangeLabel(t, changeRange)
   const {
     data: currencies,
     isLoading,
     isFetching,
     refetch,
     fulfilledTimeStamp,
-  } = useGetCurrenciesQuery(undefined, queryOptions)
+  } = useGetCurrenciesQuery(changeRange.queryParams, queryOptions)
   const { data: portfolios = [] } = useGetPortfoliosQuery()
   const { data: selectedPortfolio, isFetching: isPortfolioFetching } = useGetPortfolioQuery(
     selectedPortfolioId,
@@ -199,7 +207,7 @@ export default function CurrencyPage() {
             isFetching={isFetching || isRefreshingMarketData}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {portfolios.length > 0 && (
             <select
               className="h-10 rounded-md border border-input bg-background px-3 text-sm"
@@ -222,6 +230,7 @@ export default function CurrencyPage() {
               className="pl-9 w-64"
             />
           </div>
+          <MarketChangeRangeSelector {...changeRange} />
           <RefreshButton
             variant="outline"
             size="icon"
@@ -235,7 +244,8 @@ export default function CurrencyPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {['USD', 'EUR', 'GBP', 'CHF'].map((code) => {
           const currency = currencies?.find(c => c.currencyCode === code)
-          const change = currency?.changePercent || 0
+          const hasChange = hasFiniteChange(currency?.changePercent)
+          const change = hasChange ? Number(currency.changePercent) : null
           const simulatedCurrency = isSimulatedMarketData(currency)
 
           return (
@@ -245,11 +255,11 @@ export default function CurrencyPage() {
                   <div className="flex items-center gap-3">
                     <div className={cn(
                       "flex h-10 w-10 items-center justify-center rounded-lg",
-                      change >= 0 ? "bg-success/10" : "bg-danger/10"
+                      !hasChange ? "bg-muted" : change >= 0 ? "bg-success/10" : "bg-danger/10"
                     )}>
                       <span className={cn(
                         "text-sm font-bold",
-                        change >= 0 ? "text-success" : "text-danger"
+                        !hasChange ? "text-muted-foreground" : change >= 0 ? "text-success" : "text-danger"
                       )}>
                         {code}
                       </span>
@@ -264,9 +274,11 @@ export default function CurrencyPage() {
                       </div>
                     </div>
                   </div>
-                  <Badge variant={change >= 0 ? 'success' : 'danger'}>
-                    {change >= 0 ? <TrendingUp className="mr-1 h-3 w-3" /> : <TrendingDown className="mr-1 h-3 w-3" />}
-                    {formatPercent(change)}
+                  <Badge variant={!hasChange ? 'secondary' : change >= 0 ? 'success' : 'danger'}>
+                    {hasChange && (change >= 0
+                      ? <TrendingUp className="mr-1 h-3 w-3" />
+                      : <TrendingDown className="mr-1 h-3 w-3" />)}
+                    {hasChange ? formatPercent(change) : '-'}
                   </Badge>
                 </div>
               </CardContent>
@@ -297,7 +309,7 @@ export default function CurrencyPage() {
                   <TableHead className="text-right">{t('currencyPage.table.headers.selling')}</TableHead>
                   <TableHead className="text-right">{t('currencyPage.table.headers.effectiveBuying')}</TableHead>
                   <TableHead className="text-right">{t('currencyPage.table.headers.effectiveSelling')}</TableHead>
-                  <TableHead className="text-right">{t('currencyPage.table.headers.change')}</TableHead>
+                  <TableHead className="text-right">{t('marketChangeRange.changeHeader', { range: changeRangeLabel })}</TableHead>
                   <TableHead className="text-right">{t('currencyPage.table.headers.portfolio')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -309,7 +321,11 @@ export default function CurrencyPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCurrencies.map((currency) => (
+                  filteredCurrencies.map((currency) => {
+                    const hasChange = hasFiniteChange(currency.changePercent)
+                    const isPositive = hasChange && Number(currency.changePercent) >= 0
+
+                    return (
                     <TableRow key={currency.currencyCode} className="cursor-pointer">
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -344,8 +360,8 @@ export default function CurrencyPage() {
                         {formatNumber(getDisplayRate(currency.effectiveSellingRate, currency.sellingRate), 4)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Badge variant={currency.changePercent >= 0 ? 'success' : 'danger'}>
-                          {formatPercent(currency.changePercent || 0)}
+                        <Badge variant={!hasChange ? 'secondary' : isPositive ? 'success' : 'danger'}>
+                          {hasChange ? formatPercent(currency.changePercent) : '-'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -379,7 +395,8 @@ export default function CurrencyPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                    )
+                  })
                 )}
               </TableBody>
             </Table>
