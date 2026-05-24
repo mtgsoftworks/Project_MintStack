@@ -147,8 +147,8 @@ public class MarketDataScheduler {
             }
         }
 
-        long stockCount = instrumentRepository.countRealInstrumentsByType(Instrument.InstrumentType.STOCK);
-        if (stockCount == 0) {
+        long activeStockCount = instrumentRepository.countActiveRealInstrumentsByType(Instrument.InstrumentType.STOCK);
+        if (activeStockCount == 0) {
             UserApiConfig alphaConfig = providerResolver.getActiveConfig(ApiProvider.ALPHA_VANTAGE);
             UserApiConfig yahooConfig = providerResolver.getActiveConfig(ApiProvider.YAHOO_FINANCE);
             UserApiConfig finnhubConfig = providerResolver.getActiveConfig(ApiProvider.FINNHUB);
@@ -156,10 +156,10 @@ public class MarketDataScheduler {
             ApiProvider preferredBistProvider = preferredProviders.get(DataType.BIST_STOCKS);
 
             if (providerResolver.hasStockProviderForDataType(preferredBistProvider, yahooConfig, alphaConfig, finnhubConfig)) {
-                log.info("Database empty & API key found. Bootstrapping stocks from API...");
+                log.info("No active stock instruments found & provider is available. Bootstrapping/reactivating stocks from API...");
                 bootstrapService.bootstrapStocksFromApi(preferredBistProvider, yahooConfig, alphaConfig, finnhubConfig);
             } else {
-                log.debug("Database empty but no API key configured yet. Waiting...");
+                log.debug("No active stock instruments found but no provider configured yet. Waiting...");
             }
         }
     }
@@ -243,9 +243,9 @@ public class MarketDataScheduler {
             ApiProvider preferredBistProvider = providerContext.preferredProviders().get(DataType.BIST_STOCKS);
 
             if (bootstrapStocksWhenEmpty) {
-                long stockCount = instrumentRepository.countRealInstrumentsByType(Instrument.InstrumentType.STOCK);
-                if (stockCount == 0) {
-                    log.info("No real stock instruments found. Bootstrapping stock universe before updates.");
+                long activeStockCount = instrumentRepository.countActiveRealInstrumentsByType(Instrument.InstrumentType.STOCK);
+                if (activeStockCount == 0) {
+                    log.info("No active real stock instruments found. Bootstrapping/reactivating stock universe before updates.");
                     if (providerResolver.hasStockProviderForDataType(
                         preferredBistProvider,
                         providerContext.yahooConfig(),

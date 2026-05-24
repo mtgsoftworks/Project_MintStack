@@ -97,4 +97,7 @@ public interface InstrumentRepository extends JpaRepository<Instrument, UUID> {
 
     @Query("SELECT COUNT(i) FROM Instrument i WHERE i.type = :type AND (i.isSimulated IS NULL OR i.isSimulated = false)")
     long countRealInstrumentsByType(@Param("type") InstrumentType type);
+
+    @Query("SELECT COUNT(i) FROM Instrument i WHERE i.type = :type AND i.isActive = true AND (i.isSimulated IS NULL OR i.isSimulated = false)")
+    long countActiveRealInstrumentsByType(@Param("type") InstrumentType type);
 }

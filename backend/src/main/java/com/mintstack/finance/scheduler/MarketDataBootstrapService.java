@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -43,9 +44,7 @@ class MarketDataBootstrapService {
 
         for (String symbol : INITIAL_BIST_STOCKS) {
             try {
-                if (instrumentRepository.findBySymbolAndIsSimulated(symbol, false).isPresent()) {
-                    continue;
-                }
+                Optional<Instrument> existingInstrument = instrumentRepository.findBySymbolAndIsSimulated(symbol, false);
 
                 Instrument lookupInstrument = Instrument.builder()
                     .symbol(symbol)
@@ -66,18 +65,26 @@ class MarketDataBootstrapService {
                     continue;
                 }
 
-                Instrument stock = new Instrument();
-                stock.setSymbol(symbol);
-                stock.setName(symbol + " (BIST)");
+                Instrument stock = existingInstrument.orElseGet(Instrument::new);
+                if (stock.getSymbol() == null) {
+                    stock.setSymbol(symbol);
+                }
+                if (stock.getName() == null || stock.getName().isBlank()) {
+                    stock.setName(symbol + " (BIST)");
+                }
                 stock.setType(Instrument.InstrumentType.STOCK);
                 stock.setExchange("BIST");
                 stock.setCurrency("TRY");
                 stock.setIsActive(true);
+                stock.setIsSimulated(false);
+                stock.setPreviousClose(stock.getCurrentPrice() != null ? stock.getCurrentPrice() : price);
                 stock.setCurrentPrice(price);
-                stock.setPreviousClose(price);
 
                 instrumentRepository.save(stock);
-                log.info("Bootstrapped stock: {} - Price: {}", symbol, price);
+                log.info("{} stock: {} - Price: {}",
+                    existingInstrument.isPresent() ? "Reactivated" : "Bootstrapped",
+                    symbol,
+                    price);
 
                 pauseForRateLimit(15000);
             } catch (Exception error) {
