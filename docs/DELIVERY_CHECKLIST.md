@@ -1,6 +1,6 @@
 # MintStack Finance Portal Teslim Kontrol Listesi
 
-Tarih: 2026-05-23
+Tarih: 2026-06-07
 
 Bu belge, 7 Haziran proje teslim isterlerini MintStack Finance Portal reposundaki gerçek dosya ve komutlarla eşleştirir. IT Servis - Ticket Yönetimi projesi bu teslim kapsamına dahil değildir; bu nedenle jBPM maddesi finans portalı için kapsam dışı olarak işaretlenmiştir.
 
@@ -32,9 +32,9 @@ Bu belge, 7 Haziran proje teslim isterlerini MintStack Finance Portal reposundak
 | 22 | Unit Test | Tamamlandı | Backend JUnit, frontend Vitest |
 | 23 | Error Handling | Tamamlandı | `GlobalExceptionHandler`, standard `ApiResponse` / `ErrorResponse` |
 | 24 | Katmanlı Mimari / OOP | Tamamlandı | controller/service/repository/entity/dto/mapper paketleri |
-| 25 | Güncellenmiş analiz dokümanı | Tamamlandı | `docs/MintStack_Finance_Portal_Analiz_Raporu.md/.docx` |
-| 26 | Güncellenmiş teknik analiz dokümanı | Tamamlandı | `docs/TEKNIK_DOKUMANTASYON.md`, `docs/MintStack_Finance_Portal_Teknik_Analiz.docx` |
-| 27 | Sunum | Tamamlandı | `docs/MintStack_Finance_Portal_Sunum.pptx`, PDF değil |
+| 25 | Güncellenmiş analiz dokümanı | Tamamlandı | `docs/MintStack_Finance_Portal_Analiz_Raporu.pdf` |
+| 26 | Güncellenmiş teknik analiz dokümanı | Tamamlandı | `docs/MintStack_Finance_Portal_Teknik_Analiz.docx` |
+| 27 | Sunum | Tamamlandı | `docs/MintStack_Finance_Portal_Sunum.pptx` |
 
 ## Çalıştırma ve Doğrulama Komutları
 

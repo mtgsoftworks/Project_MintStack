@@ -1,7 +1,8 @@
 ﻿# MintStack Finance Portal
 
 **👤 Yazar / Bakım Yapan:** Mesut Taha Güven
-**📅 Son Güncelleme:** 15 Mayıs 2026
+**📅 Son Güncelleme:** 7 Haziran 2026
+**📝 Teslim Güncelleme:** 7 Haziran 2026 (Analiz ve teslim dokümanları eşitlendi)
 **🔖 Sürüm:** 2.0.0
 
 > **Türkiye Odaklı Finans Platformu** — Gerçek zamanlı piyasa izleme, portföy yönetimi, teknik analiz, simülasyon ve bildirim altyapısı.
