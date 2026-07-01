@@ -5,24 +5,29 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.UUID;
 
+/**
+ * Portfolio item entity representing a position in an instrument.
+ *
+ * Extends BaseEntity for audit fields (createdAt, updatedAt) and
+ * optimistic locking (@Version) to prevent concurrent update issues.
+ */
 @Entity
-@Table(name = "portfolio_items", indexes = {
-    @Index(name = "idx_portfolio_items_portfolio", columnList = "portfolio_id"),
-    @Index(name = "idx_portfolio_items_instrument", columnList = "instrument_id")
-})
+@Table(name = "portfolio_items",
+    indexes = {
+        @Index(name = "idx_portfolio_items_portfolio", columnList = "portfolio_id"),
+        @Index(name = "idx_portfolio_items_instrument", columnList = "instrument_id")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_portfolio_instrument", columnNames = {"portfolio_id", "instrument_id", "purchase_date"})
+    }
+)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PortfolioItem {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
+public class PortfolioItem extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "portfolio_id", nullable = false)

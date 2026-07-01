@@ -13,6 +13,7 @@ concurrency:
 
 permissions:
   contents: read
+  security-events: write
 
 env:
   JAVA_VERSION: "21"
@@ -53,10 +54,38 @@ jobs:
           distribution: temurin
           cache: maven
 
+      - name: OWASP Dependency Check
+        run: ./mvnw -B -ntp org.owasp:dependency-check-maven:aggregate -DfailBuildOnCVSS=7
+        continue-on-error: true
+
+      - name: Upload Dependency Check Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-check-report
+          path: target/dependency-check-report.html
+          retention-days: 30
+
       - name: Test and package backend
-        run: ./mvnw -B -ntp clean verify
+        run: ./mvnw -B -ntp clean verify -DskipITs=false
         env:
           SPRING_PROFILES_ACTIVE: test
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: backend/target/surefire-reports/*.xml
+          retention-days: 30
+
+      - name: Upload JaCoCo Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-jacoco-report
+          path: backend/target/site/jacoco/
+          retention-days: 30
 
       - name: Validate Flyway migrations
         run: |
@@ -98,10 +127,33 @@ jobs:
         run: npm run typecheck
 
       - name: Unit tests
-        run: npm run test -- --run
+        run: npm run test -- --run --coverage
+
+      - name: Upload Frontend Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-test-results
+          path: frontend/coverage/
+          retention-days: 30
 
       - name: Build frontend
         run: npm run build
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'node:20-alpine'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+
+      - name: Upload Trivy Scan Results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+        if: always()
 
   compose:
     name: Compose Validation

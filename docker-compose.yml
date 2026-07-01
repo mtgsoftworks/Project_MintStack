@@ -43,7 +43,7 @@ services:
     networks:
       - mintstack-network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a $${REDIS_PASSWORD} ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -102,6 +102,7 @@ services:
       LDAP_DOMAIN: ${LDAP_DOMAIN}
       LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
       LDAP_CONFIG_PASSWORD: ${LDAP_ADMIN_PASSWORD}
+      # SECURITY: For production, set LDAP_TLS: "true" and configure certificates
       LDAP_TLS: "false"
       LDAP_REMOVE_CONFIG_AFTER_SETUP: "false"
     volumes:
@@ -149,7 +150,10 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qk}
+      # SECURITY: Generate a new cluster ID for each deployment
+      # Command: echo "MkU3OEVBNTcwNTJENDM2Qk" | base64 -d | xxd -p | head -c 22
+      # Or generate: openssl rand 22 | base64
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID}
     volumes:
       - kafka_data:/var/lib/kafka/data
     networks:
@@ -242,6 +246,7 @@ services:
       OPENSEARCH_HOSTS: '["https://opensearch:9200"]'
       OPENSEARCH_USERNAME: admin
       OPENSEARCH_PASSWORD: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+      # SECURITY: For production, set to 'certificate' with proper CA cert
       OPENSEARCH_SSL_VERIFICATIONMODE: none
       DISABLE_SECURITY_DASHBOARDS_PLUGIN: "false"
     depends_on:

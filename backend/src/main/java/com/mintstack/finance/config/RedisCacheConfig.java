@@ -3,6 +3,8 @@ package com.mintstack.finance.config;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -21,6 +23,12 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Redis cache configuration with secure type validation.
+ *
+ * SECURITY: Uses a strict PolymorphicTypeValidator to prevent
+ * deserialization attacks through cached data.
+ */
 @Configuration
 @EnableCaching
 @ConditionalOnProperty(name = "app.redis.cache.enabled", havingValue = "true", matchIfMissing = true)
@@ -56,14 +64,44 @@ public class RedisCacheConfig {
     @Value("${app.cache.default-ttl:300}")
     private long defaultTtlSeconds;
 
+    /**
+     * Creates a secure PolymorphicTypeValidator for cache serialization.
+     *
+     * SECURITY: Restricts deserialization to known, safe types only.
+     */
+    @Bean
+    public PolymorphicTypeValidator secureCacheTypeValidator() {
+        return BasicPolymorphicTypeValidator.builder()
+            // Only allow explicitly listed package prefixes
+            .allowIfSubType("com.mintstack.finance.dto.")
+            .allowIfSubType("com.mintstack.finance.dto.cache.")
+            .allowIfSubType("com.mintstack.finance.dto.response.")
+            // Allow Java standard types commonly used in serialization
+            .allowIfSubType("java.util.")
+            .allowIfSubType("java.time.")
+            .allowIfSubType("java.math.")
+            .allowIfSubType("java.lang.")
+            // Allow Spring data types
+            .allowIfSubType("org.springframework.data.redis.")
+            .allowIfSubType("org.springframework.http.")
+            .build();
+    }
+
     @Bean
     @Primary
-    public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+    public RedisCacheManager cacheManager(
+            RedisConnectionFactory connectionFactory,
+            PolymorphicTypeValidator secureCacheTypeValidator) {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        objectMapper.activateDefaultTyping(objectMapper.getPolymorphicTypeValidator(),
-                ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
+
+        // SECURITY: Use strict type validation to prevent deserialization attacks
+        objectMapper.activateDefaultTyping(
+            secureCacheTypeValidator,
+            ObjectMapper.DefaultTyping.NON_FINAL,
+            JsonTypeInfo.As.PROPERTY
+        );
 
         GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(objectMapper);
 

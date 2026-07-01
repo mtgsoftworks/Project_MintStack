@@ -8,7 +8,7 @@
 > **Türkiye Odaklı Finans Platformu** — Gerçek zamanlı piyasa izleme, portföy yönetimi, teknik analiz, simülasyon ve bildirim altyapısı.
 > *Bu doküman projenin profesyonel teknik haritasıdır. Projeyi araştıran veya projeye dahil olan kişiler için neyin nerede olduğu, proje yapısı ve çalışma prensipleri aşağıda detaylandırılmıştır.*
 
-![Java 21](https://img.shields.io/badge/Java-21-orange) ![Spring Boot 3.4](https://img.shields.io/badge/Spring_Boot-3.4.2-green) ![React 18](https://img.shields.io/badge/React-18-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue) ![PostgreSQL 15](https://img.shields.io/badge/PostgreSQL-15-blue) ![Docker](https://img.shields.io/badge/Docker-Compose-blue) ![Keycloak 26](https://img.shields.io/badge/Keycloak-26-red)
+![Java 21](https://img.shields.io/badge/Java-21-orange) ![Spring Boot 3.4.2](https://img.shields.io/badge/Spring_Boot-3.4.2-green) ![React 18.2.0](https://img.shields.io/badge/React-18.2.0-blue) ![TypeScript 5.9.2](https://img.shields.io/badge/TypeScript-5.9.2-blue) ![PostgreSQL 15](https://img.shields.io/badge/PostgreSQL-15-blue) ![Docker](https://img.shields.io/badge/Docker-Compose-blue) ![Keycloak 26.2.3](https://img.shields.io/badge/Keycloak-26.2.3-red)
 
 ---
 
@@ -86,7 +86,7 @@ MintStack Finance Portal, Türkiye finans piyasalarına (BIST, döviz, tahvil, f
 | **Spring Kafka** | 3.3.2 | Asenkron olay akışı ve log boru hattı |
 | **Spring Cache + Redis** | 3.4.2 | Sıcak veri cache, performans optimizasyonu |
 | **Spring WebFlux (WebClient)** | 6.2.2 | Dış API istemcisi (reaktif HTTP) |
-| **Flyway** | 10.20.1 | Veritabanı şema migrasyon yönetimi (24 migrasyon) |
+| **Flyway** | 10.20.1 | Veritabanı şema migrasyon yönetimi (29 migrasyon) |
 | **MapStruct** | 1.5.5.Final | DTO-Entity dönüşümleri |
 | **Lombok** | 1.18.30 | Boilerplate kod azaltma |
 | **Bucket4j** | 8.7.0 | Rate limiting |
@@ -102,18 +102,18 @@ MintStack Finance Portal, Türkiye finans piyasalarına (BIST, döviz, tahvil, f
 
 | Teknoloji | Versiyon | Kullanım Amacı |
 |---|---|---|
-| **React** | 18.3.1 | UI kütüphanesi |
-| **TypeScript** | 5.9.3 | Tip güvenli geliştirme |
-| **Vite** | 5.4.21 | Build aracı ve dev server |
-| **Redux Toolkit + RTK Query** | 2.11.2 | State yönetimi ve API veri çekme |
-| **React Router** | 6.30.3 | Sayfa yönlendirme |
-| **Tailwind CSS** | 3.4.19 | Utility-first CSS framework |
+| **React** | 18.2.0 | UI kütüphanesi |
+| **TypeScript** | 5.9.2 | Tip güvenli geliştirme |
+| **Vite** | 5.0.10 | Build aracı ve dev server |
+| **Redux Toolkit + RTK Query** | 2.0.1 | State yönetimi ve API veri çekme |
+| **React Router** | 6.21.0 | Sayfa yönlendirme |
+| **Tailwind CSS** | 3.4.0 | Utility-first CSS framework |
 | **Radix UI** | 1.x / 2.x (karma) | Erişilebilir headless UI bileşenleri |
-| **Recharts** | 2.15.4 | Grafik ve veri görselleştirme |
+| **Recharts** | 2.10.3 | Grafik ve veri görselleştirme |
 | **Formik + Yup** | 2.4.9 / 1.7.1 | Form yönetimi ve doğrulama |
 | **Keycloak JS** | 26.2.3 | Frontend tarafında kimlik doğrulama |
-| **STOMP.js + SockJS** | 7.2.1 / 1.6.1 | WebSocket istemcisi |
-| **i18next** | 23.16.8 | Çoklu dil desteği (TR/EN) |
+| **STOMP.js + SockJS** | 7.0.0 / 1.6.1 | WebSocket istemcisi |
+| **i18next** | 23.7.16 | Çoklu dil desteği (TR/EN) |
 | **Lucide React** | 0.303.0 | İkon kütüphanesi |
 | **Sonner** | 1.3.1 | Toast bildirimleri |
 
@@ -140,10 +140,10 @@ MintStack Finance Portal, Türkiye finans piyasalarına (BIST, döviz, tahvil, f
 
 | Kategori | Araçlar |
 |---|---|
-| **Backend Unit Test** | JUnit 5, Mockito, Spring Boot Test (40 test sınıfı) |
+| **Backend Unit Test** | JUnit 5, Mockito, Spring Boot Test (53 test dosyası) |
 | **Backend Entegrasyon** | Testcontainers 1.19.3, H2 |
-| **Frontend Unit Test** | Vitest 1.6.1, Testing Library 14.3.1, MSW 2.12.7 |
-| **Frontend E2E** | Playwright 1.57.0 |
+| **Frontend Unit Test** | Vitest 1.1.3, Testing Library 14.1.2, MSW 2.1.2 |
+| **Frontend E2E** | Playwright 1.40.0 |
 | **Kod Kapsamı** | JaCoCo 0.8.11 (minimum %50 satır, %35 branch) |
 
 ---
@@ -202,19 +202,19 @@ MintStack Finance Portal, Türkiye finans piyasalarına (BIST, döviz, tahvil, f
 
 ```
   ┌────────────────────────────────────────────────────────────────┐
-  │ Controller Katmanı (15 controller)                            │
+│ Controller Katmanı (20 controller)                            │
   │ REST endpoint'leri, request/response dönüşümü, validasyon     │
   ├────────────────────────────────────────────────────────────────┤
-  │ Service Katmanı (52+ servis)                                  │
+│ Service Katmanı (66 servis)                                    │
   │ İş kuralları, orkestrasyon, cache yönetimi, event yayınlama   │
   ├────────────────────────────────────────────────────────────────┤
-  │ Repository Katmanı (15 repository)                            │
+│ Repository Katmanı (17 repository)                            │
   │ JPA/Hibernate ile veri erişimi, özel sorgular                 │
   ├────────────────────────────────────────────────────────────────┤
-  │ Entity Katmanı (17 entity)                                    │
+│ Entity Katmanı (19 entity)                                    │
   │ JPA domain modelleri, BaseEntity ile audit trail              │
   ├────────────────────────────────────────────────────────────────┤
-  │ Altyapı: Scheduler(7) | Config(17) | Filter | Mapper | DTO   │
+│ Altyapı: Scheduler(7) | Config(19) | Filter | Mapper | DTO   │
   └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -231,14 +231,14 @@ Project_MintStack/
 │   ├── src/main/java/com/mintstack/finance/
 │   │   ├── annotation/               # Özel anotasyonlar
 │   │   ├── aspect/                   # AOP aspect'leri
-│   │   ├── config/                   # Uygulama konfigürasyonları (17 dosya)
+│   │   ├── config/                   # Uygulama konfigürasyonları (19 dosya)
 │   │   │   ├── SecurityConfig.java       # OAuth2/JWT güvenlik yapılandırması
 │   │   │   ├── WebSocketConfig.java      # STOMP WebSocket yapılandırması
 │   │   │   ├── KafkaConfig.java          # Kafka producer/consumer
 │   │   │   ├── RedisCacheConfig.java     # Cache TTL ve politikaları
 │   │   │   ├── RateLimitConfig.java      # Bucket4j rate limiting
 │   │   │   └── ...                       # OpenSearch, CORS, Email, Async, JPA vb.
-│   │   ├── controller/               # REST controller'lar (15 dosya)
+│   │   ├── controller/               # REST controller'lar (20 dosya)
 │   │   │   ├── MarketDataController      # Piyasa verileri API
 │   │   │   ├── PortfolioController       # Portföy CRUD + emir işlemleri
 │   │   │   ├── NewsController            # Haber akışı
@@ -252,7 +252,7 @@ Project_MintStack/
 │   │   │   ├── response/                 # Yanıt DTO'ları
 │   │   │   ├── cache/                    # Cache DTO'ları
 │   │   │   └── simulation/              # Simülasyon DTO'ları
-│   │   ├── entity/                    # JPA entity'leri (17 dosya)
+│   │   ├── entity/                    # JPA entity'leri (19 dosya)
 │   │   │   ├── User, Portfolio, PortfolioItem, PortfolioTransaction
 │   │   │   ├── Instrument, PriceHistory, CurrencyRate
 │   │   │   ├── Watchlist, WatchlistItem, PriceAlert
@@ -262,14 +262,14 @@ Project_MintStack/
 │   │   ├── exception/                # Özel exception sınıfları
 │   │   ├── filter/                   # HTTP filtreleri
 │   │   ├── mapper/                   # MapStruct mapper'lar
-│   │   ├── repository/               # Spring Data JPA repository'leri (15 dosya)
+│   │   ├── repository/               # Spring Data JPA repository'leri (17 dosya)
 │   │   ├── scheduler/                # Zamanlanmış görevler (7 dosya)
 │   │   │   ├── MarketDataScheduler       # Periyodik piyasa verisi toplama
 │   │   │   ├── NewsScheduler             # Haber akışı güncelleme
 │   │   │   ├── SimulationScheduler       # Simülasyon fiyat güncelleme
 │   │   │   ├── CleanupScheduler          # Eski veri temizliği
 │   │   │   └── MarketDataProviderResolver# Veri kaynağı çözümleme
-│   │   └── service/                   # İş mantığı servisleri (52+ dosya)
+│   │   └── service/                   # İş mantığı servisleri (66 dosya)
 │   │       ├── MarketDataService         # Piyasa veri orkestrasyon
 │   │       ├── PortfolioService          # Portföy iş kuralları
 │   │       ├── portfolio/                # Portföy alt servisleri
@@ -281,20 +281,20 @@ Project_MintStack/
 │   │       │   ├── AlphaVantageClient    # Alpha Vantage
 │   │       │   ├── FinnhubClient         # Finnhub
 │   │       │   └── RssNewsClient         # RSS haber
-│   │       ├── simulation/               # Simülasyon motoru (12 dosya)
+│   │       ├── simulation/               # Simülasyon motoru (13 dosya)
 │   │       ├── market/                   # Market veri bakımı
 │   │       ├── search/                   # OpenSearch entegrasyonu
 │   │       ├── event/                    # Kafka olay yayınlama
 │   │       ├── strategy/                 # Trading stratejileri (RSI, MA)
 │   │       └── ...                       # Analysis, News, Alert, Email vb.
 │   ├── src/main/resources/
-│   │   └── db/migration/             # Flyway migrasyonları (V1-V24)
-│   └── src/test/                      # Test dosyaları (40 test sınıfı)
+│   │   └── db/migration/             # Flyway migrasyonları (V1-V29)
+│   └── src/test/                      # Test dosyaları (53 test dosyası)
 │
 ├── frontend/                          # React SPA (TypeScript)
 │   ├── src/
 │   │   ├── App.tsx                    # Ana uygulama, Keycloak init, routing
-│   │   ├── pages/                     # Sayfa bileşenleri (20 sayfa)
+│   │   ├── pages/                     # Sayfa bileşenleri (22 sayfa)
 │   │   │   ├── DashboardPage          # Ana gösterge paneli
 │   │   │   ├── CurrencyPage           # Döviz kurları
 │   │   │   ├── StocksPage / StockDetailPage  # Hisse senedi
@@ -311,17 +311,17 @@ Project_MintStack/
 │   │   │   ├── ProfilePage            # Profil yönetimi
 │   │   │   ├── AdminDashboard         # Admin paneli
 │   │   │   └── LoginPage / UnauthorizedPage
-│   │   ├── components/                # Yeniden kullanılabilir bileşenler (49)
+│   │   ├── components/                # Yeniden kullanılabilir bileşenler (54)
 │   │   │   ├── ui/                    # ShadCN/Radix UI temel bileşenler
 │   │   │   ├── common/                # Ortak bileşenler (MarketStatus, PriceCell vb.)
 │   │   │   ├── layout/                # Layout, Header, Sidebar, ProtectedRoute
 │   │   │   ├── charts/                # PriceChart, PieChart (Recharts)
 │   │   │   └── admin/                 # Admin bileşenleri
 │   │   ├── store/                     # Redux Toolkit state yönetimi
-│   │   │   ├── api/                   # RTK Query API slice'ları (12 dosya)
+│   │   │   ├── api/                   # RTK Query API slice'ları (14 dosya)
 │   │   │   └── slices/                # Auth, UI slice'ları
-│   │   ├── services/                  # API servisleri (14 dosya)
-│   │   ├── hooks/                     # Özel React hook'ları (5 dosya)
+│   │   ├── services/                  # API servisleri (10 dosya)
+│   │   ├── hooks/                     # Özel React hook'ları (9 dosya)
 │   │   ├── utils/                     # Yardımcı fonksiyonlar
 │   │   ├── locales/                   # TR/EN çeviri dosyaları
 │   │   └── mocks/                     # MSW mock handler'lar
@@ -343,7 +343,7 @@ Project_MintStack/
 ├── openldap/                          # LDAP seed verileri
 ├── secrets/                           # Secret şablonları
 │
-├── docker-compose.yml                 # Varsayılan Dev ortamı (15 servis)
+├── docker-compose.yml                 # Varsayılan Dev ortamı (16 servis)
 ├── docker-compose.light.yml           # Hafif Dev (minimum altyapı)
 ├── docker-compose.prod.yml            # Üretim ortamı
 │
@@ -375,14 +375,14 @@ Project_MintStack/
 
 ```bash
 # 1. Repoyu klonla
-git clone https://github.com/YOUR_USERNAME/MintStack-Finance.git
-cd MintStack-Finance
+git clone https://github.com/MTG-Softworks/Project_MintStack.git
+cd Project_MintStack
 
 # 2. Ortam değişkenlerini yapılandır
 cp .env.example .env
 # .env dosyasındaki tüm <GENERATE_...> değerlerini gerçek değerlerle değiştir
 
-# 3. Tüm servisleri başlat (15 konteyner)
+# 3. Tüm servisleri başlat (16 konteyner)
 docker compose up -d
 
 # 4. Servislerin hazır olduğunu doğrula
@@ -425,7 +425,7 @@ docker compose ps
 docker compose up -d
 ```
 
-Tüm 15 servisi ayağa kaldırır: PostgreSQL, Redis, Keycloak, OpenLDAP, Kafka, OpenSearch, Logstash, Prometheus, Grafana, AlertManager, OTEL Collector, Backend, Frontend, Nginx, OpenSearch Dashboards.
+Tüm 16 servisi ayağa kaldırır: PostgreSQL, Redis, Keycloak, OpenLDAP, Kafka, OpenSearch, Logstash, Prometheus, Grafana, AlertManager, OTEL Collector, Backend, Frontend, Nginx, OpenSearch Dashboards, Nginx proxy mirror.
 
 ### Lightweight Dev (minimum altyapı)
 

@@ -60,3 +60,19 @@ frontend/coverage/
 
 # Local backups
 backups/
+
+# Delivery artifacts
+final_dc/
+
+# Diagnostics
+diagnostics/
+
+# Binary documentation (keep only Markdown files)
+*.zip
+*.docx
+*.pptx
+*.pdf
+!docs/diagrams/*.pdf
+
+# Generated javadocs (use Maven javadoc:javadoc instead)
+docs/MintStack_Backend_Javadocs.zip

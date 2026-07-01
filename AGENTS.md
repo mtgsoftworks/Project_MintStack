@@ -5,30 +5,36 @@ Bu dosya, AI asistanlarının ve geliştiricilerin proje hakkında hızlı bilgi
 ## Proje Yapısı
 
 ```
-MintStack-Finance/
-├── backend/                    # Spring Boot API (Java 17)
+Project_MintStack/
+├── backend/                    # Spring Boot 3.4.2 API (Java 21)
 │   ├── src/main/java/com/mintstack/finance/
 │   │   ├── config/            # Güvenlik, Redis, Kafka, WebSocket config
-│   │   ├── controller/        # REST endpoints
-│   │   ├── service/           # Business logic
-│   │   ├── repository/        # Data access layer
-│   │   ├── entity/            # JPA entities
+│   │   ├── controller/        # REST endpoints (20 controller)
+│   │   ├── service/           # Business logic (35+ service)
+│   │   ├── repository/        # Data access layer (18 repository)
+│   │   ├── entity/            # JPA entities (19 entity)
 │   │   ├── dto/               # Request/Response DTOs
 │   │   ├── exception/         # Global exception handling
-│   │   └── scheduler/         # Cron jobs (TCMB, haberler)
+│   │   ├── aspect/            # AOP aspects (RateLimit, Logging)
+│   │   ├── scheduler/         # Cron jobs (MarketData, News, Cleanup)
+│   │   └── mapper/            # MapStruct mappers
 │   └── src/main/resources/
 │       ├── application.yml    # Ana konfigürasyon
-│       └── db/migration/      # Flyway SQL scripts
+│       └── db/migration/      # Flyway SQL scripts (V1-V29)
 │
-├── frontend/                   # React SPA (Vite)
+├── frontend/                   # React 18 SPA (Vite + TypeScript)
 │   └── src/
-│       ├── components/        # Yeniden kullanılabilir UI bileşenleri
-│       ├── pages/             # Sayfa bileşenleri
-│       ├── services/          # API client services
-│       ├── store/             # Redux Toolkit state management
-│       ├── context/           # Auth & Theme context
+│       ├── components/
+│       │   ├── ui/           # ShadCN/Radix UI components
+│       │   ├── layout/       # Layout, Sidebar, Header
+│       │   ├── market/       # Market domain components
+│       │   └── charts/       # Recharts wrappers
+│       ├── pages/             # Sayfa bileşenleri (23 page)
+│       ├── services/         # API & WebSocket services
+│       ├── store/             # Redux Toolkit + RTK Query
 │       ├── hooks/             # Custom React hooks
-│       └── utils/             # Helper functions
+│       ├── lib/               # Utils, currency, validation
+│       └── locales/           # i18n translations
 │
 ├── docker/                     # Docker konfigürasyonları
 │   ├── postgres/              # DB init scripts
@@ -38,13 +44,30 @@ MintStack-Finance/
 │   ├── logstash/              # Logstash pipeline
 │   ├── prometheus/            # Prometheus & alerts
 │   ├── grafana/               # Dashboard provisioning
-│   └── openldap/              # LDAP certs & LDIF
+│   └── openldap/              # OpenLDAP config
 │
-├── keycloak/                   # Realm export (users, roles)
+├── keycloak/                   # Keycloak 26.5.4 realm export
 ├── docs/                       # Dokümantasyon
 ├── docker-compose.yml          # Development orchestration
+├── docker-compose.prod.yml      # Production orchestration
 └── .env.example               # Environment template
 ```
+
+## Teknoloji Stack
+
+| Katman | Teknoloji | Versiyon |
+|--------|-----------|----------|
+| Backend | Spring Boot | 3.4.2 |
+| Java | OpenJDK/Eclipse Temurin | 21 |
+| Database | PostgreSQL | 15 |
+| Cache | Redis | 7 |
+| Messaging | Apache Kafka | 7.5.0 (KRaft) |
+| Search | OpenSearch | 2.13.0 |
+| Auth | Keycloak | 26.5.4 |
+| Frontend | React | 18.3.1 |
+| Build | Vite | 5.x |
+| State | Redux Toolkit | 2.0.1 |
+| UI | Tailwind + Radix | 3.4 / latest |
 
 ## Komutlar
 
@@ -99,6 +122,9 @@ cd backend
 # Tüm servisleri başlat
 docker-compose up -d
 
+# Minimal stack (düşük RAM)
+docker-compose -f docker-compose.light.yml up -d
+
 # Servisleri durdur
 docker-compose down
 
@@ -114,13 +140,13 @@ docker-compose up -d --build
 
 | Karar | Seçim | Gerekçe |
 |-------|-------|---------|
-| Backend Framework | Spring Boot 3.4 | Java 17+, OAuth2, WebSocket, kurumsal destek |
+| Backend Framework | Spring Boot 3.4.2 | Java 21+, OAuth2, WebSocket, kurumsal destek |
 | Frontend Framework | React 18 + TypeScript + Vite | Component-based, hızlı dev, zengin ekosistem |
 | Veritabanı | PostgreSQL 15 | ACID, JSONB, full-text search |
 | Cache | Redis 7 | Session, rate-limiting, market data cache |
-| Message Queue | Kafka 3.5 | Event-driven, yüksek throughput |
-| Identity Provider | Keycloak 26 | OAuth2/OIDC, LDAP federation, 2FA |
-| Logging | OpenSearch | Log aggregation, distributed tracing |
+| Message Queue | Kafka 7.5.0 | Event-driven, yüksek throughput |
+| Identity Provider | Keycloak 26.5.4 | OAuth2/OIDC, LDAP federation, 2FA |
+| Logging | OpenSearch 2.13.0 | Log aggregation, distributed tracing |
 | Tracing | OpenTelemetry | Vendor-agnostic observability |
 
 Detaylı ADR'ler için: `docs/ADR.md`
@@ -129,10 +155,10 @@ Detaylı ADR'ler için: `docs/ADR.md`
 
 ### Java (Backend)
 
-- **Java 17+** özellikleri kullanın (records, pattern matching, text blocks)
+- **Java 21** özellikleri kullanın (records, pattern matching, virtual threads)
 - **Lombok** kullanın (`@Slf4j`, `@RequiredArgsConstructor`, `@Builder`)
 - **MapStruct** DTO mapping için
-- Package-private constructor injection tercih edin
+- Constructor injection tercih edin
 - Global exception handling: `GlobalExceptionHandler`
 - Rate limiting: `Bucket4j` ile controller seviyesinde
 - Log format: Structured JSON (Log4j2)
@@ -163,29 +189,29 @@ public class MarketDataService {
 - **Yup** form validasyon için
 - **i18next** çoklu dil desteği
 
-```javascript
-// Service example
-export const marketApi = createApi({
-  reducerPath: 'marketApi',
-  baseQuery: fetchBaseQuery({ baseUrl: '/api/v1' }),
+```typescript
+// RTK Query example
+export const marketApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getCurrencies: builder.query({
+    getCurrencies: builder.query<CurrenciesResponse, void>({
       query: () => '/market/currencies',
-      transformResponse: (response) => response.data,
+      providesTags: ['Currencies'],
     }),
   }),
 });
 ```
 
-### Git Conventions
+## Güvenlik Yapılandırması
 
-- **Branch naming**: `feature/`, `bugfix/`, `hotfix/`, `release/`
-- **Commit message**: `type(scope): description`
-  - `feat(portfolio): add risk analysis endpoint`
-  - `fix(auth): resolve token refresh issue`
-  - `docs(readme): update installation steps`
+| Özellik | Konum | Not |
+|---------|-------|-----|
+| JWT/OAuth2 | `SecurityConfig.java` | Keycloak JWKS validation |
+| CSP | `SecurityConfig.java` | No unsafe-inline |
+| Redis Type Safety | `RedisConfig.java` | Whitelist-based PolymorphicTypeValidator |
+| Webhook Signature | `AlertWebhookSecurityService.java` | HMAC-SHA256 with constant-time comparison |
+| Rate Limiting | `Bucket4j` | Redis-backed distributed |
 
-## Ortam Değişkenleri
+## ortam Değişkenleri
 
 Tüm ortam değişkenleri `.env.example` dosyasında tanımlıdır.
 
@@ -194,9 +220,20 @@ Tüm ortam değişkenleri `.env.example` dosyasında tanımlıdır.
 | Database | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` |
 | Redis | `REDIS_PASSWORD` |
 | Keycloak | `KEYCLOAK_ADMIN_PASSWORD`, `KEYCLOAK_FINANCE_BACKEND_SECRET` |
-| Kafka | `KAFKA_SASL_PASSWORD` |
+| Kafka | `KAFKA_SASL_PASSWORD`, `KAFKA_CLUSTER_ID` |
 | OpenSearch | `OPENSEARCH_INITIAL_ADMIN_PASSWORD` |
 | External APIs | `ALPHA_VANTAGE_API_KEY`, `FINNHUB_API_KEY` |
+
+## CI/CD Pipeline
+
+GitHub Actions workflow: `.github/workflows/ci.yml`
+
+| Stage | Araçlar |
+|-------|---------|
+| Backend Test | Maven, JaCoCo, OWASP Dependency Check |
+| Frontend Test | ESLint, TypeScript, Vitest |
+| Compose Validation | docker-compose config |
+| Security Scan | Trivy, SpotBugs |
 
 ## Yaygın Sorunlar
 
@@ -224,5 +261,3 @@ Tüm ortam değişkenleri `.env.example` dosyasında tanımlıdır.
 - `docs/SECURITY.md` - Güvenlik checklist
 - `docs/KEYCLOAK_2FA_SETUP.md` - 2FA kurulumu
 - `docs/API_VERSIONING.md` - API versiyonlama
-
-

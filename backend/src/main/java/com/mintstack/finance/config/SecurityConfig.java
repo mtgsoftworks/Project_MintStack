@@ -14,6 +14,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -24,6 +26,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN;
+
+/**
+ * Security configuration with strict Content Security Policy.
+ *
+ * SECURITY: CSP is configured without 'unsafe-inline' for scripts and styles.
+ * This prevents XSS attacks by blocking inline script execution.
+ * Scripts must be loaded from external files with valid integrity hashes.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -48,19 +59,19 @@ public class SecurityConfig {
                 .requestMatchers("/v3/api-docs/**").permitAll()
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/swagger-ui.html").permitAll()
-                
+
                 // WebSocket handshake endpoints are public, but STOMP CONNECT
                 // frames are authenticated by WebSocketAuthInterceptor.
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/ws-native/**").permitAll()
-                
+
                 // Public market data endpoints (read-only)
                 .requestMatchers(HttpMethod.GET, "/api/v1/market/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/news/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/news").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/glossary/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/admin/webhooks/alerts").permitAll()
-                
+
                 // Simulation endpoints - admin only
                 .requestMatchers("/api/v1/simulation/**").hasRole("ADMIN")
 
@@ -75,10 +86,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/settings/cache").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/settings/market-data").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/v1/settings/market-data/backfill").hasRole("ADMIN")
-                
+
                 // Admin endpoints
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                
+
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
             )
@@ -94,9 +105,9 @@ public class SecurityConfig {
                 // X-Frame-Options: DENY (stricter than SAMEORIGIN)
                 headers.frameOptions(frameOptions -> frameOptions.deny());
                 // X-XSS-Protection: 1; mode=block
-                headers.xssProtection(xss -> xss.headerValue(org.springframework.security.web.header.writers.XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK));
+                headers.xssProtection(xss -> xss.headerValue(XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK));
                 // Referrer-Policy
-                headers.referrerPolicy(referrer -> referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN));
+                headers.referrerPolicy(referrer -> referrer.policy(STRICT_ORIGIN_WHEN_CROSS_ORIGIN));
                 // Permissions-Policy (Feature-Policy replacement)
                 headers.permissionsPolicyHeader(permissions -> permissions.policy("accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"));
                 // HSTS - Strict Transport Security
@@ -105,10 +116,12 @@ public class SecurityConfig {
                     .maxAgeInSeconds(31536000)
                     .preload(true));
                 // Content-Security-Policy
+                // SECURITY: No 'unsafe-inline' - scripts must use nonce or hash
                 headers.contentSecurityPolicy(csp -> csp.policyDirectives(
                     "default-src 'self'; " +
-                    "script-src 'self' 'unsafe-inline'; " +
-                    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                    "script-src 'self'; " +
+                    "style-src 'self' https://fonts.googleapis.com; " +
+                    "style-src-elem 'self' https://fonts.googleapis.com; " +
                     "font-src 'self' https://fonts.gstatic.com data:; " +
                     "img-src 'self' data: https: blob:; " +
                     "connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:* http://127.0.0.1:* ws://127.0.0.1:*; " +
