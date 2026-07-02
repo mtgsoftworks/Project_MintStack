@@ -1,7 +1,7 @@
 import { vi, describe, it, expect } from 'vitest'
 import { baseApi, API_BASE_URL } from '../baseApi'
 
-vi.mock('@/App', () => ({
+vi.mock('@/auth/keycloak', () => ({
   keycloak: {
     authenticated: true,
     updateToken: vi.fn().mockResolvedValue(true),
