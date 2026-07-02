@@ -1,6 +1,34 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
-const initialState = {
+export type UserRole = 'admin' | 'user' | 'moderator' | string
+
+export interface User {
+  id?: string | number
+  name?: string
+  email?: string
+  avatar?: string
+  [key: string]: unknown
+}
+
+export interface AuthState {
+  isAuthenticated: boolean
+  isInitialized: boolean
+  token: string | null
+  user: User | null
+  roles: UserRole[]
+}
+
+interface SetAuthPayload {
+  token: string
+  user: User
+  roles?: UserRole[]
+}
+
+interface UpdateProfilePayload {
+  [key: string]: unknown
+}
+
+const initialState: AuthState = {
   isAuthenticated: false,
   isInitialized: false,
   token: null,
@@ -12,7 +40,7 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setAuth: (state, action) => {
+    setAuth: (state, action: PayloadAction<SetAuthPayload>) => {
       const { token, user, roles } = action.payload
       state.isAuthenticated = true
       state.isInitialized = true
@@ -20,13 +48,13 @@ const authSlice = createSlice({
       state.user = user
       state.roles = roles || []
     },
-    setToken: (state, action) => {
+    setToken: (state, action: PayloadAction<string | null>) => {
       state.token = action.payload
     },
-    setUser: (state, action) => {
+    setUser: (state, action: PayloadAction<User | null>) => {
       state.user = action.payload
     },
-    setInitialized: (state, action) => {
+    setInitialized: (state, action: PayloadAction<boolean>) => {
       state.isInitialized = action.payload
     },
     logout: (state) => {
@@ -35,7 +63,7 @@ const authSlice = createSlice({
       state.user = null
       state.roles = []
     },
-    updateProfile: (state, action) => {
+    updateProfile: (state, action: PayloadAction<UpdateProfilePayload>) => {
       if (state.user) {
         state.user = { ...state.user, ...action.payload }
       }
@@ -43,21 +71,21 @@ const authSlice = createSlice({
   },
 })
 
-export const { 
-  setAuth, 
-  setToken, 
-  setUser, 
-  setInitialized, 
-  logout, 
-  updateProfile 
+export const {
+  setAuth,
+  setToken,
+  setUser,
+  setInitialized,
+  logout,
+  updateProfile,
 } = authSlice.actions
 
 // Selectors
-export const selectIsAuthenticated = (state) => state.auth.isAuthenticated
-export const selectIsInitialized = (state) => state.auth.isInitialized
-export const selectToken = (state) => state.auth.token
-export const selectUser = (state) => state.auth.user
-export const selectRoles = (state) => state.auth.roles
-export const selectIsAdmin = (state) => state.auth.roles.includes('admin')
+export const selectIsAuthenticated = (state: { auth: AuthState }) => state.auth.isAuthenticated
+export const selectIsInitialized = (state: { auth: AuthState }) => state.auth.isInitialized
+export const selectToken = (state: { auth: AuthState }): string | null => state.auth.token
+export const selectUser = (state: { auth: AuthState }): User | null => state.auth.user
+export const selectRoles = (state: { auth: AuthState }): UserRole[] => state.auth.roles
+export const selectIsAdmin = (state: { auth: AuthState }): boolean => state.auth.roles.includes('admin')
 
 export default authSlice.reducer

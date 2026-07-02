@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Wallet, TrendingUp, TrendingDown, MoreVertical, Trash2, Edit } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -31,6 +31,17 @@ import {
 } from '@/store/api/portfolioApi'
 import { toast } from 'sonner'
 
+interface Portfolio {
+  id: string | number
+  name: string
+  description?: string
+  cashBalance?: number
+  netAssetValue?: number
+  profitLoss?: number
+  profitLossPercent?: number
+  itemCount?: number
+}
+
 function PortfolioCardSkeleton() {
   return (
     <Card>
@@ -46,7 +57,12 @@ function PortfolioCardSkeleton() {
   )
 }
 
-function CreatePortfolioDialog({ open, onOpenChange }) {
+interface CreatePortfolioDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+function CreatePortfolioDialog({ open, onOpenChange }: CreatePortfolioDialogProps) {
   const { t } = useTranslation()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -54,7 +70,7 @@ function CreatePortfolioDialog({ open, onOpenChange }) {
   const [commissionRate, setCommissionRate] = useState('0.001')
   const [createPortfolio, { isLoading }] = useCreatePortfolioMutation()
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const parsedInitialCash = Number.parseFloat(initialCashBalance)
     const parsedCommissionRate = Number.parseFloat(commissionRate)
@@ -103,7 +119,7 @@ function CreatePortfolioDialog({ open, onOpenChange }) {
               <Input
                 id="name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                 placeholder={t('portfolioPage.dialog.namePlaceholder')}
                 required
               />
@@ -113,7 +129,7 @@ function CreatePortfolioDialog({ open, onOpenChange }) {
               <Input
                 id="description"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
                 placeholder={t('portfolioPage.dialog.descriptionPlaceholder')}
               />
             </div>
@@ -125,7 +141,7 @@ function CreatePortfolioDialog({ open, onOpenChange }) {
                 min="0"
                 step="0.01"
                 value={initialCashBalance}
-                onChange={(e) => setInitialCashBalance(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInitialCashBalance(e.target.value)}
                 required
               />
             </div>
@@ -138,7 +154,7 @@ function CreatePortfolioDialog({ open, onOpenChange }) {
                 max="0.1"
                 step="0.0001"
                 value={commissionRate}
-                onChange={(e) => setCommissionRate(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCommissionRate(e.target.value)}
                 required
               />
               <p className="text-xs text-muted-foreground">Ornek: 0.001 = %0.1</p>
@@ -161,11 +177,11 @@ function CreatePortfolioDialog({ open, onOpenChange }) {
 export default function PortfolioPage() {
   const { t } = useTranslation()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const { data: portfolios, isLoading } = useGetPortfoliosQuery()
-  const { data: summary } = useGetPortfolioSummaryQuery()
+  const { data: portfolios = [], isLoading } = useGetPortfoliosQuery(undefined)
+  const { data: summary } = useGetPortfolioSummaryQuery(undefined)
   const [deletePortfolio] = useDeletePortfolioMutation()
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: string | number) => {
     if (window.confirm(t('portfolioPage.toast.deleteConfirm'))) {
       try {
         await deletePortfolio(id).unwrap()
@@ -291,7 +307,7 @@ export default function PortfolioPage() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {portfolios?.map((portfolio) => (
+          {portfolios.map((portfolio: Portfolio) => (
             <Card key={portfolio.id} className="card-hover">
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
@@ -334,14 +350,14 @@ export default function PortfolioPage() {
                     Nakit: {formatCurrency(portfolio.cashBalance || 0, 'TRY')}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={portfolio.profitLossPercent >= 0 ? 'success' : 'danger'}>
-                      {formatPercent(portfolio.profitLossPercent || 0)}
+                    <Badge variant={(portfolio.profitLossPercent ?? 0) >= 0 ? 'success' : 'danger'}>
+                      {formatPercent(portfolio.profitLossPercent ?? 0)}
                     </Badge>
                     <span className={cn(
                       'text-sm font-medium',
-                      portfolio.profitLoss >= 0 ? 'text-success' : 'text-danger'
+                      (portfolio.profitLoss ?? 0) >= 0 ? 'text-success' : 'text-danger'
                     )}>
-                      {formatCurrency(portfolio.profitLoss || 0, 'TRY')}
+                      {formatCurrency(portfolio.profitLoss ?? 0, 'TRY')}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">

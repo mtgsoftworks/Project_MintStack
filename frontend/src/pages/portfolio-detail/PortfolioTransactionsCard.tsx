@@ -12,13 +12,49 @@ import {
 } from '@/components/ui/table'
 import { formatCurrency, formatDate, formatNumber } from '@/lib/utils'
 
-function getOrderTypeLabel(orderType) {
+type OrderType = 'LIMIT' | 'STOP' | 'MARKET'
+type OrderStatus = 'PENDING' | 'PARTIALLY_FILLED' | 'FILLED' | 'CANCELED' | 'REJECTED'
+
+interface Transaction {
+    id: string | number
+    transactionType: 'BUY' | 'SELL'
+    orderType: OrderType
+    orderStatus: OrderStatus
+    instrumentSymbol: string
+    instrumentName?: string
+    quantity: number
+    filledQuantity?: number | null
+    averageFillPrice?: number | null
+    price: number
+    grossTotal?: number | null
+    total: number
+    commissionAmount?: number | null
+    netTotal?: number | null
+    transactionDate: string
+}
+
+interface PortfolioTransactionsCardProps {
+    t: (key: string, options?: Record<string, unknown>) => string
+    transactions: Transaction[]
+    totalTransactions: number
+    transactionsLoading: boolean
+    transactionsFetching: boolean
+    transactionPages: number
+    transactionsPage: number
+    orderStatus: string
+    onChangeOrderStatus: (status: string) => void
+    onCancelOrder: (transactionId: string | number) => void
+    onPrevPage: () => void
+    onNextPage: () => void
+}
+
+function getOrderTypeLabel(orderType: OrderType): string {
     if (orderType === 'LIMIT') return 'limit'
     if (orderType === 'STOP') return 'stop'
     return 'market'
 }
 
-function getOrderStatusLabel(orderStatus) {
+function getOrderStatusLabel(orderStatus: OrderStatus): string {
     if (orderStatus === 'PENDING') return 'pending'
     if (orderStatus === 'PARTIALLY_FILLED') return 'partiallyFilled'
     if (orderStatus === 'FILLED') return 'filled'
@@ -27,7 +63,7 @@ function getOrderStatusLabel(orderStatus) {
     return 'unknown'
 }
 
-function getStatusVariant(orderStatus) {
+function getStatusVariant(orderStatus: OrderStatus): string {
     if (orderStatus === 'FILLED') return 'success'
     if (orderStatus === 'PARTIALLY_FILLED') return 'warning'
     if (orderStatus === 'PENDING') return 'secondary'
@@ -58,7 +94,7 @@ export function PortfolioTransactionsCard({
     onCancelOrder,
     onPrevPage,
     onNextPage
-}) {
+}: PortfolioTransactionsCardProps) {
     return (
         <Card>
             <CardHeader>

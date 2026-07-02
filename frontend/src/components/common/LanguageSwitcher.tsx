@@ -8,21 +8,31 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-const languages = [
+interface Language {
+    code: string
+    name: string
+    shortCode: string
+}
+
+const languages: Language[] = [
     { code: 'tr', name: 'Türkçe', shortCode: 'TR' },
     { code: 'en', name: 'English', shortCode: 'EN' },
 ]
+
+interface LanguageSwitcherProps {
+    variant?: 'dropdown' | 'buttons'
+}
 
 /**
  * Language switcher component
  * Allows users to change the application language
  */
-export function LanguageSwitcher({ variant = 'dropdown' }) {
+export function LanguageSwitcher({ variant = 'dropdown' }: LanguageSwitcherProps) {
     const { i18n } = useTranslation()
 
     const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0]
 
-    const changeLanguage = (langCode) => {
+    const changeLanguage = (langCode: string): void => {
         i18n.changeLanguage(langCode)
     }
 

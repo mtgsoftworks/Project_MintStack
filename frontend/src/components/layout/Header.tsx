@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -38,6 +38,13 @@ import { LanguageSwitcher } from '@/components/common/LanguageSwitcher'
 import { useGetNotificationsQuery, useMarkNotificationReadMutation } from '@/store/api/userApi'
 import websocketService from '@/services/websocketService'
 import { baseApi } from '@/store/api/baseApi'
+
+interface Notification {
+  id: string | number
+  title: string
+  message: string
+  isRead: boolean
+}
 
 export function Header() {
   const dispatch = useDispatch()
@@ -79,7 +86,7 @@ export function Header() {
     return () => websocketService.unsubscribe(topic)
   }, [dispatch, isAuthenticated, refetchNotifications])
 
-  const handleNotificationClick = async (notification) => {
+  const handleNotificationClick = async (notification: Notification) => {
     if (!notification.isRead) {
       try {
         await markAsRead(notification.id).unwrap()
@@ -112,7 +119,7 @@ export function Header() {
     navigate('/login', { replace: true })
   }
 
-  const handleSearchSubmit = (event) => {
+  const handleSearchSubmit = (event: FormEvent) => {
     event.preventDefault()
     const query = searchQuery.trim()
     if (!query) {
@@ -258,10 +265,10 @@ export function Header() {
                 </Avatar>
                 <div className="hidden md:flex flex-col items-start">
                   <span className="text-sm font-medium">
-                    {user.name || user.username}
+                    {(user.name || user.username) as string}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {user.email}
+                    {user.email as string}
                   </span>
                 </div>
                 <ChevronDown className="h-4 w-4 text-muted-foreground hidden md:block" />
@@ -270,9 +277,9 @@ export function Header() {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col">
-                  <span>{user.name || user.username}</span>
+                  <span>{(user.name || user.username) as string}</span>
                   <span className="text-xs font-normal text-muted-foreground">
-                    {user.email}
+                    {user.email as string}
                   </span>
                 </div>
               </DropdownMenuLabel>

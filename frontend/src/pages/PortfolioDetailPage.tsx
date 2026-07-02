@@ -22,20 +22,30 @@ import { usePortfolioTransactions } from '@/pages/portfolio-detail/hooks/usePort
 import { usePortfolioExport } from '@/pages/portfolio-detail/hooks/usePortfolioExport'
 import { toast } from 'sonner'
 
+interface PortfolioItem {
+    quantity?: string | number
+    instrumentSymbol?: string
+    symbol?: string
+    instrumentId?: string | number
+    instrumentName?: string
+    name?: string
+    currentValue?: string | number
+}
+
 export default function PortfolioDetailPage() {
     const { t } = useTranslation()
-    const { id } = useParams()
+    const { id } = useParams<{ id: string }>()
     const token = useSelector(selectToken)
     const [buyDialogOpen, setBuyDialogOpen] = useState(false)
     const [sellDialogOpen, setSellDialogOpen] = useState(false)
     const [cashDialogOpen, setCashDialogOpen] = useState(false)
     const [sellSymbol, setSellSymbol] = useState('')
-    const [sellInstrumentId, setSellInstrumentId] = useState(null)
-    const [sellMaxQuantity, setSellMaxQuantity] = useState(null)
+    const [sellInstrumentId, setSellInstrumentId] = useState<string | number | null>(null)
+    const [sellMaxQuantity, setSellMaxQuantity] = useState<number | null>(null)
     const [processOrders, { isLoading: isProcessingOrders }] = useProcessPortfolioOrdersMutation()
     const [cancelOrder] = useCancelPortfolioOrderMutation()
 
-    const { data: portfolio, isLoading, error } = useGetPortfolioQuery(id)
+    const { data: portfolio, isLoading, error } = useGetPortfolioQuery(id as string)
 
     const {
         transactionsPage,
@@ -59,15 +69,16 @@ export default function PortfolioDetailPage() {
         t
     })
 
-    const handleOpenSellDialog = (item) => {
-        const quantity = Number.parseFloat(item.quantity)
-        setSellSymbol(item.instrumentSymbol || item.symbol || '')
+    const handleOpenSellDialog = (item: PortfolioItem) => {
+        const quantity = Number.parseFloat(String(item.quantity ?? ''))
+        setSellSymbol(String(item.instrumentSymbol || item.symbol || ''))
         setSellInstrumentId(item.instrumentId || null)
         setSellMaxQuantity(Number.isFinite(quantity) ? quantity : null)
         setSellDialogOpen(true)
     }
 
     const handleProcessOrders = async () => {
+        if (!id) return
         try {
             await processOrders({ portfolioId: id }).unwrap()
             toast.success('Bekleyen emirler islendi')
@@ -76,9 +87,10 @@ export default function PortfolioDetailPage() {
         }
     }
 
-    const handleCancelOrder = async (orderId) => {
+    const handleCancelOrder = async (orderId: string | number) => {
+        if (!id) return
         try {
-            await cancelOrder({ portfolioId: id, orderId }).unwrap()
+            await cancelOrder({ portfolioId: id as string | number, orderId }).unwrap()
             toast.success('Emir iptal edildi')
         } catch {
             toast.error('Emir iptal edilemedi')
@@ -99,7 +111,7 @@ export default function PortfolioDetailPage() {
         )
     }
 
-    if (error || !portfolio) {
+    if (error || !portfolio || !id) {
         return (
             <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
@@ -186,14 +198,14 @@ export default function PortfolioDetailPage() {
             />
 
             <PortfolioTradeDialog
-                portfolioId={id}
+                portfolioId={id!}
                 mode="BUY"
                 open={buyDialogOpen}
                 onOpenChange={setBuyDialogOpen}
             />
 
             <PortfolioTradeDialog
-                portfolioId={id}
+                portfolioId={id!}
                 mode="SELL"
                 open={sellDialogOpen}
                 onOpenChange={setSellDialogOpen}
@@ -203,7 +215,7 @@ export default function PortfolioDetailPage() {
             />
 
             <PortfolioCashDialog
-                portfolioId={id}
+                portfolioId={id!}
                 open={cashDialogOpen}
                 onOpenChange={setCashDialogOpen}
                 currentCashBalance={portfolio.cashBalance}

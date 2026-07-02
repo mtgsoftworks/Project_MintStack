@@ -14,7 +14,7 @@ export const marketApi = baseApi.injectEndpoints({
     getCurrency: builder.query({
       query: (code) => `/market/currencies/${code}`,
       transformResponse: (response) => response.data,
-      providesTags: (result, error, code) => [{ type: 'Currencies', id: code }],
+      providesTags: (_result, _error, code: string) => [{ type: 'Currencies' as const, id: code }],
     }),
     getCurrencyHistory: builder.query({
       query: ({ code, startDate, endDate }) => ({
@@ -53,7 +53,7 @@ export const marketApi = baseApi.injectEndpoints({
         }
       },
       transformResponse: (response) => response.data,
-      providesTags: (result, error, arg) => [{ type: 'Stocks', id: typeof arg === 'string' ? arg : arg?.symbol }],
+      providesTags: (_result, _error, arg: string | { symbol: string }) => [{ type: 'Stocks' as const, id: typeof arg === 'string' ? arg : arg?.symbol }],
     }),
     getStockHistory: builder.query({
       query: ({ symbol, period = '1M', days, startDate, endDate }) => {
@@ -64,7 +64,7 @@ export const marketApi = baseApi.injectEndpoints({
           }
         }
 
-        const daysMap = { '1D': 1, '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365 }
+        const daysMap: Record<string, number> = { '1D': 1, '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365 }
         const resolvedDays = days ?? daysMap[period] ?? 30
 
         return {
@@ -87,7 +87,7 @@ export const marketApi = baseApi.injectEndpoints({
     getBond: builder.query({
       query: (symbol) => `/market/bonds/${symbol}`,
       transformResponse: (response) => response.data,
-      providesTags: (result, error, symbol) => [{ type: 'Bonds', id: symbol }],
+      providesTags: (_result, _error, symbol: string) => [{ type: 'Bonds' as const, id: symbol }],
     }),
 
     // Funds
@@ -102,7 +102,7 @@ export const marketApi = baseApi.injectEndpoints({
     getFund: builder.query({
       query: (symbol) => `/market/funds/${symbol}`,
       transformResponse: (response) => response.data,
-      providesTags: (result, error, symbol) => [{ type: 'Funds', id: symbol }],
+      providesTags: (_result, _error, symbol: string) => [{ type: 'Funds' as const, id: symbol }],
     }),
 
     // VIOP
@@ -128,7 +128,7 @@ export const marketApi = baseApi.injectEndpoints({
         }
       },
       transformResponse: (response) => response.data,
-      providesTags: (result, error, arg) => [{ type: 'Indices', id: typeof arg === 'string' ? arg : arg?.symbol }],
+      providesTags: (_result, _error, arg: string | { symbol: string }) => [{ type: 'Indices' as const, id: typeof arg === 'string' ? arg : arg?.symbol }],
     }),
 
     // Search

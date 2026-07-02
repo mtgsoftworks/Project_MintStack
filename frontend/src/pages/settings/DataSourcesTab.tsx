@@ -16,19 +16,29 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select'
+import type { ChangeEvent } from 'react'
 import { Badge } from '@/components/ui/badge'
 import RefreshButton from '@/components/common/RefreshButton'
 import { Database, History, Key, Loader2, Zap } from 'lucide-react'
 import { DATA_SOURCE_TYPES } from './providerInfo'
+import type { ApiKeyConfig, BackfillFormData, DataPreference, DataSourceType } from './types'
 
-const BACKFILL_TYPES = [
-    { value: 'STOCK', i18nKey: 'settings.dataSources.backfill.types.stock' },
-    { value: 'FUND', i18nKey: 'settings.dataSources.backfill.types.fund' },
-    { value: 'CURRENCY', i18nKey: 'settings.dataSources.backfill.types.currency' },
-    { value: 'INDEX', i18nKey: 'settings.dataSources.backfill.types.index' },
-    { value: 'BOND', i18nKey: 'settings.dataSources.backfill.types.bond' },
-    { value: 'VIOP', i18nKey: 'settings.dataSources.backfill.types.viop' },
-]
+export interface DataSourcesTabProps {
+    t: (key: string, options?: Record<string, unknown>) => string
+    apiConfigs: ApiKeyConfig[]
+    preferencesData?: { data: DataPreference[] }
+    isRefreshing: boolean
+    isAdmin: boolean
+    backfillForm: BackfillFormData
+    isBackfillingMarketData: boolean
+    getProviderLabel: (provider: string) => string
+    onSelectDataPreference: (dataType: DataSourceType, provider: string) => void
+    onRefreshData: () => void
+    onOpenApiKeysTab: () => void
+    onBackfillFormChange: (field: string, value: string) => void
+    onToggleBackfillType: (type: string, checked: boolean) => void
+    onBackfillMarketData: () => void
+}
 
 export function DataSourcesTab({
     t,
@@ -45,7 +55,15 @@ export function DataSourcesTab({
     onBackfillFormChange,
     onToggleBackfillType,
     onBackfillMarketData
-}) {
+}: DataSourcesTabProps) {
+    const BACKFILL_TYPES = [
+        { value: 'STOCK', i18nKey: 'settings.dataSources.backfill.types.stock' },
+        { value: 'FUND', i18nKey: 'settings.dataSources.backfill.types.fund' },
+        { value: 'CURRENCY', i18nKey: 'settings.dataSources.backfill.types.currency' },
+        { value: 'INDEX', i18nKey: 'settings.dataSources.backfill.types.index' },
+        { value: 'BOND', i18nKey: 'settings.dataSources.backfill.types.bond' },
+        { value: 'VIOP', i18nKey: 'settings.dataSources.backfill.types.viop' },
+    ]
     const hasApiConfigs = Boolean(apiConfigs?.length)
     const renderBackfillPanel = () => {
         if (!isAdmin) {
@@ -95,7 +113,7 @@ export function DataSourcesTab({
                             min="1"
                             max="5000"
                             value={backfillForm.maxInstruments}
-                            onChange={(event) => onBackfillFormChange('maxInstruments', event.target.value)}
+                            onChange={(event: ChangeEvent<HTMLInputElement>) => onBackfillFormChange('maxInstruments', event.target.value)}
                             disabled={isBackfillingMarketData}
                         />
                     </div>
@@ -103,7 +121,7 @@ export function DataSourcesTab({
                         <Label>{t('settings.dataSources.backfill.optionalSymbols')}</Label>
                         <Input
                             value={backfillForm.symbols}
-                            onChange={(event) => onBackfillFormChange('symbols', event.target.value)}
+                            onChange={(event: ChangeEvent<HTMLInputElement>) => onBackfillFormChange('symbols', event.target.value)}
                             placeholder={t('settings.dataSources.backfill.symbolsPlaceholder')}
                             disabled={isBackfillingMarketData}
                         />
@@ -115,7 +133,7 @@ export function DataSourcesTab({
                         <label key={type.value} className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm">
                             <Checkbox
                                 checked={backfillForm.instrumentTypes.includes(type.value)}
-                                onCheckedChange={(checked) => onToggleBackfillType(type.value, Boolean(checked))}
+                                onCheckedChange={(checked: boolean) => onToggleBackfillType(type.value, Boolean(checked))}
                                 disabled={isBackfillingMarketData}
                             />
                             {t(type.i18nKey)}
@@ -182,12 +200,12 @@ export function DataSourcesTab({
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {DATA_SOURCE_TYPES.map((dataType) => {
+                        {DATA_SOURCE_TYPES.map((dataType: DataSourceType) => {
                             const currentPreference = preferencesData?.data?.find((item) => item.dataType === dataType.type)
                             const availableProviders = apiConfigs.filter((config) =>
                                 config.isActive && dataType.providers.includes(config.provider)
                             )
-                            const unavailableReason = (dataType as { unavailableReason?: string }).unavailableReason
+                            const unavailableReason = dataType.unavailableReason
                             const isUnavailable = Boolean(unavailableReason)
 
                             return (

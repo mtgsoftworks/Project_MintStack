@@ -12,6 +12,8 @@ export const MARKET_CHANGE_PERIODS = [
   { value: 'CUSTOM', days: null },
 ] as const
 
+export type MarketChangePeriod = (typeof MARKET_CHANGE_PERIODS)[number]['value']
+
 function formatDateInput(date: Date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -23,8 +25,8 @@ function daysAgo(days: number) {
   return formatDateInput(new Date(Date.now() - days * MS_PER_DAY))
 }
 
-export function useMarketChangeRange(defaultPeriod = '1D') {
-  const [period, setPeriod] = useState(defaultPeriod)
+export function useMarketChangeRange(defaultPeriod: MarketChangePeriod = '1D') {
+  const [period, setPeriod] = useState<MarketChangePeriod>(defaultPeriod)
   const [customStartDate, setCustomStartDate] = useState(() => daysAgo(7))
   const [customEndDate, setCustomEndDate] = useState(() => formatDateInput(new Date()))
 
@@ -46,14 +48,14 @@ export function useMarketChangeRange(defaultPeriod = '1D') {
   }, [customEndDate, customStartDate, period])
 
   return {
-    period,
-    setPeriod,
+    period: period as MarketChangePeriod,
+    setPeriod: setPeriod as (value: MarketChangePeriod) => void,
     customStartDate,
     setCustomStartDate,
     customEndDate,
     setCustomEndDate,
     queryParams: resolved,
-  }
+  } as const
 }
 
 export function getMarketChangeRangeLabel(t: (key: string) => string, range: ReturnType<typeof useMarketChangeRange>) {

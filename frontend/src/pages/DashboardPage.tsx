@@ -6,6 +6,7 @@
   Wallet,
   ArrowUpRight,
   ArrowDownRight,
+  LucideIcon,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -27,8 +28,60 @@ import { selectIsAuthenticated } from '@/store/slices/authSlice'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { baseApi } from '@/store/api/baseApi'
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query'
 
-function StatCard({ title, value, change, icon: Icon, trend, loading }) {
+// Query options type matching RTK Query's internal type
+type QueryOptions = {
+  pollingInterval?: number
+  refetchOnFocus?: boolean
+  refetchOnReconnect?: boolean
+  skip?: boolean
+  [key: string]: unknown
+}
+
+// Type definitions based on API transformResponse
+interface Currency {
+  currencyCode: string
+  currencyName: string
+  sellingRate: number
+  buyingRate: number
+  changePercent?: number
+  isSimulated?: boolean
+}
+
+interface NewsItem {
+  id: number | string
+  title?: string | null
+  summary?: string | null
+  content?: string | null
+  publishedAt: string
+  sourceName?: string | null
+  isSimulated?: boolean | null
+}
+
+interface Stock {
+  symbol: string
+  name: string
+  currentPrice: number
+  changePercent: number
+  isSimulated?: boolean
+}
+
+interface Portfolio {
+  id: number | string
+  totalValue: number
+  totalCost: number
+  profitLoss: number
+}
+
+function StatCard({ title, value, change, icon: Icon, trend, loading }: {
+  title: string
+  value: string
+  change?: number
+  icon: LucideIcon
+  trend: 'up' | 'down' | 'neutral'
+  loading?: boolean
+}) {
   if (loading) {
     return (
       <Card>
@@ -75,7 +128,7 @@ function StatCard({ title, value, change, icon: Icon, trend, loading }) {
   )
 }
 
-function CurrencyWidget({ queryOptions }) {
+function CurrencyWidget({ queryOptions }: { queryOptions: QueryOptions }) {
   const { t } = useTranslation()
   const { data: currencies, isLoading } = useGetCurrenciesQuery(undefined, queryOptions)
 
@@ -156,13 +209,13 @@ function CurrencyWidget({ queryOptions }) {
   )
 }
 
-function NewsWidget({ queryOptions }) {
+function NewsWidget({ queryOptions }: { queryOptions: QueryOptions }) {
   const { t } = useTranslation()
   const { data, isLoading } = useGetNewsQuery(
     { page: 0, size: 5 },
     queryOptions
   )
-  const news = data?.data || []
+  const news: NewsItem[] = data?.data || []
 
   return (
     <Card>
@@ -186,7 +239,7 @@ function NewsWidget({ queryOptions }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {news.map((item) => {
+            {news.map((item: NewsItem) => {
               const simulationNews = isSimulationNews(item)
               return (
                 <Link
@@ -220,10 +273,10 @@ function NewsWidget({ queryOptions }) {
   )
 }
 
-function StocksWidget({ queryOptions }) {
+function StocksWidget({ queryOptions }: { queryOptions: QueryOptions }) {
   const { t } = useTranslation()
   const { data, isLoading } = useGetStocksQuery({ size: 5 }, queryOptions)
-  const stocks = data?.data || []
+  const stocks: Stock[] = data?.data || []
 
   return (
     <Card>
@@ -244,7 +297,7 @@ function StocksWidget({ queryOptions }) {
           </div>
         ) : (
           <div className="space-y-3">
-            {stocks.map((stock) => (
+            {stocks.map((stock: Stock) => (
               <Link
                 key={stock.symbol}
                 to={`/market/stocks/${stock.symbol}`}
@@ -335,30 +388,34 @@ export default function DashboardPage() {
   }
 
   // Calculate portfolio summary
-  const portfolioSummary = portfolios?.reduce((acc, portfolio) => ({
+  const portfolioSummary: { totalValue: number; totalProfitLoss: number; totalCost: number } | undefined = portfolios?.reduce((acc: { totalValue: number; totalProfitLoss: number; totalCost: number }, portfolio: Portfolio) => ({
     totalValue: acc.totalValue + (portfolio.totalValue || 0),
     totalProfitLoss: acc.totalProfitLoss + (portfolio.profitLoss || 0),
     totalCost: acc.totalCost + (portfolio.totalCost || 0),
   }), { totalValue: 0, totalProfitLoss: 0, totalCost: 0 })
 
-  const portfolioProfitLossPercent = portfolioSummary?.totalCost > 0
+  const portfolioProfitLossPercent = portfolioSummary?.totalCost && portfolioSummary.totalCost > 0
     ? (portfolioSummary.totalProfitLoss / portfolioSummary.totalCost) * 100
     : 0
 
   // Get USD rate
-  const usdRate = currencies?.find(c => c.currencyCode === 'USD')
+  const usdRate: Currency | undefined = currencies?.find((c: Currency) => c.currencyCode === 'USD')
+  const usdChangePercent = usdRate?.changePercent ?? 0
 
   // BIST 100 Logic
   let bistValue = '-'
-  let bistChange = undefined
-  let bistTrend = 'neutral'
+  let bistChange: number | undefined = undefined
+  let bistTrend: 'up' | 'down' | 'neutral' = 'neutral'
   let bistTitle = t('dashboard.widgets.bist100.title')
-  const bistErrorMessage = bistError?.data?.error?.message || bistError?.data?.message || ''
+  const bistErrorData = bistError as FetchBaseQueryError | undefined
+  const bistErrorMessage = (bistErrorData?.data as { error?: { message?: string }; message?: string } | undefined)?.error?.message
+    || (bistErrorData?.data as { message?: string } | undefined)?.message
+    || ''
 
   if (bistLoading) {
     // Keep loading state
-  } else if (bistError) {
-    if (bistError.status === 404 || bistErrorMessage.includes('Provider')) {
+  } else if (bistErrorData) {
+    if (bistErrorData.status === 404 || bistErrorMessage.includes('Provider')) {
       // Provider missing
       bistValue = t('dashboard.widgets.bist100.noProvider')
       bistTitle = `${t('dashboard.widgets.bist100.title')} (${t('dashboard.widgets.bist100.noSource')})`
@@ -405,9 +462,9 @@ export default function DashboardPage() {
         <StatCard
           title={t('dashboard.stats.usdTry')}
           value={usdRate ? formatCurrency(usdRate.sellingRate, 'TRY') : '-'}
-          change={usdRate?.changePercent}
+          change={usdChangePercent}
           icon={DollarSign}
-          trend={usdRate?.changePercent >= 0 ? 'up' : 'down'}
+          trend={usdChangePercent >= 0 ? 'up' : 'down'}
           loading={currenciesLoading}
         />
         <StatCard
@@ -432,8 +489,8 @@ export default function DashboardPage() {
               title={t('dashboard.stats.totalProfitLoss')}
               value={portfolioSummary ? formatCurrency(portfolioSummary.totalProfitLoss, 'TRY') : '-'}
               change={portfolioProfitLossPercent}
-              icon={portfolioSummary?.totalProfitLoss >= 0 ? TrendingUp : TrendingDown}
-              trend={portfolioSummary?.totalProfitLoss >= 0 ? 'up' : 'down'}
+              icon={(portfolioSummary?.totalProfitLoss ?? 0) >= 0 ? TrendingUp : TrendingDown}
+              trend={(portfolioSummary?.totalProfitLoss ?? 0) >= 0 ? 'up' : 'down'}
               loading={portfolioLoading}
             />
           </>

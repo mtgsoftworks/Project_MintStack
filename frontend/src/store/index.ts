@@ -24,4 +24,7 @@ export const store = configureStore({
 setupListeners(store.dispatch)
 
 // Export types for usage with useSelector and useDispatch
+export type RootState = ReturnType<typeof store.getState>
+export type AppDispatch = typeof store.dispatch
+
 export default store

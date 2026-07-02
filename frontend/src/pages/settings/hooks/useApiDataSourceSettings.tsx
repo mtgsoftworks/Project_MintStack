@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { FormEvent } from 'react'
 import { toast } from 'sonner'
 import {
     useGetApiConfigsQuery,
@@ -12,8 +13,26 @@ import {
     useBackfillMarketDataMutation
 } from '@/store/api/settingsApi'
 import { getApiErrorMessage } from '@/pages/settings/getApiErrorMessage'
+import type {
+    ApiKeyConfig,
+    ApiConfigFormData,
+    BackfillFormData,
+    DataPreference,
+    DataSourceType,
+    ProviderCapabilities
+} from '../types'
 
-const DEFAULT_FORM_DATA = {
+// API payload type that allows modelName to be undefined
+interface ApiConfigPayload {
+    provider: string
+    apiKey: string
+    secretKey: string
+    modelName: string | undefined
+    baseUrl: string
+    isActive: boolean
+}
+
+const DEFAULT_FORM_DATA: ApiConfigFormData = {
     provider: 'ALPHA_VANTAGE',
     apiKey: '',
     secretKey: '',
@@ -22,7 +41,7 @@ const DEFAULT_FORM_DATA = {
     isActive: true
 }
 
-const DEFAULT_BACKFILL_FORM = {
+const DEFAULT_BACKFILL_FORM: BackfillFormData = {
     days: '30',
     maxInstruments: '500',
     instrumentTypes: ['STOCK', 'FUND', 'CURRENCY'],
@@ -43,26 +62,37 @@ const PROVIDER_ORDER_FOR_ADD = [
     'OTHER'
 ]
 
-const requiresValidationForProvider = (provider) => !KEYLESS_PROVIDERS.has(provider)
+const requiresValidationForProvider = (provider: string): boolean => !KEYLESS_PROVIDERS.has(provider)
 
-const withProviderFallbackKey = (data) => {
+const withProviderFallbackKey = (data: ApiConfigFormData): ApiConfigPayload => {
     if ((data.provider === 'TCMB' || data.provider === 'TEFAS' || data.provider === 'BIST_DATASTORE' || data.provider === 'YAHOO_FINANCE') && !data.apiKey.trim()) {
         return {
-            ...data,
+            provider: data.provider,
             apiKey: data.provider === 'TCMB'
                 ? 'TCMB_PUBLIC'
                 : data.provider === 'TEFAS'
                     ? 'TEFAS_PUBLIC'
                     : data.provider === 'BIST_DATASTORE'
                         ? 'BIST_DATASTORE_PUBLIC'
-                        : 'YAHOO_DIRECT'
+                        : 'YAHOO_DIRECT',
+            secretKey: data.secretKey,
+            modelName: data.modelName,
+            baseUrl: data.baseUrl,
+            isActive: data.isActive
         }
     }
 
-    return data
+    return {
+        provider: data.provider,
+        apiKey: data.apiKey,
+        secretKey: data.secretKey,
+        modelName: data.modelName,
+        baseUrl: data.baseUrl,
+        isActive: data.isActive
+    }
 }
 
-const normalizePayload = (data) => {
+const normalizePayload = (data: ApiConfigFormData): ApiConfigPayload => {
     const payload = withProviderFallbackKey(data)
 
     if (KEYLESS_PROVIDERS.has(payload.provider)) {
@@ -88,7 +118,12 @@ const normalizePayload = (data) => {
     }
 }
 
-export function useApiDataSourceSettings({ t, isAdmin = false }) {
+interface UseApiDataSourceSettingsOptions {
+    t: (key: string, options?: Record<string, unknown>) => string
+    isAdmin?: boolean
+}
+
+export function useApiDataSourceSettings({ t, isAdmin = false }: UseApiDataSourceSettingsOptions) {
     const { data: configsData, isLoading: isLoadingConfigs } = useGetApiConfigsQuery(undefined, {
         skip: !isAdmin
     })
@@ -107,16 +142,16 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
     })
 
     const [isDialogOpen, setIsDialogOpen] = useState(false)
-    const [editingConfig, setEditingConfig] = useState(null)
+    const [editingConfig, setEditingConfig] = useState<ApiKeyConfig | null>(null)
     const [isValidated, setIsValidated] = useState(false)
     const [isRefreshingDataSources, setIsRefreshingDataSources] = useState(false)
-    const [formData, setFormData] = useState(DEFAULT_FORM_DATA)
-    const [backfillForm, setBackfillForm] = useState(DEFAULT_BACKFILL_FORM)
+    const [formData, setFormData] = useState<ApiConfigFormData>(DEFAULT_FORM_DATA)
+    const [backfillForm, setBackfillForm] = useState<BackfillFormData>(DEFAULT_BACKFILL_FORM)
 
-    const apiConfigs = isAdmin ? configsData?.data || [] : []
+    const apiConfigs: ApiKeyConfig[] = isAdmin ? configsData?.data || [] : []
     const isLoading = isAdmin && isLoadingConfigs
 
-    const getInitialProvider = () => {
+    const getInitialProvider = (): string => {
         const usedProviders = new Set(apiConfigs.map((config) => config.provider))
         return PROVIDER_ORDER_FOR_ADD.find((provider) => !usedProviders.has(provider)) || PROVIDER_ORDER_FOR_ADD[0]
     }
@@ -130,7 +165,7 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
         setIsValidated(false)
     }
 
-    const handleOpenDialog = (config = null) => {
+    const handleOpenDialog = (config: ApiKeyConfig | null = null) => {
         if (!isAdmin) {
             toast.error(t('common.forbidden'))
             return
@@ -153,7 +188,7 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
         setIsDialogOpen(true)
     }
 
-    const handleDialogOpenChange = (open) => {
+    const handleDialogOpenChange = (open: boolean) => {
         if (!open) {
             resetForm()
         }
@@ -161,7 +196,7 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
         setIsDialogOpen(open)
     }
 
-    const handleFormFieldChange = (field, value, resetValidation = false) => {
+    const handleFormFieldChange = (field: string, value: string | boolean, resetValidation = false) => {
         setFormData((previous) => ({
             ...previous,
             [field]: value
@@ -202,7 +237,7 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
         }
     }
 
-    const handleAddSubmit = async (event) => {
+    const handleAddSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
 
         if (!isAdmin) {
@@ -250,7 +285,7 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
         }
     }
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (id: number | string) => {
         if (!isAdmin) {
             toast.error(t('common.forbidden'))
             return
@@ -268,7 +303,7 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
         }
     }
 
-    const handleSelectDataPreference = async (dataType, provider) => {
+    const handleSelectDataPreference = async (dataType: DataSourceType, provider: string) => {
         if (!isAdmin) {
             toast.error(t('common.forbidden'))
             return
@@ -337,14 +372,14 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
         }
     }
 
-    const handleBackfillFormChange = (field, value) => {
+    const handleBackfillFormChange = (field: string, value: string) => {
         setBackfillForm((previous) => ({
             ...previous,
             [field]: value
         }))
     }
 
-    const handleToggleBackfillType = (type, checked) => {
+    const handleToggleBackfillType = (type: string, checked: boolean) => {
         setBackfillForm((previous) => {
             const current = new Set(previous.instrumentTypes)
             if (checked) {
@@ -392,8 +427,8 @@ export function useApiDataSourceSettings({ t, isAdmin = false }) {
 
     return {
         apiConfigs,
-        providerCapabilities: isAdmin ? capabilitiesData?.data || {} : {},
-        preferencesData: isAdmin ? preferencesData : { data: [] },
+        providerCapabilities: (isAdmin ? capabilitiesData?.data || {} : {}) as ProviderCapabilities,
+        preferencesData: isAdmin ? preferencesData : { data: [] as DataPreference[] },
         isLoading,
         isAdding,
         isTesting,

@@ -20,7 +20,7 @@ const ALERT_TYPES = [
 
 export default function AlertsPage() {
     const { t } = useTranslation()
-    const { data: alerts = [], isLoading, isFetching, error: alertsError, refetch } = useGetAlertsQuery()
+    const { data: alerts = [], isLoading, isFetching, error: alertsError, refetch } = useGetAlertsQuery(undefined)
     const [createAlert, { isLoading: creating }] = useCreateAlertMutation()
     const [deleteAlert, { isLoading: deleting }] = useDeleteAlertMutation()
     const [deactivateAlert, { isLoading: deactivating }] = useDeactivateAlertMutation()

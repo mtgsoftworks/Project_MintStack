@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -28,6 +28,16 @@ import {
 } from '@/store/api/marketApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
+interface PortfolioTradeDialogProps {
+  portfolioId: string | number
+  mode?: 'BUY' | 'SELL'
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  defaultSymbol?: string
+  defaultInstrumentId?: string | number | null
+  maxQuantity?: number | null
+}
+
 const ORDER_TYPES = {
   MARKET: 'MARKET',
   LIMIT: 'LIMIT',
@@ -48,7 +58,7 @@ export function PortfolioTradeDialog({
   defaultSymbol = '',
   defaultInstrumentId = null,
   maxQuantity = null,
-}) {
+}: PortfolioTradeDialogProps) {
   const { t } = useTranslation()
   const [symbol, setSymbol] = useState(defaultSymbol || '')
   const [selectedInstrumentId, setSelectedInstrumentId] = useState(defaultInstrumentId)
@@ -151,14 +161,14 @@ export function PortfolioTradeDialog({
     [isBuy, t]
   )
 
-  const handleInstrumentInputChange = (value) => {
+  const handleInstrumentInputChange = (value: string) => {
     const normalizedValue = value.toUpperCase().trim()
     setSymbol(normalizedValue)
     const match = instrumentBySymbol.get(normalizedValue)
     setSelectedInstrumentId(match?.id ?? null)
   }
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
 
     const parsedQuantity = parseFloat(quantity)
@@ -252,7 +262,7 @@ export function PortfolioTradeDialog({
               <Input
                 id="trade-symbol"
                 value={resolvedSymbol}
-                onChange={(event) => handleInstrumentInputChange(event.target.value)}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => handleInstrumentInputChange(event.target.value)}
                 list="trade-instruments-list"
                 placeholder={t('portfolioDetailPage.tradeDialog.symbolPlaceholder')}
                 required
@@ -283,7 +293,7 @@ export function PortfolioTradeDialog({
                 step="0.000001"
                 min="0.000001"
                 value={quantity}
-                onChange={(event) => setQuantity(event.target.value)}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => setQuantity(event.target.value)}
                 placeholder={t('portfolioDetailPage.addItemDialog.quantityPlaceholder')}
                 required
                 max={isSell && maxQuantity != null ? String(maxQuantity) : undefined}
@@ -322,7 +332,7 @@ export function PortfolioTradeDialog({
                   step="0.000001"
                   min="0.000001"
                   value={price}
-                  onChange={(event) => setPrice(event.target.value)}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => setPrice(event.target.value)}
                   placeholder={t('portfolioDetailPage.tradeDialog.pricePlaceholder')}
                 />
               </div>
@@ -337,7 +347,7 @@ export function PortfolioTradeDialog({
                   step="0.000001"
                   min="0.000001"
                   value={limitPrice}
-                  onChange={(event) => setLimitPrice(event.target.value)}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => setLimitPrice(event.target.value)}
                   placeholder={t('portfolioDetailPage.tradeDialog.limitPrice')}
                   required
                 />
@@ -353,7 +363,7 @@ export function PortfolioTradeDialog({
                   step="0.000001"
                   min="0.000001"
                   value={stopPrice}
-                  onChange={(event) => setStopPrice(event.target.value)}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => setStopPrice(event.target.value)}
                   placeholder={t('portfolioDetailPage.tradeDialog.stopPrice')}
                   required
                 />
@@ -366,7 +376,7 @@ export function PortfolioTradeDialog({
                 id="trade-date"
                 type="date"
                 value={tradeDate}
-                onChange={(event) => setTradeDate(event.target.value)}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => setTradeDate(event.target.value)}
                 required
               />
             </div>
@@ -376,7 +386,7 @@ export function PortfolioTradeDialog({
               <Input
                 id="trade-notes"
                 value={notes}
-                onChange={(event) => setNotes(event.target.value)}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => setNotes(event.target.value)}
                 placeholder={t('portfolioDetailPage.tradeDialog.optionalNote')}
               />
             </div>

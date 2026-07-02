@@ -26,6 +26,31 @@ import {
 } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
 import { AlertCircle, RefreshCw, Trash2 } from 'lucide-react'
+import type { NotificationSettings } from './types'
+
+export interface GeneralSettingsTabProps {
+    t: (key: string, options?: Record<string, unknown>) => string
+    i18n: { language?: string; changeLanguage: (lang: string) => void }
+    theme: string
+    currency: string
+    timezone: string
+    autoUpdate: boolean
+    refreshRate: number
+    notificationSettings: NotificationSettings
+    isClearingCache: boolean
+    isSavingSettings: boolean
+    onThemeChange: (value: string) => void
+    onLanguageChange: (value: string) => void
+    onCurrencyChange: (value: string) => void
+    onTimezoneChange: (value: string) => void
+    onAutoUpdateChange: (value: boolean) => void
+    onRefreshRateChange: (value: number) => void
+    onNotificationToggle: (key: keyof NotificationSettings, value: boolean) => void
+    isAdmin: boolean
+    onFullReset: () => void
+    onClearCache: () => void
+    onSaveSettings: () => void
+}
 
 export function GeneralSettingsTab({
     t,
@@ -49,7 +74,7 @@ export function GeneralSettingsTab({
     onFullReset,
     onClearCache,
     onSaveSettings
-}) {
+}: GeneralSettingsTabProps) {
     return (
         <>
             <Card>
@@ -163,7 +188,7 @@ export function GeneralSettingsTab({
                             </div>
                             <Switch
                                 checked={notificationSettings.priceAlerts}
-                                onCheckedChange={(value) => onNotificationToggle('priceAlerts', value)}
+                                onCheckedChange={(value: boolean) => onNotificationToggle('priceAlerts', value)}
                             />
                         </div>
                         <div className="flex items-center justify-between py-2 border-b">
@@ -173,7 +198,7 @@ export function GeneralSettingsTab({
                             </div>
                             <Switch
                                 checked={notificationSettings.portfolioUpdates}
-                                onCheckedChange={(value) => onNotificationToggle('portfolioUpdates', value)}
+                                onCheckedChange={(value: boolean) => onNotificationToggle('portfolioUpdates', value)}
                             />
                         </div>
                         <div className="flex items-center justify-between py-2 border-b">
@@ -183,7 +208,7 @@ export function GeneralSettingsTab({
                             </div>
                             <Switch
                                 checked={notificationSettings.emailNotifications}
-                                onCheckedChange={(value) => onNotificationToggle('emailNotifications', value)}
+                                onCheckedChange={(value: boolean) => onNotificationToggle('emailNotifications', value)}
                             />
                         </div>
                         <div className="flex items-center justify-between py-2 border-b">
@@ -193,7 +218,7 @@ export function GeneralSettingsTab({
                             </div>
                             <Switch
                                 checked={notificationSettings.pushNotifications}
-                                onCheckedChange={(value) => onNotificationToggle('pushNotifications', value)}
+                                onCheckedChange={(value: boolean) => onNotificationToggle('pushNotifications', value)}
                             />
                         </div>
                     </div>
@@ -236,7 +261,7 @@ export function GeneralSettingsTab({
                                         <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
                                             <p className="text-sm font-medium text-destructive">{t('settingsPage.dangerZone.reset.dialog.warningTitle')}</p>
                                             <ul className="text-sm text-muted-foreground mt-2 space-y-1 list-disc list-inside">
-                                                {t('settingsPage.dangerZone.reset.dialog.items', { returnObjects: true }).map((item) => (
+                                                {(t('settingsPage.dangerZone.reset.dialog.items', { returnObjects: true }) as unknown as string[]).map((item: string) => (
                                                     <li key={item}>{item}</li>
                                                 ))}
                                             </ul>

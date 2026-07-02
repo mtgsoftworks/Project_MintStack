@@ -34,7 +34,30 @@ import {
 } from '@/components/ui/table'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
+import type { ChangeEvent } from 'react'
 import { CheckCircle, Key, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import type { ApiKeyConfig, ApiConfigFormData, ProviderCapabilities, ProviderInfo } from './types'
+
+export interface ApiKeysTabProps {
+    t: (key: string, options?: Record<string, unknown>) => string
+    apiConfigs: ApiKeyConfig[]
+    providerCapabilities: ProviderCapabilities
+    isLoading: boolean
+    isDialogOpen: boolean
+    editingConfig: ApiKeyConfig | null
+    formData: ApiConfigFormData
+    isValidated: boolean
+    isAdding: boolean
+    isTesting: boolean
+    providerInfo: ProviderInfo
+    getProviderLabel: (provider: string) => string
+    onOpenDialog: (config: ApiKeyConfig | null) => void
+    onDialogOpenChange: (open: boolean) => void
+    onFormFieldChange: (field: string, value: string | boolean, resetValidation?: boolean) => void
+    onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
+    onTestKey: () => void
+    onDelete: (id: number | string) => void
+}
 
 export function ApiKeysTab({
     t,
@@ -55,7 +78,7 @@ export function ApiKeysTab({
     onSubmit,
     onTestKey,
     onDelete
-}) {
+}: ApiKeysTabProps) {
     const KEYLESS_PROVIDERS = new Set(['TCMB', 'TEFAS', 'BIST_DATASTORE', 'RSS', 'YAHOO_FINANCE'])
     const capabilities = providerCapabilities || {}
     const isKeylessProvider = KEYLESS_PROVIDERS.has(formData.provider)
@@ -175,7 +198,7 @@ export function ApiKeysTab({
                                     <div className="flex gap-2">
                                         <Input
                                             value={formData.apiKey}
-                                            onChange={(event) => onFormFieldChange('apiKey', event.target.value, true)}
+                                            onChange={(event: ChangeEvent<HTMLInputElement>) => onFormFieldChange('apiKey', event.target.value, true)}
                                             placeholder={editingConfig
                                                 ? t('settings.apiKeys.placeholder.unchanged')
                                                 : (isLlmProvider
@@ -223,7 +246,7 @@ export function ApiKeysTab({
                                     <Label>{t('settings.apiKeys.modelName')}</Label>
                                     <Input
                                         value={formData.modelName || ''}
-                                        onChange={(event) => onFormFieldChange('modelName', event.target.value)}
+                                        onChange={(event: ChangeEvent<HTMLInputElement>) => onFormFieldChange('modelName', event.target.value)}
                                         placeholder={t('settings.apiKeys.placeholder.modelName')}
                                     />
                                 </div>
@@ -235,7 +258,7 @@ export function ApiKeysTab({
                                     <Input
                                         type="password"
                                         value={formData.secretKey}
-                                        onChange={(event) => onFormFieldChange('secretKey', event.target.value)}
+                                        onChange={(event: ChangeEvent<HTMLInputElement>) => onFormFieldChange('secretKey', event.target.value)}
                                         placeholder={t('settings.apiKeys.placeholder.secretKey')}
                                     />
                                 </div>
@@ -246,7 +269,7 @@ export function ApiKeysTab({
                                     <Label>{t('settings.apiKeys.baseUrl')}</Label>
                                     <Input
                                         value={formData.baseUrl}
-                                        onChange={(event) => onFormFieldChange('baseUrl', event.target.value)}
+                                        onChange={(event: ChangeEvent<HTMLInputElement>) => onFormFieldChange('baseUrl', event.target.value)}
                                         placeholder={isLlmProvider
                                             ? t('settings.apiKeys.placeholder.llmBaseUrl')
                                             : t('settings.apiKeys.placeholder.baseUrl')}
@@ -257,7 +280,7 @@ export function ApiKeysTab({
                             <div className="flex items-center space-x-2 pt-2">
                                 <Switch
                                     checked={formData.isActive}
-                                    onCheckedChange={(value) => onFormFieldChange('isActive', value)}
+                                    onCheckedChange={(value: boolean) => onFormFieldChange('isActive', value)}
                                 />
                                 <Label>{t('settings.apiKeys.active')}</Label>
                             </div>

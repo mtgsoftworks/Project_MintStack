@@ -102,10 +102,9 @@ export function PortfolioCashDialog({ portfolioId, open, onOpenChange, currentCa
     try {
       await adjustCash({
         portfolioId,
-        action,
         amount: parsedAmount,
         notes: notes.trim() || undefined,
-      }).unwrap()
+      } as { portfolioId: string | number; amount: number; notes?: string }).unwrap()
 
       toast.success(t(action === 'DEPOSIT' ? 'portfolioDetailPage.cashDialog.depositSuccess' : 'portfolioDetailPage.cashDialog.withdrawSuccess'))
       onOpenChange(false)

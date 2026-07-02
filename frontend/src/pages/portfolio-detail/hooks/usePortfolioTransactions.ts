@@ -17,15 +17,12 @@ export function usePortfolioTransactions(portfolioId) {
         data: transactionsData,
         isLoading: transactionsLoading,
         isFetching: transactionsFetching
-    } = useGetPortfolioTransactionsQuery(
-        {
-            portfolioId,
-            page: transactionsPage,
-            size: 8,
-            orderStatus: orderStatus === 'ALL' ? undefined : orderStatus,
-        },
-        { skip: !portfolioId }
-    )
+    } = useGetPortfolioTransactionsQuery({
+        portfolioId: portfolioId as string | number,
+        page: transactionsPage,
+        size: 8,
+        orderStatus: orderStatus === 'ALL' ? undefined : orderStatus,
+    } as { portfolioId: string | number; page?: number; size?: number; orderStatus?: string }, { skip: !portfolioId })
 
     return {
         transactionsPage,

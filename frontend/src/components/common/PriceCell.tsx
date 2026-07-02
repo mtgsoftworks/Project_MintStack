@@ -1,27 +1,36 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
+
+interface PriceCellProps {
+    price: number
+    previousPrice?: number
+    changePercent: number
+    decimals?: number
+    showArrow?: boolean
+    className?: string
+}
 
 /**
  * Animated price cell that flashes on price change
  */
-export function PriceCell({ 
-    price, 
-    previousPrice, 
+export function PriceCell({
+    price,
+    previousPrice,
     changePercent,
     decimals = 2,
     showArrow = true,
-    className = '' 
-}) {
-    const [flash, setFlash] = useState(null)
-    
+    className = ''
+}: PriceCellProps): ReactNode {
+    const [flash, setFlash] = useState<'up' | 'down' | null>(null)
+
     useEffect(() => {
-        if (previousPrice && price !== previousPrice) {
-            setFlash(price > previousPrice ? 'up' : 'down')
-            const timer = setTimeout(() => setFlash(null), 1000)
-            return () => clearTimeout(timer)
-        }
+        if (!previousPrice || price === previousPrice) return
+
+        setFlash(price > previousPrice ? 'up' : 'down')
+        const timer = setTimeout(() => setFlash(null), 1000)
+        return () => clearTimeout(timer)
     }, [price, previousPrice])
-    
-    const formatPrice = (p) => {
+
+    const formatPrice = (p: number): string => {
         return new Intl.NumberFormat('tr-TR', {
             minimumFractionDigits: decimals,
             maximumFractionDigits: decimals

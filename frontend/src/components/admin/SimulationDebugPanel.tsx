@@ -4,13 +4,49 @@ import { Play, Pause, RefreshCw, Zap, Activity, Database, Wifi, Clock } from 'lu
 import RefreshButton from '@/components/common/RefreshButton'
 import api from '../../services/api'
 
+// Type definitions for simulation data
+interface SimulationConfig {
+    enabled: boolean
+    volatilityLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'EXTREME'
+    marketTrend: 'BULLISH' | 'NEUTRAL' | 'BEARISH'
+    updateIntervalSeconds: number
+}
+
+interface SimulationMetrics {
+    tickCount: number
+    stocks: number
+    bonds: number
+    funds: number
+    viop: number
+    currencies: number
+    indices: number
+    activeEvents: number
+    uptime: { seconds: number }
+}
+
+interface SimulationHealth {
+    status: 'HEALTHY' | 'DEGRADED' | 'UNHEALTHY'
+}
+
+interface SimulationEvent {
+    id: string
+    type: string
+    severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
+    description: string
+    remainingDurationTicks: number
+}
+
+interface VolatilityData {
+    regimeDistribution: Record<string, number>
+}
+
 export function SimulationDebugPanel() {
     const { t } = useTranslation()
-    const [config, setConfig] = useState(null)
-    const [metrics, setMetrics] = useState(null)
-    const [health, setHealth] = useState(null)
-    const [events, setEvents] = useState([])
-    const [volatility, setVolatility] = useState(null)
+    const [config, setConfig] = useState<SimulationConfig | null>(null)
+    const [metrics, setMetrics] = useState<SimulationMetrics | null>(null)
+    const [health, setHealth] = useState<SimulationHealth | null>(null)
+    const [events, setEvents] = useState<SimulationEvent[]>([])
+    const [volatility, setVolatility] = useState<VolatilityData | null>(null)
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState(false)
     const [refreshing, setRefreshing] = useState(false)
@@ -63,7 +99,7 @@ export function SimulationDebugPanel() {
         }
     }
     
-    const triggerEvent = async (eventType) => {
+    const triggerEvent = async (eventType: string) => {
         try {
             setUpdating(true)
             await api.post(`/simulation/events/trigger?eventType=${eventType}`)
@@ -88,7 +124,7 @@ export function SimulationDebugPanel() {
         }
     }
     
-    const updateConfig = async (updates) => {
+    const updateConfig = async (updates: Partial<SimulationConfig>) => {
         try {
             setUpdating(true)
             await api.post('/simulation/config', { ...config, ...updates })
@@ -100,7 +136,7 @@ export function SimulationDebugPanel() {
         }
     }
     
-    const formatDuration = (duration) => {
+    const formatDuration = (duration: { seconds: number } | null | undefined) => {
         if (!duration) return '0s'
         const hours = Math.floor(duration.seconds / 3600)
         const minutes = Math.floor((duration.seconds % 3600) / 60)
@@ -191,7 +227,7 @@ export function SimulationDebugPanel() {
                     title={t('simulation.metrics.activeEvents')} 
                     value={metrics?.activeEvents || 0} 
                     icon={Zap}
-                    highlight={metrics?.activeEvents > 0}
+                    highlight={(metrics?.activeEvents ?? 0) > 0}
                 />
                 <StatusCard 
                     title={t('simulation.metrics.uptime')} 
@@ -215,7 +251,7 @@ export function SimulationDebugPanel() {
                         </label>
                         <select 
                             value={config?.volatilityLevel || 'MEDIUM'}
-                            onChange={(e) => updateConfig({ volatilityLevel: e.target.value })}
+                            onChange={(e) => updateConfig({ volatilityLevel: e.target.value as 'LOW' | 'MEDIUM' | 'HIGH' | 'EXTREME' })}
                             disabled={updating}
                             className="w-full rounded-lg border border-input bg-background p-2 text-foreground focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500"
                         >
@@ -231,7 +267,7 @@ export function SimulationDebugPanel() {
                         </label>
                         <select 
                             value={config?.marketTrend || 'NEUTRAL'}
-                            onChange={(e) => updateConfig({ marketTrend: e.target.value })}
+                            onChange={(e) => updateConfig({ marketTrend: e.target.value as 'BULLISH' | 'NEUTRAL' | 'BEARISH' })}
                             disabled={updating}
                             className="w-full rounded-lg border border-input bg-background p-2 text-foreground focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500"
                         >
@@ -335,7 +371,15 @@ export function SimulationDebugPanel() {
     )
 }
 
-function StatusCard({ title, value, icon: Icon, highlight = false, valueClassName = '' }: any) {
+interface StatusCardProps {
+    title: string
+    value: string | number
+    icon: React.ComponentType<{ className?: string }>
+    highlight?: boolean
+    valueClassName?: string
+}
+
+function StatusCard({ title, value, icon: Icon, highlight = false, valueClassName = '' }: StatusCardProps) {
     return (
         <div className={`rounded-xl border border-border bg-card p-4 shadow-sm ${highlight ? 'ring-2 ring-yellow-400' : ''}`}>
             <div className="flex items-center gap-2 mb-2">

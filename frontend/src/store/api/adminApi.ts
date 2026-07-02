@@ -1,43 +1,49 @@
 import { baseApi } from './baseApi'
 
+interface AdminQueryParams {
+  page?: number
+  size?: number
+  query?: string
+}
+
 export const adminApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getAdminDashboard: builder.query({
       query: () => '/admin/dashboard',
-      transformResponse: (response) => response.data,
+      transformResponse: (response: any) => response.data,
       providesTags: ['AdminDashboard'],
     }),
     getAdminUsers: builder.query({
-      query: ({ page = 0, size = 20 } = {}) => ({
+      query: (params: AdminQueryParams = {}) => ({
         url: '/admin/users',
-        params: { page, size },
+        params: { page: params.page ?? 0, size: params.size ?? 20 },
       }),
-      transformResponse: (response) => response.data,
-      providesTags: (result) =>
+      transformResponse: (response: any) => response.data,
+      providesTags: (result: any) =>
         result?.content
           ? [
-              ...result.content.map(({ id }) => ({ type: 'AdminUsers', id })),
+              ...result.content.map(({ id }: { id: string }) => ({ type: 'AdminUsers', id })),
               { type: 'AdminUsers', id: 'LIST' },
             ]
           : [{ type: 'AdminUsers', id: 'LIST' }],
     }),
     searchAdminUsers: builder.query({
-      query: ({ query, page = 0, size = 20 }) => ({
+      query: (params: AdminQueryParams) => ({
         url: '/admin/users/search',
-        params: { query, page, size },
+        params: { query: params.query, page: params.page ?? 0, size: params.size ?? 20 },
       }),
-      transformResponse: (response) => response.data,
+      transformResponse: (response: any) => response.data,
       providesTags: [{ type: 'AdminUsers', id: 'LIST' }],
     }),
     activateAdminUser: builder.mutation({
-      query: (id) => ({
+      query: (id: string) => ({
         url: `/admin/users/${id}/activate`,
         method: 'PUT',
       }),
       invalidatesTags: ['AdminDashboard', { type: 'AdminUsers', id: 'LIST' }],
     }),
     deactivateAdminUser: builder.mutation({
-      query: (id) => ({
+      query: (id: string) => ({
         url: `/admin/users/${id}/deactivate`,
         method: 'PUT',
       }),

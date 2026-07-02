@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { toast } from 'sonner'
+import { skipToken } from '@reduxjs/toolkit/query/react'
 import {
     selectTheme,
     setTheme,
@@ -18,15 +19,21 @@ import { useClearCacheMutation, useDeleteMarketDataMutation } from '@/store/api/
 import { useDeletePortfolioMutation, useGetPortfoliosQuery } from '@/store/api/portfolioApi'
 import { useDeleteWatchlistMutation, useGetWatchlistsQuery } from '@/store/api/watchlistApi'
 import { useDeleteAlertMutation, useGetAlertsQuery } from '@/store/api/alertsApi'
+import type { NotificationSettings } from '../types'
 
-const DEFAULT_NOTIFICATION_SETTINGS = {
+const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
     priceAlerts: true,
     portfolioUpdates: true,
     emailNotifications: true,
     pushNotifications: false
 }
 
-export function useGeneralSettings({ t, i18n }) {
+interface UseGeneralSettingsOptions {
+    t: (key: string, options?: Record<string, unknown>) => string
+    i18n: { language?: string; changeLanguage: (lang: string) => void }
+}
+
+export function useGeneralSettings({ t, i18n }: UseGeneralSettingsOptions) {
     const dispatch = useDispatch()
 
     const theme = useSelector(selectTheme)
@@ -35,18 +42,18 @@ export function useGeneralSettings({ t, i18n }) {
     const autoUpdate = useSelector(selectAutoUpdate)
     const refreshRate = useSelector(selectRefreshRate)
 
-    const { data: profile } = useGetProfileQuery()
+    const { data: profile } = useGetProfileQuery(skipToken)
     const [updateProfile] = useUpdateProfileMutation()
-    const [clearCache, { isLoading: isClearingCache }] = useClearCacheMutation()
+    const [clearCache, { isLoading: isClearingCache }] = useClearCacheMutation(undefined)
     const [deleteMarketData] = useDeleteMarketDataMutation()
-    const { data: portfolios = [] } = useGetPortfoliosQuery()
-    const { data: watchlists = [] } = useGetWatchlistsQuery()
-    const { data: alerts = [] } = useGetAlertsQuery()
+    const { data: portfolios = [] } = useGetPortfoliosQuery(skipToken)
+    const { data: watchlists = [] } = useGetWatchlistsQuery(skipToken)
+    const { data: alerts = [] } = useGetAlertsQuery(skipToken)
     const [deletePortfolio] = useDeletePortfolioMutation()
     const [deleteWatchlist] = useDeleteWatchlistMutation()
     const [deleteAlert] = useDeleteAlertMutation()
 
-    const [notificationSettings, setNotificationSettings] = useState(DEFAULT_NOTIFICATION_SETTINGS)
+    const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS)
     const [isSavingSettings, setIsSavingSettings] = useState(false)
 
     useEffect(() => {
@@ -62,7 +69,7 @@ export function useGeneralSettings({ t, i18n }) {
         })
     }, [profile])
 
-    const handleNotificationToggle = async (key, value) => {
+    const handleNotificationToggle = async (key: keyof NotificationSettings, value: boolean) => {
         const previousSettings = notificationSettings
         const nextSettings = { ...previousSettings, [key]: value }
 
@@ -77,8 +84,8 @@ export function useGeneralSettings({ t, i18n }) {
         }
     }
 
-    const handleThemeChange = (value) => {
-        dispatch(setTheme(value))
+    const handleThemeChange = (value: string) => {
+        dispatch(setTheme(value as 'light' | 'dark'))
 
         if (value === 'dark') {
             document.documentElement.classList.add('dark')
@@ -92,46 +99,48 @@ export function useGeneralSettings({ t, i18n }) {
         toast.success(t('settingsPage.appearance.themeChanged'))
     }
 
-    const handleLanguageChange = (value) => {
+    const handleLanguageChange = (value: string) => {
         i18n.changeLanguage(value)
         toast.success(t('settingsPage.appearance.languageChanged', {
             language: t(`settingsPage.appearance.languageOptions.${value}`)
         }))
     }
 
-    const handleCurrencyChange = (value) => {
-        dispatch(setCurrency(value))
+    const handleCurrencyChange = (value: string) => {
+        dispatch(setCurrency(value as 'TRY' | 'USD' | 'EUR' | 'GBP'))
         toast.success(t('success.saved'))
     }
 
-    const handleTimezoneChange = (value) => {
+    const handleTimezoneChange = (value: string) => {
         dispatch(setTimezone(value))
         toast.success(t('success.saved'))
     }
 
-    const handleAutoUpdateChange = (value) => {
+    const handleAutoUpdateChange = (value: boolean) => {
         dispatch(setAutoUpdate(value))
         toast.success(t('success.saved'))
     }
 
-    const handleRefreshRateChange = (value) => {
+    const handleRefreshRateChange = (value: number) => {
         dispatch(setRefreshRate(value))
         toast.success(t('success.saved'))
     }
 
     const handleClearCache = async () => {
         try {
-            const result = await clearCache().unwrap()
-
             if ('caches' in window) {
                 const cacheNames = await caches.keys()
                 await Promise.all(cacheNames.map((name) => caches.delete(name)))
             }
 
-            const backendCaches = result.data?.clearedCaches || 0
-            toast.success(t('settingsPage.cache.toastSuccessDetailed', {
-                count: backendCaches
-            }))
+            const result = await clearCache(undefined)
+            if (result.data && 'clearedCaches' in result.data) {
+                toast.success(t('settingsPage.cache.toastSuccessDetailed', {
+                    count: (result.data as { clearedCaches: number }).clearedCaches
+                }))
+            } else {
+                toast.success(t('settingsPage.cache.toastSuccess'))
+            }
         } catch {
             if ('caches' in window) {
                 const cacheNames = await caches.keys()
@@ -158,7 +167,7 @@ export function useGeneralSettings({ t, i18n }) {
                 await deletePortfolio(portfolio.id).unwrap()
             }
         } catch (error) {
-            console.warn('Portfolio reset skipped:', error?.message)
+            console.warn('Portfolio reset skipped:', (error as { message?: string })?.message)
         }
 
         try {
@@ -166,7 +175,7 @@ export function useGeneralSettings({ t, i18n }) {
                 await deleteWatchlist(watchlist.id).unwrap()
             }
         } catch (error) {
-            console.warn('Watchlist reset skipped:', error?.message)
+            console.warn('Watchlist reset skipped:', (error as { message?: string })?.message)
         }
 
         try {
@@ -174,13 +183,13 @@ export function useGeneralSettings({ t, i18n }) {
                 await deleteAlert(alert.id).unwrap()
             }
         } catch (error) {
-            console.warn('Alerts reset skipped:', error?.message)
+            console.warn('Alerts reset skipped:', (error as { message?: string })?.message)
         }
 
         try {
-            await deleteMarketData().unwrap()
+            await deleteMarketData(undefined)
         } catch (error) {
-            console.warn('Market data reset skipped:', error?.message)
+            console.warn('Market data reset skipped:', (error as { message?: string })?.message)
         }
 
         localStorage.clear()

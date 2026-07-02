@@ -2,11 +2,32 @@ import { useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { cn } from '@/lib/utils'
 
+/** Column definition for VirtualTable */
+export interface TableColumn<T = Record<string, unknown>> {
+  header: React.ReactNode
+  accessor: keyof T
+  width?: string | number
+  className?: string
+  render?: (item: T, index: number) => React.ReactNode
+}
+
+/** Props for VirtualTable component */
+export interface VirtualTableProps<T = Record<string, unknown>> {
+  data: T[]
+  columns: TableColumn<T>[]
+  rowHeight?: number
+  containerHeight?: number
+  renderRow?: (item: T, index: number) => React.ReactNode
+  renderEmptyState?: () => React.ReactNode
+  className?: string
+  [key: string]: unknown
+}
+
 /**
  * VirtualTable component for rendering large tables efficiently
  * Only renders visible rows for better performance with 500+ items
  */
-export function VirtualTable({
+export function VirtualTable<T extends Record<string, unknown>>({
   data,
   columns,
   rowHeight = 56,
@@ -15,8 +36,8 @@ export function VirtualTable({
   renderEmptyState,
   className,
   ...props
-}) {
-  const parentRef = useRef(null)
+}: VirtualTableProps<T>) {
+  const parentRef = useRef<HTMLDivElement>(null)
 
   const virtualizer = useVirtualizer({
     count: data.length,
@@ -86,7 +107,9 @@ export function VirtualTable({
                       className={cn("flex-shrink-0 truncate", column.className)}
                       style={{ width: column.width }}
                     >
-                      {column.render ? column.render(item, virtualRow.index) : item[column.accessor]}
+                      {column.render
+                        ? column.render(item, virtualRow.index)
+                        : String(item[column.accessor] ?? '')}
                     </div>
                   ))
                 )}
@@ -99,11 +122,24 @@ export function VirtualTable({
   )
 }
 
+/** Props for VirtualGrid component */
+export interface VirtualGridProps<T = Record<string, unknown>> {
+  data: T[]
+  renderItem: (item: T, index: number) => React.ReactNode
+  renderEmptyState?: () => React.ReactNode
+  itemHeight?: number
+  columns?: number
+  gap?: number
+  containerHeight?: number
+  className?: string
+  [key: string]: unknown
+}
+
 /**
  * VirtualGrid component for rendering large grids efficiently
  * Useful for news cards, image galleries, etc.
  */
-export function VirtualGrid({
+export function VirtualGrid<T extends Record<string, unknown>>({
   data,
   renderItem,
   renderEmptyState,
@@ -113,8 +149,8 @@ export function VirtualGrid({
   containerHeight = 800,
   className,
   ...props
-}) {
-  const parentRef = useRef(null)
+}: VirtualGridProps<T>) {
+  const parentRef = useRef<HTMLDivElement>(null)
 
   // Calculate rows based on columns
   const rowCount = Math.ceil(data.length / columns)

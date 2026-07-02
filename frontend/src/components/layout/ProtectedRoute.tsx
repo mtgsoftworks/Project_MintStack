@@ -3,8 +3,14 @@ import { useSelector } from 'react-redux'
 import { selectIsAuthenticated, selectIsInitialized, selectRoles } from '@/store/slices/authSlice'
 import { Loading } from './Loading'
 import { useTranslation } from 'react-i18next'
+import type { ReactNode } from 'react'
 
-export function ProtectedRoute({ children, requiredRoles = [] }) {
+interface ProtectedRouteProps {
+  children: ReactNode
+  requiredRoles?: string[]
+}
+
+export function ProtectedRoute({ children, requiredRoles = [] }: ProtectedRouteProps) {
   const location = useLocation()
   const isAuthenticated = useSelector(selectIsAuthenticated)
   const isInitialized = useSelector(selectIsInitialized)
@@ -32,7 +38,7 @@ export function ProtectedRoute({ children, requiredRoles = [] }) {
   return children
 }
 
-export function AdminRoute({ children }) {
+export function AdminRoute({ children }: { children: ReactNode }) {
   return (
     <ProtectedRoute requiredRoles={['admin']}>
       {children}

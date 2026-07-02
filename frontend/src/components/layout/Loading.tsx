@@ -2,12 +2,21 @@ import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 
-export function Loading({ 
-  size = 'default', 
+type LoadingSize = 'sm' | 'default' | 'lg'
+
+interface LoadingProps {
+  size?: LoadingSize
+  text?: string
+  fullScreen?: boolean
+  className?: string
+}
+
+export function Loading({
+  size = 'default',
   text,
   fullScreen = false,
   className = '',
-}: any) {
+}: LoadingProps) {
   const { t } = useTranslation()
   const resolvedText = text ?? t('common.loading')
   const sizeClasses = {

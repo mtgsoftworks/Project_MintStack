@@ -3,7 +3,7 @@ import { useGetPortfoliosQuery } from '@/store/api/portfolioApi'
 
 export function useDefaultPortfolioSelection() {
   const [selectedPortfolioId, setSelectedPortfolioId] = useState('')
-  const { data: portfolios = [] } = useGetPortfoliosQuery()
+  const { data: portfolios = [] } = useGetPortfoliosQuery(undefined)
 
   useEffect(() => {
     if (!selectedPortfolioId && portfolios.length > 0) {

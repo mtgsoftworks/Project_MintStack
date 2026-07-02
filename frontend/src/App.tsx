@@ -2,6 +2,7 @@
 import { useEffect, useRef, useCallback, Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
+import type { AppDispatch } from '@/store'
 import Keycloak from 'keycloak-js'
 import { setAuth, setInitialized, selectIsAuthenticated } from '@/store/slices/authSlice'
 import { setKeycloakInstance } from '@/services/api'
@@ -11,6 +12,7 @@ import { marketApi } from '@/store/api/marketApi'
 import { selectAutoUpdate, selectRefreshRate, selectTheme } from '@/store/slices/uiSlice'
 import { AdminRoute, Layout, ProtectedRoute } from '@/components/layout'
 import websocketService from '@/services/websocketService'
+import type { TagDescription } from '@reduxjs/toolkit/query'
 
 // Lazy-loaded Pages (code splitting)
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
@@ -58,6 +60,8 @@ if (typeof window !== 'undefined') {
 
 export { keycloak }
 
+type MarketTag = TagDescription<'Currencies' | 'Stocks' | 'Bonds' | 'Funds' | 'Viop' | 'Indices' | 'Portfolios'>
+
 const MARKET_REFRESH_DATA_TYPES = [
   'CURRENCY_RATES',
   'BIST_STOCKS',
@@ -65,9 +69,9 @@ const MARKET_REFRESH_DATA_TYPES = [
   'BONDS',
   'FUNDS',
   'VIOP',
-]
+] as const
 
-const MARKET_REFRESH_TAGS = [
+const MARKET_REFRESH_TAGS: MarketTag[] = [
   'Currencies',
   'Stocks',
   'Bonds',
@@ -78,14 +82,14 @@ const MARKET_REFRESH_TAGS = [
 ]
 
 function App() {
-  const dispatch = useDispatch()
+  const dispatch = useDispatch<AppDispatch>()
   const isAuthenticated = useSelector(selectIsAuthenticated)
   const autoUpdate = useSelector(selectAutoUpdate)
   const refreshRate = useSelector(selectRefreshRate)
   const theme = useSelector(selectTheme)
-  const dataRefreshIntervalRef = useRef(null)
+  const dataRefreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const dataRefreshInFlightRef = useRef(false)
-  const tokenRefreshIntervalRef = useRef(null)
+  const tokenRefreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Apply theme class to document root
   useEffect(() => {
@@ -101,15 +105,16 @@ function App() {
 
     dataRefreshInFlightRef.current = true
     try {
-      await dispatch(
+      const result = await dispatch(
         marketApi.endpoints.refreshMarketData.initiate(
           { dataTypes: MARKET_REFRESH_DATA_TYPES },
           { track: false }
         )
       ).unwrap()
+      void result
       dispatch(baseApi.util.invalidateTags(MARKET_REFRESH_TAGS))
-    } catch (error) {
-      console.warn('[App] Scheduled backend market refresh failed:', error)
+    } catch {
+      console.warn('[App] Scheduled backend market refresh failed')
       dispatch(baseApi.util.invalidateTags(MARKET_REFRESH_TAGS))
     } finally {
       if (websocketService.isConnected) {
@@ -194,12 +199,13 @@ function App() {
             roles: keycloak.tokenParsed?.realm_access?.roles || [],
           }
 
+          const token = keycloak.token ?? null
           dispatch(setAuth({
-            token: keycloak.token,
+            token,
             user,
             roles: user.roles,
           }))
-          websocketService.setAuthToken(keycloak.token)
+          websocketService.setAuthToken(token)
 
           // Connect WebSocket for real-time price updates
           try {
@@ -214,9 +220,10 @@ function App() {
               .updateToken(30)
               .then((refreshed) => {
                 if (refreshed) {
-                  websocketService.setAuthToken(keycloak.token)
+                  const newToken = keycloak.token ?? null
+                  websocketService.setAuthToken(newToken)
                   dispatch(setAuth({
-                    token: keycloak.token,
+                    token: newToken,
                     user,
                     roles: user.roles,
                   }))

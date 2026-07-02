@@ -24,7 +24,7 @@ export function useInstrumentOptions() {
   const { data: bondsResponse, isFetching: bondsFetching } = useGetBondsQuery({ page: 0, size: 1000, sort: 'symbol,asc' })
   const { data: fundsResponse, isFetching: fundsFetching } = useGetFundsQuery({ page: 0, size: 5000, sort: 'symbol,asc' })
   const { data: viopResponse, isFetching: viopFetching } = useGetViopQuery({ page: 0, size: 1000, sort: 'symbol,asc' })
-  const { data: currencies = [], isFetching: currenciesFetching } = useGetCurrenciesQuery()
+  const { data: currencies = [], isFetching: currenciesFetching } = useGetCurrenciesQuery({})
 
   const instrumentOptions = useMemo(() => {
     const options = new Map()

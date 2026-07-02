@@ -26,8 +26,41 @@ import {
 import { getApiErrorMessage } from '@/pages/settings/getApiErrorMessage'
 import { useInstrumentOptions } from '@/hooks/useInstrumentOptions'
 
-const DEFAULT_COLUMNS = ['SYMBOL', 'NAME', 'TYPE', 'PRICE', 'CHANGE', 'NOTES']
-const OPTIONAL_COLUMNS = [
+const DEFAULT_COLUMNS = ['SYMBOL', 'NAME', 'TYPE', 'PRICE', 'CHANGE', 'NOTES'] as const
+
+interface WatchlistItem {
+  id: string
+  symbol: string
+  name?: string
+  type?: string
+  displayOrder?: number | string
+  notes?: string | null
+  addedAt?: string
+  currentPrice?: string | number
+  previousClose?: string | number
+  changePercent?: number
+}
+
+interface Watchlist {
+  id: string | number
+  name: string
+  description?: string
+  tag?: string
+  notes?: string
+  isDefault?: boolean
+  itemCount?: number
+  columnPreferences?: string[]
+  items?: WatchlistItem[]
+}
+
+interface WatchlistFormState {
+  name: string
+  description: string
+  tag: string
+  notes: string
+  columnPreferences: string[]
+}
+const OPTIONAL_COLUMNS: { key: string; labelKey: string }[] = [
   { key: 'TYPE', labelKey: 'watchlist.columns.type' },
   { key: 'PRICE', labelKey: 'watchlist.columns.price' },
   { key: 'CHANGE', labelKey: 'watchlist.columns.change' },
@@ -37,31 +70,31 @@ const OPTIONAL_COLUMNS = [
 
 export default function WatchlistPage() {
   const { t } = useTranslation()
-  const [selectedWatchlistId, setSelectedWatchlistId] = useState(null)
+  const [selectedWatchlistId, setSelectedWatchlistId] = useState<string | number | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newInstrumentSymbol, setNewInstrumentSymbol] = useState('')
-  const [draggedItemId, setDraggedItemId] = useState(null)
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null)
   const [newWatchlistForm, setNewWatchlistForm] = useState({
     name: '',
     description: '',
     tag: '',
     notes: '',
   })
-  const [metadataForm, setMetadataForm] = useState({
+  const [metadataForm, setMetadataForm] = useState<WatchlistFormState>({
     name: '',
     description: '',
     tag: '',
     notes: '',
-    columnPreferences: DEFAULT_COLUMNS,
+    columnPreferences: [...DEFAULT_COLUMNS],
   })
-  const [itemNotesDraft, setItemNotesDraft] = useState({})
+  const [itemNotesDraft, setItemNotesDraft] = useState<Record<string, string>>({})
 
   const {
-    data: watchlists = [],
+    data: watchlists = [] as Watchlist[],
     isLoading: watchlistsLoading,
     error: watchlistsError,
     refetch: refetchWatchlists,
-  } = useGetWatchlistsQuery()
+  } = useGetWatchlistsQuery(undefined)
 
   const {
     data: selectedWatchlist,
@@ -69,9 +102,10 @@ export default function WatchlistPage() {
     isFetching: watchlistDetailFetching,
     error: watchlistDetailError,
     refetch: refetchWatchlistDetail,
-  } = useGetWatchlistQuery(selectedWatchlistId, {
-    skip: !selectedWatchlistId,
-  })
+  } = useGetWatchlistQuery(
+    (selectedWatchlistId ?? '') as string | number,
+    { skip: !selectedWatchlistId }
+  )
 
   const [createWatchlist, { isLoading: creating }] = useCreateWatchlistMutation()
   const [updateWatchlist, { isLoading: updatingWatchlist }] = useUpdateWatchlistMutation()
@@ -93,7 +127,7 @@ export default function WatchlistPage() {
       return
     }
 
-    const selectionExists = watchlists.some((list) => list.id === selectedWatchlistId)
+    const selectionExists = watchlists.some((list: Watchlist) => list.id === selectedWatchlistId)
     if (!selectedWatchlistId || !selectionExists) {
       setSelectedWatchlistId(watchlists[0].id)
     }
@@ -114,7 +148,7 @@ export default function WatchlistPage() {
         : DEFAULT_COLUMNS,
     })
 
-    const drafts = {}
+    const drafts: Record<string, string> = {}
     for (const item of selectedWatchlist.items || []) {
       drafts[item.id] = item.notes || ''
     }
@@ -136,7 +170,7 @@ export default function WatchlistPage() {
     })
   }, [selectedWatchlist])
 
-  const hasColumn = (columnKey) => metadataForm.columnPreferences.includes(columnKey)
+  const hasColumn = (columnKey: string) => metadataForm.columnPreferences.includes(columnKey)
 
   const handleCreateWatchlist = async () => {
     const name = newWatchlistForm.name.trim()
@@ -194,7 +228,7 @@ export default function WatchlistPage() {
     }
   }
 
-  const handleDeleteWatchlist = async (id) => {
+  const handleDeleteWatchlist = async (id: string | number) => {
     if (!window.confirm(t('common.confirm'))) {
       return
     }
@@ -210,13 +244,14 @@ export default function WatchlistPage() {
     }
   }
 
-  const handleRemoveItem = async (symbol) => {
+  const handleRemoveItem = async (symbol: string) => {
     if (!selectedWatchlistId) {
       return
     }
+    const watchlistId: string | number = selectedWatchlistId
 
     try {
-      await removeWatchlistInstrument({ watchlistId: selectedWatchlistId, symbol }).unwrap()
+      await (removeWatchlistInstrument as Function)({ watchlistId, symbol }).unwrap()
     } catch (error) {
       toast.error(getApiErrorMessage(error, t('common.error')))
     }
@@ -228,9 +263,10 @@ export default function WatchlistPage() {
       toast.error(t('watchlist.selectListAndSymbol'))
       return
     }
+    const watchlistId: string | number = selectedWatchlistId
 
     try {
-      await addWatchlistInstrument({ watchlistId: selectedWatchlistId, symbol }).unwrap()
+      await (addWatchlistInstrument as Function)({ watchlistId, symbol }).unwrap()
       setNewInstrumentSymbol('')
       toast.success(t('watchlist.assetAdded'))
     } catch (error) {
@@ -238,9 +274,9 @@ export default function WatchlistPage() {
     }
   }
 
-  const handleToggleColumn = (columnKey, enabled) => {
+  const handleToggleColumn = (columnKey: string, enabled: boolean) => {
     setMetadataForm((previous) => {
-      const current = previous.columnPreferences || []
+      const current = [...previous.columnPreferences]
       if (enabled) {
         if (current.includes(columnKey)) {
           return previous
@@ -258,17 +294,18 @@ export default function WatchlistPage() {
     })
   }
 
-  const handleItemNoteChange = (itemId, value) => {
+  const handleItemNoteChange = (itemId: string, value: string) => {
     setItemNotesDraft((previous) => ({
       ...previous,
       [itemId]: value,
     }))
   }
 
-  const handleItemNoteBlur = async (item) => {
+  const handleItemNoteBlur = async (item: WatchlistItem) => {
     if (!selectedWatchlistId) {
       return
     }
+    const watchlistId: string | number = selectedWatchlistId
 
     const draftValue = (itemNotesDraft[item.id] ?? '').trim()
     const currentValue = (item.notes || '').trim()
@@ -278,8 +315,8 @@ export default function WatchlistPage() {
     }
 
     try {
-      await updateWatchlistItem({
-        watchlistId: selectedWatchlistId,
+      await (updateWatchlistItem as Function)({
+        watchlistId,
         itemId: item.id,
         notes: draftValue || null,
       }).unwrap()
@@ -289,11 +326,12 @@ export default function WatchlistPage() {
     }
   }
 
-  const handleRowDrop = async (targetItemId) => {
+  const handleRowDrop = async (targetItemId: string) => {
     if (!selectedWatchlistId || !draggedItemId || draggedItemId === targetItemId) {
       setDraggedItemId(null)
       return
     }
+    const watchlistId: string | number = selectedWatchlistId
 
     const fromIndex = orderedItems.findIndex((item) => item.id === draggedItemId)
     const toIndex = orderedItems.findIndex((item) => item.id === targetItemId)
@@ -308,8 +346,8 @@ export default function WatchlistPage() {
     reorderedItems.splice(toIndex, 0, movedItem)
 
     try {
-      await reorderWatchlistItems({
-        watchlistId: selectedWatchlistId,
+      await (reorderWatchlistItems as Function)({
+        watchlistId,
         itemIds: reorderedItems.map((item) => item.id),
       }).unwrap()
     } catch (error) {
@@ -319,7 +357,7 @@ export default function WatchlistPage() {
     }
   }
 
-  const getChangePercent = (item) => {
+  const getChangePercent = (item: WatchlistItem): number | null => {
     if (typeof item.changePercent === 'number') {
       return item.changePercent
     }
@@ -333,12 +371,12 @@ export default function WatchlistPage() {
     return ((currentPrice - previousClose) / previousClose) * 100
   }
 
-  const formatPrice = (price) => {
+  const formatPrice = (price: string | number | undefined) => {
     const numericPrice = Number(price)
     return Number.isFinite(numericPrice) ? `TRY ${numericPrice.toLocaleString('tr-TR')}` : '-'
   }
 
-  const formatAddedAt = (value) => {
+  const formatAddedAt = (value: string | undefined | null) => {
     if (!value) {
       return '-'
     }
@@ -397,7 +435,7 @@ export default function WatchlistPage() {
           <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <h2 className="mb-4 font-semibold text-foreground">{t('watchlist.title')}</h2>
             <div className="space-y-2">
-              {watchlists.map((list) => (
+              {watchlists.map((list: Watchlist) => (
                 <button
                   key={list.id}
                   onClick={() => setSelectedWatchlistId(list.id)}

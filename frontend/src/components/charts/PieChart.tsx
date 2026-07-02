@@ -1,12 +1,39 @@
-import { 
-  PieChart as RechartsPieChart, 
-  Pie, 
-  Cell, 
+import {
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
   ResponsiveContainer,
   Legend,
   Tooltip,
 } from 'recharts'
 import { cn, formatCurrency, formatPercent } from '@/lib/utils'
+
+// Types
+interface PieChartDataItem {
+  name: string
+  value: number
+  [key: string]: string | number
+}
+
+interface PieChartProps {
+  data?: PieChartDataItem[]
+  height?: number
+  innerRadius?: number
+  outerRadius?: number
+  showLegend?: boolean
+  className?: string
+}
+
+interface CustomTooltipPayloadItem {
+  name: string
+  value: number
+  payload: PieChartDataItem & { percent: number }
+}
+
+interface CustomLegendPayloadItem {
+  color: string
+  value: string
+}
 
 // Metronic color palette for pie charts
 const CHART_COLORS = [
@@ -20,7 +47,7 @@ const CHART_COLORS = [
   '#181C32', // Dark
 ]
 
-function CustomTooltip({ active, payload }: any) {
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: CustomTooltipPayloadItem[] }) {
   if (active && payload && payload.length) {
     const data = payload[0]
     return (
@@ -38,10 +65,10 @@ function CustomTooltip({ active, payload }: any) {
   return null
 }
 
-function CustomLegend({ payload = [] }: any) {
+function CustomLegend({ payload = [] }: { payload?: CustomLegendPayloadItem[] }) {
   return (
     <div className="flex flex-wrap justify-center gap-3 mt-4">
-      {payload.map((entry, index) => (
+      {payload.map((entry: CustomLegendPayloadItem, index: number) => (
         <div key={`legend-${index}`} className="flex items-center gap-2">
           <div 
             className="w-3 h-3 rounded-full" 
@@ -54,14 +81,14 @@ function CustomLegend({ payload = [] }: any) {
   )
 }
 
-export function PieChart({ 
-  data = [], 
+export function PieChart({
+  data = [],
   height = 300,
   innerRadius = 60,
   outerRadius = 100,
   showLegend = true,
   className = '',
-}: any) {
+}: PieChartProps) {
   if (!data || data.length === 0) {
     return (
       <div 
@@ -74,8 +101,8 @@ export function PieChart({
   }
 
   // Calculate total and percentages
-  const total = data.reduce((sum, item) => sum + (item.value || 0), 0)
-  const chartData = data.map(item => ({
+  const total = data.reduce((sum: number, item: PieChartDataItem) => sum + (item.value || 0), 0)
+  const chartData: (PieChartDataItem & { percent: number })[] = data.map((item: PieChartDataItem) => ({
     ...item,
     percent: total > 0 ? item.value / total : 0,
   }))
@@ -94,7 +121,7 @@ export function PieChart({
             dataKey="value"
             nameKey="name"
           >
-            {chartData.map((entry, index) => (
+            {chartData.map((entry: PieChartDataItem & { percent: number }, index: number) => (
               <Cell 
                 key={`cell-${index}`} 
                 fill={CHART_COLORS[index % CHART_COLORS.length]}

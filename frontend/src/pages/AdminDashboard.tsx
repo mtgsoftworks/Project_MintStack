@@ -16,7 +16,7 @@ export default function AdminDashboard() {
     const [searchQuery, setSearchQuery] = useState('')
     const [currentPage, setCurrentPage] = useState(0)
 
-    const { data: dashboard, isLoading: dashboardLoading, refetch: refetchDashboard } = useGetAdminDashboardQuery()
+    const { data: dashboard, isLoading: dashboardLoading, refetch: refetchDashboard } = useGetAdminDashboardQuery(undefined)
     const { data: usersPage, isFetching: usersFetching, refetch: refetchUsers } = useGetAdminUsersQuery(
         { page: currentPage, size: 20 },
         { skip: Boolean(searchQuery) }

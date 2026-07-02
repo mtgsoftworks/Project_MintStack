@@ -82,7 +82,7 @@ export default function StockDetailPage() {
     ...changeRangeParams,
   })
   const { data: history, isLoading: historyLoading, refetch: refetchHistory } = useGetStockHistoryQuery({ symbol, period })
-  const { data: portfolios = [], isLoading: portfoliosLoading } = useGetPortfoliosQuery()
+  const { data: portfolios = [], isLoading: portfoliosLoading } = useGetPortfoliosQuery(undefined)
   const [executeTrade, { isLoading: isSubmittingTrade }] = useExecutePortfolioTradeMutation()
   const numberLocale = i18n.language === 'en' ? 'en-US' : 'tr-TR'
 

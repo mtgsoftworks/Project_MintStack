@@ -1,15 +1,41 @@
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   Area,
   AreaChart,
 } from 'recharts'
 import { cn, formatCurrency, formatDate } from '@/lib/utils'
+
+// Types
+interface PriceChartDataItem {
+  date?: string | number
+  timestamp?: string | number
+  price?: number
+  value?: number
+  close?: number
+  [key: string]: string | number | undefined
+}
+
+interface PriceChartProps {
+  data?: PriceChartDataItem[]
+  dataKey?: string
+  showArea?: boolean
+  showGrid?: boolean
+  color?: string
+  height?: number
+  className?: string
+}
+
+interface CustomTooltipPayloadItem {
+  name: string
+  value: number
+  color: string
+}
 
 // Metronic color palette for charts
 const CHART_COLORS = {
@@ -25,12 +51,12 @@ const CHART_COLORS = {
   }
 }
 
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: CustomTooltipPayloadItem[]; label?: string | number }) {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-lg border bg-card p-3 shadow-lg">
-        <p className="text-xs text-muted-foreground mb-1">{formatDate(label)}</p>
-        {payload.map((item, index) => (
+        <p className="text-xs text-muted-foreground mb-1">{formatDate(label as string | number | Date | undefined)}</p>
+        {payload.map((item: CustomTooltipPayloadItem, index: number) => (
           <p key={index} className="text-sm font-semibold" style={{ color: item.color }}>
             {item.name}: {formatCurrency(item.value, 'TRY')}
           </p>
@@ -41,15 +67,15 @@ function CustomTooltip({ active, payload, label }: any) {
   return null
 }
 
-export function PriceChart({ 
-  data = [], 
+export function PriceChart({
+  data = [],
   dataKey = 'price',
   showArea = true,
   showGrid = true,
   color = CHART_COLORS.primary,
   height = 300,
   className = '',
-}: any) {
+}: PriceChartProps) {
   if (!data || data.length === 0) {
     return (
       <div 
@@ -62,14 +88,14 @@ export function PriceChart({
   }
 
   // Format data for chart
-  const chartData = data.map(item => ({
+  const chartData: PriceChartDataItem[] = data.map((item: PriceChartDataItem) => ({
     ...item,
     date: item.date || item.timestamp,
     [dataKey]: item[dataKey] || item.price || item.close || item.value,
   }))
 
-  const minValue = Math.min(...chartData.map((d) => d[dataKey])) * 0.99
-  const maxValue = Math.max(...chartData.map((d) => d[dataKey])) * 1.01
+  const minValue = Math.min(...chartData.map((d: PriceChartDataItem) => d[dataKey] as number)) * 0.99
+  const maxValue = Math.max(...chartData.map((d: PriceChartDataItem) => d[dataKey] as number)) * 1.01
 
   if (showArea) {
     return (
@@ -91,7 +117,7 @@ export function PriceChart({
             )}
             <XAxis 
               dataKey="date" 
-              tickFormatter={(value) => {
+              tickFormatter={(value: string | number) => {
                 const date = new Date(value)
                 return `${date.getDate()}/${date.getMonth() + 1}`
               }}
@@ -100,9 +126,9 @@ export function PriceChart({
               tickLine={false}
               axisLine={false}
             />
-            <YAxis 
+            <YAxis
               domain={[minValue, maxValue]}
-              tickFormatter={(value) => value.toLocaleString('tr-TR')}
+              tickFormatter={(value: number) => value.toLocaleString('tr-TR')}
               stroke="hsl(var(--muted-foreground))"
               fontSize={12}
               tickLine={false}
@@ -137,7 +163,7 @@ export function PriceChart({
           )}
           <XAxis 
             dataKey="date" 
-            tickFormatter={(value) => {
+            tickFormatter={(value: string | number) => {
               const date = new Date(value)
               return `${date.getDate()}/${date.getMonth() + 1}`
             }}
@@ -146,9 +172,9 @@ export function PriceChart({
             tickLine={false}
             axisLine={false}
           />
-          <YAxis 
+          <YAxis
             domain={[minValue, maxValue]}
-            tickFormatter={(value) => value.toLocaleString('tr-TR')}
+            tickFormatter={(value: number) => value.toLocaleString('tr-TR')}
             stroke="hsl(var(--muted-foreground))"
             fontSize={12}
             tickLine={false}

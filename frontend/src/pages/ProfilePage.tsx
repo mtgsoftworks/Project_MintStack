@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ChangeEvent } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { Key, Shield } from 'lucide-react'
@@ -24,7 +24,7 @@ export default function ProfilePage() {
   const isAdmin = useSelector(selectIsAdmin)
   const theme = useSelector(selectTheme)
   const dispatch = useDispatch()
-  const { data: profile } = useGetProfileQuery()
+  const { data: profile } = useGetProfileQuery(undefined, { skip: false })
   const [updateProfile, { isLoading: updating }] = useUpdateProfileMutation()
 
   const [firstName, setFirstName] = useState('')
@@ -70,7 +70,7 @@ export default function ProfilePage() {
     }
   }
 
-  const handlePreferenceChange = async (key, value) => {
+  const handlePreferenceChange = async (key: string, value: boolean) => {
     const previousState = {
       emailNotifications,
       pushNotifications,
@@ -89,7 +89,7 @@ export default function ProfilePage() {
       await updateProfile({ [key]: value }).unwrap()
 
       toast.success(t('profile.settingsUpdated'))
-    } catch (_error) {
+    } catch {
       setEmailNotifications(previousState.emailNotifications)
       setPushNotifications(previousState.pushNotifications)
       setPriceAlerts(previousState.priceAlerts)
@@ -101,7 +101,7 @@ export default function ProfilePage() {
 
   const runKeycloakAction = async (action: 'UPDATE_PASSWORD' | 'CONFIGURE_TOTP') => {
     const redirectUri = `${window.location.origin}/profile`
-    const client = window.keycloak
+    const client = window.keycloak as { login?: (opts: { action: string; redirectUri: string; prompt: string }) => Promise<void>; updateToken?: (minValidity: number) => Promise<boolean> } | undefined
 
     if (!client?.login) {
       toast.error(t('profile.keycloakSessionFailed'))
@@ -141,7 +141,7 @@ export default function ProfilePage() {
               <h2 className="text-xl font-semibold">{profile?.fullName || user?.name || user?.username}</h2>
               <p className="text-sm text-muted-foreground mb-4">{user?.email}</p>
               <div className="flex flex-wrap justify-center gap-2">
-                {roles.map((role) => (
+                {roles.map((role: string) => (
                   <Badge key={role} variant="secondary">
                     {role}
                   </Badge>
@@ -212,7 +212,7 @@ export default function ProfilePage() {
                       <Input
                         id="firstName"
                         value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setFirstName(e.target.value)}
                         placeholder={t('profile.firstNamePlaceholder')}
                       />
                     </div>
@@ -221,7 +221,7 @@ export default function ProfilePage() {
                       <Input
                         id="lastName"
                         value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)}
                         placeholder={t('profile.lastNamePlaceholder')}
                       />
                     </div>
@@ -247,7 +247,7 @@ export default function ProfilePage() {
                       <Input
                         id="phoneNumber"
                         value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setPhoneNumber(e.target.value)}
                         placeholder="+90 5XX XXX XX XX"
                       />
                     </div>
@@ -256,7 +256,7 @@ export default function ProfilePage() {
                       <Input
                         id="location"
                         value={location}
-                        onChange={(e) => setLocation(e.target.value)}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setLocation(e.target.value)}
                         placeholder={t('profile.locationPlaceholder')}
                       />
                     </div>
@@ -268,7 +268,7 @@ export default function ProfilePage() {
                       id="bio"
                       className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       value={bio}
-                      onChange={(e) => setBio(e.target.value)}
+                      onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setBio(e.target.value)}
                       placeholder={t('profile.bioPlaceholder')}
                     />
                   </div>
@@ -293,7 +293,7 @@ export default function ProfilePage() {
                     </div>
                     <Switch
                       checked={emailNotifications}
-                      onCheckedChange={(val) => handlePreferenceChange('emailNotifications', val)}
+                      onCheckedChange={(val: boolean) => handlePreferenceChange('emailNotifications', val)}
                     />
                   </div>
 
@@ -308,7 +308,7 @@ export default function ProfilePage() {
                     </div>
                     <Switch
                       checked={pushNotifications}
-                      onCheckedChange={(val) => handlePreferenceChange('pushNotifications', val)}
+                      onCheckedChange={(val: boolean) => handlePreferenceChange('pushNotifications', val)}
                     />
                   </div>
 
@@ -323,7 +323,7 @@ export default function ProfilePage() {
                     </div>
                     <Switch
                       checked={priceAlerts}
-                      onCheckedChange={(val) => handlePreferenceChange('priceAlerts', val)}
+                      onCheckedChange={(val: boolean) => handlePreferenceChange('priceAlerts', val)}
                     />
                   </div>
 
@@ -338,7 +338,7 @@ export default function ProfilePage() {
                     </div>
                     <Switch
                       checked={portfolioUpdates}
-                      onCheckedChange={(val) => handlePreferenceChange('portfolioUpdates', val)}
+                      onCheckedChange={(val: boolean) => handlePreferenceChange('portfolioUpdates', val)}
                     />
                   </div>
                 </div>
@@ -355,7 +355,7 @@ export default function ProfilePage() {
                     </div>
                     <Switch
                       checked={theme === 'dark'}
-                      onCheckedChange={(checked) => dispatch(setTheme(checked ? 'dark' : 'light'))}
+                      onCheckedChange={(checked: boolean) => dispatch(setTheme(checked ? 'dark' : 'light'))}
                     />
                   </div>
 
@@ -370,7 +370,7 @@ export default function ProfilePage() {
                     </div>
                     <Switch
                       checked={compactView}
-                      onCheckedChange={(val) => handlePreferenceChange('compactView', val)}
+                      onCheckedChange={(val: boolean) => handlePreferenceChange('compactView', val)}
                     />
                   </div>
 

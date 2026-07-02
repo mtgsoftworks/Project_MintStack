@@ -4,7 +4,7 @@ import { baseApi, API_BASE_URL } from './baseApi'
  * Export portfolio to Excel format.
  * This function makes a direct fetch call to handle binary file download.
  */
-export async function exportPortfolioToExcel(portfolioId, token) {
+export async function exportPortfolioToExcel(portfolioId: string | number, token: string) {
   const response = await fetch(`${API_BASE_URL}/portfolios/${portfolioId}/export/excel`, {
     method: 'GET',
     headers: {
@@ -42,7 +42,7 @@ export async function exportPortfolioToExcel(portfolioId, token) {
  * Export portfolio to PDF format.
  * This function makes a direct fetch call to handle binary file download.
  */
-export async function exportPortfolioToPdf(portfolioId, token) {
+export async function exportPortfolioToPdf(portfolioId: string | number, token: string) {
   const response = await fetch(`${API_BASE_URL}/portfolios/${portfolioId}/export/pdf`, {
     method: 'GET',
     headers: {
@@ -85,24 +85,24 @@ export const portfolioApi = baseApi.injectEndpoints({
       providesTags: (result) =>
         result
           ? [
-              ...result.map(({ id }) => ({ type: 'Portfolios', id })),
-              { type: 'Portfolios', id: 'LIST' },
+              ...result.map(({ id }: { id: string | number }) => ({ type: 'Portfolios' as const, id })),
+              { type: 'Portfolios' as const, id: 'LIST' },
             ]
-          : [{ type: 'Portfolios', id: 'LIST' }],
+          : [{ type: 'Portfolios' as const, id: 'LIST' }],
     }),
 
     // Get single portfolio
     getPortfolio: builder.query({
       query: (id) => `/portfolios/${id}`,
       transformResponse: (response) => response.data,
-      providesTags: (result, error, id) => [{ type: 'Portfolios', id }],
+      providesTags: (_result, _error, id) => [{ type: 'Portfolios' as const, id }],
     }),
 
     // Get portfolio summary
     getPortfolioSummary: builder.query({
       query: () => '/portfolios/summary',
       transformResponse: (response) => response.data,
-      providesTags: [{ type: 'Portfolios', id: 'SUMMARY' }],
+      providesTags: [{ type: 'Portfolios' as const, id: 'SUMMARY' as const }],
     }),
 
     // Create portfolio
@@ -112,7 +112,7 @@ export const portfolioApi = baseApi.injectEndpoints({
         method: 'POST',
         body: data,
       }),
-      invalidatesTags: [{ type: 'Portfolios', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Portfolios' as const, id: 'LIST' as const }],
     }),
 
     // Update portfolio
@@ -122,9 +122,9 @@ export const portfolioApi = baseApi.injectEndpoints({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [
-        { type: 'Portfolios', id },
-        { type: 'Portfolios', id: 'LIST' },
+      invalidatesTags: (_result, _error, { id }: { id: string | number }) => [
+        { type: 'Portfolios' as const, id },
+        { type: 'Portfolios' as const, id: 'LIST' },
       ],
     }),
 
@@ -134,10 +134,10 @@ export const portfolioApi = baseApi.injectEndpoints({
         url: `/portfolios/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (result, error, id) => [
-        { type: 'Portfolios', id },
-        { type: 'Portfolios', id: 'LIST' },
-        { type: 'Portfolios', id: 'SUMMARY' },
+      invalidatesTags: (_result, _error, id: string | number) => [
+        { type: 'Portfolios' as const, id },
+        { type: 'Portfolios' as const, id: 'LIST' },
+        { type: 'Portfolios' as const, id: 'SUMMARY' },
       ],
     }),
 
@@ -148,11 +148,11 @@ export const portfolioApi = baseApi.injectEndpoints({
         method: 'POST',
         body: data,
       }),
-      invalidatesTags: (result, error, { portfolioId }) => [
-        { type: 'Portfolios', id: portfolioId },
-        { type: 'PortfolioItems', id: 'LIST' },
-        { type: 'Portfolios', id: 'SUMMARY' },
-        { type: 'PortfolioTransactions', id: `LIST_${portfolioId}` },
+      invalidatesTags: (_result, _error, { portfolioId }: { portfolioId: string | number }) => [
+        { type: 'Portfolios' as const, id: portfolioId },
+        { type: 'PortfolioItems' as const, id: 'LIST' },
+        { type: 'Portfolios' as const, id: 'SUMMARY' },
+        { type: 'PortfolioTransactions' as const, id: `LIST_${portfolioId}` },
       ],
     }),
 
@@ -163,94 +163,100 @@ export const portfolioApi = baseApi.injectEndpoints({
         method: 'POST',
         body: data,
       }),
-      invalidatesTags: (result, error, { portfolioId }) => [
-        { type: 'Portfolios', id: portfolioId },
-        { type: 'Portfolios', id: 'LIST' },
-        { type: 'Portfolios', id: 'SUMMARY' },
-        { type: 'PortfolioTransactions', id: `LIST_${portfolioId}` },
+      invalidatesTags: (_result, _error, { portfolioId }: { portfolioId: string | number }) => [
+        { type: 'Portfolios' as const, id: portfolioId },
+        { type: 'Portfolios' as const, id: 'LIST' },
+        { type: 'Portfolios' as const, id: 'SUMMARY' },
+        { type: 'PortfolioTransactions' as const, id: `LIST_${portfolioId}` },
       ],
     }),
 
     // Process pending/partial orders
     processPortfolioOrders: builder.mutation({
-      query: ({ portfolioId }) => ({
+      query: ({ portfolioId }: { portfolioId: string | number }) => ({
         url: `/portfolios/${portfolioId}/orders/process`,
         method: 'POST',
       }),
-      invalidatesTags: (result, error, { portfolioId }) => [
-        { type: 'Portfolios', id: portfolioId },
-        { type: 'Portfolios', id: 'LIST' },
-        { type: 'Portfolios', id: 'SUMMARY' },
-        { type: 'PortfolioTransactions', id: `LIST_${portfolioId}` },
+      invalidatesTags: (_result, _error, { portfolioId }: { portfolioId: string | number }) => [
+        { type: 'Portfolios' as const, id: portfolioId },
+        { type: 'Portfolios' as const, id: 'LIST' },
+        { type: 'Portfolios' as const, id: 'SUMMARY' },
+        { type: 'PortfolioTransactions' as const, id: `LIST_${portfolioId}` },
       ],
     }),
 
     // Cancel a pending order
     cancelPortfolioOrder: builder.mutation({
-      query: ({ portfolioId, orderId, reason }) => ({
-        url: `/portfolios/${portfolioId}/orders/${orderId}/cancel`,
-        method: 'POST',
-        params: reason ? { reason } : undefined,
-      }),
-      invalidatesTags: (result, error, { portfolioId }) => [
-        { type: 'Portfolios', id: portfolioId },
-        { type: 'Portfolios', id: 'LIST' },
-        { type: 'Portfolios', id: 'SUMMARY' },
-        { type: 'PortfolioTransactions', id: `LIST_${portfolioId}` },
+      query: (arg: { portfolioId: string | number; orderId: string | number; reason?: string }) => {
+        const { portfolioId, orderId, reason } = arg
+        return {
+          url: `/portfolios/${portfolioId}/orders/${orderId}/cancel`,
+          method: 'POST',
+          params: reason ? { reason } : undefined,
+        }
+      },
+      invalidatesTags: (_result, _error, arg: { portfolioId: string | number; orderId: string | number }) => [
+        { type: 'Portfolios' as const, id: arg.portfolioId },
+        { type: 'Portfolios' as const, id: 'LIST' },
+        { type: 'Portfolios' as const, id: 'SUMMARY' },
+        { type: 'PortfolioTransactions' as const, id: `LIST_${arg.portfolioId}` },
       ],
     }),
 
     // Deposit/withdraw cash
     adjustPortfolioCash: builder.mutation({
-      query: ({ portfolioId, ...data }) => ({
+      query: ({ portfolioId, ...data }: { portfolioId: string | number; [key: string]: unknown }) => ({
         url: `/portfolios/${portfolioId}/cash`,
         method: 'POST',
         body: data,
       }),
-      invalidatesTags: (result, error, { portfolioId }) => [
-        { type: 'Portfolios', id: portfolioId },
-        { type: 'Portfolios', id: 'LIST' },
-        { type: 'Portfolios', id: 'SUMMARY' },
+      invalidatesTags: (_result, _error, { portfolioId }: { portfolioId: string | number }) => [
+        { type: 'Portfolios' as const, id: portfolioId },
+        { type: 'Portfolios' as const, id: 'LIST' },
+        { type: 'Portfolios' as const, id: 'SUMMARY' },
       ],
     }),
 
     // Update portfolio item
     updatePortfolioItem: builder.mutation({
-      query: ({ portfolioId, itemId, ...data }) => ({
+      query: ({ portfolioId, itemId, ...data }: { portfolioId: string | number; itemId: string | number; [key: string]: unknown }) => ({
         url: `/portfolios/${portfolioId}/items/${itemId}`,
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { portfolioId, itemId }) => [
-        { type: 'Portfolios', id: portfolioId },
-        { type: 'PortfolioItems', id: itemId },
-        { type: 'Portfolios', id: 'SUMMARY' },
+      invalidatesTags: (_result, _error, { portfolioId, itemId }: { portfolioId: string | number; itemId: string | number }) => [
+        { type: 'Portfolios' as const, id: portfolioId },
+        { type: 'PortfolioItems' as const, id: itemId },
+        { type: 'Portfolios' as const, id: 'SUMMARY' },
       ],
     }),
 
     // Remove item from portfolio
     removePortfolioItem: builder.mutation({
-      query: ({ portfolioId, itemId }) => ({
+      query: ({ portfolioId, itemId }: { portfolioId: string | number; itemId: string | number }) => ({
         url: `/portfolios/${portfolioId}/items/${itemId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (result, error, { portfolioId, itemId }) => [
-        { type: 'Portfolios', id: portfolioId },
-        { type: 'PortfolioItems', id: itemId },
-        { type: 'Portfolios', id: 'SUMMARY' },
-        { type: 'PortfolioTransactions', id: `LIST_${portfolioId}` },
+      invalidatesTags: (_result, _error, { portfolioId, itemId }: { portfolioId: string | number; itemId: string | number }) => [
+        { type: 'Portfolios' as const, id: portfolioId },
+        { type: 'PortfolioItems' as const, id: itemId },
+        { type: 'Portfolios' as const, id: 'SUMMARY' },
+        { type: 'PortfolioTransactions' as const, id: `LIST_${portfolioId}` },
       ],
     }),
 
     // Get portfolio transactions
     getPortfolioTransactions: builder.query({
-      query: ({ portfolioId, page = 0, size = 10, orderStatus }) => ({
-        url: `/portfolios/${portfolioId}/transactions`,
-        params: { page, size, orderStatus },
-      }),
+      query: (arg: { portfolioId: string | number; page?: number; size?: number; orderStatus?: string }) => {
+        const { portfolioId, page = 0, size = 10, orderStatus } = arg
+        return {
+          url: `/portfolios/${portfolioId}/transactions`,
+          params: { page, size, orderStatus },
+        }
+      },
       transformResponse: (response) => response,
-      providesTags: (result, error, { portfolioId }) => [
-        { type: 'PortfolioTransactions', id: `LIST_${portfolioId}` },
+      providesTags: (_result, _error, arg: { portfolioId: string | number }) => [
+        { type: 'PortfolioTransactions' as const, id: `LIST_${arg.portfolioId}` },
       ],
     }),
   }),

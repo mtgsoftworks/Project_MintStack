@@ -38,11 +38,11 @@ export const userApi = baseApi.injectEndpoints({
 
     // Get user notifications
     getNotifications: builder.query({
-      query: ({ page = 0, size = 20 } = {}) => ({
+      query: (params: { page?: number; size?: number } = {}) => ({
         url: '/users/me/notifications',
-        params: { page, size },
+        params: { page: params.page ?? 0, size: params.size ?? 20 },
       }),
-      transformResponse: (response) => response,
+      transformResponse: (response: any) => response,
       providesTags: [{ type: 'User', id: 'NOTIFICATIONS' }],
     }),
 

@@ -99,7 +99,7 @@ export default function NewsPage() {
   const [category, setCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
 
-  const { data: categoriesData, isLoading: categoriesLoading } = useGetNewsCategoriesQuery()
+  const { data: categoriesData, isLoading: categoriesLoading } = useGetNewsCategoriesQuery(undefined)
 
   const trimmedSearch = searchQuery.trim()
   const isSearching = trimmedSearch.length > 0

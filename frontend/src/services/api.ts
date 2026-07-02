@@ -1,9 +1,9 @@
-import axios from 'axios'
+import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios'
 
 // Use relative URL to go through nginx proxy
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
-const api = axios.create({
+const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -11,11 +11,19 @@ const api = axios.create({
   timeout: 30000, // 30 second timeout
 })
 
+// Keycloak instance interface
+interface KeycloakInstance {
+  authenticated?: boolean
+  token?: string
+  updateToken: (minValidity: number) => Promise<boolean>
+  login?: () => void
+}
+
 // Store keycloak instance reference
-let keycloakInstance = null
+let keycloakInstance: KeycloakInstance | null = null
 
 // Set keycloak instance
-export const setKeycloakInstance = (keycloak) => {
+export const setKeycloakInstance = (keycloak: KeycloakInstance) => {
   keycloakInstance = keycloak
 }
 

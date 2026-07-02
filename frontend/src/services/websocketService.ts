@@ -4,17 +4,47 @@ import { Client } from '@stomp/stompjs'
 /**
  * WebSocket service for real-time price updates
  */
+
+// STOMP Subscription type
+interface StompSubscription {
+    unsubscribe: () => void
+}
+
+// Price update payload
+interface PriceUpdatePayload {
+    symbol?: string
+    price?: number
+    change?: number
+    changePercent?: number
+    timestamp?: string
+}
+
+// Connection event payload
+interface ConnectionEventPayload {
+    connected: boolean
+    attempt?: number
+}
+
+// Error payload
+interface ErrorPayload {
+    error: string
+}
+
+// WebSocket event types
+type WebSocketEventType = 'connect' | 'disconnect' | 'reconnecting' | 'error'
+type EventPayload = PriceUpdatePayload | ConnectionEventPayload | ErrorPayload
+
 class WebSocketService {
-    client: any
-    subscriptions: Map<string, any>
-    activeSubscriptions: Map<string, (payload: any) => void>
+    client: Client | null
+    subscriptions: Map<string, StompSubscription>
+    activeSubscriptions: Map<string, (payload: PriceUpdatePayload) => void>
     isConnected: boolean
-    connectionState: string
+    connectionState: 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'RECONNECTING'
     reconnectAttempts: number
     maxReconnectAttempts: number
     reconnectDelay: number
     authToken: string | null
-    listeners: Map<string, Array<(payload: any) => void>>
+    listeners: Map<WebSocketEventType, Array<(payload: EventPayload) => void>>
 
     constructor() {
         this.client = null
@@ -102,7 +132,7 @@ class WebSocketService {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++
             this.connectionState = 'RECONNECTING'
-            this.notifyListeners('reconnecting', { attempt: this.reconnectAttempts })
+            this.notifyListeners('reconnecting', { connected: false, attempt: this.reconnectAttempts })
             console.log(`[WebSocket] Reconnecting... Attempt ${this.reconnectAttempts}`)
             setTimeout(() => {
                 this.connectionState = 'CONNECTING'
@@ -118,19 +148,19 @@ class WebSocketService {
     /**
      * Restore all active subscriptions after reconnection
      */
-    restoreSubscriptions() {
-        if (this.activeSubscriptions.size === 0) return
+    restoreSubscriptions(): void {
+        if (this.activeSubscriptions.size === 0 || !this.client) return
 
         console.log(`[WebSocket] Restoring ${this.activeSubscriptions.size} subscriptions`)
 
         this.activeSubscriptions.forEach((callback, topic) => {
-            const subscription = this.client.subscribe(topic, (message) => {
+            const subscription = this.client!.subscribe(topic, (message: { body: string }) => {
                 try {
-                    const data = JSON.parse(message.body)
+                    const data = JSON.parse(message.body) as PriceUpdatePayload
                     callback(data)
                 } catch (error) {
                     console.error('[WebSocket] Error parsing message:', error)
-                    callback(message.body)
+                    callback({} as PriceUpdatePayload)
                 }
             })
             this.subscriptions.set(topic, subscription)
@@ -157,7 +187,7 @@ class WebSocketService {
     /**
      * Subscribe to a topic
      */
-    subscribe(topic: string, callback: (payload: any) => void) {
+    subscribe(topic: string, callback: (payload: PriceUpdatePayload) => void): StompSubscription | null {
         this.activeSubscriptions.set(topic, callback)
 
         if (!this.client || !this.isConnected) {
@@ -165,13 +195,13 @@ class WebSocketService {
             return null
         }
 
-        const subscription = this.client.subscribe(topic, (message: any) => {
+        const subscription = this.client.subscribe(topic, (message: { body: string }) => {
             try {
-                const data = JSON.parse(message.body)
+                const data = JSON.parse(message.body) as PriceUpdatePayload
                 callback(data)
             } catch (error) {
                 console.error('[WebSocket] Error parsing message:', error)
-                callback(message.body)
+                callback({} as PriceUpdatePayload)
             }
         })
 
@@ -212,19 +242,19 @@ class WebSocketService {
     /**
      * Add event listener
      */
-    on(event: string, callback: (payload: any) => void) {
+    on(event: WebSocketEventType, callback: (payload: EventPayload) => void): void {
         if (!this.listeners.has(event)) {
             this.listeners.set(event, [])
         }
-        this.listeners.get(event).push(callback)
+        this.listeners.get(event)!.push(callback)
     }
 
     /**
      * Remove event listener
      */
-    off(event: string, callback: (payload: any) => void) {
+    off(event: WebSocketEventType, callback: (payload: EventPayload) => void): void {
         if (this.listeners.has(event)) {
-            const callbacks = this.listeners.get(event)
+            const callbacks = this.listeners.get(event)!
             const index = callbacks.indexOf(callback)
             if (index > -1) {
                 callbacks.splice(index, 1)
@@ -235,9 +265,9 @@ class WebSocketService {
     /**
      * Notify all listeners
      */
-    notifyListeners(event: string, data: any) {
+    notifyListeners(event: WebSocketEventType, data: EventPayload): void {
         if (this.listeners.has(event)) {
-            this.listeners.get(event).forEach((callback) => callback(data))
+            this.listeners.get(event)!.forEach((callback) => callback(data))
         }
     }
 

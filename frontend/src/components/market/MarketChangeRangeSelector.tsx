@@ -1,3 +1,4 @@
+import { ChangeEvent } from 'react'
 import { CalendarDays } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Input } from '@/components/ui/input'
@@ -11,6 +12,18 @@ import {
 import { MARKET_CHANGE_PERIODS } from '@/hooks/useMarketChangeRange'
 import { cn } from '@/lib/utils'
 
+type PeriodValue = (typeof MARKET_CHANGE_PERIODS)[number]['value']
+
+export interface MarketChangeRangeSelectorProps {
+  period: PeriodValue
+  setPeriod: (value: PeriodValue) => void
+  customStartDate: string
+  setCustomStartDate: (value: string) => void
+  customEndDate: string
+  setCustomEndDate: (value: string) => void
+  className?: string
+}
+
 export default function MarketChangeRangeSelector({
   period,
   setPeriod,
@@ -19,8 +32,16 @@ export default function MarketChangeRangeSelector({
   customEndDate,
   setCustomEndDate,
   className = undefined,
-}) {
+}: MarketChangeRangeSelectorProps) {
   const { t } = useTranslation()
+
+  const handleStartDateChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setCustomStartDate(event.target.value)
+  }
+
+  const handleEndDateChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setCustomEndDate(event.target.value)
+  }
 
   return (
     <div className={cn('flex flex-wrap items-center gap-2', className)}>
@@ -44,14 +65,14 @@ export default function MarketChangeRangeSelector({
           <Input
             type="date"
             value={customStartDate}
-            onChange={(event) => setCustomStartDate(event.target.value)}
+            onChange={handleStartDateChange}
             aria-label={t('marketChangeRange.startDate')}
             className="h-10 w-36"
           />
           <Input
             type="date"
             value={customEndDate}
-            onChange={(event) => setCustomEndDate(event.target.value)}
+            onChange={handleEndDateChange}
             aria-label={t('marketChangeRange.endDate')}
             className="h-10 w-36"
           />

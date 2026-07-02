@@ -18,6 +18,7 @@ import {
   Eye,
   BellRing,
   Bell,
+  type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -30,9 +31,23 @@ import {
   setMobileSidebarOpen
 } from '@/store/slices/uiSlice'
 import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-function NavItem({ item, collapsed }) {
+interface NavChild {
+  name: string
+  href?: string
+  icon: LucideIcon
+}
+
+interface NavItemProps {
+  item: NavChild & {
+    children?: NavChild[]
+  }
+  collapsed: boolean
+}
+
+function NavItem({ item, collapsed }: NavItemProps) {
   const location = useLocation()
   const hasActiveChild = Boolean(item.children?.some(child => location.pathname.startsWith(child.href)))
   const [open, setOpen] = useState(hasActiveChild)

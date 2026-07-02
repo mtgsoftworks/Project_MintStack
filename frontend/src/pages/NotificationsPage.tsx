@@ -71,7 +71,7 @@ export default function NotificationsPage() {
 
     const handleMarkAllAsRead = async () => {
         try {
-            await markAllAsRead().unwrap()
+            await markAllAsRead(undefined).unwrap()
             refetch()
         } catch (error) {
             console.error('Failed to mark all notifications as read:', error)

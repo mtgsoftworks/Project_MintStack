@@ -1,16 +1,28 @@
+import React from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { 
-  FolderOpen, 
-  Bell, 
-  LineChart, 
-  Package, 
+import {
+  FolderOpen,
+  Bell,
+  LineChart,
+  Package,
   AlertCircle,
   Plus,
   Search
 } from 'lucide-react'
 
-const icons = {
+type IconName = 'folder' | 'bell' | 'chart' | 'package' | 'alert' | 'search'
+
+interface EmptyStateProps {
+  icon?: IconName
+  title: string
+  description?: string
+  actionLabel?: string
+  onAction?: () => void
+  className?: string
+}
+
+const icons: Record<IconName, React.ComponentType<{ className?: string }>> = {
   folder: FolderOpen,
   bell: Bell,
   chart: LineChart,
@@ -26,7 +38,7 @@ export function EmptyState({
   actionLabel,
   onAction,
   className
-}) {
+}: EmptyStateProps) {
   const IconComponent = icons[icon] || FolderOpen
 
   return (

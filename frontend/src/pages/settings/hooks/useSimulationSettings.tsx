@@ -27,7 +27,7 @@ export function useSimulationSettings({ t }) {
             return
         }
         try {
-            await toggleSimulation().unwrap()
+            await toggleSimulation(undefined).unwrap()
             refetchSimConfig()
             toast.success(
                 simConfig?.enabled
@@ -70,7 +70,7 @@ export function useSimulationSettings({ t }) {
             return
         }
         try {
-            await resetSimulation().unwrap()
+            await resetSimulation(undefined).unwrap()
             refetchSimConfig()
             toast.success(t('settings.simulation.reset'))
         } catch (error) {

@@ -33,6 +33,39 @@ import {
   useGetPortfoliosQuery,
 } from '@/store/api/portfolioApi'
 
+// Currency data types
+export interface CurrencyRate {
+  id?: number
+  currencyCode: string
+  currencyName?: string
+  buyingRate: number
+  sellingRate: number
+  effectiveBuyingRate?: number
+  effectiveSellingRate?: number
+  averageRate?: number
+  changePercent?: number
+  source?: string
+  rateDate?: string
+  fetchedAt?: string
+}
+
+export interface PortfolioItem {
+  id?: string
+  instrumentSymbol?: string
+  symbol?: string
+  quantity?: number
+}
+
+export interface Portfolio {
+  id: string
+  name: string
+  isDefault?: boolean
+  items?: PortfolioItem[]
+  cashBalance?: number
+}
+
+type DataSource = 'TCMB' | 'ALPHA_VANTAGE' | 'YAHOO_FINANCE' | 'FINNHUB' | string
+
 function CurrencyTableSkeleton() {
   return (
     <div className="space-y-3">
@@ -43,25 +76,26 @@ function CurrencyTableSkeleton() {
   )
 }
 
-function getDisplayRate(primaryRate, fallbackRate) {
+function getDisplayRate(primaryRate: number | string | null | undefined, fallbackRate: number | string | null | undefined): number | string | null {
   const primary = Number(primaryRate)
   if (Number.isFinite(primary) && primary > 0) {
-    return primaryRate
+    return primaryRate as number
   }
   const fallback = Number(fallbackRate)
-  return Number.isFinite(fallback) && fallback > 0 ? fallbackRate : null
+  return Number.isFinite(fallback) && fallback > 0 ? fallbackRate as number : null
 }
 
-function hasMeaningfulChange(value) {
+function hasMeaningfulChange(value: unknown): boolean {
+  if (value === null || value === undefined) return false
   const numeric = Number(value)
-  return value !== null && value !== undefined && Number.isFinite(numeric) && numeric !== 0
+  return Number.isFinite(numeric) && numeric !== 0
 }
 
 export default function CurrencyPage() {
   const { t, i18n } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPortfolioId, setSelectedPortfolioId] = useState('')
-  const [tradeQuantities, setTradeQuantities] = useState({})
+  const [tradeQuantities, setTradeQuantities] = useState<Record<string, string>>({})
   const { autoUpdate, refreshRate, queryOptions } = useAutoRefresh()
   const { refreshAndRefetch, isRefreshingMarketData } = useMarketDataRefresh(['CURRENCY_RATES'])
   const changeRange = useMarketChangeRange()
@@ -73,7 +107,7 @@ export default function CurrencyPage() {
     refetch,
     fulfilledTimeStamp,
   } = useGetCurrenciesQuery(changeRange.queryParams, queryOptions)
-  const { data: portfolios = [] } = useGetPortfoliosQuery()
+  const { data: portfolios = [] } = useGetPortfoliosQuery(undefined)
   const { data: selectedPortfolio, isFetching: isPortfolioFetching } = useGetPortfolioQuery(
     selectedPortfolioId,
     { skip: !selectedPortfolioId }
@@ -83,15 +117,15 @@ export default function CurrencyPage() {
 
   useEffect(() => {
     if (!selectedPortfolioId && portfolios.length > 0) {
-      const defaultPortfolio = portfolios.find((portfolio) => portfolio.isDefault) || portfolios[0]
+      const defaultPortfolio = portfolios.find((portfolio: Portfolio) => portfolio.isDefault) || portfolios[0]
       setSelectedPortfolioId(defaultPortfolio?.id || '')
     }
   }, [portfolios, selectedPortfolioId])
 
   // Get data source from first currency (all should have same source)
-  const dataSource = currencies?.[0]?.source || null
-  const getSourceLabel = (source) => {
-    const labels = {
+  const dataSource: DataSource | null = currencies?.[0]?.source || null
+  const getSourceLabel = (source: DataSource): string => {
+    const labels: Record<string, string> = {
       'TCMB': 'TCMB',
       'ALPHA_VANTAGE': 'Alpha Vantage',
       'YAHOO_FINANCE': 'Yahoo Finance',
@@ -100,19 +134,19 @@ export default function CurrencyPage() {
     return labels[source] || source
   }
 
-  const filteredCurrencies = currencies?.filter((currency) =>
+  const filteredCurrencies = currencies?.filter((currency: CurrencyRate) =>
     hasMeaningfulChange(currency.changePercent) && (
       currency.currencyCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
       currency.currencyName?.toLowerCase().includes(searchQuery.toLowerCase())
     )
   ) || []
-  const hasSimulatedCurrencies = filteredCurrencies.some((currency) => isSimulatedMarketData(currency))
+  const hasSimulatedCurrencies = filteredCurrencies.some((currency: CurrencyRate) => isSimulatedMarketData(currency))
 
-  const handleQuantityChange = (code, value) => {
+  const handleQuantityChange = (code: string, value: string) => {
     setTradeQuantities((current) => ({ ...current, [code]: value }))
   }
 
-  const handleCurrencyTrade = async (currency, transactionType) => {
+  const handleCurrencyTrade = async (currency: CurrencyRate, transactionType: 'BUY' | 'SELL') => {
     const quantity = Number(tradeQuantities[currency.currencyCode])
     if (!selectedPortfolioId) {
       toast.error(t('quickTrade.selectPortfolio'))
@@ -135,11 +169,11 @@ export default function CurrencyPage() {
 
     const instrumentSymbol = `${currency.currencyCode}TRY`
     const holdingQuantity = (selectedPortfolio.items || [])
-      .filter((item) => {
+      .filter((item: PortfolioItem) => {
         const itemSymbol = (item.instrumentSymbol || item.symbol || '').toUpperCase()
         return itemSymbol === instrumentSymbol
       })
-      .reduce((total, item) => {
+      .reduce((total: number, item: PortfolioItem) => {
         const itemQuantity = Number(item.quantity || 0)
         return Number.isFinite(itemQuantity) ? total + itemQuantity : total
       }, 0)
@@ -215,9 +249,9 @@ export default function CurrencyPage() {
             <select
               className="h-10 rounded-md border border-input bg-background px-3 text-sm"
               value={selectedPortfolioId}
-              onChange={(event) => setSelectedPortfolioId(event.target.value)}
+              onChange={(event: React.ChangeEvent<HTMLSelectElement>) => setSelectedPortfolioId(event.target.value)}
             >
-              {portfolios.map((portfolio) => (
+              {portfolios.map((portfolio: Portfolio) => (
                 <option key={portfolio.id} value={portfolio.id}>
                   {portfolio.name}
                 </option>
@@ -229,7 +263,7 @@ export default function CurrencyPage() {
             <Input
               placeholder={t('currencyPage.searchPlaceholder')}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
               className="pl-9 w-64"
             />
           </div>
@@ -246,12 +280,12 @@ export default function CurrencyPage() {
       {/* Stats Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {['USD', 'EUR', 'GBP', 'CHF'].map((code) => {
-          const currency = currencies?.find(c => c.currencyCode === code)
+          const currency = currencies?.find((c: CurrencyRate) => c.currencyCode === code)
           const hasChange = hasMeaningfulChange(currency?.changePercent)
-          if (!hasChange) {
+          if (!hasChange || !currency) {
             return null
           }
-          const change = hasChange ? Number(currency.changePercent) : null
+          const change = Number(currency.changePercent)
           const simulatedCurrency = isSimulatedMarketData(currency)
 
           return (
@@ -327,7 +361,7 @@ export default function CurrencyPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCurrencies.map((currency) => {
+                  filteredCurrencies.map((currency: CurrencyRate) => {
                     const hasChange = hasMeaningfulChange(currency.changePercent)
                     const isPositive = hasChange && Number(currency.changePercent) >= 0
 
@@ -380,7 +414,7 @@ export default function CurrencyPage() {
                             step="0.01"
                             placeholder={t('quickTrade.quantity')}
                             value={tradeQuantities[currency.currencyCode] || ''}
-                            onChange={(event) => handleQuantityChange(currency.currencyCode, event.target.value)}
+                            onChange={(event: React.ChangeEvent<HTMLInputElement>) => handleQuantityChange(currency.currencyCode, event.target.value)}
                           />
                           <Button
                             size="sm"
