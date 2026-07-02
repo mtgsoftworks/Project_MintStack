@@ -28,4 +28,17 @@ public interface PortfolioRepository extends JpaRepository<Portfolio, UUID> {
     boolean existsByUserIdAndName(UUID userId, String name);
 
     long countByUserId(UUID userId);
+
+    @Query("""
+        SELECT p.user.id AS userId, COUNT(p.id) AS portfolioCount
+        FROM Portfolio p
+        WHERE p.user.id IN :userIds
+        GROUP BY p.user.id
+        """)
+    List<UserPortfolioCount> countByUserIds(@Param("userIds") List<UUID> userIds);
+
+    interface UserPortfolioCount {
+        UUID getUserId();
+        long getPortfolioCount();
+    }
 }

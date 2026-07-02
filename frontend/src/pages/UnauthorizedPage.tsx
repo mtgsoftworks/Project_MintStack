@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { ShieldX, Home, LogIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { keycloak } from '@/App'
+import { keycloak } from '@/auth/keycloak'
 
 export default function UnauthorizedPage() {
   const navigate = useNavigate()
@@ -12,9 +12,7 @@ export default function UnauthorizedPage() {
   }
 
   const handleLogin = () => {
-    if (keycloak) {
-      keycloak.login()
-    }
+    keycloak.login()
   }
 
   return (

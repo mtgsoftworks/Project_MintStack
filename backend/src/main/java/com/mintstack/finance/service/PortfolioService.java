@@ -14,6 +14,7 @@ import com.mintstack.finance.entity.PortfolioItem;
 import com.mintstack.finance.entity.PortfolioTransaction;
 import com.mintstack.finance.entity.User;
 import com.mintstack.finance.exception.BadRequestException;
+import com.mintstack.finance.exception.BusinessException;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PortfolioItemRepository;
@@ -180,6 +181,11 @@ public class PortfolioService {
         Portfolio portfolio = portfolioRepository.findByIdAndUserId(portfolioId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Portföy", "id", portfolioId));
         
+        if (portfolioTransactionRepository.existsByPortfolioId(portfolioId)) {
+            throw new BusinessException(
+                    "İşlem geçmişi bulunan portföy silinemez; finansal kayıtlar korunmalıdır");
+        }
+
         portfolioRepository.delete(portfolio);
         log.info("Portfolio deleted: {}", portfolioId);
     }

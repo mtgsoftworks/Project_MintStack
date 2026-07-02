@@ -160,6 +160,20 @@
       "publicClient": true,
       "frontchannelLogout": true,
       "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "finance-backend-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "finance-backend",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "lightweight.claim": "false"
+          }
+        }
+      ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "access.token.lifespan": "28800",
@@ -332,7 +346,7 @@
             "other"
           ],
           "connectionUrl": [
-            "ldap://openldap:389"
+            "${LDAP_CONNECTION_URL}"
           ],
           "bindDn": [
             "cn=admin,dc=mintstack,dc=local"

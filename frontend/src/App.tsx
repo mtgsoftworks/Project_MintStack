@@ -1,61 +1,11 @@
-/* eslint-disable react-refresh/only-export-components */
-import { useEffect, useRef, Suspense, lazy } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import type { AppDispatch } from '@/store'
-import Keycloak from 'keycloak-js'
 import { setAuth, setInitialized } from '@/store/slices/authSlice'
-import { setKeycloakInstance } from '@/services/api'
-import { setKeycloakInstance as setApiKeycloakInstance } from '@/store/api/baseApi'
 import { selectTheme } from '@/store/slices/uiSlice'
-import { AdminRoute, Layout, ProtectedRoute } from '@/components/layout'
 import websocketService from '@/services/websocketService'
-
-// Lazy-loaded Pages (code splitting)
-const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
-const NewsPage = lazy(() => import('@/pages/NewsPage'))
-const NewsDetailPage = lazy(() => import('@/pages/NewsDetailPage'))
-const CurrencyPage = lazy(() => import('@/pages/CurrencyPage'))
-const StocksPage = lazy(() => import('@/pages/StocksPage'))
-const StockDetailPage = lazy(() => import('@/pages/StockDetailPage'))
-const MarketSearchPage = lazy(() => import('@/pages/MarketSearchPage'))
-const BondsPage = lazy(() => import('@/pages/BondsPage'))
-const FundsPage = lazy(() => import('@/pages/FundsPage'))
-const ViopPage = lazy(() => import('@/pages/ViopPage'))
-const PortfolioPage = lazy(() => import('@/pages/PortfolioPage'))
-const PortfolioDetailPage = lazy(() => import('@/pages/PortfolioDetailPage'))
-const AnalysisPage = lazy(() => import('@/pages/AnalysisPage'))
-const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
-const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
-const WatchlistPage = lazy(() => import('@/pages/WatchlistPage'))
-const AlertsPage = lazy(() => import('@/pages/AlertsPage'))
-const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'))
-const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'))
-const LoginPage = lazy(() => import('@/pages/LoginPage'))
-const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'))
-
-// Loading fallback component
-const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-[60vh]">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-  </div>
-)
-
-// Keycloak configuration
-const keycloakConfig = {
-  url: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180',
-  realm: import.meta.env.VITE_KEYCLOAK_REALM || 'mintstack-finance',
-  clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'finance-frontend',
-}
-
-const keycloak = new Keycloak(keycloakConfig)
-setKeycloakInstance(keycloak)
-setApiKeycloakInstance(keycloak)
-if (typeof window !== 'undefined') {
-  window.keycloak = keycloak
-}
-
-export { keycloak }
+import { keycloak } from '@/auth/keycloak'
+import { AppRoutes } from '@/routes/AppRoutes'
 
 function App() {
   const dispatch = useDispatch<AppDispatch>()
@@ -74,7 +24,7 @@ function App() {
   // WebSocket price updates are sufficient for real-time data.
 
   useEffect(() => {
-    if (import.meta.env.VITE_E2E_BYPASS_AUTH === 'true') {
+    if (import.meta.env.DEV && import.meta.env.VITE_E2E_BYPASS_AUTH === 'true') {
       const e2eUser = {
         id: 'e2e-user',
         username: 'e2e-user',
@@ -90,13 +40,6 @@ function App() {
       }))
       websocketService.setAuthToken('e2e-bypass-token')
 
-      window.keycloak = {
-        authenticated: true,
-        logout: () => {
-          window.location.href = '/login'
-        },
-      }
-
       return () => {
         if (tokenRefreshIntervalRef.current) {
           clearInterval(tokenRefreshIntervalRef.current)
@@ -107,7 +50,7 @@ function App() {
     // Initialize Keycloak
     keycloak
       .init({
-        onLoad: 'login-required',
+        onLoad: 'check-sso',
         silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
         pkceMethod: 'S256',
       })
@@ -174,159 +117,7 @@ function App() {
     }
   }, [dispatch])
 
-  return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/unauthorized" element={<UnauthorizedPage />} />
-
-        {/* Protected routes with Layout */}
-        <Route element={<Layout />}>
-          {/* Dashboard */}
-          <Route path="/" element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          } />
-
-          {/* News */}
-          <Route path="/news" element={
-            <ProtectedRoute>
-              <NewsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/news/:id" element={
-            <ProtectedRoute>
-              <NewsDetailPage />
-            </ProtectedRoute>
-          } />
-
-          {/* Market Data */}
-          <Route path="/market/currencies" element={
-            <ProtectedRoute>
-              <CurrencyPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/market/stocks" element={
-            <ProtectedRoute>
-              <StocksPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/market/stocks/:symbol" element={
-            <ProtectedRoute>
-              <StockDetailPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/market/search" element={
-            <ProtectedRoute>
-              <MarketSearchPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/market/bonds" element={
-            <ProtectedRoute>
-              <BondsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/market/funds" element={
-            <ProtectedRoute>
-              <FundsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/market/viop" element={
-            <ProtectedRoute>
-              <ViopPage />
-            </ProtectedRoute>
-          } />
-
-          {/* Protected routes */}
-          <Route
-            path="/portfolio"
-            element={
-              <ProtectedRoute>
-                <PortfolioPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/portfolio/:id"
-            element={
-              <ProtectedRoute>
-                <PortfolioDetailPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/analysis"
-            element={
-              <ProtectedRoute>
-                <AnalysisPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <SettingsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Watchlist */}
-          <Route
-            path="/watchlist"
-            element={
-              <ProtectedRoute>
-                <WatchlistPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Alerts */}
-          <Route
-            path="/alerts"
-            element={
-              <ProtectedRoute>
-                <AlertsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Notifications */}
-          <Route
-            path="/notifications"
-            element={
-              <ProtectedRoute>
-                <NotificationsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Admin */}
-          <Route
-            path="/admin"
-            element={
-              <AdminRoute>
-                <AdminDashboard />
-              </AdminRoute>
-            }
-          />
-        </Route>
-
-        {/* Catch all */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
-  )
+  return <AppRoutes />
 }
 
 export default App

@@ -47,6 +47,7 @@ file_env 'SMTP_PASSWORD'
 file_env 'SMTP_USERNAME'
 file_env 'OPENSEARCH_PASSWORD'
 file_env 'SPRING_KAFKA_SASL_PASSWORD'
+file_env 'APP_FIELD_ENCRYPTION_KEY'
 
 # Derive Kafka JAAS config from secret value when SASL password is provided.
 if [ -n "${SPRING_KAFKA_SASL_PASSWORD:-}" ] && [ -z "${SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG:-}" ]; then

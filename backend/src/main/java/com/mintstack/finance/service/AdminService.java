@@ -13,7 +13,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -52,8 +55,8 @@ public class AdminService {
      */
     @Transactional(readOnly = true)
     public Page<UserAdminResponse> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable)
-                .map(this::mapToUserResponse);
+        Page<User> users = userRepository.findAll(pageable);
+        return mapUserPage(users);
     }
 
     /**
@@ -63,7 +66,7 @@ public class AdminService {
     public UserAdminResponse getUserById(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı", "id", userId));
-        return mapToUserResponse(user);
+        return mapToUserResponse(user, Math.toIntExact(portfolioRepository.countByUserId(userId)));
     }
 
     /**
@@ -95,11 +98,24 @@ public class AdminService {
      */
     @Transactional(readOnly = true)
     public Page<UserAdminResponse> searchUsers(String query, Pageable pageable) {
-        return userRepository.searchByEmailOrName(query, pageable)
-                .map(this::mapToUserResponse);
+        return mapUserPage(userRepository.searchByEmailOrName(query, pageable));
     }
 
-    private UserAdminResponse mapToUserResponse(User user) {
+    private Page<UserAdminResponse> mapUserPage(Page<User> users) {
+        List<UUID> userIds = users.getContent().stream().map(User::getId).toList();
+        List<PortfolioRepository.UserPortfolioCount> counts = userIds.isEmpty()
+                ? List.of()
+                : portfolioRepository.countByUserIds(userIds);
+        Map<UUID, Integer> countByUser = counts == null
+                ? Map.of()
+                : counts.stream().collect(Collectors.toMap(
+                        PortfolioRepository.UserPortfolioCount::getUserId,
+                        count -> Math.toIntExact(count.getPortfolioCount())
+                ));
+        return users.map(user -> mapToUserResponse(user, countByUser.getOrDefault(user.getId(), 0)));
+    }
+
+    private UserAdminResponse mapToUserResponse(User user, int portfolioCount) {
         return UserAdminResponse.builder()
                 .id(user.getId())
                 .keycloakId(user.getKeycloakId())
@@ -108,7 +124,7 @@ public class AdminService {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .isActive(user.getIsActive())
-                .portfolioCount(user.getPortfolios() != null ? user.getPortfolios().size() : 0)
+                .portfolioCount(portfolioCount)
                 .createdAt(user.getCreatedAt())
                 .lastLoginAt(null) // Last login takibi henüz yok
                 .build();

@@ -205,9 +205,7 @@ public class MarketDataService {
             instruments = instrumentRepository.findRealByType(type);
         }
 
-        return instruments.stream()
-            .map(instrument -> mapToInstrumentResponse(instrument, changeRange))
-            .collect(Collectors.toList());
+        return mapInstrumentResponses(instruments, changeRange);
     }
 
     @Transactional(readOnly = true)
@@ -240,7 +238,7 @@ public class MarketDataService {
             instruments = instrumentRepository.findRealByType(type, pageable);
         }
 
-        return instruments.map(instrument -> mapToInstrumentResponse(instrument, changeRange));
+        return mapInstrumentResponses(instruments, changeRange);
     }
 
     @Transactional(readOnly = true)
@@ -303,7 +301,7 @@ public class MarketDataService {
             }
         }
 
-        return instruments.map(instrument -> mapToInstrumentResponse(instrument, changeRange));
+        return mapInstrumentResponses(instruments, changeRange);
     }
 
     @Transactional(readOnly = true)
@@ -337,7 +335,7 @@ public class MarketDataService {
             instruments = instrumentRepository.searchRealByTypeAndQuery(type, query, pageable);
         }
 
-        return instruments.map(instrument -> mapToInstrumentResponse(instrument, changeRange));
+        return mapInstrumentResponses(instruments, changeRange);
     }
 
     // Price History
@@ -786,7 +784,64 @@ public class MarketDataService {
     }
 
     private InstrumentResponse mapToInstrumentResponse(Instrument instrument, ChangeDateRange changeRange) {
-        InstrumentMetricsService.InstrumentMetrics metrics = instrumentMetricsService.resolveMetrics(instrument);
+        return mapToInstrumentResponse(
+                instrument,
+                changeRange,
+                instrumentMetricsService.resolveMetrics(instrument)
+        );
+    }
+
+    private List<InstrumentResponse> mapInstrumentResponses(
+            List<Instrument> instruments,
+            ChangeDateRange changeRange) {
+        Map<UUID, InstrumentMetricsService.InstrumentMetrics> metricsByInstrument =
+                instrumentMetricsService.resolveMetricsBatch(instruments);
+        Map<UUID, InstrumentRangeChange> rangeChanges =
+                resolveBatchRangeChanges(instruments, metricsByInstrument, changeRange);
+        return instruments.stream()
+                .map(instrument -> mapToInstrumentResponse(
+                        instrument,
+                        changeRange,
+                        resolveBatchMetric(instrument, metricsByInstrument),
+                        rangeChanges.get(instrument.getId())
+                ))
+                .toList();
+    }
+
+    private Page<InstrumentResponse> mapInstrumentResponses(
+            Page<Instrument> instruments,
+            ChangeDateRange changeRange) {
+        Map<UUID, InstrumentMetricsService.InstrumentMetrics> metricsByInstrument =
+                instrumentMetricsService.resolveMetricsBatch(instruments.getContent());
+        Map<UUID, InstrumentRangeChange> rangeChanges =
+                resolveBatchRangeChanges(instruments.getContent(), metricsByInstrument, changeRange);
+        return instruments.map(instrument -> mapToInstrumentResponse(
+                instrument,
+                changeRange,
+                resolveBatchMetric(instrument, metricsByInstrument),
+                rangeChanges.get(instrument.getId())
+        ));
+    }
+
+    private InstrumentMetricsService.InstrumentMetrics resolveBatchMetric(
+            Instrument instrument,
+            Map<UUID, InstrumentMetricsService.InstrumentMetrics> metricsByInstrument) {
+        InstrumentMetricsService.InstrumentMetrics metrics = metricsByInstrument.get(instrument.getId());
+        return metrics != null ? metrics : instrumentMetricsService.resolveMetrics(instrument);
+    }
+
+    private InstrumentResponse mapToInstrumentResponse(
+            Instrument instrument,
+            ChangeDateRange changeRange,
+            InstrumentMetricsService.InstrumentMetrics metrics) {
+        return mapToInstrumentResponse(instrument, changeRange, metrics, null);
+    }
+
+    private InstrumentResponse mapToInstrumentResponse(
+            Instrument instrument,
+            ChangeDateRange changeRange,
+            InstrumentMetricsService.InstrumentMetrics metrics,
+            InstrumentRangeChange precomputedRangeChange) {
         BigDecimal currentPrice = metrics.currentPrice();
         BigDecimal previousClose = metrics.previousClose();
         BigDecimal change = null;
@@ -807,12 +862,14 @@ public class MarketDataService {
         }
 
         if (changeRange != null) {
-            InstrumentRangeChange rangeChange = calculateInstrumentRangeChange(
-                instrument,
-                currentPrice,
-                positiveOrFallback(instrument.getPreviousClose(), metrics.previousClose()),
-                changeRange
-            );
+            InstrumentRangeChange rangeChange = precomputedRangeChange != null
+                    ? precomputedRangeChange
+                    : calculateInstrumentRangeChange(
+                            instrument,
+                            currentPrice,
+                            positiveOrFallback(instrument.getPreviousClose(), metrics.previousClose()),
+                            changeRange
+                    );
             change = rangeChange.change();
             changePercent = rangeChange.changePercent();
             changeBasePrice = rangeChange.basePrice();
@@ -847,6 +904,112 @@ public class MarketDataService {
             .isActive(instrument.getIsActive())
             .isSimulated(Boolean.TRUE.equals(instrument.getIsSimulated()))
             .build();
+    }
+
+    private Map<UUID, InstrumentRangeChange> resolveBatchRangeChanges(
+            List<Instrument> instruments,
+            Map<UUID, InstrumentMetricsService.InstrumentMetrics> metricsByInstrument,
+            ChangeDateRange changeRange) {
+        if (changeRange == null || instruments.isEmpty()) {
+            return Map.of();
+        }
+
+        List<UUID> instrumentIds = instruments.stream()
+                .map(Instrument::getId)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+        if (instrumentIds.isEmpty()) {
+            return Map.of();
+        }
+
+        LocalDate today = LocalDate.now();
+        Map<UUID, PricePoint> startPoints = new java.util.HashMap<>();
+        if (changeRange.startDate().isEqual(today)) {
+            instruments.forEach(instrument -> {
+                InstrumentMetricsService.InstrumentMetrics metrics =
+                        metricsByInstrument.get(instrument.getId());
+                BigDecimal basePrice = positiveOrFallback(
+                        instrument.getPreviousClose(),
+                        metrics != null ? metrics.previousClose() : null
+                );
+                if (isPositive(basePrice)) {
+                    startPoints.put(instrument.getId(), new PricePoint(basePrice, today));
+                }
+            });
+        } else {
+            priceHistoryRepository.findLatestAtOrBeforeByInstrumentIds(
+                            instrumentIds,
+                            changeRange.startDate()
+                    )
+                    .forEach(history -> startPoints.put(
+                            history.getInstrument().getId(),
+                            toPricePoint(history)
+                    ));
+        }
+
+        Map<UUID, PricePoint> endPoints = new java.util.HashMap<>();
+        if (changeRange.endDate().isBefore(today)) {
+            priceHistoryRepository.findLatestAtOrBeforeByInstrumentIds(
+                            instrumentIds,
+                            changeRange.endDate()
+                    )
+                    .forEach(history -> endPoints.put(
+                            history.getInstrument().getId(),
+                            toPricePoint(history)
+                    ));
+        } else {
+            instruments.forEach(instrument -> {
+                InstrumentMetricsService.InstrumentMetrics metrics =
+                        metricsByInstrument.get(instrument.getId());
+                if (metrics != null && metrics.currentPrice() != null) {
+                    endPoints.put(
+                            instrument.getId(),
+                            new PricePoint(metrics.currentPrice(), today)
+                    );
+                }
+            });
+        }
+
+        Map<UUID, InstrumentRangeChange> result = new java.util.HashMap<>();
+        instrumentIds.forEach(instrumentId -> result.put(
+                instrumentId,
+                calculateRangeChange(startPoints.get(instrumentId), endPoints.get(instrumentId))
+        ));
+        return result;
+    }
+
+    private PricePoint toPricePoint(PriceHistory history) {
+        return new PricePoint(
+                positiveOrFallback(history.getAdjustedClose(), history.getClosePrice()),
+                history.getPriceDate()
+        );
+    }
+
+    private InstrumentRangeChange calculateRangeChange(PricePoint startPoint, PricePoint endPoint) {
+        if (startPoint == null || endPoint == null) {
+            return InstrumentRangeChange.empty();
+        }
+        if (!isPositive(startPoint.price()) || endPoint.price() == null) {
+            return new InstrumentRangeChange(
+                    null,
+                    null,
+                    startPoint.price(),
+                    startPoint.date(),
+                    endPoint.date()
+            );
+        }
+
+        BigDecimal change = endPoint.price().subtract(startPoint.price());
+        BigDecimal changePercent = change
+                .divide(startPoint.price(), 6, RoundingMode.HALF_UP)
+                .multiply(new BigDecimal("100"));
+        return new InstrumentRangeChange(
+                change,
+                changePercent,
+                startPoint.price(),
+                startPoint.date(),
+                endPoint.date()
+        );
     }
 
     private InstrumentRangeChange calculateInstrumentRangeChange(

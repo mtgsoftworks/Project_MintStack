@@ -38,6 +38,25 @@ Create the following files in this directory before production deployment:
 <your-alpha-vantage-api-key>
 ```
 
+### 5. app_field_encryption_key.txt
+
+Base64-encoded 256-bit AES key used to encrypt stored provider credentials:
+
+```bash
+openssl rand -base64 32
+```
+
+## LDAP TLS files
+
+Create `secrets/ldap/` with:
+
+- `ca.crt`
+- `ldap.crt`
+- `ldap.key`
+
+The LDAP certificate must contain `openldap` in its Subject Alternative Name.
+Keep the private key readable only by the deployment account.
+
 ## Generating Strong Passwords
 
 Use the following command to generate secure passwords:

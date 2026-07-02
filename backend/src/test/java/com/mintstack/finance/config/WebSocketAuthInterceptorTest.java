@@ -15,6 +15,8 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import com.mintstack.finance.repository.UserRepository;
 
 import java.time.Instant;
 import java.util.List;
@@ -30,6 +32,9 @@ class WebSocketAuthInterceptorTest {
 
     @Mock
     private JwtDecoder jwtDecoder;
+
+    @Mock
+    private UserRepository userRepository;
 
     @Mock
     private MessageChannel channel;
@@ -54,6 +59,8 @@ class WebSocketAuthInterceptorTest {
     @DisplayName("CONNECT with valid JWT sets user authentication")
     void preSend_ValidJwt_SetsAuthentication() {
         when(jwtDecoder.decode("valid-token")).thenReturn(validJwt);
+        when(userRepository.findActiveStatusByKeycloakId("user-123"))
+                .thenReturn(java.util.Optional.of(true));
 
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
         accessor.addNativeHeader("Authorization", "Bearer valid-token");
@@ -78,14 +85,38 @@ class WebSocketAuthInterceptorTest {
     }
 
     @Test
-    @DisplayName("Non-CONNECT messages pass through")
-    void preSend_NonConnectCommand_PassesThrough() {
+    @DisplayName("Client SEND messages are rejected")
+    void preSend_SendCommand_IsRejected() {
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SEND);
+
+        Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+        assertThatThrownBy(() -> interceptor.preSend(message, channel))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+    }
+
+    @Test
+    @DisplayName("Authenticated price subscriptions are allowed")
+    void preSend_AllowedSubscription_PassesThrough() {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setUser(new UsernamePasswordAuthenticationToken("user-123", null, List.of()));
+        accessor.setDestination("/topic/prices/stocks");
 
         Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
         Message<?> result = interceptor.preSend(message, channel);
 
         assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Subscriptions to arbitrary destinations are rejected")
+    void preSend_UnknownSubscription_IsRejected() {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setUser(new UsernamePasswordAuthenticationToken("user-123", null, List.of()));
+        accessor.setDestination("/queue/internal");
+
+        Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+        assertThatThrownBy(() -> interceptor.preSend(message, channel))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
     }
 
     @Test

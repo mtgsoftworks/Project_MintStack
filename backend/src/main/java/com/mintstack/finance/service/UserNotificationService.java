@@ -6,7 +6,6 @@ import com.mintstack.finance.entity.UserNotification.NotificationType;
 import com.mintstack.finance.repository.UserNotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +20,7 @@ import java.util.UUID;
 public class UserNotificationService {
 
     private final UserNotificationRepository notificationRepository;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final ClusterWebSocketPublisher webSocketPublisher;
 
     @Transactional
     public UserNotification createAndDispatch(
@@ -61,7 +60,11 @@ public class UserNotificationService {
         payload.put("timestamp", LocalDateTime.now());
 
         try {
-            messagingTemplate.convertAndSendToUser(user.getKeycloakId(), "/queue/notifications", payload);
+            webSocketPublisher.broadcastToUser(
+                    user.getKeycloakId(),
+                    "/queue/notifications",
+                    payload
+            );
         } catch (Exception error) {
             log.warn("Notification WebSocket dispatch failed for user {}: {}", user.getKeycloakId(), error.getMessage());
         }

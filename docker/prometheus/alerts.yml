@@ -4,7 +4,11 @@ groups:
     rules:
       # High error rate alert
       - alert: HighErrorRate
-        expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) > 0.1
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 0.001)
+          > 0.1
         for: 2m
         labels:
           severity: critical
@@ -99,7 +103,7 @@ groups:
     rules:
       # Kafka consumer lag
       - alert: KafkaConsumerLag
-        expr: kafka_consumer_lag > 1000
+        expr: kafka_consumergroup_lag > 1000
         for: 5m
         labels:
           severity: warning

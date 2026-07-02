@@ -15,7 +15,11 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,15 +38,73 @@ public class InstrumentMetricsService {
 
     public InstrumentMetrics resolveMetrics(Instrument instrument) {
         List<PriceHistory> recentHistory = resolveRecentHistory(instrument, RECENT_HISTORY_LIMIT);
+        PriceRange week52Range = resolveWeek52Range(instrument);
+        return resolveMetrics(instrument, recentHistory, week52Range, true);
+    }
+
+    public Map<UUID, InstrumentMetrics> resolveMetricsBatch(List<Instrument> instruments) {
+        if (instruments == null || instruments.isEmpty()) {
+            return Map.of();
+        }
+
+        List<UUID> instrumentIds = instruments.stream()
+                .map(Instrument::getId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        if (instrumentIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<UUID, List<PriceHistory>> historyByInstrument = new HashMap<>();
+        priceHistoryRepository.findRecentByInstrumentIds(instrumentIds, RECENT_HISTORY_LIMIT)
+                .forEach(history -> historyByInstrument
+                        .computeIfAbsent(history.getInstrument().getId(), ignored -> new ArrayList<>())
+                        .add(history));
+
+        LocalDate endDate = LocalDate.now();
+        Map<UUID, PriceRange> rangeByInstrument = new HashMap<>();
+        priceHistoryRepository.findPriceRangesByInstrumentIds(
+                        instrumentIds,
+                        endDate.minusDays(365),
+                        endDate
+                )
+                .forEach(range -> rangeByInstrument.put(
+                        range.getInstrumentId(),
+                        normalizeRange(range.getWeek52High(), range.getWeek52Low())
+                ));
+
+        Map<UUID, InstrumentMetrics> result = new HashMap<>();
+        for (Instrument instrument : instruments) {
+            if (instrument.getId() == null) {
+                continue;
+            }
+            result.put(
+                    instrument.getId(),
+                    resolveMetrics(
+                            instrument,
+                            historyByInstrument.getOrDefault(instrument.getId(), List.of()),
+                            rangeByInstrument.getOrDefault(instrument.getId(), new PriceRange(null, null)),
+                            false
+                    )
+            );
+        }
+        return result;
+    }
+
+    private InstrumentMetrics resolveMetrics(
+            Instrument instrument,
+            List<PriceHistory> recentHistory,
+            PriceRange week52Range,
+            boolean allowExternalVolumeLookup) {
         Optional<PriceHistory> latestHistory = recentHistory.stream().findFirst();
         BigDecimal currentPrice = resolveCurrentPrice(instrument, latestHistory);
         BigDecimal previousClose = resolvePreviousClose(instrument, recentHistory, currentPrice);
-        Long volume = resolveLatestVolume(instrument, latestHistory);
+        Long volume = resolveLatestVolume(instrument, latestHistory, allowExternalVolumeLookup);
         LocalDate maturityDate = resolveMaturityDate(instrument);
         BigDecimal yieldRate = resolveYieldRate(instrument, maturityDate, currentPrice);
         BigDecimal totalValue = resolveTotalValue(instrument, currentPrice, volume);
         BigDecimal marketCap = resolveMarketCap(instrument, totalValue, currentPrice, previousClose);
-        PriceRange week52Range = resolveWeek52Range(instrument);
         BigDecimal openPrice = resolveOpenPrice(instrument, latestHistory);
         BigDecimal highPrice = resolveHighPrice(instrument, latestHistory);
         BigDecimal lowPrice = resolveLowPrice(instrument, latestHistory);
@@ -137,7 +199,10 @@ public class InstrumentMetricsService {
         return firstPositive(instrument.getCurrentPrice(), instrument.getPreviousClose());
     }
 
-    private Long resolveLatestVolume(Instrument instrument, Optional<PriceHistory> latestHistory) {
+    private Long resolveLatestVolume(
+            Instrument instrument,
+            Optional<PriceHistory> latestHistory,
+            boolean allowExternalVolumeLookup) {
         if (instrument == null) {
             return null;
         }
@@ -146,7 +211,9 @@ public class InstrumentMetricsService {
             return latestHistory.get().getVolume();
         }
 
-        if (instrument.getSymbol() != null && shouldQueryExternalVolume(instrument.getType())) {
+        if (allowExternalVolumeLookup
+                && instrument.getSymbol() != null
+                && shouldQueryExternalVolume(instrument.getType())) {
             Long liveVolume = yahooFinanceClient.getLatestVolume(instrument.getSymbol());
             if (liveVolume != null && liveVolume > 0) {
                 return liveVolume;
@@ -312,17 +379,21 @@ public class InstrumentMetricsService {
             .min(BigDecimal::compareTo)
             .orElse(null);
 
+        return normalizeRange(high, low);
+    }
+
+    private PriceRange normalizeRange(BigDecimal high, BigDecimal low) {
         if (high == null || low == null) {
             return new PriceRange(null, null);
         }
         if (low.compareTo(high) > 0) {
-            BigDecimal temp = low;
+            BigDecimal temporary = low;
             low = high;
-            high = temp;
+            high = temporary;
         }
         return new PriceRange(
-            high.setScale(6, RoundingMode.HALF_UP),
-            low.setScale(6, RoundingMode.HALF_UP)
+                high.setScale(6, RoundingMode.HALF_UP),
+                low.setScale(6, RoundingMode.HALF_UP)
         );
     }
 

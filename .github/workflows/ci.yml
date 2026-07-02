@@ -17,9 +17,23 @@ permissions:
 
 env:
   JAVA_VERSION: "21"
-  NODE_VERSION: "20"
+  NODE_VERSION: "20.19.0"
 
 jobs:
+  secrets:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan repository history
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   backend:
     name: Backend Quality
     runs-on: ubuntu-latest
@@ -54,18 +68,6 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: OWASP Dependency Check
-        run: ./mvnw -B -ntp org.owasp:dependency-check-maven:aggregate -DfailBuildOnCVSS=7
-        continue-on-error: true
-
-      - name: Upload Dependency Check Report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: dependency-check-report
-          path: target/dependency-check-report.html
-          retention-days: 30
-
       - name: Test and package backend
         run: ./mvnw -B -ntp clean verify -DskipITs=false
         env:
@@ -87,14 +89,40 @@ jobs:
           path: backend/target/site/jacoco/
           retention-days: 30
 
+      - name: Cache OWASP vulnerability database
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/dependency-check-data
+          key: dependency-check-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            dependency-check-${{ runner.os }}-
+
+      - name: OWASP Dependency Check
+        timeout-minutes: 20
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: >
+          ./mvnw -B -ntp org.owasp:dependency-check-maven:check
+          -DfailBuildOnCVSS=7
+          -DdataDirectory=$HOME/.m2/dependency-check-data
+          -DnvdApiKey=$NVD_API_KEY
+
+      - name: Upload Dependency Check Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-check-report
+          path: backend/target/dependency-check-report.html
+          retention-days: 30
+
       - name: Validate Flyway migrations
         run: |
-          ./mvnw -B -ntp org.flywaydb:flyway-maven-plugin:10.17.0:migrate \
+          ./mvnw -B -ntp org.flywaydb:flyway-maven-plugin:10.20.1:migrate \
             -Dflyway.url=jdbc:postgresql://localhost:5432/testdb \
             -Dflyway.user=testuser \
             -Dflyway.password=testpass \
             -Dflyway.locations=filesystem:src/main/resources/db/migration
-          ./mvnw -B -ntp org.flywaydb:flyway-maven-plugin:10.17.0:validate \
+          ./mvnw -B -ntp org.flywaydb:flyway-maven-plugin:10.20.1:validate \
             -Dflyway.url=jdbc:postgresql://localhost:5432/testdb \
             -Dflyway.user=testuser \
             -Dflyway.password=testpass \
@@ -140,20 +168,75 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'node:20-alpine'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-        continue-on-error: true
+  e2e:
+    name: Frontend E2E Smoke
+    runs-on: ubuntu-latest
+    needs: frontend
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Upload Trivy Scan Results
-        uses: github/codeql-action/upload-sarif@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          sarif_file: 'trivy-results.sarif'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Chromium E2E suite
+        run: npm run test:e2e -- --project=chromium
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
         if: always()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 30
+
+  images:
+    name: Build and Scan Application Images
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t mintstack-backend:ci ./backend
+
+      - name: Build frontend image
+        run: >
+          docker build
+          --build-arg VITE_API_URL=/api/v1
+          --build-arg VITE_KEYCLOAK_URL=https://mintstack.example/auth
+          --build-arg VITE_WS_URL=wss://mintstack.example/ws
+          -t mintstack-frontend:ci ./frontend
+
+      - name: Scan backend image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: mintstack-backend:ci
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: 1
+
+      - name: Scan frontend image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: mintstack-frontend:ci
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: 1
 
   compose:
     name: Compose Validation
@@ -170,3 +253,14 @@ jobs:
 
       - name: Validate production compose
         run: docker compose -f docker-compose.prod.yml config > /dev/null
+        env:
+          PUBLIC_APP_ORIGIN: https://mintstack.example
+          VITE_KEYCLOAK_URL: https://mintstack.example/auth
+          VITE_WS_URL: wss://mintstack.example/ws
+          POSTGRES_DB: mintstack
+          POSTGRES_USER: mintstack
+          KAFKA_SASL_PASSWORD: ci-placeholder
+          OPENSEARCH_INITIAL_ADMIN_PASSWORD: ci-placeholder
+          KEYCLOAK_ADMIN: admin
+          LDAP_ORGANISATION: MintStack
+          LDAP_DOMAIN: mintstack.local

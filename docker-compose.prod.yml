@@ -42,6 +42,7 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: mintstack-postgres-prod
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -67,6 +68,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: mintstack-redis-prod
+    restart: unless-stopped
     command: >
       sh -c "redis-server --requirepass $$(cat /run/secrets/redis_password)"
     secrets:
@@ -92,18 +94,24 @@ services:
   openldap:
     image: osixia/openldap:1.5.0
     container_name: mintstack-openldap-prod
+    restart: unless-stopped
     environment:
       LDAP_ORGANISATION: ${LDAP_ORGANISATION}
       LDAP_DOMAIN: ${LDAP_DOMAIN}
       LDAP_ADMIN_PASSWORD_FILE: /run/secrets/ldap_admin_password
       LDAP_CONFIG_PASSWORD_FILE: /run/secrets/ldap_admin_password
-      LDAP_TLS: "false"
+      LDAP_TLS: "true"
+      LDAP_TLS_CRT_FILENAME: ldap.crt
+      LDAP_TLS_KEY_FILENAME: ldap.key
+      LDAP_TLS_CA_CRT_FILENAME: ca.crt
+      LDAP_TLS_VERIFY_CLIENT: try
     secrets:
       - ldap_admin_password
     volumes:
       - openldap_data:/var/lib/ldap
       - openldap_config:/etc/ldap/slapd.d
       - ./openldap/ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom
+      - ./secrets/ldap:/container/service/slapd/assets/certs:ro
     networks:
       - auth-network
     command: --copy-service
@@ -113,24 +121,34 @@ services:
           memory: 256M
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.5.4
+    build:
+      context: ./keycloak
+      dockerfile: Dockerfile
+    image: mintstack-keycloak:26.5.4
     container_name: mintstack-keycloak-prod
+    restart: unless-stopped
     environment:
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
-      KEYCLOAK_ADMIN_PASSWORD_FILE: /run/secrets/keycloak_admin_password
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
+      KC_BOOTSTRAP_ADMIN_PASSWORD_FILE: /run/secrets/keycloak_admin_password
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD_FILE: /run/secrets/postgres_password
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_PORT: "8080"
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_HEALTH_ENABLED: "true"
       KC_HOSTNAME_STRICT: "true"
-      KC_HOSTNAME: ${KC_HOSTNAME:-localhost}
+      KC_HOSTNAME: ${VITE_KEYCLOAK_URL:?VITE_KEYCLOAK_URL must be the public Keycloak URL}
       KC_PROXY_HEADERS: xforwarded
+      LDAP_BIND_CREDENTIAL_FILE: /run/secrets/ldap_admin_password
+      LDAP_CONNECTION_URL: ldaps://openldap:636
     secrets:
       - keycloak_admin_password
       - postgres_password
-    command: start --import-realm --optimized
+      - ldap_admin_password
     volumes:
-      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+      - ./secrets/ldap/ca.crt:/opt/keycloak/conf/truststores/ldap-ca.crt:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -140,7 +158,7 @@ services:
       - auth-network
       - data-network
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080;echo -e 'GET /health/ready HTTP/1.1\r\nhost: localhost\r\nConnection: close\r\n\r\n' >&3;if [ $? -eq 0 ]; then exit 0; else exit 1; fi;"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3; grep -q '200 OK' <&3"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -158,6 +176,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    restart: unless-stopped
     # Note: container_name omitted intentionally — replicas: 2 is used
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -167,8 +186,8 @@ services:
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_DATA_REDIS_PASSWORD_FILE: /run/secrets/redis_password
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/mintstack-finance/protocol/openid-connect/certs
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/mintstack-finance
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/auth/realms/mintstack-finance/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${VITE_KEYCLOAK_URL:?VITE_KEYCLOAK_URL must be set}/realms/mintstack-finance
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: SASL_PLAINTEXT
       SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: PLAIN
@@ -177,6 +196,11 @@ services:
       APP_RATE_LIMIT_ANONYMOUS_REQUESTS_PER_MINUTE: ${APP_RATE_LIMIT_ANONYMOUS_REQUESTS_PER_MINUTE:-100}
       APP_RATE_LIMIT_AUTHENTICATED_REQUESTS_PER_MINUTE: ${APP_RATE_LIMIT_AUTHENTICATED_REQUESTS_PER_MINUTE:-200}
       APP_RATE_LIMIT_ADMIN_REQUESTS_PER_MINUTE: ${APP_RATE_LIMIT_ADMIN_REQUESTS_PER_MINUTE:-500}
+      APP_RATE_LIMIT_FAIL_OPEN: "false"
+      APP_RATE_LIMIT_TRUSTED_PROXIES: ${APP_RATE_LIMIT_TRUSTED_PROXIES:-172.16.0.0/12}
+      APP_CORS_ALLOWED_ORIGINS: ${PUBLIC_APP_ORIGIN:?PUBLIC_APP_ORIGIN must be set}
+      APP_CORS_ALLOWED_ORIGIN_PATTERNS: ""
+      APP_CORS_ALLOW_CREDENTIALS: "false"
       APP_SCHEDULER_TCMB_RATES_CRON: "${APP_SCHEDULER_TCMB_RATES_CRON:-0 30 10,16 * * MON-FRI}"
       APP_SCHEDULER_STOCK_PRICES_CRON: "${APP_SCHEDULER_STOCK_PRICES_CRON:-*/20 * * * * *}"
       APP_SCHEDULER_BOND_PRICES_CRON: "${APP_SCHEDULER_BOND_PRICES_CRON:-0 */2 * * * *}"
@@ -212,16 +236,19 @@ services:
       MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       OTEL_SERVICE_NAME: finance-portal
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:-0.1}
       OPENSEARCH_HOST: opensearch
       OPENSEARCH_PORT: 9200
       OPENSEARCH_SCHEME: https
       OPENSEARCH_USERNAME: admin
       OPENSEARCH_PASSWORD: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
       ALPHA_VANTAGE_API_KEY_FILE: /run/secrets/alpha_vantage_key
+      APP_FIELD_ENCRYPTION_KEY_FILE: /run/secrets/app_field_encryption_key
     secrets:
       - postgres_password
       - redis_password
       - alpha_vantage_key
+      - app_field_encryption_key
     depends_on:
       postgres:
         condition: service_healthy
@@ -251,11 +278,13 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    restart: unless-stopped
       args:
         VITE_API_URL: ${VITE_API_URL:-/api/v1}
-        VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL}
+        VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL:?VITE_KEYCLOAK_URL must be set}
         VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM:-mintstack-finance}
         VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID:-finance-frontend}
+        VITE_WS_URL: ${VITE_WS_URL:?VITE_WS_URL must be set}
     container_name: mintstack-frontend-prod
     depends_on:
       - backend
@@ -273,6 +302,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: mintstack-kafka-prod
+    restart: unless-stopped
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -307,6 +337,7 @@ services:
   opensearch:
     image: opensearchproject/opensearch:2.13.0
     container_name: mintstack-opensearch-prod
+    restart: unless-stopped
     environment:
       - cluster.name=mintstack-cluster
       - node.name=opensearch-node1
@@ -339,6 +370,7 @@ services:
   logstash:
     image: opensearchproject/logstash-oss-with-opensearch-output-plugin:8.9.0
     container_name: mintstack-logstash-prod
+    restart: unless-stopped
     volumes:
       - ./docker/logstash/pipeline:/usr/share/logstash/pipeline:ro
       - ./docker/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
@@ -367,6 +399,7 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.91.0
     container_name: mintstack-otel-collector-prod
+    restart: unless-stopped
     command: ["--config=/etc/otel-collector-config.yaml"]
     environment:
       OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
@@ -387,6 +420,26 @@ services:
         limits:
           memory: 256M
 
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.7.0
+    container_name: mintstack-kafka-exporter-prod
+    restart: unless-stopped
+    command:
+      - --kafka.server=kafka:9092
+      - --sasl.enabled
+      - --sasl.username=kafka
+      - --sasl.password=${KAFKA_SASL_PASSWORD}
+      - --sasl.mechanism=plain
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - obs-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
   # ===========================================
   # MONITORING LAYER (G1, G2, G3)
   # ===========================================
@@ -394,6 +447,7 @@ services:
   prometheus:
     image: prom/prometheus:v2.48.0
     container_name: mintstack-prometheus-prod
+    restart: unless-stopped
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -401,12 +455,12 @@ services:
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
-      - '--web.config.file=/etc/prometheus/web.yml'
     volumes:
       - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./docker/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
-      - ./docker/prometheus/web.yml:/etc/prometheus/web.yml:ro
       - prometheus_data:/prometheus
+    depends_on:
+      - kafka-exporter
     networks:
       - obs-network
       - app-network
@@ -423,6 +477,7 @@ services:
   alertmanager:
     image: prom/alertmanager:v0.26.0
     container_name: mintstack-alertmanager-prod
+    restart: unless-stopped
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
@@ -445,6 +500,7 @@ services:
   grafana:
     image: grafana/grafana:10.2.2
     container_name: mintstack-grafana-prod
+    restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
@@ -480,6 +536,7 @@ services:
   nginx:
     image: nginx:alpine
     container_name: mintstack-nginx-prod
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
@@ -546,6 +603,8 @@ secrets:
     file: ./secrets/keycloak_admin_password.txt
   alpha_vantage_key:
     file: ./secrets/alpha_vantage_key.txt
+  app_field_encryption_key:
+    file: ./secrets/app_field_encryption_key.txt
   grafana_admin_password:
     file: ./secrets/grafana_admin_password.txt
   ldap_admin_password:

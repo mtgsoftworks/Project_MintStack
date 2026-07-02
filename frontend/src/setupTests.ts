@@ -61,8 +61,8 @@ vi.mock('keycloak-js', () => {
   }
 })
 
-// Mock keycloak export from App
-vi.mock('@/App', () => ({
+// Mock the shared Keycloak client
+vi.mock('@/auth/keycloak', () => ({
   keycloak: {
     init: vi.fn().mockResolvedValue(true),
     login: vi.fn(),

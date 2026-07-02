@@ -60,6 +60,7 @@ public class KafkaConfig {
     public static final String TOPIC_MARKET_DATA = "mintstack-market-data";
     public static final String TOPIC_MARKET_DATA_DLT = "mintstack-market-data-dlt";
     public static final String TOPIC_NOTIFICATIONS = "mintstack-notifications";
+    public static final String TOPIC_NOTIFICATIONS_DLT = "mintstack-notifications-dlt";
 
     @Bean
     public KafkaAdmin kafkaAdmin() {
@@ -74,7 +75,6 @@ public class KafkaConfig {
         return TopicBuilder.name(TOPIC_LOGS)
             .partitions(3)
             .replicas(1)
-            .compact()
             .build();
     }
 
@@ -98,6 +98,14 @@ public class KafkaConfig {
     @Bean
     public NewTopic notificationsTopic() {
         return TopicBuilder.name(TOPIC_NOTIFICATIONS)
+            .partitions(2)
+            .replicas(1)
+            .build();
+    }
+
+    @Bean
+    public NewTopic notificationsDltTopic() {
+        return TopicBuilder.name(TOPIC_NOTIFICATIONS_DLT)
             .partitions(2)
             .replicas(1)
             .build();
@@ -129,18 +137,31 @@ public class KafkaConfig {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.mintstack.finance.service.event");
         addSecurityProps(props);
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
+            KafkaTemplate<String, Object> kafkaTemplate) {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory = 
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
         factory.setConcurrency(3);
+        factory.setCommonErrorHandler(notificationErrorHandler(kafkaTemplate));
         return factory;
+    }
+
+    @Bean
+    public CommonErrorHandler notificationErrorHandler(KafkaTemplate<String, Object> kafkaTemplate) {
+        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
+            kafkaTemplate,
+            (record, ex) -> new TopicPartition(TOPIC_NOTIFICATIONS_DLT, record.partition())
+        );
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, new FixedBackOff(1000, 2));
+        errorHandler.addNotRetryableExceptions(IllegalArgumentException.class);
+        return errorHandler;
     }
 
     @Bean(name = "marketDataKafkaListenerContainerFactory")

@@ -18,11 +18,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.web.util.matcher.IpAddressMatcher;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Arrays;
 
 /**
  * Rate limiting filter using Bucket4j.
@@ -37,10 +38,6 @@ import java.util.List;
 @Order(Ordered.LOWEST_PRECEDENCE + 100) // Run after security filter chain (~Ordered.LOWEST_PRECEDENCE)
 @RequiredArgsConstructor
 public class RateLimitFilter extends OncePerRequestFilter {
-
-    private static final List<String> TRUSTED_PROXIES = List.of(
-        "127.0.0.1", "::1", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"
-    );
 
     private final RateLimitConfig rateLimitConfig;
     private final ObjectMapper objectMapper;
@@ -130,8 +127,19 @@ public class RateLimitFilter extends OncePerRequestFilter {
         if (isFromTrustedProxy(request)) {
             String xForwardedFor = request.getHeader("X-Forwarded-For");
             if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-                // Take the first IP (original client)
-                return xForwardedFor.split(",")[0].trim();
+                String[] forwardedAddresses = Arrays.stream(xForwardedFor.split(","))
+                        .map(String::trim)
+                        .filter(value -> !value.isEmpty())
+                        .toArray(String[]::new);
+                for (int index = forwardedAddresses.length - 1; index >= 0; index--) {
+                    String candidate = forwardedAddresses[index];
+                    if (!isTrustedAddress(candidate)) {
+                        return candidate;
+                    }
+                }
+                if (forwardedAddresses.length > 0) {
+                    return forwardedAddresses[0];
+                }
             }
 
             String xRealIP = request.getHeader("X-Real-IP");
@@ -152,17 +160,18 @@ public class RateLimitFilter extends OncePerRequestFilter {
         if (remoteAddr == null) {
             return false;
         }
-        // localhost and private IPs are considered trusted proxies in Docker/compose networks
-        return remoteAddr.equals("127.0.0.1")
-            || remoteAddr.equals("::1")
-            || remoteAddr.equals("0.0.0.0")
-            || remoteAddr.startsWith("172.17.")  // Docker default bridge
-            || remoteAddr.startsWith("172.18.")  // Docker compose networks
-            || remoteAddr.startsWith("172.19.")
-            || remoteAddr.startsWith("172.20.")
-            || remoteAddr.startsWith("172.21.")
-            || remoteAddr.startsWith("172.22.")
-            || remoteAddr.startsWith("10.");      // RFC 1918 private
+        return isTrustedAddress(remoteAddr);
+    }
+
+    private boolean isTrustedAddress(String address) {
+        return rateLimitConfig.getTrustedProxies().stream().anyMatch(cidr -> {
+            try {
+                return new IpAddressMatcher(cidr).matches(address);
+            } catch (IllegalArgumentException error) {
+                log.error("Ignoring invalid trusted proxy CIDR '{}': {}", cidr, error.getMessage());
+                return false;
+            }
+        });
     }
 
     /**

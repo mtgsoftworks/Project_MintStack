@@ -225,21 +225,6 @@ class WebSocketService {
     }
 
     /**
-     * Send a message to the server
-     */
-    send(destination: string, body: any) {
-        if (!this.client || !this.isConnected) {
-            console.warn('[WebSocket] Not connected. Cannot send message.')
-            return
-        }
-
-        this.client.publish({
-            destination,
-            body: typeof body === 'string' ? body : JSON.stringify(body),
-        })
-    }
-
-    /**
      * Add event listener
      */
     on(event: WebSocketEventType, callback: (payload: EventPayload) => void): void {
@@ -285,25 +270,6 @@ class WebSocketService {
         return this.isConnected && this.connectionState === 'CONNECTED'
     }
 
-    /**
-     * Request price update from server
-     * Sends a message to trigger data refresh
-     */
-    requestPriceUpdate(symbols: string[] = []) {
-        if (!this.client || !this.isConnected) {
-            console.warn('[WebSocket] Not connected. Cannot request price update.')
-            return false
-        }
-
-        try {
-            this.send('/app/prices.refresh', { symbols })
-            console.log('[WebSocket] Price update requested')
-            return true
-        } catch (error) {
-            console.error('[WebSocket] Error requesting price update:', error)
-            return false
-        }
-    }
 }
 
 // Singleton instance

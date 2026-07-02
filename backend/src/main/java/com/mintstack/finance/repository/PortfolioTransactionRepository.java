@@ -16,6 +16,8 @@ import java.util.UUID;
 @Repository
 public interface PortfolioTransactionRepository extends JpaRepository<PortfolioTransaction, UUID> {
 
+    boolean existsByPortfolioId(UUID portfolioId);
+
     @Query(
         value = "SELECT pt FROM PortfolioTransaction pt " +
             "JOIN pt.instrument instrument " +

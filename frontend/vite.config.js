@@ -32,7 +32,7 @@ export default defineConfig(() => {
       },
     build: {
       outDir: 'dist',
-      sourcemap: true,
+      sourcemap: false,
       rollupOptions: {
         output: {
           manualChunks: {
@@ -66,32 +66,23 @@ export default defineConfig(() => {
         provider: 'v8',
         reporter: ['text', 'html', 'lcov'],
         include: [
-          'src/components/ui/badge.tsx',
-          'src/components/ui/button.tsx',
-          'src/components/ui/card.tsx',
-          'src/components/ui/checkbox.tsx',
-          'src/components/ui/input.tsx',
-          'src/components/ui/progress.tsx',
-          'src/components/ui/skeleton.tsx',
-          'src/components/ui/switch.tsx',
-          'src/components/ui/table.tsx',
-          'src/hooks/usePriceUpdates.ts',
-          'src/pages/settings/getApiErrorMessage.ts',
-          'src/store/slices/authSlice.ts',
+          'src/**/*.{ts,tsx}',
         ],
         exclude: [
           'node_modules/',
           'src/setupTests.ts',
           'src/mocks/**',
+          'src/**/*.test.{ts,tsx}',
+          'src/**/__tests__/**',
+          'src/vite-env.d.ts',
           'e2e/**',
         ],
-        // Gradual increase goal: target 80% coverage across all metrics
-        // Current milestones: lines: 60%, branches: 50%, functions: 55%, statements: 60%
+        // Whole-application baseline. Raise these values as high-risk modules gain tests.
         thresholds: {
-          lines: 60,
-          branches: 50,
-          functions: 55,
-          statements: 60,
+          lines: 20,
+          branches: 15,
+          functions: 15,
+          statements: 20,
         },
       },
     },

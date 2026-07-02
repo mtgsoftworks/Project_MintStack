@@ -41,6 +41,10 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+
   # Redis (if redis_exporter is available)
   # - job_name: 'redis'
   #   static_configs:

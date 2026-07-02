@@ -15,6 +15,7 @@ interface KeycloakInstance {
 
 // Keycloak instance - will be set by App.tsx
 let keycloakInstance: KeycloakInstance | null = null
+let refreshPromise: Promise<boolean> | null = null
 
 export const setKeycloakInstance = (instance: KeycloakInstance): void => {
   keycloakInstance = instance
@@ -42,8 +43,11 @@ const baseQueryWithReauth: BaseQueryFn = async (args, api, extraOptions) => {
   if (result?.error?.status === 401) {
     if (keycloakInstance && keycloakInstance.authenticated && keycloakInstance.updateToken) {
       try {
-        const refreshed = await keycloakInstance.updateToken(30)
-        if (refreshed && keycloakInstance.token) {
+        refreshPromise ??= keycloakInstance.updateToken(30).finally(() => {
+          refreshPromise = null
+        })
+        await refreshPromise
+        if (keycloakInstance.token) {
           api.dispatch({ type: 'auth/setToken', payload: keycloakInstance.token })
           result = await baseQuery(args, api, extraOptions)
         }

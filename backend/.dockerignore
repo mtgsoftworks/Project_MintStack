@@ -1,0 +1,13 @@
+target/
+.git/
+.gitignore
+.idea/
+.settings/
+.classpath
+.factorypath
+.project
+*.log
+*_log.txt
+Dockerfile*
+README.md
+src/test/

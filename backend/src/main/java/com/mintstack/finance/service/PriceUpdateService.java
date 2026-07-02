@@ -5,7 +5,6 @@ import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -21,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class PriceUpdateService {
 
-    private final SimpMessagingTemplate messagingTemplate;
+    private final ClusterWebSocketPublisher webSocketPublisher;
     
     // Lazy to break circular dependency: AlertService -> PriceUpdateService -> AlertService
     @Lazy
@@ -167,7 +166,7 @@ public class PriceUpdateService {
      */
     private void sendMessage(String destination, PriceUpdateMessage message) {
         try {
-            messagingTemplate.convertAndSend(destination, message);
+            webSocketPublisher.broadcast(destination, message);
         } catch (Exception e) {
             log.error("Error sending WebSocket message to {}: {}", destination, e.getMessage());
         }
@@ -179,7 +178,7 @@ public class PriceUpdateService {
     @Observed(name = "ws.broadcast.user", contextualName = "send-user-message")
     public void sendToUser(String userId, String destination, Object message) {
         try {
-            messagingTemplate.convertAndSendToUser(userId, destination, message);
+            webSocketPublisher.broadcastToUser(userId, destination, message);
         } catch (Exception e) {
             log.error("Error sending private message to user {}: {}", userId, e.getMessage());
         }

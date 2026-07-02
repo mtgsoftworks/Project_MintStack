@@ -1,87 +1,65 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Play, Pause, RefreshCw, Zap, Activity, Database, Wifi, Clock } from 'lucide-react'
 import RefreshButton from '@/components/common/RefreshButton'
-import api from '../../services/api'
-
-// Type definitions for simulation data
-interface SimulationConfig {
-    enabled: boolean
-    volatilityLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'EXTREME'
-    marketTrend: 'BULLISH' | 'NEUTRAL' | 'BEARISH'
-    updateIntervalSeconds: number
-}
-
-interface SimulationMetrics {
-    tickCount: number
-    stocks: number
-    bonds: number
-    funds: number
-    viop: number
-    currencies: number
-    indices: number
-    activeEvents: number
-    uptime: { seconds: number }
-}
-
-interface SimulationHealth {
-    status: 'HEALTHY' | 'DEGRADED' | 'UNHEALTHY'
-}
-
-interface SimulationEvent {
-    id: string
-    type: string
-    severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
-    description: string
-    remainingDurationTicks: number
-}
-
-interface VolatilityData {
-    regimeDistribution: Record<string, number>
-}
+import {
+    useGetSimulationConfigQuery,
+    useGetSimulationEventsQuery,
+    useGetSimulationHealthQuery,
+    useGetSimulationMetricsQuery,
+    useGetSimulationVolatilityQuery,
+    useResetSimulationMutation,
+    useToggleSimulationMutation,
+    useTriggerSimulationEventMutation,
+    useUpdateSimulationConfigMutation,
+    type SimulationConfig,
+} from '@/store/api/simulationApi'
 
 export function SimulationDebugPanel() {
     const { t } = useTranslation()
-    const [config, setConfig] = useState<SimulationConfig | null>(null)
-    const [metrics, setMetrics] = useState<SimulationMetrics | null>(null)
-    const [health, setHealth] = useState<SimulationHealth | null>(null)
-    const [events, setEvents] = useState<SimulationEvent[]>([])
-    const [volatility, setVolatility] = useState<VolatilityData | null>(null)
-    const [loading, setLoading] = useState(true)
-    const [updating, setUpdating] = useState(false)
     const [refreshing, setRefreshing] = useState(false)
-    
-    useEffect(() => {
-        fetchAllData()
-        const interval = setInterval(fetchAllData, 5000)
-        return () => clearInterval(interval)
-    }, [])
-    
-    const fetchAllData = async () => {
-        try {
-            const [configRes, metricsRes, eventsRes, volatilityRes, healthRes] = await Promise.all([
-                api.get('/simulation/config'),
-                api.get('/simulation/metrics'),
-                api.get('/simulation/events'),
-                api.get('/simulation/volatility'),
-                api.get('/simulation/health')
-            ])
-            setConfig(configRes.data.data)
-            setMetrics(metricsRes.data.data)
-            setEvents(eventsRes.data.data || [])
-            setVolatility(volatilityRes.data.data)
-            setHealth(healthRes.data.data)
-        } catch (error) {
-            console.error('Failed to fetch debug data:', error)
-        } finally {
-            setLoading(false)
-        }
-    }
+    const polling = { pollingInterval: 5000 }
+    const configQuery = useGetSimulationConfigQuery(undefined, polling)
+    const metricsQuery = useGetSimulationMetricsQuery(undefined, polling)
+    const eventsQuery = useGetSimulationEventsQuery(undefined, polling)
+    const volatilityQuery = useGetSimulationVolatilityQuery(undefined, polling)
+    const healthQuery = useGetSimulationHealthQuery(undefined, polling)
+    const [toggleSimulationMutation, toggleState] = useToggleSimulationMutation()
+    const [resetSimulationMutation, resetState] = useResetSimulationMutation()
+    const [updateSimulationConfig, updateState] = useUpdateSimulationConfigMutation()
+    const [triggerSimulationEvent, triggerState] = useTriggerSimulationEventMutation()
+
+    const config = configQuery.data?.data
+    const metrics = metricsQuery.data?.data
+    const events = eventsQuery.data?.data ?? []
+    const volatility = volatilityQuery.data?.data
+    const health = healthQuery.data?.data
+    const loading = [
+        configQuery,
+        metricsQuery,
+        eventsQuery,
+        volatilityQuery,
+        healthQuery,
+    ].some((query) => query.isLoading)
+    const updating = [
+        toggleState,
+        resetState,
+        updateState,
+        triggerState,
+    ].some((state) => state.isLoading)
+
+    const refreshAllData = () => Promise.all([
+        configQuery.refetch(),
+        metricsQuery.refetch(),
+        eventsQuery.refetch(),
+        volatilityQuery.refetch(),
+        healthQuery.refetch(),
+    ])
 
     const handleRefresh = async () => {
         try {
             setRefreshing(true)
-            await fetchAllData()
+            await refreshAllData()
         } finally {
             setRefreshing(false)
         }
@@ -89,50 +67,38 @@ export function SimulationDebugPanel() {
     
     const toggleSimulation = async () => {
         try {
-            setUpdating(true)
-            await api.post('/simulation/toggle')
-            await fetchAllData()
+            await toggleSimulationMutation().unwrap()
+            await refreshAllData()
         } catch (error) {
             console.error('Failed to toggle simulation:', error)
-        } finally {
-            setUpdating(false)
         }
     }
     
     const triggerEvent = async (eventType: string) => {
         try {
-            setUpdating(true)
-            await api.post(`/simulation/events/trigger?eventType=${eventType}`)
-            await fetchAllData()
+            await triggerSimulationEvent(eventType).unwrap()
+            await refreshAllData()
         } catch (error) {
             console.error('Failed to trigger event:', error)
-        } finally {
-            setUpdating(false)
         }
     }
     
     const resetSimulation = async () => {
         if (!confirm(t('common.confirm'))) return
         try {
-            setUpdating(true)
-            await api.post('/simulation/reset')
-            await fetchAllData()
+            await resetSimulationMutation().unwrap()
+            await refreshAllData()
         } catch (error) {
             console.error('Failed to reset simulation:', error)
-        } finally {
-            setUpdating(false)
         }
     }
     
     const updateConfig = async (updates: Partial<SimulationConfig>) => {
         try {
-            setUpdating(true)
-            await api.post('/simulation/config', { ...config, ...updates })
-            await fetchAllData()
+            await updateSimulationConfig({ ...config, ...updates }).unwrap()
+            await refreshAllData()
         } catch (error) {
             console.error('Failed to update config:', error)
-        } finally {
-            setUpdating(false)
         }
     }
     

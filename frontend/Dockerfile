@@ -1,10 +1,10 @@
 # Build stage
-FROM node:20-alpine AS build
+FROM node:20.19-alpine AS build
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
 # Declare build arguments for Vite (embedded at build time)
 ARG VITE_API_URL=/api/v1
@@ -24,32 +24,26 @@ ENV VITE_WS_URL=$VITE_WS_URL
 COPY . .
 RUN npm run build
 
-# Production stage with nginx
-FROM nginx:alpine
+# Production stage with non-root nginx
+FROM nginxinc/nginx-unprivileged:1.27-alpine
 WORKDIR /usr/share/nginx/html
 
 ENV PORT=3000
 ENV BACKEND_UPSTREAM=http://backend:8080
 ENV NGINX_RESOLVER=127.0.0.11
 
-# Install curl for healthcheck
-RUN apk add --no-cache curl
-
-# Remove default nginx static assets
-RUN rm -rf ./*
-
 # Copy built assets from build stage
-COPY --from=build /app/dist .
+COPY --chown=101:101 --from=build /app/dist .
 
 # Copy nginx configuration template. The official nginx entrypoint renders
 # /etc/nginx/templates/*.template with environment variables before startup.
-COPY nginx.conf /etc/nginx/templates/default.conf.template
+COPY --chown=101:101 nginx.conf /etc/nginx/templates/default.conf.template
 
 # Expose port
 EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD sh -c 'curl -f "http://localhost:${PORT:-3000}/health" || exit 1'
+    CMD sh -c 'wget -q --spider "http://localhost:${PORT:-3000}/health" || exit 1'
 
 CMD ["nginx", "-g", "daemon off;"]

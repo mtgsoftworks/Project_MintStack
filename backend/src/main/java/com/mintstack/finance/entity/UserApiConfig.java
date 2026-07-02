@@ -1,5 +1,6 @@
 package com.mintstack.finance.entity;
 
+import com.mintstack.finance.security.EncryptedStringConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,9 +26,11 @@ public class UserApiConfig extends BaseEntity {
     private ApiProvider provider;
 
     @Column(name = "api_key", nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
     private String apiKey;
 
     @Column(name = "secret_key")
+    @Convert(converter = EncryptedStringConverter.class)
     private String secretKey;
 
     @Column(name = "base_url")

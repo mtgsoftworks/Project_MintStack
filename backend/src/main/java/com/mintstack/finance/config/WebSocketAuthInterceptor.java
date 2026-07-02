@@ -2,6 +2,7 @@ package com.mintstack.finance.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.mintstack.finance.repository.UserRepository;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -32,12 +33,17 @@ import java.util.Map;
 public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
     private final JwtDecoder jwtDecoder;
+    private final UserRepository userRepository;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
+        if (accessor == null || accessor.getCommand() == null) {
+            return message;
+        }
+
+        if (StompCommand.CONNECT.equals(accessor.getCommand())) {
             String token = extractToken(accessor);
             if (token == null || token.isEmpty()) {
                 log.warn("WebSocket connection rejected: missing JWT token");
@@ -46,6 +52,12 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
             try {
                 Jwt jwt = jwtDecoder.decode(token);
+                boolean inactive = userRepository.findActiveStatusByKeycloakId(jwt.getSubject())
+                        .map(Boolean.FALSE::equals)
+                        .orElse(false);
+                if (inactive) {
+                    throw new AccessDeniedException("User account is inactive");
+                }
                 List<SimpleGrantedAuthority> authorities = extractAuthorities(jwt);
 
                 UsernamePasswordAuthenticationToken authentication =
@@ -59,7 +71,28 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
             }
         }
 
+        if (StompCommand.SEND.equals(accessor.getCommand())) {
+            throw new AccessDeniedException("Client STOMP messages are not supported");
+        }
+
+        if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+            if (accessor.getUser() == null) {
+                throw new AccessDeniedException("WebSocket authentication required");
+            }
+            String destination = accessor.getDestination();
+            if (!isAllowedSubscription(destination)) {
+                throw new AccessDeniedException("Subscription destination is not allowed");
+            }
+        }
+
         return message;
+    }
+
+    private boolean isAllowedSubscription(String destination) {
+        return destination != null
+                && (destination.equals("/topic/prices")
+                || destination.startsWith("/topic/prices/")
+                || destination.equals("/user/queue/notifications"));
     }
 
     private Message<?> attachAuthentication(

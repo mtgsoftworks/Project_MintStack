@@ -7,7 +7,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -22,7 +21,7 @@ import static org.mockito.Mockito.verify;
 class PriceUpdateServiceTest {
 
     @Mock
-    private SimpMessagingTemplate messagingTemplate;
+    private ClusterWebSocketPublisher webSocketPublisher;
 
     @Mock
     private AlertService alertService;
@@ -41,8 +40,8 @@ class PriceUpdateServiceTest {
         priceUpdateService.broadcastCurrencyUpdate(currencyCode, buyingRate, sellingRate);
 
         // Then
-        verify(messagingTemplate).convertAndSend(eq("/topic/prices/currency"), any(PriceUpdateMessage.class));
-        verify(messagingTemplate).convertAndSend(eq("/topic/prices/currency/USD"), any(PriceUpdateMessage.class));
+        verify(webSocketPublisher).broadcast(eq("/topic/prices/currency"), any(PriceUpdateMessage.class));
+        verify(webSocketPublisher).broadcast(eq("/topic/prices/currency/USD"), any(PriceUpdateMessage.class));
         verify(alertService).checkAlertsForSymbol(eq("USD"), eq(buyingRate));
     }
 
@@ -59,7 +58,7 @@ class PriceUpdateServiceTest {
         priceUpdateService.broadcastCurrencyUpdate(currencyCode, buyingRate, sellingRate);
 
         // Then
-        verify(messagingTemplate, atLeast(1)).convertAndSend(eq("/topic/prices/currency"), captor.capture());
+        verify(webSocketPublisher, atLeast(1)).broadcast(eq("/topic/prices/currency"), captor.capture());
         PriceUpdateMessage message = captor.getValue();
         
         assertThat(message.getType()).isEqualTo("CURRENCY");
@@ -80,8 +79,8 @@ class PriceUpdateServiceTest {
         priceUpdateService.broadcastStockUpdate(symbol, currentPrice, previousClose, change, changePercent);
 
         // Then
-        verify(messagingTemplate).convertAndSend(eq("/topic/prices/stocks"), any(PriceUpdateMessage.class));
-        verify(messagingTemplate).convertAndSend(eq("/topic/prices/stocks/THYAO"), any(PriceUpdateMessage.class));
+        verify(webSocketPublisher).broadcast(eq("/topic/prices/stocks"), any(PriceUpdateMessage.class));
+        verify(webSocketPublisher).broadcast(eq("/topic/prices/stocks/THYAO"), any(PriceUpdateMessage.class));
         verify(alertService).checkAlertsForSymbol(eq("THYAO"), eq(currentPrice));
     }
 
@@ -100,7 +99,7 @@ class PriceUpdateServiceTest {
         priceUpdateService.broadcastStockUpdate(symbol, currentPrice, previousClose, change, changePercent);
 
         // Then
-        verify(messagingTemplate, atLeast(1)).convertAndSend(eq("/topic/prices/stocks"), captor.capture());
+        verify(webSocketPublisher, atLeast(1)).broadcast(eq("/topic/prices/stocks"), captor.capture());
         PriceUpdateMessage message = captor.getValue();
         
         assertThat(message.getType()).isEqualTo("STOCK");
@@ -120,7 +119,7 @@ class PriceUpdateServiceTest {
         priceUpdateService.broadcastMarketUpdate(type, symbol, price, additionalData);
 
         // Then
-        verify(messagingTemplate).convertAndSend(eq("/topic/prices"), any(PriceUpdateMessage.class));
+        verify(webSocketPublisher).broadcast(eq("/topic/prices"), any(PriceUpdateMessage.class));
         verify(alertService).checkAlertsForSymbol(eq(symbol), eq(price));
     }
 
@@ -135,7 +134,7 @@ class PriceUpdateServiceTest {
         priceUpdateService.sendToUser(userId, destination, message);
 
         // Then
-        verify(messagingTemplate).convertAndSendToUser(userId, destination, message);
+        verify(webSocketPublisher).broadcastToUser(userId, destination, message);
     }
 
     @Test
@@ -150,7 +149,7 @@ class PriceUpdateServiceTest {
         ArgumentCaptor<PriceUpdateMessage> captor = ArgumentCaptor.forClass(PriceUpdateMessage.class);
         priceUpdateService.broadcastCurrencyUpdate("USD", BigDecimal.valueOf(35.00), BigDecimal.valueOf(35.20));
         
-        verify(messagingTemplate, atLeast(2)).convertAndSend(eq("/topic/prices/currency"), captor.capture());
+        verify(webSocketPublisher, atLeast(2)).broadcast(eq("/topic/prices/currency"), captor.capture());
         PriceUpdateMessage lastMessage = captor.getAllValues().get(captor.getAllValues().size() - 1);
         assertThat(lastMessage.getPreviousPrice()).isNull();
     }
@@ -170,7 +169,7 @@ class PriceUpdateServiceTest {
         priceUpdateService.broadcastCurrencyUpdate(currencyCode, secondPrice, secondPrice.add(BigDecimal.valueOf(0.20)));
 
         // Then
-        verify(messagingTemplate, atLeast(2)).convertAndSend(eq("/topic/prices/currency"), captor.capture());
+        verify(webSocketPublisher, atLeast(2)).broadcast(eq("/topic/prices/currency"), captor.capture());
         PriceUpdateMessage lastMessage = captor.getAllValues().get(captor.getAllValues().size() - 1);
         assertThat(lastMessage.getPreviousPrice()).isEqualTo(firstPrice);
     }

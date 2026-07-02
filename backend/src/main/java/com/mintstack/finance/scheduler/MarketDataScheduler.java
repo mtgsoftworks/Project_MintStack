@@ -77,7 +77,7 @@ public class MarketDataScheduler {
 
     @Observed(name = "scheduler.market-data.stock", contextualName = "fetch-stock-prices")
     @Scheduled(cron = "${app.scheduler.stock-prices-cron}")
-    @SchedulerLock(name = "fetchStockPrices", lockAtLeastFor = "2m", lockAtMostFor = "8m")
+    @SchedulerLock(name = "fetchStockPrices", lockAtLeastFor = "5s", lockAtMostFor = "2m")
     public void fetchStockPrices() {
         updateInstrumentPricesByType(Instrument.InstrumentType.STOCK, true, false);
     }
@@ -92,7 +92,7 @@ public class MarketDataScheduler {
 
     @Observed(name = "scheduler.market-data.bond", contextualName = "fetch-bond-prices")
     @Scheduled(cron = "${app.scheduler.bond-prices-cron}")
-    @SchedulerLock(name = "fetchBondPrices", lockAtLeastFor = "2m", lockAtMostFor = "8m")
+    @SchedulerLock(name = "fetchBondPrices", lockAtLeastFor = "30s", lockAtMostFor = "8m")
     public void fetchBondPrices() {
         if (!simulationDataService.isSimulationEnabled()) {
             try {
@@ -120,7 +120,7 @@ public class MarketDataScheduler {
 
     @Observed(name = "scheduler.market-data.viop", contextualName = "fetch-viop-prices")
     @Scheduled(cron = "${app.scheduler.viop-prices-cron}")
-    @SchedulerLock(name = "fetchViopPrices", lockAtLeastFor = "2m", lockAtMostFor = "8m")
+    @SchedulerLock(name = "fetchViopPrices", lockAtLeastFor = "5s", lockAtMostFor = "2m")
     public void fetchViopPrices() {
         if (!simulationDataService.isSimulationEnabled()) {
             try {
@@ -139,19 +139,6 @@ public class MarketDataScheduler {
         if (simulationDataService.isSimulationEnabled()) {
             log.debug("Simulation mode active. Skipping initial data load from external APIs.");
             return;
-        }
-
-        UserApiConfig tcmbConfig = providerResolver.getActiveConfig(ApiProvider.TCMB);
-        if (tcmbConfig != null) {
-            try {
-                List<CurrencyRate> rates = tcmbApiClient.fetchTodayRates();
-                if (rates != null && !rates.isEmpty()) {
-                    marketDataService.saveCurrencyRates(rates);
-                    log.info("TCMB rates loaded: {} currencies", rates.size());
-                }
-            } catch (Exception error) {
-                log.debug("TCMB load: {}", error.getMessage());
-            }
         }
 
         long activeStockCount = instrumentRepository.countActiveRealInstrumentsByType(Instrument.InstrumentType.STOCK);

@@ -64,6 +64,8 @@ server:
 
 # Application
 app:
+  security:
+    active-user-check-enabled: false
   messaging:
     enabled: false
   redis:

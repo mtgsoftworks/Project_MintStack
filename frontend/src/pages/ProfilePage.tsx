@@ -16,6 +16,7 @@ import { selectUser, selectRoles, selectIsAdmin } from '@/store/slices/authSlice
 import { selectTheme, setTheme } from '@/store/slices/uiSlice'
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/store/api/userApi'
 import { getInitials } from '@/lib/utils'
+import { keycloak } from '@/auth/keycloak'
 
 export default function ProfilePage() {
   const { t } = useTranslation()
@@ -101,16 +102,9 @@ export default function ProfilePage() {
 
   const runKeycloakAction = async (action: 'UPDATE_PASSWORD' | 'CONFIGURE_TOTP') => {
     const redirectUri = `${window.location.origin}/profile`
-    const client = window.keycloak as { login?: (opts: { action: string; redirectUri: string; prompt: string }) => Promise<void>; updateToken?: (minValidity: number) => Promise<boolean> } | undefined
-
-    if (!client?.login) {
-      toast.error(t('profile.keycloakSessionFailed'))
-      return
-    }
-
     try {
-      await client.updateToken?.(30)
-      await client.login({
+      await keycloak.updateToken(30)
+      await keycloak.login({
         action,
         redirectUri,
         prompt: 'login',

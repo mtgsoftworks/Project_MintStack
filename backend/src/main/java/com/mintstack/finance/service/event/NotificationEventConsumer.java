@@ -6,11 +6,11 @@ import com.mintstack.finance.entity.UserNotification;
 import com.mintstack.finance.entity.UserNotification.NotificationType;
 import com.mintstack.finance.repository.UserNotificationRepository;
 import com.mintstack.finance.repository.UserRepository;
+import com.mintstack.finance.service.ClusterWebSocketPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +25,7 @@ public class NotificationEventConsumer {
 
     private final UserNotificationRepository notificationRepository;
     private final UserRepository userRepository;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final ClusterWebSocketPublisher webSocketPublisher;
 
     @KafkaListener(
             topics = KafkaConfig.TOPIC_NOTIFICATIONS,
@@ -66,7 +66,7 @@ public class NotificationEventConsumer {
             notificationRepository.save(notification);
 
             // Send real-time notification via WebSocket
-            messagingTemplate.convertAndSendToUser(
+            webSocketPublisher.broadcastToUser(
                     event.getUserId(),
                     "/queue/notifications",
                     Map.of(
@@ -82,6 +82,7 @@ public class NotificationEventConsumer {
 
         } catch (Exception e) {
             log.error("Failed to process notification event: {}", e.getMessage(), e);
+            throw e;
         }
     }
 

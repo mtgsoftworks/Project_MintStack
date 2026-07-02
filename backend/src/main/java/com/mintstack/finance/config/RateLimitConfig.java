@@ -89,6 +89,17 @@ public class RateLimitConfig {
      */
     private String store = "redis";
 
+    /**
+     * Whether requests may fall back to process-local limits when Redis is unavailable.
+     * Production should keep this disabled so replicas cannot bypass distributed limits.
+     */
+    private boolean failOpen = true;
+
+    /**
+     * Proxy networks whose forwarded headers may be trusted.
+     */
+    private List<String> trustedProxies = List.of("127.0.0.1/32", "::1/128");
+
     @Autowired(required = false)
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
@@ -132,6 +143,11 @@ public class RateLimitConfig {
             try {
                 return consumeWithRedis(scope, key, requestsPerMinute);
             } catch (RuntimeException error) {
+                if (!failOpen) {
+                    log.error("Redis rate limit failed; rejecting request because fail-open is disabled: {}",
+                            error.getMessage());
+                    return new RateLimitDecision(false, 0, 1, 1, "redis-unavailable");
+                }
                 log.warn("Redis rate limit failed, falling back to memory bucket: {}", error.getMessage());
             }
         }

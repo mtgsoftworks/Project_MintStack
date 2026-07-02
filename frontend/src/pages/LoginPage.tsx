@@ -5,7 +5,7 @@ import { Loader2, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { selectIsAuthenticated, selectIsInitialized } from '@/store/slices/authSlice'
-import { keycloak } from '@/App'
+import { keycloak } from '@/auth/keycloak'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -22,11 +22,9 @@ export default function LoginPage() {
   }, [isAuthenticated, navigate, from])
 
   const handleLogin = () => {
-    if (keycloak) {
-      keycloak.login({
-        redirectUri: window.location.origin + from,
-      })
-    }
+    keycloak.login({
+      redirectUri: window.location.origin + from,
+    })
   }
 
   if (!isInitialized) {

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { HamburgerIcon } from '@/components/ui/hamburger'
 import { cn } from '@/lib/utils'
+import { keycloak } from '@/auth/keycloak'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -108,10 +109,8 @@ export function Header() {
     clearLocalSession()
 
     try {
-      if (window.keycloak?.logout) {
-        await window.keycloak.logout({ redirectUri })
-        return
-      }
+      await keycloak.logout({ redirectUri })
+      return
     } catch (error) {
       console.error('Logout failed:', error)
     }
