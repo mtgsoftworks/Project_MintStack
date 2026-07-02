@@ -16,6 +16,7 @@ import com.mintstack.finance.service.simulation.SimulationDataService;
 import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -50,6 +51,7 @@ public class MarketDataScheduler {
 
     @Observed(name = "scheduler.market-data.tcmb", contextualName = "fetch-tcmb-rates")
     @Scheduled(cron = "${app.scheduler.tcmb-rates-cron}")
+    @SchedulerLock(name = "fetchTcmbRates", lockAtLeastFor = "1m", lockAtMostFor = "9m")
     public void fetchTcmbRates() {
         if (simulationDataService.isSimulationEnabled()) {
             log.debug("Simulation mode active. Skipping TCMB rates fetch.");
@@ -75,6 +77,7 @@ public class MarketDataScheduler {
 
     @Observed(name = "scheduler.market-data.stock", contextualName = "fetch-stock-prices")
     @Scheduled(cron = "${app.scheduler.stock-prices-cron}")
+    @SchedulerLock(name = "fetchStockPrices", lockAtLeastFor = "2m", lockAtMostFor = "8m")
     public void fetchStockPrices() {
         updateInstrumentPricesByType(Instrument.InstrumentType.STOCK, true, false);
     }
@@ -89,6 +92,7 @@ public class MarketDataScheduler {
 
     @Observed(name = "scheduler.market-data.bond", contextualName = "fetch-bond-prices")
     @Scheduled(cron = "${app.scheduler.bond-prices-cron}")
+    @SchedulerLock(name = "fetchBondPrices", lockAtLeastFor = "2m", lockAtMostFor = "8m")
     public void fetchBondPrices() {
         if (!simulationDataService.isSimulationEnabled()) {
             try {
@@ -102,6 +106,7 @@ public class MarketDataScheduler {
 
     @Observed(name = "scheduler.market-data.fund", contextualName = "fetch-fund-prices")
     @Scheduled(cron = "${app.scheduler.fund-prices-cron}")
+    @SchedulerLock(name = "fetchFundPrices", lockAtLeastFor = "2m", lockAtMostFor = "8m")
     public void fetchFundPrices() {
         if (!simulationDataService.isSimulationEnabled()) {
             try {
@@ -115,6 +120,7 @@ public class MarketDataScheduler {
 
     @Observed(name = "scheduler.market-data.viop", contextualName = "fetch-viop-prices")
     @Scheduled(cron = "${app.scheduler.viop-prices-cron}")
+    @SchedulerLock(name = "fetchViopPrices", lockAtLeastFor = "2m", lockAtMostFor = "8m")
     public void fetchViopPrices() {
         if (!simulationDataService.isSimulationEnabled()) {
             try {
@@ -128,6 +134,7 @@ public class MarketDataScheduler {
 
     @Observed(name = "scheduler.market-data.initial-load", contextualName = "initial-data-load")
     @Scheduled(initialDelay = 5000, fixedDelay = 60000)
+    @SchedulerLock(name = "initialDataLoad", lockAtLeastFor = "30s", lockAtMostFor = "50s")
     public void initialDataLoad() {
         if (simulationDataService.isSimulationEnabled()) {
             log.debug("Simulation mode active. Skipping initial data load from external APIs.");
@@ -166,6 +173,7 @@ public class MarketDataScheduler {
 
     @Observed(name = "scheduler.market-data.forex", contextualName = "fetch-non-tcmb-forex-rates")
     @Scheduled(cron = "${app.scheduler.forex-rates-cron}")
+    @SchedulerLock(name = "fetchNonTcmbForexRates", lockAtLeastFor = "1m", lockAtMostFor = "9m")
     public void fetchNonTcmbForexRates() {
         if (simulationDataService.isSimulationEnabled()) {
             log.debug("Simulation mode active. Skipping non-TCMB forex rates fetch.");

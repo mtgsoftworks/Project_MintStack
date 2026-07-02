@@ -5,6 +5,7 @@ import com.mintstack.finance.repository.NewsRepository;
 import com.mintstack.finance.repository.PriceHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -33,6 +34,7 @@ public class CleanupScheduler {
      */
     @Scheduled(cron = "${app.scheduler.cleanup-cron}")
     @Transactional
+    @SchedulerLock(name = "cleanupOldData", lockAtLeastFor = "5m", lockAtMostFor = "30m")
     public void cleanupOldData() {
         log.info("Starting data cleanup job");
         

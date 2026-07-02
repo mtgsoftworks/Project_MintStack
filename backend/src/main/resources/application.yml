@@ -87,6 +87,8 @@ spring:
         jwt:
           issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://localhost:8180/realms/mintstack-finance}
           jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://localhost:8180/realms/mintstack-finance/protocol/openid-connect/certs}
+          # P1: Audience validation - require aud claim to match expected client ID
+          audiences: ${JWT_AUDIENCE:finance-frontend}
 
 # Server Configuration
 server:

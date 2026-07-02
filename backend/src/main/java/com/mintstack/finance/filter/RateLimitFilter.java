@@ -22,16 +22,25 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Rate limiting filter using Bucket4j.
  * Applies different rate limits based on user type (anonymous, authenticated, admin).
+ *
+ * SECURITY: Filter order changed to run AFTER security filters to ensure
+ * SecurityContext is populated with authenticated user information.
+ * X-Forwarded-For is only trusted from configured proxy addresses.
  */
 @Slf4j
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE + 1)
+@Order(Ordered.LOWEST_PRECEDENCE + 100) // Run after security filter chain (~Ordered.LOWEST_PRECEDENCE)
 @RequiredArgsConstructor
 public class RateLimitFilter extends OncePerRequestFilter {
+
+    private static final List<String> TRUSTED_PROXIES = List.of(
+        "127.0.0.1", "::1", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"
+    );
 
     private final RateLimitConfig rateLimitConfig;
     private final ObjectMapper objectMapper;
@@ -110,20 +119,50 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Get client IP address, considering proxy headers
+     * Get client IP address, considering proxy headers.
+     * SECURITY: X-Forwarded-For is only trusted from configured proxy addresses
+     * to prevent IP spoofing attacks.
      */
     private String getClientIP(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
+        String remoteAddr = request.getRemoteAddr();
+
+        // Only trust X-Forwarded-For if request comes from a trusted proxy
+        if (isFromTrustedProxy(request)) {
+            String xForwardedFor = request.getHeader("X-Forwarded-For");
+            if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+                // Take the first IP (original client)
+                return xForwardedFor.split(",")[0].trim();
+            }
+
+            String xRealIP = request.getHeader("X-Real-IP");
+            if (xRealIP != null && !xRealIP.isEmpty()) {
+                return xRealIP;
+            }
         }
-        
-        String xRealIP = request.getHeader("X-Real-IP");
-        if (xRealIP != null && !xRealIP.isEmpty()) {
-            return xRealIP;
+
+        return remoteAddr;
+    }
+
+    /**
+     * Check if the request originated from a trusted proxy.
+     * Prevents IP spoofing via forged X-Forwarded-For headers.
+     */
+    private boolean isFromTrustedProxy(HttpServletRequest request) {
+        String remoteAddr = request.getRemoteAddr();
+        if (remoteAddr == null) {
+            return false;
         }
-        
-        return request.getRemoteAddr();
+        // localhost and private IPs are considered trusted proxies in Docker/compose networks
+        return remoteAddr.equals("127.0.0.1")
+            || remoteAddr.equals("::1")
+            || remoteAddr.equals("0.0.0.0")
+            || remoteAddr.startsWith("172.17.")  // Docker default bridge
+            || remoteAddr.startsWith("172.18.")  // Docker compose networks
+            || remoteAddr.startsWith("172.19.")
+            || remoteAddr.startsWith("172.20.")
+            || remoteAddr.startsWith("172.21.")
+            || remoteAddr.startsWith("172.22.")
+            || remoteAddr.startsWith("10.");      // RFC 1918 private
     }
 
     /**

@@ -8,6 +8,7 @@ import com.mintstack.finance.service.external.RssNewsClient;
 import com.mintstack.finance.service.simulation.SimulationDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -31,6 +32,7 @@ public class NewsScheduler {
     private final NewsFeedProperties newsFeedProperties;
 
     @Scheduled(cron = "${app.scheduler.news-fetch-cron}")
+    @SchedulerLock(name = "fetchNews", lockAtLeastFor = "2m", lockAtMostFor = "8m")
     public void fetchNews() {
         if (simulationDataService.isSimulationEnabled() && !newsFeedProperties.isFetchWhenSimulationEnabled()) {
             log.debug("Simulation mode active and real news fetch disabled. Skipping news fetch.");
@@ -62,6 +64,7 @@ public class NewsScheduler {
     }
 
     @Scheduled(initialDelay = 15000, fixedDelay = Long.MAX_VALUE)
+    @SchedulerLock(name = "initialNewsLoad", lockAtLeastFor = "30s", lockAtMostFor = "5m")
     public void initialNewsLoad() {
         if (simulationDataService.isSimulationEnabled() && !newsFeedProperties.isFetchWhenSimulationEnabled()) {
             log.debug("Simulation mode active and real news fetch disabled. Skipping initial news load.");

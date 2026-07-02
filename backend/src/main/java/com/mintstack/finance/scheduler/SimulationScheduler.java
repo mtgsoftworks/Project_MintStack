@@ -4,6 +4,7 @@ import com.mintstack.finance.entity.SimulationConfig;
 import com.mintstack.finance.service.simulation.SimulationDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -28,6 +29,7 @@ public class SimulationScheduler {
      * Gerçek güncelleme aralığı config'den alınır
      */
     @Scheduled(fixedRate = 1000)
+    @SchedulerLock(name = "simulationTick", lockAtLeastFor = "500ms", lockAtMostFor = "30s")
     public void simulationTick() {
         if (!schedulerEnabled) {
             return;
@@ -68,6 +70,7 @@ public class SimulationScheduler {
      * Gece yarısı günlük reset - previousClose değerlerini güncelle
      */
     @Scheduled(cron = "0 0 0 * * *")
+    @SchedulerLock(name = "dailyReset", lockAtLeastFor = "1m", lockAtMostFor = "30m")
     public void dailyReset() {
         if (!schedulerEnabled) {
             return;
