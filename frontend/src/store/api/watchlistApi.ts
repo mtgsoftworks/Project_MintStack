@@ -50,13 +50,13 @@ export const watchlistApi = baseApi.injectEndpoints({
       ],
     }),
     addWatchlistInstrument: builder.mutation({
-      query: ({ watchlistId, symbol }: { watchlistId: string | number; symbol: string }) => ({
-        url: `/watchlist/${watchlistId}/items/${symbol}`,
+      query: (arg: { watchlistId: string | number; symbol: string }) => ({
+        url: `/watchlist/${arg.watchlistId}/items/${arg.symbol}`,
         method: 'POST',
       }),
       transformResponse: (response) => response.data,
-      invalidatesTags: (_result, _error, { watchlistId }: { watchlistId: string | number }) => [
-        { type: 'Watchlists' as const, id: watchlistId },
+      invalidatesTags: (_result, _error, arg: { watchlistId: string | number; symbol: string }) => [
+        { type: 'Watchlists' as const, id: arg.watchlistId },
         { type: 'Watchlists' as const, id: 'LIST' as const },
       ],
     }),
@@ -69,37 +69,37 @@ export const watchlistApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: 'Watchlists' as const, id: 'LIST' as const }],
     }),
     removeWatchlistInstrument: builder.mutation({
-      query: ({ watchlistId, symbol }: { watchlistId: string | number; symbol: string }) => ({
-        url: `/watchlist/${watchlistId}/items/${symbol}`,
+      query: (arg: { watchlistId: string | number; symbol: string }) => ({
+        url: `/watchlist/${arg.watchlistId}/items/${arg.symbol}`,
         method: 'DELETE',
       }),
       transformResponse: (response) => response.data,
-      invalidatesTags: (_result, _error, { watchlistId }: { watchlistId: string | number }) => [
-        { type: 'Watchlists' as const, id: watchlistId },
+      invalidatesTags: (_result, _error, arg: { watchlistId: string | number; symbol: string }) => [
+        { type: 'Watchlists' as const, id: arg.watchlistId },
         { type: 'Watchlists' as const, id: 'LIST' as const },
       ],
     }),
     reorderWatchlistItems: builder.mutation({
-      query: ({ watchlistId, itemIds }: { watchlistId: string | number; itemIds: (string | number)[] }) => ({
-        url: `/watchlist/${watchlistId}/items/order`,
+      query: (arg: { watchlistId: string | number; itemIds: (string | number)[] }) => ({
+        url: `/watchlist/${arg.watchlistId}/items/order`,
         method: 'PUT',
-        body: { itemIds },
+        body: { itemIds: arg.itemIds },
       }),
       transformResponse: (response) => response.data,
-      invalidatesTags: (_result, _error, { watchlistId }: { watchlistId: string | number }) => [
-        { type: 'Watchlists' as const, id: watchlistId },
+      invalidatesTags: (_result, _error, arg: { watchlistId: string | number; itemIds: (string | number)[] }) => [
+        { type: 'Watchlists' as const, id: arg.watchlistId },
         { type: 'Watchlists' as const, id: 'LIST' as const },
       ],
     }),
     updateWatchlistItem: builder.mutation({
-      query: ({ watchlistId, itemId, notes }: { watchlistId: string | number; itemId: string | number; notes?: string }) => ({
-        url: `/watchlist/${watchlistId}/items/${itemId}`,
+      query: (arg: { watchlistId: string | number; itemId: string | number; notes?: string }) => ({
+        url: `/watchlist/${arg.watchlistId}/items/${arg.itemId}`,
         method: 'PUT',
-        body: { notes },
+        body: { notes: arg.notes },
       }),
       transformResponse: (response) => response.data,
-      invalidatesTags: (_result, _error, { watchlistId }: { watchlistId: string | number }) => [
-        { type: 'Watchlists' as const, id: watchlistId },
+      invalidatesTags: (_result, _error, arg: { watchlistId: string | number; itemId: string | number; notes?: string }) => [
+        { type: 'Watchlists' as const, id: arg.watchlistId },
         { type: 'Watchlists' as const, id: 'LIST' as const },
       ],
     }),

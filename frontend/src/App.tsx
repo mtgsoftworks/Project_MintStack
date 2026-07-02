@@ -1,18 +1,15 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useEffect, useRef, useCallback, Suspense, lazy } from 'react'
+import { useEffect, useRef, Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import type { AppDispatch } from '@/store'
 import Keycloak from 'keycloak-js'
-import { setAuth, setInitialized, selectIsAuthenticated } from '@/store/slices/authSlice'
+import { setAuth, setInitialized } from '@/store/slices/authSlice'
 import { setKeycloakInstance } from '@/services/api'
 import { setKeycloakInstance as setApiKeycloakInstance } from '@/store/api/baseApi'
-import { baseApi } from '@/store/api/baseApi'
-import { marketApi } from '@/store/api/marketApi'
-import { selectAutoUpdate, selectRefreshRate, selectTheme } from '@/store/slices/uiSlice'
+import { selectTheme } from '@/store/slices/uiSlice'
 import { AdminRoute, Layout, ProtectedRoute } from '@/components/layout'
 import websocketService from '@/services/websocketService'
-import type { TagDescription } from '@reduxjs/toolkit/query'
 
 // Lazy-loaded Pages (code splitting)
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
@@ -60,35 +57,9 @@ if (typeof window !== 'undefined') {
 
 export { keycloak }
 
-type MarketTag = TagDescription<'Currencies' | 'Stocks' | 'Bonds' | 'Funds' | 'Viop' | 'Indices' | 'Portfolios'>
-
-const MARKET_REFRESH_DATA_TYPES = [
-  'CURRENCY_RATES',
-  'BIST_STOCKS',
-  'BIST_INDICES',
-  'BONDS',
-  'FUNDS',
-  'VIOP',
-] as const
-
-const MARKET_REFRESH_TAGS: MarketTag[] = [
-  'Currencies',
-  'Stocks',
-  'Bonds',
-  'Funds',
-  'Viop',
-  'Indices',
-  'Portfolios',
-]
-
 function App() {
   const dispatch = useDispatch<AppDispatch>()
-  const isAuthenticated = useSelector(selectIsAuthenticated)
-  const autoUpdate = useSelector(selectAutoUpdate)
-  const refreshRate = useSelector(selectRefreshRate)
   const theme = useSelector(selectTheme)
-  const dataRefreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const dataRefreshInFlightRef = useRef(false)
   const tokenRefreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Apply theme class to document root
@@ -98,57 +69,9 @@ function App() {
     root.classList.add(theme)
   }, [theme])
 
-  const triggerDataRefresh = useCallback(async () => {
-    if (dataRefreshInFlightRef.current) {
-      return
-    }
-
-    dataRefreshInFlightRef.current = true
-    try {
-      const result = await dispatch(
-        marketApi.endpoints.refreshMarketData.initiate(
-          { dataTypes: MARKET_REFRESH_DATA_TYPES },
-          { track: false }
-        )
-      ).unwrap()
-      void result
-      dispatch(baseApi.util.invalidateTags(MARKET_REFRESH_TAGS))
-    } catch {
-      console.warn('[App] Scheduled backend market refresh failed')
-      dispatch(baseApi.util.invalidateTags(MARKET_REFRESH_TAGS))
-    } finally {
-      if (websocketService.isConnected) {
-        websocketService.requestPriceUpdate()
-      }
-      dataRefreshInFlightRef.current = false
-    }
-  }, [dispatch])
-
-  // Setup data refresh interval based on user settings
-  useEffect(() => {
-    // Clear existing interval
-    if (dataRefreshIntervalRef.current) {
-      clearInterval(dataRefreshIntervalRef.current)
-      dataRefreshIntervalRef.current = null
-    }
-
-    // Only set up interval if auto-update is enabled and the backend can be called with auth.
-    if (autoUpdate && refreshRate > 0 && isAuthenticated) {
-      console.log(`[App] Auto-update enabled with ${refreshRate}s refresh rate`)
-      dataRefreshIntervalRef.current = setInterval(() => {
-        console.log('[App] Triggering scheduled backend data refresh')
-        triggerDataRefresh()
-      }, refreshRate * 1000)
-    } else {
-      console.log('[App] Auto-update disabled')
-    }
-
-    return () => {
-      if (dataRefreshIntervalRef.current) {
-        clearInterval(dataRefreshIntervalRef.current)
-      }
-    }
-  }, [autoUpdate, refreshRate, isAuthenticated, triggerDataRefresh])
+  // NOTE: Market data refresh is handled by backend schedulers (MarketDataScheduler).
+  // Client-side refresh removed to prevent DoS via multiple open tabs.
+  // WebSocket price updates are sufficient for real-time data.
 
   useEffect(() => {
     if (import.meta.env.VITE_E2E_BYPASS_AUTH === 'true') {
