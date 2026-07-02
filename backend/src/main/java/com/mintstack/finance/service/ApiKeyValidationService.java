@@ -11,9 +11,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.InetAddress;
+import java.net.URL;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Service to validate API keys before saving and provide default URLs for each provider.
@@ -41,6 +44,12 @@ public class ApiKeyValidationService {
         put(ApiProvider.LLM_ENRICHMENT, "https://models.github.ai/inference");
         put(ApiProvider.OTHER, null);
     }};
+
+    // SSRF Protection: Blocked hosts
+    private static final Set<String> BLOCKED_HOSTS = Set.of(
+        "127.0.0.1", "localhost", "0.0.0.0", "::1", "169.254.169.254",
+        "metadata.google.internal", "metadata", "metadata.google"
+    );
 
     /**
      * Get the default URL for a provider
@@ -108,6 +117,7 @@ public class ApiKeyValidationService {
 
     private ValidationResult validateAlphaVantage(String apiKey, String baseUrl) {
         try {
+            validateUrl(baseUrl); // SSRF check
             String normalizedBaseUrl = normalizeAlphaVantageBaseUrl(baseUrl);
             String requestUrl = UriComponentsBuilder.fromHttpUrl(normalizedBaseUrl)
                 .queryParam("function", "GLOBAL_QUOTE")
@@ -166,6 +176,7 @@ public class ApiKeyValidationService {
 
     private ValidationResult validateYahooFinance(String baseUrl) {
         try {
+            validateUrl(baseUrl); // SSRF check
             WebClient client = WebClient.builder()
                 .baseUrl(baseUrl)
                 .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
@@ -205,6 +216,7 @@ public class ApiKeyValidationService {
 
     private ValidationResult validateFinnhub(String apiKey, String baseUrl) {
         try {
+            validateUrl(baseUrl); // SSRF check
             String normalizedBaseUrl = normalizeFinnhubBaseUrl(baseUrl);
             String stockRequestUrl = UriComponentsBuilder.fromHttpUrl(normalizedBaseUrl)
                 .path("/quote")
@@ -281,6 +293,7 @@ public class ApiKeyValidationService {
     }
 
     private ValidationResult validateFintables(String apiKey, String baseUrl) {
+        validateUrl(baseUrl); // SSRF check
         if (!fintablesEnabled) {
             return new ValidationResult(false,
                 "Fintables provider policy geregi pasif. APP_EXTERNAL_API_FINTABLES_ENABLED=true olmadan aktif edilemez.");
@@ -298,6 +311,7 @@ public class ApiKeyValidationService {
 
     private ValidationResult validateBistDataStore(String baseUrl) {
         try {
+            validateUrl(baseUrl); // SSRF check
             String normalizedBaseUrl = normalizeBaseUrl(baseUrl);
             if (normalizedBaseUrl.isBlank()) {
                 return new ValidationResult(false, "BIST DataStore base URL bos olamaz");
@@ -320,6 +334,78 @@ public class ApiKeyValidationService {
         } catch (Exception error) {
             log.warn("BIST DataStore validation error: {}", error.getMessage());
             return new ValidationResult(false, "BIST DataStore baglanti hatasi: " + error.getMessage());
+        }
+    }
+
+    /**
+     * SSRF Protection: Validate URL before making HTTP requests.
+     * Prevents attacks via internal hosts, localhost, or metadata endpoints.
+     *
+     * @param url The URL to validate
+     * @throws SecurityException if the URL points to a blocked/internal host
+     */
+    private void validateUrl(String url) {
+        if (url == null || url.isBlank()) {
+            throw new SecurityException("URL cannot be null or empty");
+        }
+
+        try {
+            URL parsedUrl = new URL(url);
+            String host = parsedUrl.getHost().toLowerCase();
+
+            // Check explicit blocklist
+            if (BLOCKED_HOSTS.contains(host)) {
+                throw new SecurityException("Blocked host: " + host);
+            }
+
+            // Resolve hostname to IP and check for internal addresses
+            InetAddress address = InetAddress.getByName(parsedUrl.getHost());
+            byte[] bytes = address.getAddress();
+
+            // Block loopback
+            if (address.isLoopbackAddress()) {
+                throw new SecurityException("Loopback address blocked: " + host);
+            }
+
+            // Block link-local (169.254.x.x - AWS metadata, etc.)
+            if (address.isLinkLocalAddress()) {
+                throw new SecurityException("Link-local address blocked: " + host);
+            }
+
+            // Block private IP ranges: 10.x.x.x, 172.16-31.x.x, 192.168.x.x
+            if (bytes.length == 4) {
+                int first = bytes[0] & 0xFF;
+                int second = bytes[1] & 0xFF;
+
+                if (first == 10) {
+                    throw new SecurityException("Private IP blocked (10.x.x.x): " + host);
+                }
+                if (first == 172 && (second >= 16 && second <= 31)) {
+                    throw new SecurityException("Private IP blocked (172.16-31.x.x): " + host);
+                }
+                if (first == 192 && second == 168) {
+                    throw new SecurityException("Private IP blocked (192.168.x.x): " + host);
+                }
+            }
+
+            // Block IPv6 internal addresses
+            if (bytes.length == 16) {
+                // Site-local (fc00::/7)
+                if ((bytes[0] & 0xFE) == 0xFC) {
+                    throw new SecurityException("IPv6 site-local blocked: " + host);
+                }
+            }
+
+            // Require HTTPS for external URLs (except localhost in dev)
+            String protocol = parsedUrl.getProtocol().toLowerCase();
+            if (!protocol.equals("https") && !protocol.equals("http")) {
+                throw new SecurityException("Only HTTP/HTTPS protocols allowed");
+            }
+
+        } catch (SecurityException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new SecurityException("Invalid URL: " + url, e);
         }
     }
 

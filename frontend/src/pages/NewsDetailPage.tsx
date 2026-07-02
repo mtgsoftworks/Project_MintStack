@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, Calendar, Clock, Eye, ExternalLink, Share2 } from 'lucide-react'
+import DOMPurify from 'dompurify'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -143,7 +144,7 @@ export default function NewsDetailPage() {
           {summary && <p className="mb-6 text-lg font-medium text-muted-foreground">{summary}</p>}
 
           {news.content ? (
-            <div className="prose prose-neutral max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: news.content }} />
+            <div className="prose prose-neutral max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(news.content) }} />
           ) : (
             <p className="text-muted-foreground">Icerik mevcut degil. Daha fazla bilgi icin kaynaga goz atin.</p>
           )}
