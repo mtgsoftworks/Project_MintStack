@@ -251,7 +251,7 @@ export default function WatchlistPage() {
     const watchlistId: string | number = selectedWatchlistId
 
     try {
-      await (removeWatchlistInstrument as Function)({ watchlistId, symbol }).unwrap()
+      await removeWatchlistInstrument({ watchlistId, symbol }).unwrap()
     } catch (error) {
       toast.error(getApiErrorMessage(error, t('common.error')))
     }
@@ -266,7 +266,7 @@ export default function WatchlistPage() {
     const watchlistId: string | number = selectedWatchlistId
 
     try {
-      await (addWatchlistInstrument as Function)({ watchlistId, symbol }).unwrap()
+      await addWatchlistInstrument({ watchlistId, symbol }).unwrap()
       setNewInstrumentSymbol('')
       toast.success(t('watchlist.assetAdded'))
     } catch (error) {
@@ -315,7 +315,7 @@ export default function WatchlistPage() {
     }
 
     try {
-      await (updateWatchlistItem as Function)({
+      await updateWatchlistItem({
         watchlistId,
         itemId: item.id,
         notes: draftValue || null,
@@ -346,7 +346,7 @@ export default function WatchlistPage() {
     reorderedItems.splice(toIndex, 0, movedItem)
 
     try {
-      await (reorderWatchlistItems as Function)({
+      await reorderWatchlistItems({
         watchlistId,
         itemIds: reorderedItems.map((item) => item.id),
       }).unwrap()

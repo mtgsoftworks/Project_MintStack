@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios'
+import axios, { type AxiosInstance } from 'axios'
 
 // Use relative URL to go through nginx proxy
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'

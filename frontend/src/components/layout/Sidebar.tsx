@@ -31,7 +31,6 @@ import {
   setMobileSidebarOpen
 } from '@/store/slices/uiSlice'
 import { useEffect, useState } from 'react'
-import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 interface NavChild {

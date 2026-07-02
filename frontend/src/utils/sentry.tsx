@@ -1,5 +1,6 @@
 // Sentry Error Tracking Integration
 // Install: npm install @sentry/react
+/* eslint-disable react-refresh/only-export-components */
 
 import React from 'react'
 import type * as SentryTypes from '@sentry/react'
