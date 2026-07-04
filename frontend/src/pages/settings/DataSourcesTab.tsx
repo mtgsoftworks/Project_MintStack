@@ -19,7 +19,8 @@ import {
 import type { ChangeEvent } from 'react'
 import { Badge } from '@/components/ui/badge'
 import RefreshButton from '@/components/common/RefreshButton'
-import { Database, History, Key, Loader2, Zap } from 'lucide-react'
+import { Database, History, Key, Loader2, Zap, AlertTriangle } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { DATA_SOURCE_TYPES } from './providerInfo'
 import type { ApiKeyConfig, BackfillFormData, DataPreference, DataSourceType } from './types'
 
@@ -56,6 +57,16 @@ export function DataSourcesTab({
     onToggleBackfillType,
     onBackfillMarketData
 }: DataSourcesTabProps) {
+    const hasApiConfigs = Boolean(apiConfigs?.length)
+    const TYPE_PROVIDERS_MAP: Record<string, { labelKey: string; defaultLabel: string; providers: string[]; hint: string }> = {
+        STOCK: { labelKey: 'settings.dataSources.backfill.types.stock', defaultLabel: 'Hisse Senetleri', providers: ['ALPHA_VANTAGE', 'YAHOO_FINANCE', 'FINNHUB', 'BIST_DATASTORE', 'FINTABLES'], hint: 'Alpha Vantage / Yahoo / Finnhub' },
+        FUND: { labelKey: 'settings.dataSources.backfill.types.fund', defaultLabel: 'Yatırım Fonları', providers: ['TEFAS', 'YAHOO_FINANCE'], hint: 'TEFAS / Yahoo Finance' },
+        CURRENCY: { labelKey: 'settings.dataSources.backfill.types.currency', defaultLabel: 'Döviz Kurları', providers: ['TCMB', 'YAHOO_FINANCE', 'ALPHA_VANTAGE'], hint: 'TCMB / Yahoo / Alpha Vantage' },
+        INDEX: { labelKey: 'settings.dataSources.backfill.types.index', defaultLabel: 'Endeksler', providers: ['YAHOO_FINANCE', 'ALPHA_VANTAGE', 'BIST_DATASTORE'], hint: 'Yahoo / Alpha Vantage' },
+        BOND: { labelKey: 'settings.dataSources.backfill.types.bond', defaultLabel: 'Tahvil & Bono', providers: ['TCMB', 'YAHOO_FINANCE'], hint: 'TCMB / Yahoo Finance' },
+        VIOP: { labelKey: 'settings.dataSources.backfill.types.viop', defaultLabel: 'VİOP', providers: ['BIST_DATASTORE', 'YAHOO_FINANCE'], hint: 'BIST Datastore / Yahoo' },
+    }
+
     const BACKFILL_TYPES = [
         { value: 'STOCK', i18nKey: 'settings.dataSources.backfill.types.stock' },
         { value: 'FUND', i18nKey: 'settings.dataSources.backfill.types.fund' },
@@ -64,7 +75,24 @@ export function DataSourcesTab({
         { value: 'BOND', i18nKey: 'settings.dataSources.backfill.types.bond' },
         { value: 'VIOP', i18nKey: 'settings.dataSources.backfill.types.viop' },
     ]
-    const hasApiConfigs = Boolean(apiConfigs?.length)
+
+    const activeProviders = new Set(
+        (apiConfigs || [])
+            .filter((c) => c.isActive)
+            .map((c) => c.provider)
+    )
+
+    const missingTypesForSelected = backfillForm.instrumentTypes.filter((type) => {
+        const info = TYPE_PROVIDERS_MAP[type]
+        if (!info) return false
+        return !info.providers.some((p) => activeProviders.has(p))
+    })
+
+    const isBackfillDisabled =
+        isBackfillingMarketData ||
+        backfillForm.instrumentTypes.length === 0 ||
+        missingTypesForSelected.length > 0
+
     const renderBackfillPanel = () => {
         if (!isAdmin) {
             return null
@@ -129,17 +157,78 @@ export function DataSourcesTab({
                 </div>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {BACKFILL_TYPES.map((type) => (
-                        <label key={type.value} className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm">
-                            <Checkbox
-                                checked={backfillForm.instrumentTypes.includes(type.value)}
-                                onCheckedChange={(checked: boolean) => onToggleBackfillType(type.value, Boolean(checked))}
-                                disabled={isBackfillingMarketData}
-                            />
-                            {t(type.i18nKey)}
-                        </label>
-                    ))}
+                    {BACKFILL_TYPES.map((type) => {
+                        const isSelected = backfillForm.instrumentTypes.includes(type.value)
+                        const info = TYPE_PROVIDERS_MAP[type.value]
+                        const hasActiveApi = info ? info.providers.some((p) => activeProviders.has(p)) : true
+
+                        return (
+                            <label
+                                key={type.value}
+                                className={cn(
+                                    "flex items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm transition-colors cursor-pointer",
+                                    isSelected && !hasActiveApi && "border-destructive/60 bg-destructive/10 text-destructive font-medium",
+                                    !hasActiveApi && !isSelected && "border-border/60 opacity-70"
+                                )}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Checkbox
+                                        checked={isSelected}
+                                        onCheckedChange={(checked: boolean) => onToggleBackfillType(type.value, Boolean(checked))}
+                                        disabled={isBackfillingMarketData}
+                                    />
+                                    <span>{t(type.i18nKey)}</span>
+                                </div>
+                                {!hasActiveApi && (
+                                    <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                                        API Kapalı
+                                    </Badge>
+                                )}
+                            </label>
+                        )
+                    })}
                 </div>
+
+                {missingTypesForSelected.length > 0 && (
+                    <div className="mt-4 flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3.5 text-sm text-destructive">
+                        <div className="flex items-center gap-2 font-semibold">
+                            <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+                            <span>Geçmiş Veri İndirme Engellendi: Aktif API Kaynağı Eksik</span>
+                        </div>
+                        <p className="text-xs text-destructive/90">
+                            Seçtiğiniz enstrüman türü için gerekli API kaynağı eklenmemiş veya pasif durumda. İndirme işleminin başlayabilmesi için aşağıdaki API'lerin aktif edilmesi gerekir:
+                        </p>
+                        <ul className="list-disc list-inside text-xs space-y-1 ml-1">
+                            {missingTypesForSelected.map((type) => {
+                                const info = TYPE_PROVIDERS_MAP[type]
+                                return (
+                                    <li key={type} className="font-medium">
+                                        <span className="font-semibold">{t(info?.labelKey || type)}:</span> Gerekli API ({info?.hint}) aktif edilmemiş!
+                                    </li>
+                                )
+                            })}
+                        </ul>
+                        <div className="mt-1 flex justify-start">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 border-destructive/40 text-destructive hover:bg-destructive/20 text-xs gap-1.5"
+                                onClick={onOpenApiKeysTab}
+                            >
+                                <Key className="h-3.5 w-3.5" />
+                                API Anahtarları Sekmesinden Aktif Et
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {backfillForm.instrumentTypes.length === 0 && (
+                    <div className="mt-4 flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400">
+                        <AlertTriangle className="h-4 w-4 shrink-0" />
+                        <span>Lütfen geçmiş verisini indirmek istediğiniz en az bir enstrüman türü (Hisse, Fon, Döviz vb.) seçin.</span>
+                    </div>
+                )}
 
                 {isBackfillingMarketData && (
                     <div className="mt-4 flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
@@ -156,7 +245,8 @@ export function DataSourcesTab({
                 <div className="mt-4 flex justify-end">
                     <Button
                         onClick={onBackfillMarketData}
-                        disabled={isBackfillingMarketData}
+                        disabled={isBackfillDisabled}
+                        title={missingTypesForSelected.length > 0 ? "İlgili API kaynağı kapalı olduğu için buton pasiftir." : undefined}
                     >
                         {isBackfillingMarketData ? (
                             <>

@@ -84,12 +84,12 @@ export default function FundsPage() {
     setPage(0)
   }, [searchQuery, pageSize, changeRange.queryParams.changeStartDate, changeRange.queryParams.changeEndDate])
 
-  const filteredFunds = funds.filter((fund) =>
-    hasMeaningfulChange(fund.changePercent) && (
-      fund.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      fund.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  ).sort((left, right) => left.symbol.localeCompare(right.symbol))
+  const filteredFunds = funds.filter((fund) => {
+    if (!fund || !fund.symbol) return false
+    if (!searchQuery) return true
+    const query = searchQuery.toLowerCase()
+    return fund.symbol.toLowerCase().includes(query) || fund.name?.toLowerCase().includes(query)
+  }).sort((left, right) => left.symbol.localeCompare(right.symbol))
 
   return (
     <div className="space-y-6 animate-in">

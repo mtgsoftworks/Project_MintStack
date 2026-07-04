@@ -25,4 +25,6 @@ public interface WatchlistRepository extends JpaRepository<Watchlist, UUID> {
     boolean existsByUserIdAndName(UUID userId, String name);
 
     long countByUserId(UUID userId);
+
+    void deleteByUserId(UUID userId);
 }

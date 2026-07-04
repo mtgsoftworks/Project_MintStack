@@ -3,7 +3,7 @@
   "realm": "mintstack-finance",
   "displayName": "MintStack Finance Portal",
   "enabled": true,
-  "sslRequired": "all",
+  "sslRequired": "external",
   "registrationAllowed": true,
   "loginWithEmailAllowed": true,
   "rememberMe": true,
@@ -135,10 +135,8 @@
         "http://127.0.0.1:3001/*",
         "http://localhost:3002/*",
         "http://127.0.0.1:3002/*",
-        "https://mintstackfinance.up.railway.app/*",
-        "https://mintstackfinance.up.railway.app",
-        "https://*.up.railway.app/*",
-        "https://*.railway.app/*"
+        "http://localhost:8088/*",
+        "http://127.0.0.1:8088/*"
       ],
       "webOrigins": [
         "http://localhost:3000",
@@ -147,9 +145,8 @@
         "http://127.0.0.1:3001",
         "http://localhost:3002",
         "http://127.0.0.1:3002",
-        "https://mintstackfinance.up.railway.app",
-        "https://*.up.railway.app",
-        "https://*.railway.app"
+        "http://localhost:8088",
+        "http://127.0.0.1:8088"
       ],
       "bearerOnly": false,
       "consentRequired": false,

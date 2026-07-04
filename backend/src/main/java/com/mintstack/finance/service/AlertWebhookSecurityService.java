@@ -58,8 +58,7 @@ public class AlertWebhookSecurityService {
     }
 
     private void validateSignature(String payloadBody, String providedHeaderValue) {
-        boolean signatureRequired = properties.isRequireSignature() || StringUtils.hasText(properties.getSecret());
-        if (!signatureRequired) {
+        if (!properties.isRequireSignature()) {
             return;
         }
         if (!StringUtils.hasText(properties.getSecret())) {

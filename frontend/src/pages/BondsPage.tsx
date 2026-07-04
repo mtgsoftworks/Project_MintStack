@@ -85,12 +85,12 @@ export default function BondsPage() {
     setPage(0)
   }, [searchQuery, pageSize, changeRange.queryParams.changeStartDate, changeRange.queryParams.changeEndDate])
 
-  const filteredBonds = bonds.filter((bond) =>
-    hasMeaningfulChange(bond.changePercent) && (
-      bond.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      bond.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  ).sort((left, right) => left.symbol.localeCompare(right.symbol))
+  const filteredBonds = bonds.filter((bond) => {
+    if (!bond || !bond.symbol) return false
+    if (!searchQuery) return true
+    const query = searchQuery.toLowerCase()
+    return bond.symbol.toLowerCase().includes(query) || bond.name?.toLowerCase().includes(query)
+  }).sort((left, right) => left.symbol.localeCompare(right.symbol))
 
   return (
     <div className="space-y-6 animate-in">

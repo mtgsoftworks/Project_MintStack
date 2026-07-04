@@ -36,6 +36,8 @@ services:
     image: redis:7-alpine
     container_name: mintstack-redis
     command: redis-server --requirepass ${REDIS_PASSWORD}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - "127.0.0.1:${REDIS_HOST_PORT:-16379}:6379"
     volumes:
@@ -62,6 +64,10 @@ services:
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_ADMIN_USER_PASSWORD: ${KEYCLOAK_ADMIN_USER_PASSWORD}
+      KEYCLOAK_TEST_USER_PASSWORD: ${KEYCLOAK_TEST_USER_PASSWORD}
+      KEYCLOAK_FINANCE_BACKEND_SECRET: ${KEYCLOAK_FINANCE_BACKEND_SECRET}
+      LDAP_BIND_CREDENTIAL: ${LDAP_BIND_CREDENTIAL}
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: ${POSTGRES_USER}
@@ -173,6 +179,30 @@ services:
           cpus: '0.25'
           memory: 256M
 
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.7.0
+    container_name: mintstack-kafka-exporter
+    environment:
+      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        exec /bin/kafka_exporter \
+          --kafka.server=kafka:9092 \
+          --sasl.enabled \
+          --sasl.username=kafka \
+          --sasl.password="$${KAFKA_SASL_PASSWORD}" \
+          --sasl.mechanism=plain
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - mintstack-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
   opensearch:
     image: opensearchproject/opensearch:2.13.0
     container_name: mintstack-opensearch
@@ -180,6 +210,7 @@ services:
       - cluster.name=mintstack-cluster
       - node.name=opensearch-node1
       - discovery.type=single-node
+      - cluster.default_number_of_replicas=0
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
@@ -199,7 +230,7 @@ services:
     networks:
       - mintstack-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -k -s -u admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD} https://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
+      test: ["CMD-SHELL", "curl -k -s -u admin:$${OPENSEARCH_INITIAL_ADMIN_PASSWORD} https://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -211,32 +242,6 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
-
-  opensearch-init:
-    image: opensearchproject/opensearch:2.13.0
-    container_name: mintstack-opensearch-init
-    depends_on:
-      opensearch:
-        condition: service_healthy
-    environment:
-      OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
-    entrypoint: ["/bin/bash", "-c"]
-    command:
-      - |
-        set -euo pipefail
-        AUTH="admin:$${OPENSEARCH_INITIAL_ADMIN_PASSWORD}"
-        curl --fail-with-body -k -sS -u "$${AUTH}" -X PUT "https://opensearch:9200/_index_template/mintstack-single-node-default" \
-          -H 'Content-Type: application/json' \
-          -d '{"index_patterns":["*"],"priority":1,"template":{"settings":{"index.number_of_replicas":"0"}}}'
-        curl --fail-with-body -k -sS -u "$${AUTH}" -X PUT "https://opensearch:9200/mintstack-*/_settings?allow_no_indices=true&ignore_unavailable=true&expand_wildcards=open,hidden" \
-          -H 'Content-Type: application/json' \
-          -d '{"index":{"number_of_replicas":"0"}}'
-        curl --fail-with-body -k -sS -u "$${AUTH}" -X PUT "https://opensearch:9200/security-auditlog-*/_settings?allow_no_indices=true&ignore_unavailable=true&expand_wildcards=open,hidden" \
-          -H 'Content-Type: application/json' \
-          -d '{"index":{"number_of_replicas":"0"}}'
-        curl --fail-with-body -k -sS -u "$${AUTH}" "https://opensearch:9200/_cluster/health?wait_for_status=green&timeout=60s"
-    networks:
-      - mintstack-network
 
   opensearch-dashboards:
     image: opensearchproject/opensearch-dashboards:2.13.0

@@ -10,17 +10,28 @@ export function cn(...inputs: any[]) {
   return twMerge(clsx(inputs))
 }
 
+import { formatCurrency as formatCurrencyWithRates } from '@/lib/currency'
+
 /**
- * Format currency value
+ * Format market quote price in its native currency (e.g. ₺34.50 for TRY quotes)
  */
 export function formatCurrency(value: any, currency = 'TRY', locale = 'tr-TR') {
-  if (value === null || value === undefined) return '-'
+  if (value === null || value === undefined || isNaN(value)) return '-'
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value)
+}
+
+/**
+ * Format user portfolio/balance values converted dynamically into user's preferred settings currency (USD/EUR/GBP/TRY)
+ */
+export function formatUserCurrency(value: any, sourceCurrency = 'TRY') {
+  if (value === null || value === undefined || isNaN(value)) return '-'
+  const userPreferredCurrency = (typeof window !== 'undefined' && localStorage.getItem('currency')) || 'TRY'
+  return formatCurrencyWithRates(value, userPreferredCurrency, { sourceCurrency })
 }
 
 /**

@@ -134,12 +134,15 @@ export default function CurrencyPage() {
     return labels[source] || source
   }
 
-  const filteredCurrencies = currencies?.filter((currency: CurrencyRate) =>
-    hasMeaningfulChange(currency.changePercent) && (
-      currency.currencyCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      currency.currencyName?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredCurrencies = currencies?.filter((currency: CurrencyRate) => {
+    if (!currency || !currency.currencyCode) return false
+    if (!searchQuery) return true
+    const query = searchQuery.toLowerCase()
+    return (
+      currency.currencyCode.toLowerCase().includes(query) ||
+      (currency.currencyName && currency.currencyName.toLowerCase().includes(query))
     )
-  ) || []
+  }) || []
   const hasSimulatedCurrencies = filteredCurrencies.some((currency: CurrencyRate) => isSimulatedMarketData(currency))
 
   const handleQuantityChange = (code: string, value: string) => {
@@ -281,11 +284,11 @@ export default function CurrencyPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {['USD', 'EUR', 'GBP', 'CHF'].map((code) => {
           const currency = currencies?.find((c: CurrencyRate) => c.currencyCode === code)
-          const hasChange = hasMeaningfulChange(currency?.changePercent)
-          if (!hasChange || !currency) {
+          if (!currency) {
             return null
           }
-          const change = Number(currency.changePercent)
+          const hasChange = hasMeaningfulChange(currency?.changePercent)
+          const change = Number(currency.changePercent || 0)
           const simulatedCurrency = isSimulatedMarketData(currency)
 
           return (

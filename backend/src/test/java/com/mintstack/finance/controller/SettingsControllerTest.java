@@ -9,6 +9,7 @@ import com.mintstack.finance.dto.response.HistoricalDataBackfillResponse;
 import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
 import com.mintstack.finance.dto.response.ApiConfigResponse;
 import com.mintstack.finance.entity.User;
+import com.mintstack.finance.service.PortfolioService;
 import com.mintstack.finance.service.SettingsService;
 import com.mintstack.finance.service.UserService;
 import com.mintstack.finance.service.MarketDataService;
@@ -59,6 +60,9 @@ class SettingsControllerTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private PortfolioService portfolioService;
 
     @MockitoBean
     private RateLimitConfig rateLimitConfig;

@@ -20,6 +20,8 @@ import com.mintstack.finance.repository.InstrumentRepository;
 import com.mintstack.finance.repository.PortfolioItemRepository;
 import com.mintstack.finance.repository.PortfolioRepository;
 import com.mintstack.finance.repository.PortfolioTransactionRepository;
+import com.mintstack.finance.repository.WatchlistRepository;
+import com.mintstack.finance.repository.PriceAlertRepository;
 import com.mintstack.finance.service.simulation.SimulationDataService;
 import com.mintstack.finance.service.portfolio.PortfolioFinancialRulesService;
 import com.mintstack.finance.service.portfolio.PortfolioOrderExecutionService;
@@ -55,6 +57,8 @@ public class PortfolioService {
     private final PortfolioItemRepository portfolioItemRepository;
     private final InstrumentRepository instrumentRepository;
     private final PortfolioTransactionRepository portfolioTransactionRepository;
+    private final WatchlistRepository watchlistRepository;
+    private final PriceAlertRepository priceAlertRepository;
     private final UserService userService;
     private final SimulationDataService simulationDataService;
     private final PortfolioFinancialRulesService financialRulesService;
@@ -181,13 +185,38 @@ public class PortfolioService {
         Portfolio portfolio = portfolioRepository.findByIdAndUserId(portfolioId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Portföy", "id", portfolioId));
         
-        if (portfolioTransactionRepository.existsByPortfolioId(portfolioId)) {
-            throw new BusinessException(
-                    "İşlem geçmişi bulunan portföy silinemez; finansal kayıtlar korunmalıdır");
+        portfolioTransactionRepository.deleteByPortfolioId(portfolioId);
+        portfolioItemRepository.deleteByPortfolioId(portfolioId);
+        portfolioRepository.delete(portfolio);
+        log.info("Portfolio deleted: {} for user: {}", portfolioId, keycloakId);
+    }
+
+    @org.springframework.cache.annotation.Caching(evict = {
+        @CacheEvict(value = "portfolios", allEntries = true),
+        @CacheEvict(value = "userPortfolios", key = "#keycloakId")
+    })
+    @Transactional
+    public java.util.Map<String, Object> deleteAllUserData(String keycloakId) {
+        User user = userService.getUserByKeycloakId(keycloakId);
+        List<Portfolio> portfolios = portfolioRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+        
+        long deletedPortfolios = portfolios.size();
+
+        for (Portfolio portfolio : portfolios) {
+            portfolioTransactionRepository.deleteByPortfolioId(portfolio.getId());
+            portfolioItemRepository.deleteByPortfolioId(portfolio.getId());
+            portfolioRepository.delete(portfolio);
         }
 
-        portfolioRepository.delete(portfolio);
-        log.info("Portfolio deleted: {}", portfolioId);
+        watchlistRepository.deleteByUserId(user.getId());
+        priceAlertRepository.deleteByUserId(user.getId());
+
+        log.info("All user data reset executed for user: {} ({})", user.getId(), keycloakId);
+
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("deletedPortfolios", deletedPortfolios);
+        result.put("success", true);
+        return result;
     }
 
     @org.springframework.cache.annotation.Caching(evict = {

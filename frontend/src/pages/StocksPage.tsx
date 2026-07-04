@@ -163,12 +163,12 @@ export default function StocksPage() {
   const totalPages = data?.pagination?.totalPages || 0
   const totalElements = data?.pagination?.totalElements || 0
 
-  const filteredStocks = stocks.filter((stock) =>
-    hasMeaningfulChange(stock.changePercent) && (
-      stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      stock.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  )
+  const filteredStocks = stocks.filter((stock) => {
+    if (!stock || !stock.symbol) return false
+    if (!searchQuery) return true
+    const query = searchQuery.toLowerCase()
+    return stock.symbol.toLowerCase().includes(query) || stock.name?.toLowerCase().includes(query)
+  })
 
   // Virtual scrolling setup
   const virtualizer = useVirtualizer({

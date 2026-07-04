@@ -82,7 +82,14 @@ public class AlertService {
         alert = alertRepository.save(alert);
         log.info("Created {} alert for {} at {} for user {}", 
                 request.getAlertType(), normalizedSymbol, request.getTargetValue(), keycloakId);
-        
+
+        // Immediately trigger if current price already satisfies the alert condition
+        if (instrument.getCurrentPrice() != null && alert.shouldTrigger(instrument.getCurrentPrice())) {
+            log.info("Alert {} immediately triggered upon creation (current: {}, target: {})", 
+                    alert.getId(), instrument.getCurrentPrice(), alert.getTargetValue());
+            triggerAlert(alert, instrument.getCurrentPrice());
+        }
+
         return mapToResponse(alert);
     }
 
@@ -134,7 +141,7 @@ public class AlertService {
         log.info("Alert triggered: {} {} at {} (target: {})", 
                 alert.getAlertType(), instrument.getSymbol(), currentPrice, alert.getTargetValue());
 
-        // Publish notification event to Kafka
+        // Publish notification event to UserNotificationService
         if (Boolean.TRUE.equals(user.getPriceAlerts())) {
             userNotificationService.createAndDispatch(
                     user,
@@ -211,8 +218,6 @@ public class AlertService {
         return new ArrayList<>(candidates);
     }
 
-
-
     private AlertResponse mapToResponse(PriceAlert alert) {
         Instrument inst = alert.getInstrument();
         return AlertResponse.builder()
@@ -231,4 +236,3 @@ public class AlertService {
                 .build();
     }
 }
-

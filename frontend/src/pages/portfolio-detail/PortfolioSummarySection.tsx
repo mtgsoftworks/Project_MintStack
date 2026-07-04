@@ -1,7 +1,7 @@
 import PieChart from '@/components/charts/PieChart'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn, formatCurrency, formatPercent } from '@/lib/utils'
+import { cn, formatUserCurrency, formatPercent } from '@/lib/utils'
 
 export function PortfolioSummarySection({ t, portfolio, items, chartData }) {
     return (
@@ -10,9 +10,16 @@ export function PortfolioSummarySection({ t, portfolio, items, chartData }) {
                 <CardHeader>
                     <CardTitle>{t('portfolioDetailPage.chart.title')}</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex flex-col items-center justify-center p-2 sm:p-6">
                     {items.length > 0 ? (
-                        <PieChart data={chartData} />
+                        <PieChart
+                          data={chartData}
+                          height={380}
+                          innerRadius={85}
+                          outerRadius={140}
+                          centerTitle={formatUserCurrency(portfolio.totalValue || 0)}
+                          centerSubTitle="Portföy Değeri"
+                        />
                     ) : (
                         <div className="flex items-center justify-center h-64 text-muted-foreground">
                             {t('portfolioDetailPage.chart.empty')}
@@ -28,19 +35,19 @@ export function PortfolioSummarySection({ t, portfolio, items, chartData }) {
                 <CardContent className="space-y-4">
                     <div className="flex justify-between py-2 border-b">
                         <span className="text-muted-foreground">{t('portfolioDetailPage.summary.totalValue')}</span>
-                        <span className="font-semibold">{formatCurrency(portfolio.totalValue || 0, 'TRY')}</span>
+                        <span className="font-semibold">{formatUserCurrency(portfolio.totalValue || 0)}</span>
                     </div>
                     <div className="flex justify-between py-2 border-b">
                         <span className="text-muted-foreground">Nakit Bakiye</span>
-                        <span className="font-semibold">{formatCurrency(portfolio.cashBalance || 0, 'TRY')}</span>
+                        <span className="font-semibold">{formatUserCurrency(portfolio.cashBalance || 0)}</span>
                     </div>
                     <div className="flex justify-between py-2 border-b">
                         <span className="text-muted-foreground">{t('portfolioDetailPage.summary.netAssetValue')}</span>
-                        <span className="font-semibold">{formatCurrency(portfolio.netAssetValue || 0, 'TRY')}</span>
+                        <span className="font-semibold">{formatUserCurrency(portfolio.netAssetValue || 0)}</span>
                     </div>
                     <div className="flex justify-between py-2 border-b">
                         <span className="text-muted-foreground">{t('portfolioDetailPage.summary.totalCost')}</span>
-                        <span className="font-medium">{formatCurrency(portfolio.totalCost || 0, 'TRY')}</span>
+                        <span className="font-medium">{formatUserCurrency(portfolio.totalCost || 0)}</span>
                     </div>
                     <div className="flex justify-between py-2 border-b">
                         <span className="text-muted-foreground">{t('portfolioDetailPage.summary.profitLoss')}</span>
@@ -48,7 +55,7 @@ export function PortfolioSummarySection({ t, portfolio, items, chartData }) {
                             'font-semibold',
                             portfolio.profitLoss >= 0 ? 'text-success' : 'text-danger'
                         )}>
-                            {formatCurrency(portfolio.profitLoss || 0, 'TRY')}
+                            {formatUserCurrency(portfolio.profitLoss || 0)}
                         </span>
                     </div>
                     <div className="flex justify-between py-2 border-b">
@@ -57,7 +64,7 @@ export function PortfolioSummarySection({ t, portfolio, items, chartData }) {
                             'font-semibold',
                             (portfolio.realizedProfitLoss || 0) >= 0 ? 'text-success' : 'text-danger'
                         )}>
-                            {formatCurrency(portfolio.realizedProfitLoss || 0, 'TRY')}
+                            {formatUserCurrency(portfolio.realizedProfitLoss || 0)}
                         </span>
                     </div>
                     <div className="flex justify-between py-2 border-b">
@@ -66,7 +73,7 @@ export function PortfolioSummarySection({ t, portfolio, items, chartData }) {
                             'font-semibold',
                             (portfolio.unrealizedProfitLoss || 0) >= 0 ? 'text-success' : 'text-danger'
                         )}>
-                            {formatCurrency(portfolio.unrealizedProfitLoss || 0, 'TRY')}
+                            {formatUserCurrency(portfolio.unrealizedProfitLoss || 0)}
                         </span>
                     </div>
                     <div className="flex justify-between py-2 border-b">

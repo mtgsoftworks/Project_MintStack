@@ -9,10 +9,19 @@ import com.mintstack.finance.entity.User;
 import com.mintstack.finance.entity.UserApiConfig;
 import com.mintstack.finance.service.ApiKeyValidationService;
 import com.mintstack.finance.service.MarketDataService;
+import com.mintstack.finance.service.PortfolioService;
 import com.mintstack.finance.service.SettingsService;
 import com.mintstack.finance.service.UserService;
 import com.mintstack.finance.service.market.HistoricalDataBackfillService;
 import com.mintstack.finance.service.simulation.SimulationDataService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.CacheManager;
+import org.springframework.http.ResponseEntity;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -41,6 +50,7 @@ public class SettingsController {
 
     private final SettingsService settingsService;
     private final UserService userService;
+    private final PortfolioService portfolioService;
     private final CacheManager cacheManager;
     private final MarketDataService marketDataService;
     private final SimulationDataService simulationDataService;
@@ -196,5 +206,14 @@ public class SettingsController {
         log.info("User {} requested historical market data backfill", jwt.getSubject());
         HistoricalDataBackfillResponse result = historicalDataBackfillService.backfill(request);
         return ResponseEntity.ok(ApiResponse.success(result, "Gecmis veri backfill tamamlandi"));
+    }
+
+    @PostMapping("/reset-user-data")
+    @Operation(summary = "Kullanıcının tüm portföy, işlem, izleme listesi ve alarmlarını tamamen sıfırla")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> resetUserData(
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.getOrCreateUser(jwt);
+        Map<String, Object> result = portfolioService.deleteAllUserData(jwt.getSubject());
+        return ResponseEntity.ok(ApiResponse.success(result, "Tüm verileriniz başarıyla sıfırlandı"));
     }
 }

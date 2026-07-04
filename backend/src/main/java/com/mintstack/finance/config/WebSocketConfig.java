@@ -49,17 +49,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         String[] originPatterns = corsProperties.getAllowedOriginPatterns()
                 .toArray(new String[0]);
 
-        // WebSocket endpoint with SockJS fallback
+        // WebSocket endpoint with SockJS fallback – wide open for local dev
         registry.addEndpoint("/ws")
-                .setAllowedOrigins(origins)
-                .setAllowedOriginPatterns(originPatterns)
+                .setAllowedOriginPatterns("*")
                 .withSockJS()
+                .setSessionCookieNeeded(false)
                 .setHeartbeatTime(25000);
 
         // Pure WebSocket endpoint (without SockJS)
         registry.addEndpoint("/ws-native")
-                .setAllowedOrigins(origins)
-                .setAllowedOriginPatterns(originPatterns);
+                .setAllowedOriginPatterns("*");
     }
 
     /**

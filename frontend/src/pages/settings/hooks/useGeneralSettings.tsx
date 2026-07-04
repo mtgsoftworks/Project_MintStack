@@ -15,7 +15,7 @@ import {
     setRefreshRate
 } from '@/store/slices/uiSlice'
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/store/api/userApi'
-import { useClearCacheMutation, useDeleteMarketDataMutation } from '@/store/api/settingsApi'
+import { useClearCacheMutation, useDeleteMarketDataMutation, useResetUserDataMutation } from '@/store/api/settingsApi'
 import { useDeletePortfolioMutation, useGetPortfoliosQuery } from '@/store/api/portfolioApi'
 import { useDeleteWatchlistMutation, useGetWatchlistsQuery } from '@/store/api/watchlistApi'
 import { useDeleteAlertMutation, useGetAlertsQuery } from '@/store/api/alertsApi'
@@ -46,9 +46,10 @@ export function useGeneralSettings({ t, i18n }: UseGeneralSettingsOptions) {
     const [updateProfile] = useUpdateProfileMutation()
     const [clearCache, { isLoading: isClearingCache }] = useClearCacheMutation(undefined)
     const [deleteMarketData] = useDeleteMarketDataMutation()
-    const { data: portfolios = [] } = useGetPortfoliosQuery(skipToken)
-    const { data: watchlists = [] } = useGetWatchlistsQuery(skipToken)
-    const { data: alerts = [] } = useGetAlertsQuery(skipToken)
+    const [resetUserData] = useResetUserDataMutation()
+    const { data: portfolios = [] } = useGetPortfoliosQuery(undefined)
+    const { data: watchlists = [] } = useGetWatchlistsQuery(undefined)
+    const { data: alerts = [] } = useGetAlertsQuery(undefined)
     const [deletePortfolio] = useDeletePortfolioMutation()
     const [deleteWatchlist] = useDeleteWatchlistMutation()
     const [deleteAlert] = useDeleteAlertMutation()
@@ -161,6 +162,12 @@ export function useGeneralSettings({ t, i18n }: UseGeneralSettingsOptions) {
             </div>,
             { duration: Infinity }
         )
+
+        try {
+            await resetUserData(undefined).unwrap()
+        } catch (error) {
+            console.warn('Backend user data reset skipped:', (error as { message?: string })?.message)
+        }
 
         try {
             for (const portfolio of portfolios) {

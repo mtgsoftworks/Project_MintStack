@@ -86,12 +86,12 @@ export default function ViopPage() {
   }, [searchQuery, pageSize, changeRange.queryParams.changeStartDate, changeRange.queryParams.changeEndDate])
 
   const filteredViop = viop
-    .filter((contract) =>
-      hasMeaningfulChange(contract.changePercent) && (
-        contract.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        contract.name?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    )
+    .filter((contract) => {
+      if (!contract || !contract.symbol) return false
+      if (!searchQuery) return true
+      const query = searchQuery.toLowerCase()
+      return contract.symbol.toLowerCase().includes(query) || contract.name?.toLowerCase().includes(query)
+    })
     .sort((left, right) => {
       const leftVolume = Number(left.volume ?? 0)
       const rightVolume = Number(right.volume ?? 0)

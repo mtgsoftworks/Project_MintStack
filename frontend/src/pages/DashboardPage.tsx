@@ -1,4 +1,4 @@
-﻿import {
+import {
   TrendingUp,
   TrendingDown,
   DollarSign,
@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import SimulationDataFlag from '@/components/common/SimulationDataFlag'
 import RefreshButton from '@/components/common/RefreshButton'
 import RefreshStatus from '@/components/common/RefreshStatus'
-import { cn, formatCurrency, formatPercent, formatRelativeTime } from '@/lib/utils'
+import { cn, formatCurrency, formatUserCurrency, formatPercent, formatRelativeTime } from '@/lib/utils'
 import { getNewsDisplayTitle, getNewsSourceLabel, isSimulationNews } from '@/lib/news'
 import { isSimulatedMarketData } from '@/lib/simulationData'
 import { useGetCurrenciesQuery, useGetStocksQuery, useGetMarketIndexQuery } from '@/store/api/marketApi'
@@ -295,6 +295,11 @@ function StocksWidget({ queryOptions }: { queryOptions: QueryOptions }) {
               <Skeleton key={i} className="h-12 w-full" />
             ))}
           </div>
+        ) : stocks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-6 text-center text-xs text-muted-foreground space-y-1">
+            <p className="font-semibold text-foreground/80">Aktif Hisse Verisi Bulunamadı</p>
+            <p className="text-[11px] text-muted-foreground">API anahtarını aktif edin veya veri indirin.</p>
+          </div>
         ) : (
           <div className="space-y-3">
             {stocks.map((stock: Stock) => (
@@ -479,7 +484,7 @@ export default function DashboardPage() {
           <>
             <StatCard
               title={t('dashboard.stats.portfolioValue')}
-              value={portfolioSummary ? formatCurrency(portfolioSummary.totalValue, 'TRY') : '-'}
+              value={portfolioSummary ? formatUserCurrency(portfolioSummary.totalValue) : '-'}
               change={portfolioProfitLossPercent}
               icon={Wallet}
               trend={portfolioProfitLossPercent >= 0 ? 'up' : 'down'}
@@ -487,7 +492,7 @@ export default function DashboardPage() {
             />
             <StatCard
               title={t('dashboard.stats.totalProfitLoss')}
-              value={portfolioSummary ? formatCurrency(portfolioSummary.totalProfitLoss, 'TRY') : '-'}
+              value={portfolioSummary ? formatUserCurrency(portfolioSummary.totalProfitLoss) : '-'}
               change={portfolioProfitLossPercent}
               icon={(portfolioSummary?.totalProfitLoss ?? 0) >= 0 ? TrendingUp : TrendingDown}
               trend={(portfolioSummary?.totalProfitLoss ?? 0) >= 0 ? 'up' : 'down'}

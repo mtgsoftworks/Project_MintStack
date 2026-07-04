@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { getApiErrorMessage } from '@/lib/apiError'
 import { useAdjustPortfolioCashMutation } from '@/store/api/portfolioApi'
 
 const THOUSANDS_DOT_PATTERN = /^\d{1,3}(\.\d{3})+$/
@@ -55,17 +56,6 @@ function parseLocalizedAmount(value) {
   return Number.parseFloat(raw)
 }
 
-function resolveApiErrorMessage(error, fallbackMessage) {
-  const responseData = error?.data
-  if (!responseData) {
-    return fallbackMessage
-  }
-  if (typeof responseData === 'string') {
-    return responseData
-  }
-  return responseData.message || responseData.error || responseData.details || fallbackMessage
-}
-
 export function PortfolioCashDialog({ portfolioId, open, onOpenChange, currentCashBalance = null }) {
   const { t, i18n } = useTranslation()
   const [action, setAction] = useState('DEPOSIT')
@@ -102,14 +92,15 @@ export function PortfolioCashDialog({ portfolioId, open, onOpenChange, currentCa
     try {
       await adjustCash({
         portfolioId,
+        action,
         amount: parsedAmount,
         notes: notes.trim() || undefined,
-      } as { portfolioId: string | number; amount: number; notes?: string }).unwrap()
+      } as { portfolioId: string | number; action: string; amount: number; notes?: string }).unwrap()
 
       toast.success(t(action === 'DEPOSIT' ? 'portfolioDetailPage.cashDialog.depositSuccess' : 'portfolioDetailPage.cashDialog.withdrawSuccess'))
       onOpenChange(false)
     } catch (error) {
-      toast.error(resolveApiErrorMessage(error, t('portfolioDetailPage.cashDialog.failed')))
+      toast.error(getApiErrorMessage(error, t('portfolioDetailPage.cashDialog.failed')))
     }
   }
 

@@ -83,6 +83,13 @@ export const settingsApi = baseApi.injectEndpoints({
                 'News',
             ],
         }),
+        resetUserData: builder.mutation({
+            query: () => ({
+                url: '/settings/reset-user-data',
+                method: 'POST',
+            }),
+            invalidatesTags: ['Portfolios', 'Watchlists', 'Alerts', 'Settings'],
+        }),
     }),
 })
 
@@ -94,9 +101,9 @@ export const {
     useClearCacheMutation,
     useDeleteMarketDataMutation,
     useBackfillMarketDataMutation,
+    useResetUserDataMutation,
     useGetDataSourceCapabilitiesQuery,
     useGetDataPreferencesQuery,
     useSetDataPreferenceMutation,
     useTriggerDataFetchMutation,
 } = settingsApi
-

@@ -44,6 +44,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -89,6 +91,37 @@ class MarketDataServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(priceHistoryRepository.findRecentByInstrumentIds(anyList(), anyInt()))
+                .thenAnswer(invocation -> {
+                    List<UUID> instrumentIds = invocation.getArgument(0);
+                    int limit = invocation.getArgument(1);
+                    return instrumentIds.stream()
+                            .flatMap(instrumentId -> priceHistoryRepository
+                                    .findByInstrumentIdOrderByPriceDateDesc(
+                                            instrumentId,
+                                            PageRequest.of(0, limit)
+                                    )
+                                    .stream())
+                            .toList();
+                });
+        lenient().when(priceHistoryRepository.findLatestAtOrBeforeByInstrumentIds(
+                        anyList(),
+                        any(LocalDate.class)
+                ))
+                .thenAnswer(invocation -> {
+                    List<UUID> instrumentIds = invocation.getArgument(0);
+                    LocalDate date = invocation.getArgument(1);
+                    return instrumentIds.stream()
+                            .flatMap(instrumentId -> priceHistoryRepository
+                                    .findByInstrumentIdAndPriceDateLessThanEqualOrderByPriceDateDesc(
+                                            instrumentId,
+                                            date,
+                                            PageRequest.of(0, 1)
+                                    )
+                                    .stream())
+                            .toList();
+                });
+
         MarketDataMaintenanceService marketDataMaintenanceService = new MarketDataMaintenanceService(
             instrumentRepository,
             currencyRateRepository,
@@ -319,9 +352,6 @@ class MarketDataServiceTest {
                 .thenReturn(new PageImpl<>(List.of(thyaoStock), pageable, 1));
         when(priceHistoryRepository.findByInstrumentIdOrderByPriceDateDesc(eq(thyaoStock.getId()), any(Pageable.class)))
                 .thenReturn(List.of(latest, duplicateClose, previous));
-        when(priceHistoryRepository.findBySymbolAndDateRange(eq("THYAO"), any(LocalDate.class), any(LocalDate.class)))
-                .thenReturn(List.of(latest, duplicateClose, previous));
-
         Page<InstrumentResponse> result = marketDataService.getInstrumentsByType(InstrumentType.STOCK, pageable);
 
         InstrumentResponse response = result.getContent().get(0);

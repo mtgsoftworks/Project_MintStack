@@ -348,7 +348,7 @@ app:
       - OPTIONS
     allowed-headers:
       - "*"
-    allow-credentials: false
+    allow-credentials: true
     max-age: 3600
 
   # External API Configuration

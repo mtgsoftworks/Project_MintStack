@@ -85,7 +85,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 512M
 
   # ===========================================
   # AUTH LAYER
@@ -278,13 +278,13 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    restart: unless-stopped
       args:
         VITE_API_URL: ${VITE_API_URL:-/api/v1}
         VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL:?VITE_KEYCLOAK_URL must be set}
         VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM:-mintstack-finance}
         VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID:-finance-frontend}
         VITE_WS_URL: ${VITE_WS_URL:?VITE_WS_URL must be set}
+    restart: unless-stopped
     container_name: mintstack-frontend-prod
     depends_on:
       - backend
@@ -342,6 +342,7 @@ services:
       - cluster.name=mintstack-cluster
       - node.name=opensearch-node1
       - discovery.type=single-node
+      - cluster.default_number_of_replicas=0
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
@@ -358,7 +359,7 @@ services:
       - data-network
       - obs-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -k -s -u admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD} https://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
+      test: ["CMD-SHELL", "curl -k -s -u admin:$${OPENSEARCH_INITIAL_ADMIN_PASSWORD} https://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -418,18 +419,23 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 512M
 
   kafka-exporter:
     image: danielqsj/kafka-exporter:v1.7.0
     container_name: mintstack-kafka-exporter-prod
     restart: unless-stopped
+    environment:
+      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD}
+    entrypoint: ["/bin/sh", "-c"]
     command:
-      - --kafka.server=kafka:9092
-      - --sasl.enabled
-      - --sasl.username=kafka
-      - --sasl.password=${KAFKA_SASL_PASSWORD}
-      - --sasl.mechanism=plain
+      - |
+        exec /bin/kafka_exporter \
+          --kafka.server=kafka:9092 \
+          --sasl.enabled \
+          --sasl.username=kafka \
+          --sasl.password="$${KAFKA_SASL_PASSWORD}" \
+          --sasl.mechanism=plain
     depends_on:
       kafka:
         condition: service_healthy

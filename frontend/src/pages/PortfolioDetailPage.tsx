@@ -20,6 +20,7 @@ import { PortfolioItemsTable } from '@/pages/portfolio-detail/PortfolioItemsTabl
 import { PortfolioTransactionsCard } from '@/pages/portfolio-detail/PortfolioTransactionsCard'
 import { usePortfolioTransactions } from '@/pages/portfolio-detail/hooks/usePortfolioTransactions'
 import { usePortfolioExport } from '@/pages/portfolio-detail/hooks/usePortfolioExport'
+import { PortfolioWhatIfWidget } from '@/pages/portfolio-detail/PortfolioWhatIfWidget'
 import { toast } from 'sonner'
 
 interface PortfolioItem {
@@ -173,6 +174,11 @@ export default function PortfolioDetailPage() {
                 portfolio={portfolio}
                 items={items}
                 chartData={chartData}
+            />
+
+            <PortfolioWhatIfWidget
+                items={items}
+                cashBalance={portfolio.cashBalance}
             />
 
             <PortfolioItemsTable

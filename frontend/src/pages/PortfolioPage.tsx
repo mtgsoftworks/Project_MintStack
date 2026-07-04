@@ -21,7 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { cn, formatCurrency, formatPercent } from '@/lib/utils'
+import { cn, formatCurrency, formatUserCurrency, formatPercent } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import {
   useGetPortfoliosQuery,
@@ -219,7 +219,7 @@ export default function PortfolioPage() {
                   <Wallet className="h-5 w-5 text-primary" />
                 </div>
               </div>
-              <div className="stat-value">{formatCurrency(summary.totalValue, 'TRY')}</div>
+              <div className="stat-value">{formatUserCurrency(summary.totalValue)}</div>
             </CardContent>
           </Card>
           <Card className="card-hover">
@@ -230,7 +230,7 @@ export default function PortfolioPage() {
                   <Wallet className="h-5 w-5 text-info" />
                 </div>
               </div>
-              <div className="stat-value">{formatCurrency(summary.totalCashBalance || 0, 'TRY')}</div>
+              <div className="stat-value">{formatUserCurrency(summary.totalCashBalance || 0)}</div>
             </CardContent>
           </Card>
           <Card className="card-hover">
@@ -241,7 +241,7 @@ export default function PortfolioPage() {
                   <Wallet className="h-5 w-5 text-muted-foreground" />
                 </div>
               </div>
-              <div className="stat-value">{formatCurrency(summary.totalNetAssetValue || 0, 'TRY')}</div>
+              <div className="stat-value">{formatUserCurrency(summary.totalNetAssetValue || 0)}</div>
             </CardContent>
           </Card>
           <Card className="card-hover">
@@ -263,7 +263,7 @@ export default function PortfolioPage() {
                 'stat-value',
                 summary.totalProfitLoss >= 0 ? 'text-success' : 'text-danger'
               )}>
-                {formatCurrency(summary.totalProfitLoss, 'TRY')}
+                {formatUserCurrency(summary.totalProfitLoss)}
               </div>
               <Badge variant={summary.totalProfitLossPercent >= 0 ? 'success' : 'danger'} className="mt-2">
                 {formatPercent(summary.totalProfitLossPercent)}
@@ -344,10 +344,10 @@ export default function PortfolioPage() {
               <CardContent>
                 <Link to={`/portfolio/${portfolio.id}`} className="block">
                   <div className="text-2xl font-bold mb-1">
-                    {formatCurrency(portfolio.netAssetValue || 0, 'TRY')}
+                    {formatUserCurrency(portfolio.netAssetValue || 0)}
                   </div>
                   <div className="text-xs text-muted-foreground mb-2">
-                    Nakit: {formatCurrency(portfolio.cashBalance || 0, 'TRY')}
+                    Nakit: {formatUserCurrency(portfolio.cashBalance || 0)}
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant={(portfolio.profitLossPercent ?? 0) >= 0 ? 'success' : 'danger'}>
@@ -357,7 +357,7 @@ export default function PortfolioPage() {
                       'text-sm font-medium',
                       (portfolio.profitLoss ?? 0) >= 0 ? 'text-success' : 'text-danger'
                     )}>
-                      {formatCurrency(portfolio.profitLoss ?? 0, 'TRY')}
+                      {formatUserCurrency(portfolio.profitLoss ?? 0)}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">

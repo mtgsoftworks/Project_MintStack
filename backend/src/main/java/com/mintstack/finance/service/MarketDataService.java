@@ -379,70 +379,59 @@ public class MarketDataService {
             }
         }
 
-        // Try DB with alias fallback first (e.g. XU100.IS <-> XU100)
+        // Try DB with active instruments first
         Instrument instrument = findFirstActiveIndexInstrument(symbolCandidates);
-        
-        // If instrument exists and has recent price, return it
-        if (instrument != null && instrument.getCurrentPrice() != null) {
-            return mapToInstrumentResponse(instrument, changeRange);
-        }
 
-        // Try Yahoo Finance direct fallback even without explicit API config.
+        // Fetch live index price ONLY if an active Yahoo API config is enabled
         UserApiConfig config = getActiveYahooConfig();
-        String apiKey = config != null ? config.getApiKey() : null;
-        String baseUrl = config != null ? config.getBaseUrl() : null;
-        BigDecimal price = null;
+        if (config != null && Boolean.TRUE.equals(config.getIsActive())) {
+            String apiKey = config.getApiKey();
+            String baseUrl = config.getBaseUrl();
+            BigDecimal price = null;
 
-        for (String candidate : symbolCandidates) {
-            try {
-                price = yahooFinanceClient.fetchStockPrice(candidate, apiKey, baseUrl);
-                break;
-            } catch (Exception e) {
-                log.debug("Failed to fetch market index {} via candidate {}: {}", symbol, candidate, e.getMessage());
+            for (String candidate : symbolCandidates) {
+                try {
+                    price = yahooFinanceClient.fetchStockPrice(candidate, apiKey, baseUrl);
+                    if (price != null) {
+                        break;
+                    }
+                } catch (Exception e) {
+                    log.debug("Failed to fetch market index {} via candidate {}: {}", symbol, candidate, e.getMessage());
+                }
+            }
+
+            if (price != null) {
+                InstrumentResponse.InstrumentResponseBuilder builder = InstrumentResponse.builder()
+                    .symbol(symbol)
+                    .name(instrument != null ? instrument.getName() : symbol)
+                    .currentPrice(price)
+                    .type(InstrumentType.INDEX)
+                    .currency("TRY");
+
+                if (instrument != null) {
+                    builder.id(instrument.getId())
+                        .previousClose(instrument.getPreviousClose());
+                }
+
+                return builder.build();
             }
         }
 
-        if (price != null) {
-            // Create temporary instrument response if not in DB
-            InstrumentResponse.InstrumentResponseBuilder builder = InstrumentResponse.builder()
-                .symbol(symbol)
-                .name(symbol) // We don't have name if not in DB
-                .currentPrice(price)
-                .type(InstrumentType.INDEX)
-                .currency("TRY");
-
-            if (instrument != null) {
-                builder.id(instrument.getId())
-                    .name(instrument.getName())
-                    .previousClose(instrument.getPreviousClose());
-            }
-
-            return builder.build();
-        }
-
-        // Return existing instrument data only when it has a price.
-        if (instrument != null && instrument.getCurrentPrice() != null) {
+        // Return existing instrument data ONLY if it is ACTIVE and has a current price
+        if (instrument != null && Boolean.TRUE.equals(instrument.getIsActive()) && instrument.getCurrentPrice() != null) {
             return mapToInstrumentResponse(instrument, changeRange);
         }
 
-        log.info("No market index data available for {}. Candidates checked: {}", symbol, symbolCandidates);
+        log.info("No active market index data available for {}. Candidates checked: {}", symbol, symbolCandidates);
         throw new ResourceNotFoundException("Endeks", "sembol", symbol);
     }
 
     private boolean shouldFallbackToRealInstruments(InstrumentType type, boolean simulationEnabled, boolean isEmpty) {
-        if (!simulationEnabled || !isEmpty) {
-            return false;
-        }
-        return type == InstrumentType.BOND || type == InstrumentType.FUND || type == InstrumentType.VIOP;
+        return false;
     }
 
     private boolean shouldFallbackToInactiveCatalog(InstrumentType type, boolean simulationEnabled, boolean isEmpty) {
-        if (simulationEnabled || !isEmpty) {
-            return false;
-        }
-        return type == InstrumentType.BOND
-            || type == InstrumentType.VIOP
-            || type == InstrumentType.INDEX;
+        return false;
     }
 
     private InstrumentResponse getSimulatedIndexResponse(String symbol) {
@@ -795,7 +784,7 @@ public class MarketDataService {
             List<Instrument> instruments,
             ChangeDateRange changeRange) {
         Map<UUID, InstrumentMetricsService.InstrumentMetrics> metricsByInstrument =
-                instrumentMetricsService.resolveMetricsBatch(instruments);
+                resolveBatchMetrics(instruments);
         Map<UUID, InstrumentRangeChange> rangeChanges =
                 resolveBatchRangeChanges(instruments, metricsByInstrument, changeRange);
         return instruments.stream()
@@ -803,7 +792,7 @@ public class MarketDataService {
                         instrument,
                         changeRange,
                         resolveBatchMetric(instrument, metricsByInstrument),
-                        rangeChanges.get(instrument.getId())
+                        instrument.getId() != null ? rangeChanges.get(instrument.getId()) : null
                 ))
                 .toList();
     }
@@ -812,22 +801,43 @@ public class MarketDataService {
             Page<Instrument> instruments,
             ChangeDateRange changeRange) {
         Map<UUID, InstrumentMetricsService.InstrumentMetrics> metricsByInstrument =
-                instrumentMetricsService.resolveMetricsBatch(instruments.getContent());
+                resolveBatchMetrics(instruments.getContent());
         Map<UUID, InstrumentRangeChange> rangeChanges =
                 resolveBatchRangeChanges(instruments.getContent(), metricsByInstrument, changeRange);
         return instruments.map(instrument -> mapToInstrumentResponse(
                 instrument,
                 changeRange,
                 resolveBatchMetric(instrument, metricsByInstrument),
-                rangeChanges.get(instrument.getId())
+                instrument.getId() != null ? rangeChanges.get(instrument.getId()) : null
         ));
     }
 
     private InstrumentMetricsService.InstrumentMetrics resolveBatchMetric(
             Instrument instrument,
             Map<UUID, InstrumentMetricsService.InstrumentMetrics> metricsByInstrument) {
+        if (instrument.getId() == null) {
+            return instrumentMetricsService.resolveMetrics(instrument);
+        }
         InstrumentMetricsService.InstrumentMetrics metrics = metricsByInstrument.get(instrument.getId());
         return metrics != null ? metrics : instrumentMetricsService.resolveMetrics(instrument);
+    }
+
+    private Map<UUID, InstrumentMetricsService.InstrumentMetrics> resolveBatchMetrics(
+            List<Instrument> instruments) {
+        Map<UUID, InstrumentMetricsService.InstrumentMetrics> batchMetrics =
+                instrumentMetricsService.resolveMetricsBatch(instruments);
+        Map<UUID, InstrumentMetricsService.InstrumentMetrics> resolved = new java.util.HashMap<>();
+        if (batchMetrics != null) {
+            resolved.putAll(batchMetrics);
+        }
+        instruments.stream()
+                .filter(instrument -> instrument.getId() != null)
+                .filter(instrument -> !resolved.containsKey(instrument.getId()))
+                .forEach(instrument -> resolved.put(
+                        instrument.getId(),
+                        instrumentMetricsService.resolveMetrics(instrument)
+                ));
+        return resolved;
     }
 
     private InstrumentResponse mapToInstrumentResponse(
@@ -932,31 +942,39 @@ public class MarketDataService {
                         instrument.getPreviousClose(),
                         metrics != null ? metrics.previousClose() : null
                 );
-                if (isPositive(basePrice)) {
-                    startPoints.put(instrument.getId(), new PricePoint(basePrice, today));
+                PricePoint openingPoint =
+                        findOpeningPricePoint(instrument.getId(), today, basePrice);
+                if (openingPoint != null) {
+                    startPoints.put(instrument.getId(), openingPoint);
                 }
             });
         } else {
-            priceHistoryRepository.findLatestAtOrBeforeByInstrumentIds(
+            List<PriceHistory> histories =
+                    priceHistoryRepository.findLatestAtOrBeforeByInstrumentIds(
                             instrumentIds,
                             changeRange.startDate()
-                    )
-                    .forEach(history -> startPoints.put(
-                            history.getInstrument().getId(),
-                            toPricePoint(history)
-                    ));
+                    );
+            if (histories != null) {
+                histories.forEach(history -> startPoints.put(
+                        history.getInstrument().getId(),
+                        toPricePoint(history)
+                ));
+            }
         }
 
         Map<UUID, PricePoint> endPoints = new java.util.HashMap<>();
         if (changeRange.endDate().isBefore(today)) {
-            priceHistoryRepository.findLatestAtOrBeforeByInstrumentIds(
+            List<PriceHistory> histories =
+                    priceHistoryRepository.findLatestAtOrBeforeByInstrumentIds(
                             instrumentIds,
                             changeRange.endDate()
-                    )
-                    .forEach(history -> endPoints.put(
-                            history.getInstrument().getId(),
-                            toPricePoint(history)
-                    ));
+                    );
+            if (histories != null) {
+                histories.forEach(history -> endPoints.put(
+                        history.getInstrument().getId(),
+                        toPricePoint(history)
+                ));
+            }
         } else {
             instruments.forEach(instrument -> {
                 InstrumentMetricsService.InstrumentMetrics metrics =
@@ -971,10 +989,28 @@ public class MarketDataService {
         }
 
         Map<UUID, InstrumentRangeChange> result = new java.util.HashMap<>();
-        instrumentIds.forEach(instrumentId -> result.put(
-                instrumentId,
-                calculateRangeChange(startPoints.get(instrumentId), endPoints.get(instrumentId))
-        ));
+        instruments.forEach(instrument -> {
+            UUID instrumentId = instrument.getId();
+            PricePoint startPoint = startPoints.get(instrumentId);
+            PricePoint endPoint = endPoints.get(instrumentId);
+            if (startPoint != null && endPoint != null) {
+                result.put(instrumentId, calculateRangeChange(startPoint, endPoint));
+                return;
+            }
+            InstrumentMetricsService.InstrumentMetrics metrics =
+                    metricsByInstrument.get(instrumentId);
+            BigDecimal currentPrice = metrics != null ? metrics.currentPrice() : null;
+            BigDecimal openingBasePrice = positiveOrFallback(
+                    instrument.getPreviousClose(),
+                    metrics != null ? metrics.previousClose() : null
+            );
+            result.put(instrumentId, calculateInstrumentRangeChange(
+                    instrument,
+                    currentPrice,
+                    openingBasePrice,
+                    changeRange
+            ));
+        });
         return result;
     }
 

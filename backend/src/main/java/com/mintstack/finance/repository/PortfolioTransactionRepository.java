@@ -18,6 +18,8 @@ public interface PortfolioTransactionRepository extends JpaRepository<PortfolioT
 
     boolean existsByPortfolioId(UUID portfolioId);
 
+    void deleteByPortfolioId(UUID portfolioId);
+
     @Query(
         value = "SELECT pt FROM PortfolioTransaction pt " +
             "JOIN pt.instrument instrument " +

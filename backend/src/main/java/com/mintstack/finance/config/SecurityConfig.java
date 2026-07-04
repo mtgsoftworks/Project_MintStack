@@ -98,37 +98,20 @@ public class SecurityConfig {
                     .jwtAuthenticationConverter(jwtAuthenticationConverter())
                 )
             )
-            // Security Headers
+            // Security Headers – RELAXED for local development / demo
             .headers(headers -> {
-                // X-Content-Type-Options: nosniff
                 headers.contentTypeOptions(contentTypeOptions -> {});
-                // X-Frame-Options: DENY (stricter than SAMEORIGIN)
-                headers.frameOptions(frameOptions -> frameOptions.deny());
-                // X-XSS-Protection: 1; mode=block
+                headers.frameOptions(frameOptions -> frameOptions.sameOrigin());
                 headers.xssProtection(xss -> xss.headerValue(XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK));
-                // Referrer-Policy
                 headers.referrerPolicy(referrer -> referrer.policy(STRICT_ORIGIN_WHEN_CROSS_ORIGIN));
-                // Permissions-Policy (Feature-Policy replacement)
-                headers.permissionsPolicyHeader(permissions -> permissions.policy("accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"));
-                // HSTS - Strict Transport Security
-                headers.httpStrictTransportSecurity(hsts -> hsts
-                    .includeSubDomains(true)
-                    .maxAgeInSeconds(31536000)
-                    .preload(true));
-                // Content-Security-Policy
-                // SECURITY: No 'unsafe-inline' - scripts must use nonce or hash
+                // CSP disabled for local dev
                 headers.contentSecurityPolicy(csp -> csp.policyDirectives(
-                    "default-src 'self'; " +
-                    "script-src 'self'; " +
-                    "style-src 'self' https://fonts.googleapis.com; " +
-                    "style-src-elem 'self' https://fonts.googleapis.com; " +
-                    "font-src 'self' https://fonts.gstatic.com data:; " +
-                    "img-src 'self' data: https: blob:; " +
-                    "connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:* http://127.0.0.1:* ws://127.0.0.1:*; " +
-                    "frame-ancestors 'self'; " +
-                    "form-action 'self'; " +
-                    "base-uri 'self';"
+                    "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"
                 ));
+                // HSTS disabled for local dev
+                headers.httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(false)
+                    .maxAgeInSeconds(0));
             });
 
         return http.build();
@@ -137,12 +120,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(corsProperties.getAllowedOrigins());
-        configuration.setAllowedOriginPatterns(corsProperties.getAllowedOriginPatterns());
-        configuration.setAllowedMethods(corsProperties.getAllowedMethods());
-        configuration.setAllowedHeaders(corsProperties.getAllowedHeaders());
-        configuration.setAllowCredentials(corsProperties.isAllowCredentials());
-        configuration.setMaxAge(corsProperties.getMaxAge());
+        // Local dev: allow all origins with credentials
+        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowedMethods(List.of("*"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
