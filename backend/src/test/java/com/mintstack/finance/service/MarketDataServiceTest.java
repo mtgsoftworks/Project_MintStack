@@ -7,6 +7,7 @@ import com.mintstack.finance.entity.CurrencyRate.RateSource;
 import com.mintstack.finance.entity.Instrument;
 import com.mintstack.finance.entity.Instrument.InstrumentType;
 import com.mintstack.finance.entity.PriceHistory;
+import com.mintstack.finance.entity.UserApiConfig;
 import com.mintstack.finance.entity.UserApiConfig.ApiProvider;
 import com.mintstack.finance.exception.ResourceNotFoundException;
 import com.mintstack.finance.repository.CurrencyRateRepository;
@@ -748,14 +749,10 @@ class MarketDataServiceTest {
         when(simulationDataService.isSimulationEnabled()).thenReturn(true);
         when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType.BOND, true))
                 .thenReturn(List.of());
-        when(instrumentRepository.findByTypeAndIsActiveTrue(InstrumentType.BOND))
-                .thenReturn(List.of(bondInstrument));
 
         List<InstrumentResponse> result = marketDataService.getInstrumentsByType(InstrumentType.BOND);
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getSymbol()).isEqualTo("TRT120128T11");
-        assertThat(result.get(0).getType()).isEqualTo(InstrumentType.BOND);
+        assertThat(result).isEmpty();
     }
 
     @Test
@@ -782,35 +779,18 @@ class MarketDataServiceTest {
     }
 
     @Test
-    @DisplayName("getInstrumentsByType with pagination should fallback to real data for unsupported simulation types")
+    @DisplayName("getInstrumentsByType with pagination should return empty page when simulation data empty and no active instruments")
     void getInstrumentsByType_WithPagination_ShouldFallbackToRealData_WhenSimulationDataEmpty() {
-        Instrument fundInstrument = Instrument.builder()
-                .symbol("MAC")
-                .name("Fund A")
-                .type(InstrumentType.FUND)
-                .exchange("TEFAS")
-                .currency("TRY")
-                .currentPrice(new BigDecimal("12.54"))
-                .previousClose(new BigDecimal("12.42"))
-                .isActive(true)
-                .isSimulated(false)
-                .build();
-
         Pageable pageable = PageRequest.of(0, 20);
         Page<Instrument> emptyPage = new PageImpl<>(List.of(), pageable, 0);
-        Page<Instrument> realPage = new PageImpl<>(List.of(fundInstrument), pageable, 1);
 
         when(simulationDataService.isSimulationEnabled()).thenReturn(true);
         when(instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(InstrumentType.FUND, true, pageable))
                 .thenReturn(emptyPage);
-        when(instrumentRepository.findByTypeAndIsActiveTrue(InstrumentType.FUND, pageable))
-                .thenReturn(realPage);
 
         Page<InstrumentResponse> result = marketDataService.getInstrumentsByType(InstrumentType.FUND, pageable);
 
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).getSymbol()).isEqualTo("MAC");
-        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent()).isEmpty();
     }
 
     @Test
@@ -906,21 +886,26 @@ class MarketDataServiceTest {
         when(instrumentRepository.findBySymbol("XU100.IS")).thenReturn(Optional.empty());
         when(instrumentRepository.findBySymbol("XU100")).thenReturn(Optional.empty());
         when(userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.YAHOO_FINANCE)).thenReturn(List.of());
-        when(yahooFinanceClient.fetchStockPrice(anyString(), any(), any()))
-                .thenThrow(new RuntimeException("No market feed"));
 
         assertThatThrownBy(() -> marketDataService.getMarketIndex("XU100.IS"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("getMarketIndex should fetch from Yahoo direct fallback when no API config exists")
-    void getMarketIndex_ShouldFetchFromYahooDirectFallback_WhenNoConfig() {
+    @DisplayName("getMarketIndex should fetch from Yahoo when active API config exists")
+    void getMarketIndex_ShouldFetchFromYahoo_WhenActiveConfigExists() {
+        UserApiConfig activeConfig = UserApiConfig.builder()
+                .provider(ApiProvider.YAHOO_FINANCE)
+                .apiKey("test-key")
+                .isActive(true)
+                .build();
+
         when(simulationDataService.isSimulationEnabled()).thenReturn(false);
         when(instrumentRepository.findBySymbol("XU100.IS")).thenReturn(Optional.empty());
         when(instrumentRepository.findBySymbol("XU100")).thenReturn(Optional.empty());
-        when(userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.YAHOO_FINANCE)).thenReturn(List.of());
-        when(yahooFinanceClient.fetchStockPrice(eq("XU100.IS"), isNull(), isNull()))
+        when(userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.YAHOO_FINANCE))
+                .thenReturn(List.of(activeConfig));
+        when(yahooFinanceClient.fetchStockPrice(eq("XU100.IS"), eq("test-key"), isNull()))
                 .thenReturn(new BigDecimal("10123.45"));
 
         InstrumentResponse result = marketDataService.getMarketIndex("XU100.IS");

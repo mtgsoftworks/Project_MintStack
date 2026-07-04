@@ -1,0 +1,12 @@
+title = "Gitleaks Config"
+
+[allowlist]
+description = "Global allowlist for docker healthchecks"
+paths = [
+  '''docker-compose\.yml''',
+  '''docker-compose\.prod\.yml'''
+]
+regexes = [
+  '''curl.*-u\s+admin''',
+  '''curl.*-u\s+.*OPENSEARCH'''
+]

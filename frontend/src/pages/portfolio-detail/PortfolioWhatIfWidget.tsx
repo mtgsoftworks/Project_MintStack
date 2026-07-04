@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Sparkles, TrendingUp, TrendingDown, Clock, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Sparkles, TrendingUp, TrendingDown, Clock, ChevronDown, ChevronUp } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -50,7 +50,7 @@ function daysAgo(days: number): string {
   return formatDateInput(new Date(Date.now() - days * 24 * 60 * 60 * 1000))
 }
 
-export function PortfolioWhatIfWidget({ items = [], cashBalance = 0 }: PortfolioWhatIfWidgetProps) {
+export function PortfolioWhatIfWidget({ items = [] }: PortfolioWhatIfWidgetProps) {
   const [period, setPeriod] = useState<Period>('1M')
   const [showDetails, setShowDetails] = useState(false)
 

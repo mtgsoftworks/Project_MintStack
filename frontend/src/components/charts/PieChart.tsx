@@ -93,6 +93,17 @@ export function PieChart({
   centerSubTitle,
   className = '',
 }: PieChartProps) {
+  const total = useMemo(() => {
+    return (data || []).reduce((sum: number, item: PieChartDataItem) => sum + (item.value || 0), 0)
+  }, [data])
+
+  const chartData: (PieChartDataItem & { percent: number })[] = useMemo(() => {
+    return (data || []).map((item: PieChartDataItem) => ({
+      ...item,
+      percent: total > 0 ? item.value / total : 0,
+    }))
+  }, [data, total])
+
   if (!data || data.length === 0) {
     return (
       <div 
@@ -103,17 +114,6 @@ export function PieChart({
       </div>
     )
   }
-
-  const total = useMemo(() => {
-    return data.reduce((sum: number, item: PieChartDataItem) => sum + (item.value || 0), 0)
-  }, [data])
-
-  const chartData: (PieChartDataItem & { percent: number })[] = useMemo(() => {
-    return data.map((item: PieChartDataItem) => ({
-      ...item,
-      percent: total > 0 ? item.value / total : 0,
-    }))
-  }, [data, total])
 
   return (
     <div className={cn("relative w-full flex flex-col items-center justify-center", className)} style={{ height }}>

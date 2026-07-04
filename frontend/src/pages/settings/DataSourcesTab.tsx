@@ -196,7 +196,7 @@ export function DataSourcesTab({
                             <span>Geçmiş Veri İndirme Engellendi: Aktif API Kaynağı Eksik</span>
                         </div>
                         <p className="text-xs text-destructive/90">
-                            Seçtiğiniz enstrüman türü için gerekli API kaynağı eklenmemiş veya pasif durumda. İndirme işleminin başlayabilmesi için aşağıdaki API'lerin aktif edilmesi gerekir:
+                            Seçtiğiniz enstrüman türü için gerekli API kaynağı eklenmemiş veya pasif durumda. İndirme işleminin başlayabilmesi için aşağıdaki API&apos;lerin aktif edilmesi gerekir:
                         </p>
                         <ul className="list-disc list-inside text-xs space-y-1 ml-1">
                             {missingTypesForSelected.map((type) => {

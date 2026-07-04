@@ -21,7 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { cn, formatCurrency, formatUserCurrency, formatPercent } from '@/lib/utils'
+import { cn, formatUserCurrency, formatPercent } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import {
   useGetPortfoliosQuery,
