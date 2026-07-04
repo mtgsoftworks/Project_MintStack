@@ -9,7 +9,7 @@
 | Servis Adı | URL / Port | Kullanıcı / Admin | Parola / Secret | Açıklama |
 | :--- | :--- | :--- | :--- | :--- |
 | **OpenSearch** | `http://localhost:19200` | `admin` | `MintStack#2026!SecOps` | Merkezi Log arama API |
-| **OpenSearch Dashboards** | `http://localhost:15601` | `admin` | `MintStack#2026!SecOps` | Log görselleştirme arayüzü |
+| **OpenSearch Dashboards** | `http://localhost:5601` veya `:15601` | `admin` | `MintStack#2026!SecOps` | Log görselleştirme arayüzü |
 | **Grafana** | `http://localhost:13030` | `admin` | `admin` *(veya `.env` şifresi)* | Metrik ve sağlık panoları |
 | **Keycloak Admin Console** | `http://localhost:8180` | `admin` | `9mIiXfX3tjYK26tNo2ql2KL1pIuF1XIA` | Kimlik yönetimi konsolu |
 | **Keycloak (Demo Admin User)**| `http://localhost:8180` | `admin` | `9mIiXfX3tjYK26tNo2ql2KL1pIuF1XIA` | Sistem Admin test kullanıcısı |
