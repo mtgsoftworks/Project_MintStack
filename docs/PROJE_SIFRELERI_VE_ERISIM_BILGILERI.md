@@ -28,23 +28,27 @@
 
 ## 🔒 2. Servis Bazlı Detaylı Açıklamalar
 
-### 🔎 OpenSearch & Dashboards
-- **API Endpoint:** `https://localhost:9200` veya `http://localhost:19200`
-- **Dashboard UI:** `http://localhost:15601`
+### 📊 Grafana
+- **Arayüz URL:** `http://localhost:13030`
 - **Kullanıcı:** `admin`
-- **Şifre:** `MintStack#2026!SecOps`
-- **Sağlık Kontrolü Komutu:**
+- **Şifre:** `admin` *(veya `.env` içindeki `<GENERATE_WITH...>` placeholder değeri)*
+- **Şifre Sıfırlama Komutu:**
   ```bash
-  curl -k -u admin:MintStack#2026!SecOps https://localhost:9200/_cluster/health
+  docker compose exec grafana grafana-cli admin reset-admin-password admin
   ```
 
 ---
 
-### 📊 Grafana
-- **Arayüz URL:** `http://localhost:13030`
+### 🔎 OpenSearch & Dashboards
+- **API Endpoint:** `https://localhost:9200` veya `http://localhost:19200`
+- **Dashboard UI:** `http://localhost:5601` veya `http://localhost:15601`
 - **Kullanıcı:** `admin`
-- **Şifre:** `admin`
-- **Bağlı DataSource:** Prometheus (`http://prometheus:9090`)
+- **Şifre:** `MintStack#2026!SecOps`
+- **"Server is not ready yet" Uyarısı:** OpenSearch Dashboards konteyneri ilk başladığında sistem indekslerini kurup OpenSearch sunucusuna bağlanmak için **60-90 saniye** hazırlık süresine ihtiyaç duyar. Hazırlık bittiğinde sayfa otomatik olarak login ekranına yönlenir.
+- **Sağlık Kontrolü Komutu:**
+  ```bash
+  curl -k -u admin:MintStack#2026!SecOps https://localhost:9200/_cluster/health
+  ```
 
 ---
 
