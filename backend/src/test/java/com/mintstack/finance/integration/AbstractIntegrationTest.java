@@ -43,6 +43,9 @@ public abstract class AbstractIntegrationTest {
     }
 
     private static boolean isDockerAvailable() {
+        if ("true".equalsIgnoreCase(System.getenv("CI")) || "true".equalsIgnoreCase(System.getenv("TESTCONTAINERS_DISABLED"))) {
+            return false;
+        }
         try {
             DockerClientFactory.instance().client();
             return true;
