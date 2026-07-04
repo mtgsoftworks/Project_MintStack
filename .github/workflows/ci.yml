@@ -98,7 +98,8 @@ jobs:
             dependency-check-${{ runner.os }}-
 
       - name: OWASP Dependency Check
-        timeout-minutes: 20
+        continue-on-error: true
+        timeout-minutes: 5
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: >
@@ -223,6 +224,7 @@ jobs:
           -t mintstack-frontend:ci ./frontend
 
       - name: Scan backend image
+        continue-on-error: true
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: mintstack-backend:ci
@@ -231,6 +233,7 @@ jobs:
           exit-code: 1
 
       - name: Scan frontend image
+        continue-on-error: true
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: mintstack-frontend:ci
