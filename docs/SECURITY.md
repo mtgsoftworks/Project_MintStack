@@ -1,157 +1,157 @@
-﻿# MintStack Finance Portal â€” GÃ¼venlik Rehberi
+# MintStack Finance Portal — Güvenlik Rehberi
 
-Bu dokÃ¼man, MintStack Finance Portal projesinin gÃ¼venlik yapÄ±landÄ±rmasÄ±nÄ±, uygulanan kontrolleri ve operasyonel gÃ¼venlik kontrol listesini aÃ§Ä±klar.
+Bu doküman, MintStack Finance Portal projesinin güvenlik yapılandırmasını, uygulanan kontrolleri ve operasyonel güvenlik kontrol listesini açıklar.
 
 ---
 
-## 1. Kimlik DoÄŸrulama ve Yetkilendirme
+## 1. Kimlik Doğrulama ve Yetkilendirme
 
 ### OAuth2/OIDC (Keycloak 26)
 
-- **Kimlik saÄŸlayÄ±cÄ±**: Keycloak 26 ile OAuth2/OIDC
-- **PKCE akÄ±ÅŸÄ±**: S256 code challenge method ile yetkisiz kod deÄŸiÅŸimine karÅŸÄ± koruma
-- **JWT doÄŸrulama**: Spring Security OAuth2 Resource Server ile JWK Set URI Ã¼zerinden imza doÄŸrulama
+- **Kimlik sağlayıcı**: Keycloak 26 ile OAuth2/OIDC
+- **PKCE akışı**: S256 code challenge method ile yetkisiz kod değişimine karşı koruma
+- **JWT doğrulama**: Spring Security OAuth2 Resource Server ile JWK Set URI üzerinden imza doğrulama
 - **Realm**: `mintstack-finance`
 
-### Rol BazlÄ± EriÅŸim KontrolÃ¼ (RBAC)
+### Rol Bazlı Erişim Kontrolü (RBAC)
 
-| Rol | AÃ§Ä±klama | EriÅŸim |
+| Rol | Açıklama | Erişim |
 |-----|----------|--------|
-| `user` | Standart kullanÄ±cÄ± | Piyasa verisi, portfÃ¶y, watchlist, alertler |
-| `admin` | YÃ¶netici | TÃ¼m kullanÄ±cÄ± Ã¶zellikleri + simÃ¼lasyon, admin paneli, rate limit yÃ¶netimi |
-| `finance-backend` client rolÃ¼: `api-access` | Backend servis eriÅŸimi | M2M (machine-to-machine) API Ã§aÄŸrÄ±larÄ± |
+| `user` | Standart kullanıcı | Piyasa verisi, portföy, watchlist, alertler |
+| `admin` | Yönetici | Tüm kullanıcı özellikleri + simülasyon, admin paneli, rate limit yönetimi |
+| `finance-backend` client rolü: `api-access` | Backend servis erişimi | M2M (machine-to-machine) API çağrıları |
 
-### Ä°ki FaktÃ¶rlÃ¼ Kimlik DoÄŸrulama (2FA)
+### İki Faktörlü Kimlik Doğrulama (2FA)
 
-- **TOTP**: Keycloak Ã¼zerinden Time-based One-Time Password desteÄŸi
-- KullanÄ±cÄ±lar hesap gÃ¼venliÄŸi ayarlarÄ±ndan TOTP etkinleÅŸtirebilir
+- **TOTP**: Keycloak üzerinden Time-based One-Time Password desteği
+- Kullanıcılar hesap güvenliği ayarlarından TOTP etkinleştirebilir
 
 ### LDAP Entegrasyonu
 
-- **OpenLDAP**: Kurumsal kullanÄ±cÄ± dizini ile federasyon
-- Keycloak LDAP User Federation ile kullanÄ±cÄ± senkronizasyonu
-- LDAP admin/config ÅŸifreleri Docker Secrets ile yÃ¶netilir
+- **OpenLDAP**: Kurumsal kullanıcı dizini ile federasyon
+- Keycloak LDAP User Federation ile kullanıcı senkronizasyonu
+- LDAP admin/config şifreleri Docker Secrets ile yönetilir
 
 ---
 
-## 2. API GÃ¼venliÄŸi
+## 2. API Güvenliği
 
 ### Rate Limiting (Bucket4j)
 
-| KullanÄ±cÄ± Tipi | Ä°stek/Dakika |
+| Kullanıcı Tipi | İstek/Dakika |
 |----------------|--------------|
-| Anonim (IP bazlÄ±) | 100 |
-| KimliÄŸi doÄŸrulanmÄ±ÅŸ kullanÄ±cÄ± | 200 |
+| Anonim (IP bazlı) | 100 |
+| Kimliği doğrulanmış kullanıcı | 200 |
 | Admin | 500 |
 
-- **Uygulama**: `RateLimitFilter` ile tÃ¼m API isteklerinde
+- **Uygulama**: `RateLimitFilter` ile tüm API isteklerinde
 - **Atlanan yollar**: `/actuator/health/**`, `/actuator/info`, `/actuator/prometheus`, `/api-docs/**`, `/swagger-ui/**`
-- **YanÄ±t**: Limit aÅŸÄ±ldÄ±ÄŸÄ±nda `429 Too Many Requests`; header'larda `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After`
+- **Yanıt**: Limit aşıldığında `429 Too Many Requests`; header'larda `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After`
 
-### CORS YapÄ±landÄ±rmasÄ±
+### CORS Yapılandırması
 
-- **Whitelist**: Sadece tanÄ±mlÄ± origin'lere izin verilir
-- **GeliÅŸtirme**: `localhost:3000/3001/3002`, `127.0.0.1:3000/3001/3002`, `localhost:8088`, `127.0.0.1:8088`
-- **Ãœretim**: `application-prod.yml` veya ortam deÄŸiÅŸkenleri ile sadece gerÃ§ek domain'ler tanÄ±mlanmalÄ±
+- **Whitelist**: Sadece tanımlı origin'lere izin verilir
+- **Geliştirme**: `localhost:3000/3001/3002`, `127.0.0.1:3000/3001/3002`, `localhost:8088`, `127.0.0.1:8088`
+- **Üretim**: `application-prod.yml` veya ortam değişkenleri ile sadece gerçek domain'ler tanımlanmalı
 - **Metodlar**: GET, POST, PUT, DELETE, OPTIONS
-- **Credentials**: `allow-credentials: true` (Ã§erez/token ile kimlik doÄŸrulama iÃ§in)
+- **Credentials**: `allow-credentials: true` (çerez/token ile kimlik doğrulama için)
 
-### GÃ¼venlik BaÅŸlÄ±klarÄ±
+### Güvenlik Başlıkları
 
-| BaÅŸlÄ±k | DeÄŸer |
+| Başlık | Değer |
 |--------|-------|
 | `X-Content-Type-Options` | `nosniff` |
 | `X-Frame-Options` | `DENY` |
 | `X-XSS-Protection` | `1; mode=block` |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
 | `Strict-Transport-Security` (HSTS) | `max-age=31536000; includeSubDomains; preload` |
-| `Permissions-Policy` | Kamera, mikrofon, konum vb. devre dÄ±ÅŸÄ± |
-| `Content-Security-Policy` | `default-src 'self'`; script/style/font/img/connect kÄ±sÄ±tlamalarÄ± |
+| `Permissions-Policy` | Kamera, mikrofon, konum vb. devre dışı |
+| `Content-Security-Policy` | `default-src 'self'`; script/style/font/img/connect kısıtlamaları |
 
 ---
 
-## 3. Veri GÃ¼venliÄŸi
+## 3. Veri Güvenliği
 
-### AktarÄ±mda Åžifreleme (Encryption in Transit)
+### Aktarımda Şifreleme (Encryption in Transit)
 
-- **TLS**: Nginx Ã¼zerinden TLS 1.2 ve TLS 1.3
+- **TLS**: Nginx üzerinden TLS 1.2 ve TLS 1.3
 - **Cipher suite**: ECDHE-ECDSA-AES128-GCM-SHA256, ECDHE-RSA-AES128-GCM-SHA256, ECDHE-ECDSA-AES256-GCM-SHA384, ECDHE-RSA-AES256-GCM-SHA384
-- **OCSP Stapling**: Sertifika doÄŸrulama iÃ§in etkin
+- **OCSP Stapling**: Sertifika doğrulama için etkin
 
-### Redis Kimlik DoÄŸrulama
+### Redis Kimlik Doğrulama
 
-- **Parola**: `SPRING_DATA_REDIS_PASSWORD` ile zorunlu kimlik doÄŸrulama
-- **Ãœretim**: `redis_password` Docker Secret Ã¼zerinden saÄŸlanÄ±r
+- **Parola**: `SPRING_DATA_REDIS_PASSWORD` ile zorunlu kimlik doğrulama
+- **Üretim**: `redis_password` Docker Secret üzerinden sağlanır
 - **Komut**: `redis-server --requirepass $(cat /run/secrets/redis_password)`
 
 ### Kafka SASL/PLAIN
 
-- **Protokol**: `security.protocol=SASL_PLAINTEXT` veya `SASL_SSL` (Ã¼retimde tercih edilir)
+- **Protokol**: `security.protocol=SASL_PLAINTEXT` veya `SASL_SSL` (üretimde tercih edilir)
 - **Mekanizma**: `sasl.mechanism=PLAIN`
 - **JAAS**: `SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG` ile kimlik bilgileri
 
-### OpenSearch GÃ¼venliÄŸi
+### OpenSearch Güvenliği
 
 - **Security Plugin**: Etkin
-- **Kimlik doÄŸrulama**: `OPENSEARCH_USERNAME`, `OPENSEARCH_PASSWORD` ortam deÄŸiÅŸkenleri
-- **HTTPS**: Ãœretimde `OPENSEARCH_SCHEME=https` kullanÄ±lmalÄ±
+- **Kimlik doğrulama**: `OPENSEARCH_USERNAME`, `OPENSEARCH_PASSWORD` ortam değişkenleri
+- **HTTPS**: Üretimde `OPENSEARCH_SCHEME=https` kullanılmalı
 
-### VeritabanÄ±
+### Veritabanı
 
-- **PostgreSQL**: Åžifre zorunlu; Ã¼retimde Docker Secrets (`postgres_password`)
-- **BaÄŸlantÄ±**: JDBC URL Ã¼zerinden SSL/TLS (Ã¼retimde `sslmode=require` Ã¶nerilir)
+- **PostgreSQL**: Şifre zorunlu; üretimde Docker Secrets (`postgres_password`)
+- **Bağlantı**: JDBC URL üzerinden SSL/TLS (üretimde `sslmode=require` önerilir)
 
 ---
 
-## 4. AltyapÄ± GÃ¼venliÄŸi
+## 4. Altyapı Güvenliği
 
-### Docker Secrets (Ãœretim)
+### Docker Secrets (Üretim)
 
-Hassas veriler dosya veya Swarm secret olarak yÃ¶netilir:
+Hassas veriler dosya veya Swarm secret olarak yönetilir:
 
-| Secret | KullanÄ±m |
+| Secret | Kullanım |
 |--------|----------|
 | `postgres_password` | PostgreSQL, Keycloak DB |
-| `redis_password` | Redis kimlik doÄŸrulama |
+| `redis_password` | Redis kimlik doğrulama |
 | `keycloak_admin_password` | Keycloak admin |
 | `ldap_admin_password` | OpenLDAP admin/config |
 | `alpha_vantage_key` | Alpha Vantage API |
 | `grafana_admin_password` | Grafana admin |
 
-**Entrypoint**: `backend/docker-entrypoint.sh` ile `*_FILE` pattern'Ä± kullanÄ±larak `/run/secrets/` okunur.
+**Entrypoint**: `backend/docker-entrypoint.sh` ile `*_FILE` pattern'ı kullanılarak `/run/secrets/` okunur.
 
-### AÄŸ Segmentasyonu (Ãœretim)
+### Ağ Segmentasyonu (Üretim)
 
-| AÄŸ | Servisler | Ã–zellik |
+| Ağ | Servisler | Özellik |
 |----|-----------|---------|
-| `data-network` | postgres, redis, opensearch | `internal: true` â€” dÄ±ÅŸ eriÅŸim yok |
-| `app-network` | backend, frontend, nginx | Uygulama katmanÄ± |
+| `data-network` | postgres, redis, opensearch | `internal: true` — dış erişim yok |
+| `app-network` | backend, frontend, nginx | Uygulama katmanı |
 | `auth-network` | keycloak, openldap | `internal: true` |
 | `obs-network` | prometheus, grafana, alertmanager, otel, logstash, kafka | `internal: true` |
 
-### Port Binding (GeliÅŸtirme)
+### Port Binding (Geliştirme)
 
 - **PostgreSQL**: `127.0.0.1:5432`
-- **Redis**: `127.0.0.1:${REDIS_HOST_PORT:-16379}` (container iÃ§i port: `6379`)
+- **Redis**: `127.0.0.1:${REDIS_HOST_PORT:-16379}` (container içi port: `6379`)
 - **LDAP**: `127.0.0.1:389`, `127.0.0.1:636`
 - **OpenSearch**: `127.0.0.1:19200`
 - **Prometheus**: `127.0.0.1:9090`
 - **Alertmanager**: `127.0.0.1:9093`
 
-DÄ±ÅŸ eriÅŸime yalnÄ±zca Nginx (80/443), Frontend (3002) ve Keycloak (8180) portlarÄ± aÃ§Ä±lÄ±r.
+Dış erişime yalnızca Nginx (80/443), Frontend (3002) ve Keycloak (8180) portları açılır.
 
-### Nginx (Ãœretim)
+### Nginx (Üretim)
 
 - **TLS**: 1.2 ve 1.3
-- **Rate limiting**: API iÃ§in `30r/s`, login iÃ§in `5r/s` (burst: 50)
-- **Actuator**: `/actuator/health` dÄ±ÅŸÄ±ndaki actuator endpoint'leri `403` ile engellenir
-- **Swagger/API Docs**: Ãœretimde `404` dÃ¶ner (dokÃ¼mantasyon gizlenir)
+- **Rate limiting**: API için `30r/s`, login için `5r/s` (burst: 50)
+- **Actuator**: `/actuator/health` dışındaki actuator endpoint'leri `403` ile engellenir
+- **Swagger/API Docs**: Üretimde `404` döner (dokümantasyon gizlenir)
 
 ### Prometheus Basic Auth
 
-- **web.yml**: bcrypt ile hash'lenmiÅŸ parola
-- Ãœretimde `admin` kullanÄ±cÄ±sÄ± iÃ§in gÃ¼Ã§lÃ¼ parola zorunludur
-- Hash Ã¼retimi: `htpasswd -nBC 10 admin` veya Python `bcrypt`
+- **web.yml**: bcrypt ile hash'lenmiş parola
+- Üretimde `admin` kullanıcısı için güçlü parola zorunludur
+- Hash üretimi: `htpasswd -nBC 10 admin` veya Python `bcrypt`
 
 ---
 
@@ -175,38 +175,38 @@ Manuel Docker build workflow'u:
 Production'a cikis planlanirsa image tarama, SBOM/provenance ve imzalama tekrar ayri bir hardening fazinda ele alinmalidir.
 
 ---
-## 6. GÃ¼venlik Kontrol Listesi
+## 6. Güvenlik Kontrol Listesi
 
-### Kimlik DoÄŸrulama ve Yetkilendirme
+### Kimlik Doğrulama ve Yetkilendirme
 
-- [ ] Keycloak realm ayarlarÄ± gÃ¼ncel (`mintstack-finance`)
+- [ ] Keycloak realm ayarları güncel (`mintstack-finance`)
 - [ ] PKCE S256 frontend'de etkin
-- [ ] JWT issuer-uri ve jwk-set-uri doÄŸru yapÄ±landÄ±rÄ±lmÄ±ÅŸ
-- [ ] Rol eÅŸlemesi (`realm_access.roles`, `resource_access`) doÄŸru
-- [ ] 2FA (TOTP) kritik kullanÄ±cÄ±lar iÃ§in Ã¶nerilir/ zorunlu
-- [ ] LDAP federation test edilmiÅŸ (kullanÄ±lÄ±yorsa)
+- [ ] JWT issuer-uri ve jwk-set-uri doğru yapılandırılmış
+- [ ] Rol eşlemesi (`realm_access.roles`, `resource_access`) doğru
+- [ ] 2FA (TOTP) kritik kullanıcılar için önerilir/ zorunlu
+- [ ] LDAP federation test edilmiş (kullanılıyorsa)
 
-### API GÃ¼venliÄŸi
+### API Güvenliği
 
 - [ ] Rate limiting etkin ve limitler uygun
-- [ ] CORS origin'leri Ã¼retimde sadece gerÃ§ek domain'ler
-- [ ] Security header'lar tÃ¼m yanÄ±tlarda mevcut
-- [ ] Swagger/API docs Ã¼retimde kapalÄ± veya IP kÄ±sÄ±tlÄ±
+- [ ] CORS origin'leri üretimde sadece gerçek domain'ler
+- [ ] Security header'lar tüm yanıtlarda mevcut
+- [ ] Swagger/API docs üretimde kapalı veya IP kısıtlı
 
-### Veri GÃ¼venliÄŸi
+### Veri Güvenliği
 
-- [ ] Redis parolasÄ± gÃ¼Ã§lÃ¼ ve secret olarak yÃ¶netiliyor
-- [ ] Kafka SASL/PLAIN veya SASL_SSL Ã¼retimde etkin
-- [ ] OpenSearch gÃ¼venlik eklentisi ve kimlik doÄŸrulama etkin
-- [ ] PostgreSQL baÄŸlantÄ±sÄ± Ã¼retimde SSL ile
+- [ ] Redis parolası güçlü ve secret olarak yönetiliyor
+- [ ] Kafka SASL/PLAIN veya SASL_SSL üretimde etkin
+- [ ] OpenSearch güvenlik eklentisi ve kimlik doğrulama etkin
+- [ ] PostgreSQL bağlantısı üretimde SSL ile
 
-### AltyapÄ±
+### Altyapı
 
-- [ ] Docker Secrets oluÅŸturulmuÅŸ ve `secrets/` git'e commit edilmemiÅŸ
-- [ ] AÄŸ segmentasyonu Ã¼retim compose'da doÄŸru
-- [ ] Port binding geliÅŸtirmede `127.0.0.1` ile sÄ±nÄ±rlÄ±
-- [ ] Nginx TLS 1.2/1.3, gÃ¼venli cipher'lar
-- [ ] Prometheus basic auth parolasÄ± Ã¼retimde deÄŸiÅŸtirilmiÅŸ
+- [ ] Docker Secrets oluşturulmuş ve `secrets/` git'e commit edilmemiş
+- [ ] Ağ segmentasyonu üretim compose'da doğru
+- [ ] Port binding geliştirmede `127.0.0.1` ile sınırlı
+- [ ] Nginx TLS 1.2/1.3, güvenli cipher'lar
+- [ ] Prometheus basic auth parolası üretimde değiştirilmiş
 
 ### CI/CD
 
@@ -216,17 +216,17 @@ Production'a cikis planlanirsa image tarama, SBOM/provenance ve imzalama tekrar 
 
 ### Operasyonel
 
-- [ ] `.env` dosyasÄ± git'e eklenmemiÅŸ (`.env.example` ÅŸablon olarak kullanÄ±lÄ±r)
-- [ ] API anahtarlarÄ± (Alpha Vantage, Finnhub) secret olarak yÃ¶netiliyor
+- [ ] `.env` dosyası git'e eklenmemiş (`.env.example` şablon olarak kullanılır)
+- [ ] API anahtarları (Alpha Vantage, Finnhub) secret olarak yönetiliyor
 - [ ] Loglarda hassas veri (parola, token) yok
-- [ ] DÃ¼zenli gÃ¼venlik gÃ¼ncellemeleri ve baÄŸÄ±mlÄ±lÄ±k taramasÄ± yapÄ±lÄ±yor
+- [ ] Düzenli güvenlik güncellemeleri ve bağımlılık taraması yapılıyor
 
 ---
 
-## Ä°lgili DokÃ¼mantasyon
+## İlgili Dokümantasyon
 
-- [ARCHITECTURE.md](./ARCHITECTURE.md) â€” Sistem mimarisi
-- [OPERATIONS.md](./OPERATIONS.md) â€” Operasyonel rehber
-- [ADR.md](./ADR.md) â€” Mimari kararlar
-- [DEPLOYMENT.md](./DEPLOYMENT.md) â€” DaÄŸÄ±tÄ±m rehberi
-- [secrets/README.md](../secrets/README.md) â€” Secret yÃ¶netimi
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — Sistem mimarisi
+- [OPERATIONS.md](./OPERATIONS.md) — Operasyonel rehber
+- [ADR.md](./ADR.md) — Mimari kararlar
+- [DEPLOYMENT.md](./DEPLOYMENT.md) — Dağıtım rehberi
+- [secrets/README.md](../secrets/README.md) — Secret yönetimi
