@@ -89,6 +89,8 @@ public interface PriceHistoryRepository extends JpaRepository<PriceHistory, UUID
 
     boolean existsByInstrumentIdAndPriceDate(UUID instrumentId, LocalDate priceDate);
 
+    boolean existsByInstrumentType(com.mintstack.finance.entity.Instrument.InstrumentType type);
+
     void deleteByPriceDateBefore(LocalDate date);
 
     interface PriceRangeView {

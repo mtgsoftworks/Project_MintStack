@@ -187,6 +187,9 @@ public class MarketDataService {
     @Transactional(readOnly = true)
     public List<InstrumentResponse> getInstrumentsByType(InstrumentType type, LocalDate changeStartDate, LocalDate changeEndDate) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
+        if (!isSimulation && !hasActiveApiProviderForType(type) && !hasPriceHistoryForType(type)) {
+            return List.of();
+        }
         ChangeDateRange changeRange = normalizeChangeRange(changeStartDate, changeEndDate);
         List<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(type, isSimulation);
 
@@ -220,6 +223,9 @@ public class MarketDataService {
             LocalDate changeStartDate,
             LocalDate changeEndDate) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
+        if (!isSimulation && !hasActiveApiProviderForType(type) && !hasPriceHistoryForType(type)) {
+            return Page.empty(pageable);
+        }
         ChangeDateRange changeRange = normalizeChangeRange(changeStartDate, changeEndDate);
         Page<Instrument> instruments = instrumentRepository.findByTypeAndIsActiveTrueAndIsSimulated(type, isSimulation, pageable);
 
@@ -317,6 +323,9 @@ public class MarketDataService {
             LocalDate changeStartDate,
             LocalDate changeEndDate) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
+        if (!isSimulation && !hasActiveApiProviderForType(type) && !hasPriceHistoryForType(type)) {
+            return Page.empty(pageable);
+        }
         ChangeDateRange changeRange = normalizeChangeRange(changeStartDate, changeEndDate);
         Page<Instrument> instruments = isSimulation
             ? instrumentRepository.searchByTypeAndQueryAndSimulationMode(type, query, true, pageable)
@@ -424,6 +433,58 @@ public class MarketDataService {
 
         log.info("No active market index data available for {}. Candidates checked: {}", symbol, symbolCandidates);
         throw new ResourceNotFoundException("Endeks", "sembol", symbol);
+    }
+
+    public boolean hasActiveApiProviderForType(InstrumentType type) {
+        if (type == null) return false;
+        return switch (type) {
+            case STOCK -> isProviderActive(ApiProvider.YAHOO_FINANCE) ||
+                          isProviderActive(ApiProvider.ALPHA_VANTAGE) ||
+                          isProviderActive(ApiProvider.FINNHUB) ||
+                          isProviderActive(ApiProvider.FINTABLES);
+            case FUND -> isProviderActive(ApiProvider.TEFAS);
+            case CURRENCY -> isProviderActive(ApiProvider.TCMB) || isProviderActive(ApiProvider.YAHOO_FINANCE);
+            case INDEX -> isProviderActive(ApiProvider.BIST_DATASTORE) || isProviderActive(ApiProvider.YAHOO_FINANCE);
+            case BOND, VIOP -> isProviderActive(ApiProvider.BIST_DATASTORE);
+            default -> false;
+        };
+    }
+
+    private boolean isProviderActive(ApiProvider provider) {
+        if (provider == null) return false;
+        List<UserApiConfig> activeConfigs = userApiConfigRepository.findByProviderAndIsActiveTrue(provider);
+        if (activeConfigs != null && !activeConfigs.isEmpty()) {
+            return true;
+        }
+
+        // Providers requiring API keys are inactive if no active config exists
+        if (provider == ApiProvider.ALPHA_VANTAGE || provider == ApiProvider.FINNHUB || provider == ApiProvider.FINTABLES) {
+            return false;
+        }
+
+        // For public keyless providers (TEFAS, TCMB, BIST_DATASTORE, YAHOO_FINANCE):
+        // Inactive ONLY IF explicitly configured with isActive = false
+        List<UserApiConfig> allConfigs = userApiConfigRepository.findAll();
+        if (allConfigs != null && !allConfigs.isEmpty()) {
+            boolean hasDeactivatedConfig = allConfigs.stream()
+                .filter(c -> c.getProvider() == provider)
+                .anyMatch(c -> Boolean.FALSE.equals(c.getIsActive()));
+            boolean hasActiveConfig = allConfigs.stream()
+                .filter(c -> c.getProvider() == provider)
+                .anyMatch(c -> Boolean.TRUE.equals(c.getIsActive()));
+
+            if (hasDeactivatedConfig && !hasActiveConfig) {
+                return false;
+            }
+        }
+
+        // Otherwise public keyless providers are active by default
+        return true;
+    }
+
+    private boolean hasPriceHistoryForType(InstrumentType type) {
+        if (type == null) return false;
+        return priceHistoryRepository.existsByInstrumentType(type);
     }
 
     private boolean shouldFallbackToRealInstruments(InstrumentType type, boolean simulationEnabled, boolean isEmpty) {
