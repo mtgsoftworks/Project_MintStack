@@ -1,4 +1,6 @@
-﻿# Sistem Mimarisi
+# Sistem Mimarisi
+
+> Son doğrulama: 5 Temmuz 2026 — kaynak kodu, lockfile ve Docker Compose topolojileriyle karşılaştırılmıştır.
 
 ## 1. Amaç ve Kapsam
 
@@ -22,18 +24,18 @@ Bu tablo doğrudan proje dosyalarından (`backend/pom.xml`, Maven dependency tre
 | Backend | Bucket4j | 8.7.0 |
 | Backend | Log4j2 JSON Layout | 2.24.3 |
 | Backend | Quartz | 2.3.2 |
-| Backend | OpenSearch Java Client | 2.11.0 |
+| Backend | OpenSearch Java Client | 2.13.0 |
 | Frontend | React / React DOM | 18.3.1 |
 | Frontend | TypeScript | 5.9.3 |
-| Frontend | Vite | 5.4.21 |
+| Frontend | Vite | 7.3.6 |
 | Frontend | Redux Toolkit | 2.11.2 |
-| Frontend | React Router DOM | 6.30.3 |
+| Frontend | React Router DOM | 6.30.4 |
 | Frontend | Tailwind CSS | 3.4.19 |
 | Frontend | Keycloak JS | 26.2.3 |
 | Frontend | STOMP.js / SockJS | 7.2.1 / 1.6.1 |
 | Frontend | i18next | 23.16.8 |
 | Frontend | Recharts | 2.15.4 |
-| Test | Vitest / Coverage V8 | 1.6.1 / 1.6.1 |
+| Test | Vitest / Coverage V8 | 4.1.9 / 4.1.9 |
 | Test | Playwright | 1.57.0 |
 | Test | Testcontainers | 1.19.3 |
 | Altyapı | PostgreSQL | 15-alpine |
@@ -41,6 +43,7 @@ Bu tablo doğrudan proje dosyalarından (`backend/pom.xml`, Maven dependency tre
 | Altyapı | Keycloak | 26.5.4 |
 | Altyapı | OpenLDAP | 1.5.0 |
 | Altyapı | Kafka (Confluent CP) | 7.5.0 |
+| Altyapı | Kafka Exporter | 1.7.0 |
 | Altyapı | OpenSearch / Dashboards | 2.13.0 / 2.13.0 |
 | Altyapı | Logstash | 8.9.0 |
 | Altyapı | Prometheus | 2.48.0 |
@@ -79,7 +82,7 @@ flowchart LR
 
 | Servis | Sorumluluk |
 |---|---|
-| **Frontend (React 18.3.1 + Vite 5.4.21)** | Kullanıcı arayüzü, state yönetimi (Redux Toolkit), RTK Query ile API tüketimi, WebSocket (STOMP) ile gerçek zamanlı veri dinleme, Keycloak JS ile kimlik doğrulama, code splitting (lazy loading), dark/light tema, i18n (TR/EN). |
+| **Frontend (React 18.3.1 + Vite 7.3.6)** | Kullanıcı arayüzü, state yönetimi (Redux Toolkit), RTK Query ile API tüketimi, WebSocket (STOMP) ile gerçek zamanlı veri dinleme, Keycloak JS ile kimlik doğrulama, code splitting (lazy loading), dark/light tema, i18n (TR/EN). |
 | **Backend (Spring Boot 3.4.2)** | İş kuralları, portföy işlemleri, piyasa verisi toplama ve normalize etme, emir yaşam döngüsü yönetimi, teknik analiz hesaplamaları (Monte Carlo, backtesting, RSI, MA), zamanlı görevler (scheduler), cache yönetimi, event yayınlama, dışa aktarım (Excel/PDF). |
 | **Nginx (alpine image)** | Tek giriş noktası (API Gateway), `/api/v1` isteklerini backend'e, WebSocket trafiğini (`/ws`) backend'e, statik içerikleri frontend'e reverse proxy. |
 
@@ -87,7 +90,7 @@ flowchart LR
 
 | Servis | Sorumluluk |
 |---|---|
-| **PostgreSQL 15** | Kalıcı iş verisi (3 veritabanı: `mintstack_finance`, `keycloak`, `mintstack`). Kullanıcı, portföy, enstrüman, işlem geçmişi, fiyat geçmişi, haber, alarm, bildirim verilerini saklar. 24 Flyway migrasyonu ile şema yönetimi. |
+| **PostgreSQL 15** | Kalıcı iş verisi. Kullanıcı, portföy, enstrüman, işlem geçmişi, fiyat geçmişi, haber, alarm ve bildirim verilerini saklar. 31 Flyway migrasyonu ile şema yönetimi. |
 | **Redis 7-alpine** | Sıcak veri cache'i, piyasa verisi ara belleği, rate limiting sayaçları. Okuma performansını artırmak için yoğun sorgulanan verileri (döviz kurları, hisse fiyatları) Redis'te tutar. |
 | **Kafka (KRaft, 7.5.0)** | Olay akışı (event streaming) ve log boru hattı. SASL/PLAIN doğrulama ile güvenli. Zookeeper bağımlılığı KRaft modu ile kaldırıldı. Uygulama logları ve market data event'leri Kafka üzerinden Logstash'e iletilir. |
 
@@ -103,6 +106,7 @@ flowchart LR
 | Servis | Sorumluluk |
 |---|---|
 | **Prometheus 2.48.0** | Uygulama metrikleri toplama (Spring Actuator + Micrometer). CPU, memory, request latency, cache hit/miss, Kafka consumer lag vb. |
+| **Kafka Exporter 1.7.0** | Kafka broker ve consumer lag metriklerini Prometheus'a açar. |
 | **Grafana 10.2.2** | Metrik görselleştirme, dashboard'lar ve alarm tanımları. Otomatik provisioning ile hazır dashboard'lar yüklenir. |
 | **AlertManager 0.26.0** | Prometheus sistem alarm kurallarına göre operasyonel bildirim gönderme (e-posta, webhook). Kullanıcı fiyat alarmlarından ayrıdır. |
 | **OpenSearch 2.13.0** | Log indeksleme, tam metin arama, log analizi. Güvenlik eklentisi aktif. |
@@ -116,12 +120,12 @@ flowchart LR
 
 | Katman | Paket | Dosya Sayısı | Sorumluluk |
 |---|---|---|---|
-| **Controller** | `controller/` | 15 | REST endpoint tanımları, request validation, response mapping |
-| **Service** | `service/` | 52+ | İş kuralları, orkestrasyon, cache yönetimi, dış servis çağrıları |
-| **Repository** | `repository/` | 15 | JPA/Hibernate ile veritabanı erişimi, özel JPQL sorguları |
-| **Entity** | `entity/` | 17 | JPA domain modelleri, `BaseEntity` ile audit (createdAt, updatedAt) |
+| **Controller** | `controller/` | 20 | REST endpoint tanımları, request validation, response mapping |
+| **Service** | `service/` | 67 | İş kuralları, orkestrasyon, cache yönetimi, dış servis çağrıları |
+| **Repository** | `repository/` | 17 | JPA/Hibernate ile veritabanı erişimi, özel JPQL sorguları |
+| **Entity** | `entity/` | 19 | JPA domain modelleri, `BaseEntity` ile audit (createdAt, updatedAt) |
 | **DTO** | `dto/` | ~30 | İstek/yanıt veri transfer nesneleri, cache ve simülasyon DTO'ları |
-| **Config** | `config/` | 17 | Security, Kafka, Redis, WebSocket, OpenSearch, CORS, Rate Limit, Email yapılandırmaları |
+| **Config** | `config/` | 23 | Security, Kafka, Redis, WebSocket, OpenSearch, CORS, Rate Limit, Email yapılandırmaları |
 | **Scheduler** | `scheduler/` | 7 | Zamanlanmış veri toplama, fiyat güncelleme, veri temizliği |
 | **Filter** | `filter/` | — | HTTP request/response filtreleri |
 | **Mapper** | `mapper/` | — | MapStruct Entity↔DTO dönüşümleri |
@@ -274,15 +278,15 @@ sequenceDiagram
 
 ## 6. Docker Servis Topolojisi
 
-Varsayılan dev ortamında toplam **15 konteyner** çalışır:
+Varsayılan dev ortamında toplam **16 konteyner** çalışır:
 
 | Katman | Servisler | Toplam Kaynak (Limit) |
 |---|---|---|
 | **Veri** | PostgreSQL, Redis, Keycloak, OpenLDAP | ~2.5 GB RAM |
-| **Gözlemlenebilirlik** | Kafka, OpenSearch, OpenSearch Dashboards, Logstash, OTEL, Prometheus, Grafana, AlertManager | ~4 GB RAM |
+| **Gözlemlenebilirlik** | Kafka, Kafka Exporter, OpenSearch, OpenSearch Dashboards, Logstash, OTEL, Prometheus, Grafana, AlertManager | ~4 GB RAM |
 | **Uygulama** | Backend, Frontend, Nginx | ~1.5 GB RAM |
 
-Tüm servisler `mintstack-network` bridge ağında çalışır. Dış erişime yalnızca Nginx (8088), Frontend (3002) ve Keycloak (8180) portları açılır; diğer servisler `127.0.0.1` binding ile dış erişime kapalıdır.
+Tüm servisler `mintstack-network` bridge ağında çalışır. PostgreSQL, Redis, LDAP, OpenSearch API, Prometheus ve AlertManager host üzerinde loopback'e bağlanır. Nginx, Frontend, Keycloak, Grafana, OpenSearch Dashboards ve OTEL geliştirme kolaylığı için host portu açar; production compose ayrı internal ağlar ve yalnız Nginx edge erişimi kullanır.
 
 ## 7. Performans ve Ölçeklenebilirlik
 
@@ -302,3 +306,5 @@ Tüm servisler `mintstack-network` bridge ağında çalışır. Dış erişime y
 | Bazı servisler büyük (PortfolioService, MarketDataService) | ⚠️ İyileştirme alanı | Daha fazla domain service'e bölünmeli |
 | Tek backend uygulaması (modüler monolith) | ℹ️ Bilinçli karar | Ölçek ihtiyacında bounded context bazlı ayrıştırma |
 | Simülasyon ve gerçek veri ayrımı | ✅ Çözüldü | V11 + V18 migrasyonları ile `isSimulated` flag |
+| Production CORS değişkenleri `SecurityConfig` tarafından uygulanmıyor | 🔴 Production blocker | `CorsProperties` değerlerini profile-aware security chain içinde kullan |
+| Production Fintables ve webhook güvenli defaultları compose'da açık değil | 🔴 Production blocker | Fintables'i kapalı, webhook signature'ı zorunlu varsayılan yap |

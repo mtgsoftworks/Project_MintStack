@@ -1,5 +1,7 @@
 # MintStack Finance Portal - Dağıtım Rehberi
 
+> Son doğrulama: 5 Temmuz 2026 — `docker-compose*.yml`, `.env.example` ve GitHub Actions ile karşılaştırılmıştır.
+
 Bu doküman, MintStack Finance Portal uygulamasının geliştirme ve üretim ortamlarında nasıl dağıtılacağını açıklar.
 
 ## İçindekiler
@@ -72,6 +74,9 @@ cp .env.example .env
 | | `APP_EXTERNAL_API_TEFAS_ENABLED` | TEFAS fon adapter anahtarı; API key gerekmez |
 | | `APP_EXTERNAL_API_FINTABLES_ENABLED` | Fintables policy switch; güvenli varsayılan `false` |
 | | `APP_NEWS_LLM_*` | RSS haber LLM enrichment endpoint/model/key ayarları |
+| **Production** | `PUBLIC_APP_ORIGIN` | Tarayıcıdan erişilen tek HTTPS origin |
+| | `APP_ALERT_WEBHOOK_REQUIRE_SIGNATURE` | Webhook açıksa production'da `true` olmalı |
+| | `APP_RATE_LIMIT_TRUSTED_PROXIES` | Yalnız güvenilen reverse proxy CIDR'ları |
 | **Frontend** | `VITE_API_URL` | API base URL |
 | | `VITE_KEYCLOAK_URL` | Keycloak URL |
 | | `VITE_KEYCLOAK_REALM` | Keycloak realm |
@@ -115,7 +120,7 @@ VITE_KEYCLOAK_CLIENT_ID=finance-frontend
 
 ### 3.1 Full Stack (Tüm Servisler)
 
-16 servis: postgres, redis, keycloak, openldap, kafka, opensearch, opensearch-dashboards, logstash, otel-collector, prometheus, grafana, alertmanager, backend, frontend, nginx.
+16 servis: postgres, redis, keycloak, openldap, kafka, kafka-exporter, opensearch, opensearch-dashboards, logstash, otel-collector, prometheus, grafana, alertmanager, backend, frontend, nginx.
 
 ```bash
 # .env dosyasını hazırlayın
@@ -189,11 +194,11 @@ echo -n "your_postgres_password" > secrets/postgres_password.txt
 echo -n "your_redis_password" > secrets/redis_password.txt
 echo -n "your_keycloak_admin_password" > secrets/keycloak_admin_password.txt
 echo -n "your_alpha_vantage_api_key" > secrets/alpha_vantage_key.txt
+openssl rand -base64 32 > secrets/app_field_encryption_key.txt
 echo -n "your_grafana_password" > secrets/grafana_admin_password.txt
 echo -n "your_ldap_password" > secrets/ldap_admin_password.txt
 
-# .gitignore'a ekleyin (zaten ekli olmalı)
-echo "secrets/" >> .gitignore
+# Bu dosyalar mevcut .gitignore kurallarıyla ignore edilir; commit etmeyin.
 ```
 
 #### SSL Sertifikaları
@@ -216,6 +221,8 @@ cp /etc/letsencrypt/live/yourdomain.com/fullchain.pem nginx/ssl/
 cp /etc/letsencrypt/live/yourdomain.com/privkey.pem nginx/ssl/
 ```
 
+OpenLDAP için ayrıca `secrets/ldap/ca.crt`, `secrets/ldap/ldap.crt` ve `secrets/ldap/ldap.key` hazırlanmalıdır.
+
 ### 4.2 Ağ Segmentasyonu
 
 Production compose dosyası dört ayrı ağ kullanır:
@@ -233,16 +240,25 @@ Production compose dosyası dört ayrı ağ kullanır:
 
 ```env
 SPRING_PROFILES_ACTIVE=prod
-KC_HOSTNAME=yourdomain.com
+PUBLIC_APP_ORIGIN=https://yourdomain.com
 
-VITE_API_URL=https://yourdomain.com/api/v1
+VITE_API_URL=/api/v1
 VITE_WS_URL=wss://yourdomain.com/ws
 VITE_KEYCLOAK_URL=https://yourdomain.com/auth
+
+APP_EXTERNAL_API_FINTABLES_ENABLED=false
+APP_ALERT_WEBHOOK_REQUIRE_SIGNATURE=true
+APP_ALERT_WEBHOOK_SECRET=<strong-random-secret>
 ```
+
+> **Production blocker:** `docker-compose.prod.yml` içinde Fintables varsayılanı halen `true`, webhook signature varsayılanı `false` durumundadır. Ayrıca backend `SecurityConfig`, `APP_CORS_*` değerleri yerine wildcard origin pattern kullanmaktadır. Bu üç konu kod/config seviyesinde düzeltilmeden production güvenli kabul edilmez.
 
 ### 4.4 Dağıtım
 
 ```bash
+# Önce zorunlu değişken ve secret referanslarını doğrula
+docker compose -f docker-compose.prod.yml config
+
 # Production compose ile başlat
 docker compose -f docker-compose.prod.yml up -d
 
@@ -266,41 +282,34 @@ docker compose -f docker-compose.prod.yml up -d --build backend frontend nginx
 
 **Tetikleyici:** `main`, `develop` push/PR ve manuel `workflow_dispatch`.
 
-| Job | Aciklama |
+| Job | Açıklama |
 |-----|----------|
-| **backend** | `./mvnw -B -ntp clean verify`, JaCoCo kontrolu, Flyway `migrate -> validate` |
-| **frontend** | `npm ci`, lint, typecheck, Vitest, production build |
-| **compose** | `docker-compose.yml`, `docker-compose.light.yml`, `docker-compose.prod.yml` config dogrulama |
+| **secrets** | Gitleaks ile tam Git history secret taraması |
+| **backend** | `./mvnw -B -ntp clean verify -DskipITs=false`, JaCoCo, OWASP raporu, Flyway `migrate -> validate` |
+| **frontend** | `npm ci`, lint, typecheck, Vitest coverage, production build |
+| **e2e** | Playwright Chromium smoke senaryoları |
+| **images** | Backend/frontend image build ve Trivy taraması |
+| **compose** | Dev/light/prod Compose config doğrulaması |
 
-Guncel CI notlari:
+Güncel CI notları:
 
-- Otomatik CI yalnizca ana kalite kapilarini calistirir.
-- Backend adimi unit test, paketleme ve JaCoCo kontrolunu birlikte calistirir.
-- JaCoCo kalite kapisi: line `0.50`, branch `0.35`.
-- Flyway bos CI PostgreSQL uzerinde once `migrate`, sonra `validate` calistirir. Bos DB'de tek basina `validate` pending migration hatasi verir.
-- Frontend adimi lint, typecheck, Vitest ve production build kontrollerini kapsar.
-- Compose validation dev/light/prod compose dosyalarinin config olarak parse edilebildigini dogrular.
+- Backend adımı unit/integration test, paketleme ve JaCoCo kontrolünü birlikte çalıştırır.
+- JaCoCo kalite kapısı: line `0.35`, branch `0.12`.
+- Flyway boş CI PostgreSQL üzerinde önce `migrate`, sonra `validate` çalıştırır.
+- OWASP Dependency Check ve iki Trivy adımı `continue-on-error` çalışır; rapor üretir fakat pipeline'ı bloklamaz.
+- Gitleaks, backend/frontend kalite işleri, Playwright E2E, image build ve Compose validation blocking kalite kapılarıdır.
 
 ### 5.2 Manuel Docker Build (`.github/workflows/deploy.yml`)
 
-**Tetikleyici:** yalnizca manuel `workflow_dispatch`.
+**Tetikleyici:** yalnızca manuel `workflow_dispatch`.
 
-Bu workflow deploy yapmaz, registry'ye image push etmez ve harici security action kullanmaz. Amaci sadece backend ve frontend Docker image'larinin GitHub runner uzerinde build edilebildigini dogrulamaktir.
+Bu workflow deploy yapmaz ve registry'ye image push etmez. Amacı yalnızca backend ve frontend Docker image'larının GitHub runner üzerinde build edilebildiğini doğrulamaktır.
 
-| Job | Aciklama |
+| Job | Açıklama |
 |-----|----------|
 | **docker-build** | Backend ve frontend Docker image build + image inspect |
 
-Kaldirilan gereksiz/kirilgan adimlar:
-
-- GHCR image publish.
-- Trivy scan action.
-- Cosign image signing.
-- SSH staging/production deploy.
-- Release asset paketleme.
-- Otomatik E2E ve Docker smoke job'lari.
-
-Bu sade yapi proje kapanisi ve juri sunumu icin daha stabil bir CI/CD zemini saglar. Production deployment gerekiyorsa ayrica secrets, registry policy, image scan ve imzalama kararlarinin tekrar netlestirilmesi gerekir.
+Bu manuel workflow ana CI'daki image build/scan işine ek bir build doğrulamasıdır. Production release için registry publish, SBOM/provenance, image signing, deployment ve rollback otomasyonu ayrıca tanımlanmalıdır.
 
 ---
 

@@ -10,8 +10,8 @@ Project_MintStack/
 │   ├── src/main/java/com/mintstack/finance/
 │   │   ├── config/            # Güvenlik, Redis, Kafka, WebSocket config
 │   │   ├── controller/        # REST endpoints (20 controller)
-│   │   ├── service/           # Business logic (35+ service)
-│   │   ├── repository/        # Data access layer (18 repository)
+│   │   ├── service/           # Business logic (67 service)
+│   │   ├── repository/        # Data access layer (17 repository)
 │   │   ├── entity/            # JPA entities (19 entity)
 │   │   ├── dto/               # Request/Response DTOs
 │   │   ├── exception/         # Global exception handling
@@ -20,7 +20,7 @@ Project_MintStack/
 │   │   └── mapper/            # MapStruct mappers
 │   └── src/main/resources/
 │       ├── application.yml    # Ana konfigürasyon
-│       └── db/migration/      # Flyway SQL scripts (V1-V29)
+│       └── db/migration/      # Flyway SQL scripts (V1-V31)
 │
 ├── frontend/                   # React 18 SPA (Vite + TypeScript)
 │   └── src/
@@ -29,7 +29,7 @@ Project_MintStack/
 │       │   ├── layout/       # Layout, Sidebar, Header
 │       │   ├── market/       # Market domain components
 │       │   └── charts/       # Recharts wrappers
-│       ├── pages/             # Sayfa bileşenleri (23 page)
+│       ├── pages/             # Sayfa bileşenleri (22 page)
 │       ├── services/         # API & WebSocket services
 │       ├── store/             # Redux Toolkit + RTK Query
 │       ├── hooks/             # Custom React hooks
@@ -65,9 +65,9 @@ Project_MintStack/
 | Search | OpenSearch | 2.13.0 |
 | Auth | Keycloak | 26.5.4 |
 | Frontend | React | 18.3.1 |
-| Build | Vite | 5.x |
-| State | Redux Toolkit | 2.0.1 |
-| UI | Tailwind + Radix | 3.4 / latest |
+| Build | Vite | 7.3.6 |
+| State | Redux Toolkit | 2.11.2 (lock) |
+| UI | Tailwind + Radix | 3.4.19 / lockfile |
 
 ## Komutlar
 
@@ -160,7 +160,7 @@ Detaylı ADR'ler için: `docs/ADR.md`
 - **MapStruct** DTO mapping için
 - Constructor injection tercih edin
 - Global exception handling: `GlobalExceptionHandler`
-- Rate limiting: `Bucket4j` ile controller seviyesinde
+- Rate limiting: `Bucket4j` ile Redis destekli HTTP filter seviyesinde
 - Log format: Structured JSON (Log4j2)
 
 ```java
@@ -206,7 +206,7 @@ export const marketApi = baseApi.injectEndpoints({
 | Özellik | Konum | Not |
 |---------|-------|-----|
 | JWT/OAuth2 | `SecurityConfig.java` | Keycloak JWKS validation |
-| CSP | `SecurityConfig.java` | No unsafe-inline |
+| CSP | `SecurityConfig.java`, `nginx/nginx.prod.conf` | Dev backend relaxed; production Nginx CSP halen `unsafe-inline` içerir |
 | Redis Type Safety | `RedisConfig.java` | Whitelist-based PolymorphicTypeValidator |
 | Webhook Signature | `AlertWebhookSecurityService.java` | HMAC-SHA256 with constant-time comparison |
 | Rate Limiting | `Bucket4j` | Redis-backed distributed |
@@ -233,7 +233,7 @@ GitHub Actions workflow: `.github/workflows/ci.yml`
 | Backend Test | Maven, JaCoCo, OWASP Dependency Check |
 | Frontend Test | ESLint, TypeScript, Vitest |
 | Compose Validation | docker-compose config |
-| Security Scan | Trivy, SpotBugs |
+| Security Scan | Gitleaks; OWASP Dependency Check ve Trivy raporları (şu anda non-blocking) |
 
 ## Yaygın Sorunlar
 

@@ -1,4 +1,6 @@
-﻿# API Referansı
+# API Referansı
+
+> Son doğrulama: 5 Temmuz 2026. Çalışan ortamda en güncel ve tam sözleşme `/api-docs` OpenAPI çıktısıdır.
 
 ## 1. Genel Bilgiler
 
@@ -9,7 +11,7 @@
 | **OpenAPI JSON** | `http://localhost:8088/api-docs` |
 | **OpenAPI JSON (compat)** | `http://localhost:8088/v3/api-docs` |
 | **Kimlik Sunucusu** | `http://localhost:8180` |
-| **WebSocket** | `ws://localhost:8088/ws` |
+| **WebSocket (SockJS/STOMP)** | `http://localhost:8088/ws` |
 | **API Versiyonlama** | URL bazlı: `/api/v1/...` |
 | **Aktif Versiyon** | `v1` |
 | **İçerik Tipi** | `application/json` |
@@ -21,7 +23,7 @@
 |---|---|
 | Backend (Spring Boot) | `3.4.2` |
 | Frontend (React) | `18.3.1` |
-| Frontend (Vite) | `5.4.21` |
+| Frontend (Vite) | `7.3.6` |
 | Kimlik Sunucusu (Keycloak) | `26.5.4` |
 | Veritabanı (PostgreSQL) | `15-alpine` |
 | Mesajlaşma (Kafka KRaft) | `7.5.0` |
@@ -29,6 +31,8 @@
 ## 2. Kimlik Doğrulama
 
 ### Token Alma
+
+Normal tarayıcı akışı authorization code + PKCE'dir. Aşağıdaki password grant yalnız local geliştirme/test içindir ve production realm'de kapatılmalıdır.
 
 ```http
 POST http://localhost:8180/realms/mintstack-finance/protocol/openid-connect/token
@@ -139,8 +143,8 @@ grant_type=refresh_token
 |---|---|---|
 | `GET` | `/watchlist` | İzleme listesi |
 | `POST` | `/watchlist` | Yeni izleme listesi oluştur |
-| `POST` | `/watchlist/{id}/items` | Enstrüman ekle |
-| `DELETE` | `/watchlist/{id}/items/{itemId}` | Enstrüman çıkar |
+| `POST` | `/watchlist/{id}/items/{symbol}` | Enstrüman ekle |
+| `DELETE` | `/watchlist/{id}/items/{symbol}` | Enstrüman çıkar |
 
 ### Fiyat Alarmları
 
@@ -158,8 +162,9 @@ grant_type=refresh_token
 |---|---|---|
 | `GET` | `/users/profile` | Kullanıcı profili |
 | `PUT` | `/users/profile` | Profil güncelle |
-| `GET` | `/users/notifications` | Bildirimler |
-| `PUT` | `/users/notifications/{id}/read` | Bildirimi okundu işaretle |
+| `GET` | `/users/me/notifications` | Bildirimler |
+| `POST` | `/users/me/notifications/{id}/read` | Bildirimi okundu işaretle |
+| `POST` | `/users/me/notifications/read-all` | Tüm bildirimleri okundu işaretle |
 
 ### Veri Kaynağı Tercihleri
 
@@ -182,9 +187,11 @@ Not:
 
 | Metot | Endpoint | Açıklama |
 |---|---|---|
-| `POST` | `/analysis/correlation` | Korelasyon matrisi |
-| `GET` | `/analysis/indicators/{symbol}` | Teknik indikatörler |
-| `POST` | `/backtesting/run` | Backtesting çalıştır |
+| `GET` | `/analysis/ma/{symbol}` | Hareketli ortalama |
+| `GET` | `/analysis/trend/{symbol}` | Trend analizi |
+| `POST` | `/analysis/compare` | Enstrüman karşılaştırma |
+| `GET` | `/indicators/all/{symbol}` | Tüm teknik indikatörler |
+| `POST` | `/backtest/run` | Backtesting çalıştır |
 | `POST` | `/montecarlo/simulate` | Monte Carlo simülasyonu |
 
 ### Dışa Aktarım
@@ -200,13 +207,12 @@ Not:
 |---|---|---|
 | `GET` | `/admin/dashboard` | Admin dashboard verileri |
 | `GET` | `/admin/users` | Tüm kullanıcılar |
-| `GET` | `/admin/stats` | Sistem istatistikleri |
 | `GET` | `/admin/rate-limit` | Aktif rate limit ayarları |
 | `PUT` | `/admin/rate-limit` | Runtime rate limit güncelle |
-| `POST` | `/simulation/start` | Simülasyonu başlat |
-| `POST` | `/simulation/stop` | Simülasyonu durdur |
 | `GET` | `/simulation/config` | Simülasyon konfigürasyonu |
-| `PUT` | `/simulation/config` | Simülasyon ayarlarını güncelle |
+| `POST` | `/simulation/config` | Simülasyon ayarlarını güncelle |
+| `POST` | `/simulation/toggle` | Simülasyonu aç/kapat |
+| `POST` | `/simulation/reset` | Simülasyonu sıfırla |
 
 ## 6. WebSocket (STOMP)
 
@@ -226,15 +232,12 @@ stompClient.connect(
 | Topic | Açıklama |
 |---|---|
 | `/topic/prices/currency` | Döviz kuru güncellemeleri |
-| `/topic/prices/stocks/{symbol}` | Hisse fiyat güncellemeleri |
-| `/topic/prices/all` | Tüm fiyat güncellemeleri |
-| `/topic/notifications/{userId}` | Kullanıcı bildirimleri |
+| `/topic/prices/stocks` | Tüm hisse fiyat güncellemeleri |
+| `/topic/prices/stocks/{symbol}` | Belirli hisse fiyat güncellemeleri |
+| `/topic/prices` | Tüm fiyat güncellemeleri |
+| `/user/queue/notifications` | Oturum sahibine özel bildirimler |
 
-### Fiyat Güncelleme İsteği
-
-```javascript
-stompClient.send('/app/prices/refresh', {}, JSON.stringify({}))
-```
+İstemciden `SEND` frame kabul edilmez; frontend yalnız izin verilen topic/user queue hedeflerine abone olur.
 
 ## 7. Hata Yanıtları
 

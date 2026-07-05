@@ -1,16 +1,19 @@
 # MintStack Finance Portal — Güvenlik Rehberi
 
+> Son doğrulama: 5 Temmuz 2026 — uygulanan kontroller ile açık production kapıları ayrı gösterilir.
+
 Bu doküman, MintStack Finance Portal projesinin güvenlik yapılandırmasını, uygulanan kontrolleri ve operasyonel güvenlik kontrol listesini açıklar.
 
 ---
 
 ## 1. Kimlik Doğrulama ve Yetkilendirme
 
-### OAuth2/OIDC (Keycloak 26)
+### OAuth2/OIDC (Keycloak 26.5.4)
 
 - **Kimlik sağlayıcı**: Keycloak 26 ile OAuth2/OIDC
 - **PKCE akışı**: S256 code challenge method ile yetkisiz kod değişimine karşı koruma
-- **JWT doğrulama**: Spring Security OAuth2 Resource Server ile JWK Set URI üzerinden imza doğrulama
+- **JWT doğrulama**: Spring Security OAuth2 Resource Server ile imza, issuer ve `finance-backend` audience veya izinli `azp` doğrulama
+- **Aktif kullanıcı**: `ActiveUserFilter`, pasif hesapları API seviyesinde engeller
 - **Realm**: `mintstack-finance`
 
 ### Rol Bazlı Erişim Kontrolü (RBAC)
@@ -50,23 +53,24 @@ Bu doküman, MintStack Finance Portal projesinin güvenlik yapılandırmasını,
 
 ### CORS Yapılandırması
 
-- **Whitelist**: Sadece tanımlı origin'lere izin verilir
-- **Geliştirme**: `localhost:3000/3001/3002`, `127.0.0.1:3000/3001/3002`, `localhost:8088`, `127.0.0.1:8088`
-- **Üretim**: `application-prod.yml` veya ortam değişkenleri ile sadece gerçek domain'ler tanımlanmalı
-- **Metodlar**: GET, POST, PUT, DELETE, OPTIONS
-- **Credentials**: `allow-credentials: true` (çerez/token ile kimlik doğrulama için)
+- `CorsProperties` exact origin, method ve credentials ayarlarını tanımlar.
+- Mevcut `SecurityConfig` bu property'leri kullanmayıp `allowedOriginPatterns=["*"]` ve `allowCredentials=true` uygular.
+- `docker-compose.prod.yml` içindeki `APP_CORS_*` değerleri bu nedenle backend security chain'e yansımaz.
+- **Durum: production blocker.** Security chain profile-aware hale getirilmeli ve production'da yalnız `PUBLIC_APP_ORIGIN` kabul edilmelidir.
 
 ### Güvenlik Başlıkları
 
 | Başlık | Değer |
 |--------|-------|
 | `X-Content-Type-Options` | `nosniff` |
-| `X-Frame-Options` | `DENY` |
+| `X-Frame-Options` | Backend/Nginx: `SAMEORIGIN` |
 | `X-XSS-Protection` | `1; mode=block` |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
-| `Strict-Transport-Security` (HSTS) | `max-age=31536000; includeSubDomains; preload` |
+| `Strict-Transport-Security` (HSTS) | Production Nginx: `max-age=31536000; includeSubDomains; preload` |
 | `Permissions-Policy` | Kamera, mikrofon, konum vb. devre dışı |
-| `Content-Security-Policy` | `default-src 'self'`; script/style/font/img/connect kısıtlamaları |
+| `Content-Security-Policy` | Production Nginx uygular; `script-src` ve `style-src` halen `'unsafe-inline'` içerir |
+
+Backend security header'ları local development için gevşektir; production güvenliği public erişimde Nginx edge'e dayanır. Backend production ağında doğrudan yayınlanmamalıdır.
 
 ---
 
@@ -117,6 +121,7 @@ Hassas veriler dosya veya Swarm secret olarak yönetilir:
 | `ldap_admin_password` | OpenLDAP admin/config |
 | `alpha_vantage_key` | Alpha Vantage API |
 | `grafana_admin_password` | Grafana admin |
+| `app_field_encryption_key` | Provider credential'larının AES-256-GCM şifrelemesi |
 
 **Entrypoint**: `backend/docker-entrypoint.sh` ile `*_FILE` pattern'ı kullanılarak `/run/secrets/` okunur.
 
@@ -138,7 +143,7 @@ Hassas veriler dosya veya Swarm secret olarak yönetilir:
 - **Prometheus**: `127.0.0.1:9090`
 - **Alertmanager**: `127.0.0.1:9093`
 
-Dış erişime yalnızca Nginx (80/443), Frontend (3002) ve Keycloak (8180) portları açılır.
+Development compose ayrıca Kafka, Grafana, OpenSearch Dashboards, OTEL ve OpenSearch performance analyzer portlarını host'a açar. Production compose yalnız Nginx'i edge portuyla yayınlar; diğer servisler internal ağlarda tutulur.
 
 ### Nginx (Üretim)
 
@@ -155,24 +160,22 @@ Dış erişime yalnızca Nginx (80/443), Frontend (3002) ve Keycloak (8180) port
 
 ---
 
-## 5. CI/CD Guvenligi
+## 5. CI/CD Güvenliği
 
-Guncel otomatik CI/CD akisi sade tutulur ve harici kirilgan security action'lara bagli degildir.
+Güncel otomatik CI/CD akışı:
 
 Otomatik CI kontrolleri:
 
-- Backend `clean verify` ve JaCoCo kalite kapisi.
+- Gitleaks ile tam history secret taraması.
+- Backend `clean verify` ve JaCoCo kalite kapısı.
 - Flyway `migrate -> validate`.
-- Frontend lint, typecheck, Vitest ve build.
+- Frontend lint, typecheck, Vitest coverage ve build.
+- Playwright Chromium E2E.
+- Backend/frontend image build.
+- OWASP Dependency Check ve Trivy raporları.
 - Docker Compose config validation.
 
-Manuel Docker build workflow'u:
-
-- Backend ve frontend Docker image'larini GitHub runner uzerinde build eder.
-- Image'lari registry'ye push etmez.
-- Trivy/Cosign gibi harici action'lar bu sade pipeline'dan cikarilmistir.
-
-Production'a cikis planlanirsa image tarama, SBOM/provenance ve imzalama tekrar ayri bir hardening fazinda ele alinmalidir.
+OWASP Dependency Check ve Trivy adımları şu anda `continue-on-error` olduğu için kritik bulgu pipeline'ı bloklamaz. Production öncesinde blocking gate, SBOM/provenance ve image signing politikası gerekir.
 
 ---
 ## 6. Güvenlik Kontrol Listesi
@@ -190,6 +193,7 @@ Production'a cikis planlanirsa image tarama, SBOM/provenance ve imzalama tekrar 
 
 - [ ] Rate limiting etkin ve limitler uygun
 - [ ] CORS origin'leri üretimde sadece gerçek domain'ler
+- [ ] `SecurityConfig`, wildcard yerine production `CorsProperties` değerlerini uyguluyor
 - [ ] Security header'lar tüm yanıtlarda mevcut
 - [ ] Swagger/API docs üretimde kapalı veya IP kısıtlı
 
@@ -199,6 +203,9 @@ Production'a cikis planlanirsa image tarama, SBOM/provenance ve imzalama tekrar 
 - [ ] Kafka SASL/PLAIN veya SASL_SSL üretimde etkin
 - [ ] OpenSearch güvenlik eklentisi ve kimlik doğrulama etkin
 - [ ] PostgreSQL bağlantısı üretimde SSL ile
+- [ ] Provider credential'ları `app_field_encryption_key` ile şifreleniyor ve anahtar yedekleniyor
+- [ ] Fintables production varsayılanı kapalı
+- [ ] Webhook açıksa HMAC imzası zorunlu
 
 ### Altyapı
 
@@ -210,9 +217,9 @@ Production'a cikis planlanirsa image tarama, SBOM/provenance ve imzalama tekrar 
 
 ### CI/CD
 
-- [ ] CI backend/frontend/compose kalite kapilari basarili
-- [ ] Manuel Docker image build workflow'u basarili
-- [ ] Production oncesi image tarama ve imzalama karari ayrica alinmis
+- [ ] CI backend/frontend/E2E/image/compose kalite kapıları başarılı
+- [ ] OWASP ve Trivy blocking çalışıyor veya süreli waiver kaydı var
+- [ ] Production öncesi SBOM ve image imzalama politikası uygulanmış
 
 ### Operasyonel
 

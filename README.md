@@ -8,7 +8,7 @@
 > **Türkiye Odaklı Finans Platformu** — Gerçek zamanlı piyasa izleme, portföy yönetimi, teknik analiz, simülasyon ve bildirim altyapısı.
 > *Bu doküman projenin profesyonel teknik haritasıdır. Projeyi araştıran veya projeye dahil olan kişiler için neyin nerede olduğu, proje yapısı ve çalışma prensipleri aşağıda detaylandırılmıştır.*
 
-![Java 21](https://img.shields.io/badge/Java-21-orange) ![Spring Boot 3.4.2](https://img.shields.io/badge/Spring_Boot-3.4.2-green) ![React 18.2.0](https://img.shields.io/badge/React-18.2.0-blue) ![TypeScript 5.9.2](https://img.shields.io/badge/TypeScript-5.9.2-blue) ![PostgreSQL 15](https://img.shields.io/badge/PostgreSQL-15-blue) ![Docker](https://img.shields.io/badge/Docker-Compose-blue) ![Keycloak 26.5.4](https://img.shields.io/badge/Keycloak-26.5.4-red)
+![Java 21](https://img.shields.io/badge/Java-21-orange) ![Spring Boot 3.4.2](https://img.shields.io/badge/Spring_Boot-3.4.2-green) ![React 18.3.1](https://img.shields.io/badge/React-18.3.1-blue) ![TypeScript 5.9.3](https://img.shields.io/badge/TypeScript-5.9.3-blue) ![PostgreSQL 15](https://img.shields.io/badge/PostgreSQL-15-blue) ![Docker](https://img.shields.io/badge/Docker-Compose-blue) ![Keycloak 26.5.4](https://img.shields.io/badge/Keycloak-26.5.4-red)
 
 ---
 
@@ -103,20 +103,20 @@ MintStack Finance Portal, Türkiye finans piyasalarına (BIST, döviz, tahvil, f
 
 | Teknoloji | Versiyon | Kullanım Amacı |
 |---|---|---|
-| **React** | 18.2.0 | UI kütüphanesi |
-| **TypeScript** | 5.9.2 | Tip güvenli geliştirme |
+| **React** | 18.3.1 (lock) | UI kütüphanesi |
+| **TypeScript** | 5.9.3 (lock) | Tip güvenli geliştirme |
 | **Vite** | 7.3.6 | Build aracı ve dev server |
-| **Redux Toolkit + RTK Query** | 2.0.1 | State yönetimi ve API veri çekme |
+| **Redux Toolkit + RTK Query** | 2.11.2 (lock) | State yönetimi ve API veri çekme |
 | **React Router** | 6.30.4 | Sayfa yönlendirme |
-| **Tailwind CSS** | 3.4.0 | Utility-first CSS framework |
+| **Tailwind CSS** | 3.4.19 (lock) | Utility-first CSS framework |
 | **Radix UI** | 1.x / 2.x (karma) | Erişilebilir headless UI bileşenleri |
-| **Recharts** | 2.10.3 | Grafik ve veri görselleştirme |
+| **Recharts** | 2.15.4 (lock) | Grafik ve veri görselleştirme |
 | **Formik + Yup** | 2.4.9 / 1.7.1 | Form yönetimi ve doğrulama |
 | **Keycloak JS** | 26.2.3 | Frontend tarafında kimlik doğrulama |
-| **STOMP.js + SockJS** | 7.0.0 / 1.6.1 | WebSocket istemcisi |
-| **i18next** | 23.7.16 | Çoklu dil desteği (TR/EN) |
+| **STOMP.js + SockJS** | 7.2.1 / 1.6.1 (lock) | WebSocket istemcisi |
+| **i18next** | 23.16.8 (lock) | Çoklu dil desteği (TR/EN) |
 | **Lucide React** | 0.303.0 | İkon kütüphanesi |
-| **Sonner** | 1.3.1 | Toast bildirimleri |
+| **Sonner** | 1.7.4 (lock) | Toast bildirimleri |
 
 ### 2.3 Altyapı ve DevOps
 
@@ -144,8 +144,8 @@ MintStack Finance Portal, Türkiye finans piyasalarına (BIST, döviz, tahvil, f
 |---|---|
 | **Backend Unit Test** | JUnit 5, Mockito, Spring Boot Test (53 test dosyası) |
 | **Backend Entegrasyon** | Testcontainers 1.19.3, H2 |
-| **Frontend Unit Test** | Vitest 4.1.9, Testing Library 14.1.2, MSW 2.1.2 (26 test dosyası) |
-| **Frontend E2E** | Playwright 1.40.0 |
+| **Frontend Unit Test** | Vitest 4.1.9, Testing Library 14.3.1, MSW 2.12.7 (26 test dosyası) |
+| **Frontend E2E** | Playwright 1.57.0 (lock) |
 | **Backend Kod Kapsamı** | JaCoCo 0.8.11 (minimum %35 satır, %12 branch) |
 | **Frontend Kod Kapsamı** | V8 coverage (minimum %19 satır/statements, %14 branch/functions) |
 
@@ -449,6 +449,8 @@ Docker Secrets, ağ segmentasyonu (data, app, auth, obs katmanları ayrı networ
 
 > ⚠️ **Production ön koşulu:** `PUBLIC_APP_ORIGIN`, `VITE_KEYCLOAK_URL` ve `VITE_WS_URL` gerçek HTTPS/WSS adresleriyle ayarlanmalıdır. `secrets/` altında PostgreSQL, Redis, Keycloak admin, Grafana admin, LDAP admin, Alpha Vantage ve uygulama alan şifreleme anahtar dosyaları ile `secrets/ldap/` altında TLS sertifikaları hazırlanmalıdır. Webhook açıksa imza doğrulaması ve güçlü bir webhook secret zorunlu hale getirilmelidir. Bu adımlar tamamlanmadan production compose güvenli kabul edilmez.
 
+> 🔴 **Bilinen production blocker'ları:** Backend `SecurityConfig` henüz `APP_CORS_*` değerlerini uygulamıyor; production compose Fintables'i varsayılan açık, webhook imzasını varsayılan kapalı başlatıyor. Bu üç config düzeltilmeden sistem koşulsuz production-ready değildir.
+
 ---
 
 ## 7. Yerel Geliştirme
@@ -566,7 +568,7 @@ Kaynak notları:
 - `APP_EXTERNAL_API_TEFAS_ENABLED=true` ile TEFAS fon verisi keyless çalışır.
 - TCMB, BIST DataStore ve Yahoo Finance için API key/base URL gerekmez.
 - `APP_EXTERNAL_API_BIST_DATASTORE_ENABLED=true` ile tahvil/bono günlük bülteni ve VIOP günlük bülteni gerçek Borsa İstanbul dosyalarından okunur.
-- `APP_EXTERNAL_API_FINTABLES_ENABLED=false` güvenli varsayılandır; Fintables UI'da aktif kaynak gibi sunulmamalıdır.
+- `APP_EXTERNAL_API_FINTABLES_ENABLED=false` uygulama/.env için güvenli varsayılandır; production compose'daki farklı varsayılan bilinen blocker'dır ve açıkça `false` verilmelidir.
 - LLM enrichment için `APP_NEWS_LLM_*` değişkenleri kullanılır. GitHub Models örneği: `APP_NEWS_LLM_BASE_URL=https://models.github.ai/inference`, `APP_NEWS_LLM_ENDPOINT=/chat/completions`, `APP_NEWS_LLM_MODEL=openai/gpt-5`.
 
 ---

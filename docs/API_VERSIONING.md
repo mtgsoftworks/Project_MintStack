@@ -1,5 +1,7 @@
 # API Versiyonlama Dokümantasyonu
 
+> Son doğrulama: 5 Temmuz 2026. Endpoint envanterinin authoritative kaynağı çalışan `/api-docs` OpenAPI çıktısıdır.
+
 Bu doküman, MintStack Finance Portal REST API'sinin versiyonlama stratejisini ve kullanımını açıklar.
 
 ---
@@ -54,7 +56,7 @@ X-API-Version: 1.0.0
 
 ### 2.3 Yanıt Header'ları
 
-Her API yanıtında aşağıdaki header'lar bulunur:
+Her API yanıtında sürüm ve minimum sürüm header'ları bulunur; deprecation ve sunset header'ları yalnız deprecated bir sürümde eklenir:
 
 | Header | Örnek Değer | Açıklama |
 |--------|--------------|----------|
@@ -259,7 +261,9 @@ Tüm endpoint'ler `/api/v1` prefix'i altındadır. Base URL: `http://localhost:8
 | GET | `/simulation/stocks` | Simüle hisseler |
 | GET | `/simulation/currencies` | Simüle dövizler |
 | GET | `/simulation/indices` | Simüle endeksler |
-| GET | `/simulation/cryptos` | Deprecated: kripto modülü aktif kullanıcı kapsamından çıkarıldı |
+| GET | `/simulation/bonds` | Simüle tahvil/bonolar |
+| GET | `/simulation/funds` | Simüle fonlar |
+| GET | `/simulation/viop` | Simüle VİOP enstrümanları |
 | GET | `/simulation/volatility` | Volatilite |
 | POST | `/simulation/volatility/burst` | Volatilite patlaması |
 | GET | `/simulation/events` | Piyasa olayları |

@@ -46,6 +46,18 @@ Base64-encoded 256-bit AES key used to encrypt stored provider credentials:
 openssl rand -base64 32
 ```
 
+### 6. grafana_admin_password.txt
+
+```
+<your-strong-grafana-admin-password>
+```
+
+### 7. ldap_admin_password.txt
+
+```
+<your-strong-ldap-admin-password>
+```
+
 ## LDAP TLS files
 
 Create `secrets/ldap/` with:
@@ -86,4 +98,7 @@ echo "your_password" | docker secret create postgres_password -
 echo "your_password" | docker secret create redis_password -
 echo "your_password" | docker secret create keycloak_admin_password -
 echo "your_api_key" | docker secret create alpha_vantage_key -
+openssl rand -base64 32 | docker secret create app_field_encryption_key -
+echo "your_password" | docker secret create grafana_admin_password -
+echo "your_password" | docker secret create ldap_admin_password -
 ```

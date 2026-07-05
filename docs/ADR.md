@@ -1,5 +1,7 @@
 # Mimari Karar Kayıtları (ADR)
 
+> Son doğrulama: 5 Temmuz 2026.
+
 Bu doküman, MintStack Finance Portal projesindeki mimari kararları ve gerekçelerini içerir. Her karar, bağlamı, alınan kararı, gerekçeyi ve sonuçları belgeler.
 
 ---
@@ -56,7 +58,7 @@ React 18, TypeScript ve Vite frontend stack olarak seçildi.
 
 ### Sonuçlar
 
-- Frontend `frontend/` altında React 18.3.1, TypeScript 5.9.3 ve Vite 5.4.21 ile geliştirildi
+- Frontend `frontend/` altında React 18.3.1, TypeScript 5.9.3 ve Vite 7.3.6 ile geliştirildi
 - Redux Toolkit state yönetimi, RTK Query API çağrıları için kullanıldı
 - Code splitting (lazy loading) ile ilk yükleme süresi optimize edildi
 
@@ -86,7 +88,7 @@ PostgreSQL 15 veritabanı olarak seçildi.
 ### Sonuçlar
 
 - PostgreSQL 15-alpine Docker imajı ile çalıştırılıyor
-- Flyway ile 24 migrasyon ile şema yönetimi
+- Flyway ile 31 migrasyon ile şema yönetimi
 - JPA/Hibernate ile ORM katmanı
 
 ---
@@ -282,13 +284,13 @@ Bucket4j token bucket algoritması ile IP ve rol bazlı rate limiting uygulanaca
 - **Token bucket:** Doğal burst toleransı ile esnek limit yönetimi
 - **IP bazlı:** Anonim kullanıcılar için IP adresi ile sınırlama (varsayılan 100 req/dk)
 - **Rol bazlı:** Authenticated kullanıcılar 200 req/dk, Admin 500 req/dk
-- **Controller seviyesi:** `@RateLimit` annotation ile metod bazlı özelleştirme
+- **HTTP filter seviyesi:** Tüm `/api/**` trafiğine tutarlı limit uygulama
 - **Redis uyumlu:** Dağıtık ortamda Redis backend ile ölçeklenebilirlik
 
 ### Sonuçlar
 
 - `RateLimitConfig` ile IP, user ve admin bucket'ları yönetiliyor
-- `RateLimitAspect` ve `RateLimitFilter` ile uygulama
+- `RateLimitFilter` ile merkezi uygulama; kaldırılan annotation/aspect akışı kullanılmaz
 - Runtime'da `app.rate-limit.*` ile ayar güncellemesi
 
 ---

@@ -16,6 +16,7 @@ frontend/dist/
 .env.production
 .env.*.local
 *.local
+docs/CREDENTIALS.md
 
 # Secrets (NEVER commit these!)
 secrets/*.txt
@@ -61,8 +62,8 @@ frontend/coverage/
 # Local backups
 backups/
 
-# Delivery artifacts
-final_dc/
+# Delivery artifacts (only the current v2.1 deliverables are tracked)
+final_dc/*
 
 # Diagnostics
 diagnostics/
@@ -73,6 +74,10 @@ diagnostics/
 *.pptx
 *.pdf
 !docs/diagrams/*.pdf
+!final_dc/MintStack_Teknik_Dokumantasyon_v2_1.docx
+!final_dc/MintStack_Teknik_Dokumantasyon_v2_1.pdf
+!final_dc/MintStack_Teknik_Sunum_v2_1.pptx
+!final_dc/MintStack_Teknik_Sunum_v2_1.pdf
 
 # Generated javadocs (use Maven javadoc:javadoc instead)
 docs/MintStack_Backend_Javadocs.zip

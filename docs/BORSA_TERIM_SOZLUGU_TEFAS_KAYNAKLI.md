@@ -2,7 +2,7 @@
 
 ## Kapsam ve Not
 Bu dokuman sadece ekip ic kullanimi icindir. Uygulama son kullanici arayuzunde birebir gosterilmez.
-Amaç: BIST, TEFAS, fon, emir, takas, turev ve oran terimlerini tek bir referans dokumanda toplamak.
+AmaÃ§: BIST, TEFAS, fon, emir, takas, turev ve oran terimlerini tek bir referans dokumanda toplamak.
 
 ## Birincil Kaynaklar
 - TEFAS resmi: https://www.tefas.gov.tr/

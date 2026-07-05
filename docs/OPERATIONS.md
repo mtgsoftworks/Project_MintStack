@@ -1,10 +1,12 @@
 # İşletim Rehberi — Güvenlik, Dağıtım ve Yapılandırma
 
+> Son doğrulama: 5 Temmuz 2026.
+
 ## 1. Güvenlik Mimarisi
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│ Katman 1: Ağ — Nginx tek giriş, iç portlar 127.0.0.1  │
+│ Katman 1: Ağ — Prod Nginx edge + internal ağ segmentasyonu │
 ├────────────────────────────────────────────────────────┤
 │ Katman 2: Kimlik — Keycloak OAuth2/OIDC, JWT, 2FA     │
 ├────────────────────────────────────────────────────────┤
@@ -46,6 +48,8 @@
 | `KEYCLOAK_ADMIN_PASSWORD` | Admin konsolu | 32 byte base64 |
 | `KAFKA_SASL_PASSWORD` | Kafka auth | 24 byte base64 |
 | `OPENSEARCH_INITIAL_ADMIN_PASSWORD` | Log arama | 8+ karakter |
+| `APP_FIELD_ENCRYPTION_KEY` | Saklanan provider credential'ları | 32 byte AES key |
+| `GRAFANA_ADMIN_PASSWORD` / `LDAP_ADMIN_PASSWORD` | Operasyon servisleri | Güçlü ve benzersiz |
 | `ALPHA_VANTAGE_API_KEY` / `FINNHUB_API_KEY` | Dış API | API key |
 
 ---
@@ -62,13 +66,13 @@
 
 ## 4. Dağıtım Profilleri
 
-### Dev (Tam Stack — 15 servis, ~8 GB RAM)
+### Dev (Tam Stack — 16 servis, ~8 GB RAM)
 
 ```bash
 docker compose up -d
 ```
 
-### Lightweight Dev (6 servis, ~4 GB RAM)
+### Lightweight Dev (7 servis, ~4 GB RAM)
 
 ```bash
 docker compose -f docker-compose.light.yml up -d
@@ -82,11 +86,13 @@ docker compose -f docker-compose.prod.yml up -d
 
 Production farkları: Docker Secrets, ağ segmentasyonu, kaynak limitleri, backend replica.
 
+Production çalıştırmadan önce `PUBLIC_APP_ORIGIN`, `VITE_KEYCLOAK_URL`, `VITE_WS_URL`, yedi secret dosyası ve LDAP TLS dosyaları hazırlanmalıdır. Mevcut config'te CORS değişkenlerinin uygulanmaması, Fintables'in varsayılan açık olması ve webhook imzasının varsayılan kapalı olması production blocker olarak takip edilir.
+
 ### Servis Bağımlılık Sırası
 
 ```
 PostgreSQL → Keycloak → Backend → Frontend → Nginx
-             Redis ──┘     └── Kafka → Logstash
+             Redis ──┘     └── Kafka → Kafka Exporter / Logstash
 OpenSearch → OTEL, Dashboards
 Prometheus → Grafana, AlertManager
 ```
@@ -116,6 +122,8 @@ docker exec mintstack-postgres pg_dump -U mintstack -d mintstack_finance > backu
 - [ ] İç portlar dışarıya kapalı (127.0.0.1)
 - [ ] 2FA aktif
 - [ ] CORS origin'leri yalnızca beklenen domain
+- [ ] `SecurityConfig` production'da `CorsProperties` değerlerini gerçekten uyguluyor
+- [ ] Fintables varsayılan kapalı, webhook signature varsayılan zorunlu
 - [ ] Alarm eşikleri aktif (Prometheus/AlertManager)
 - [ ] Backup rutini otomatik ve test edilmiş
 
@@ -175,8 +183,8 @@ Bos CI veritabaninda `flyway:validate` tek basina calistirilmaz. Bos DB'de schem
 Dogru sira:
 
 ```bash
-./mvnw -B -ntp org.flywaydb:flyway-maven-plugin:10.17.0:migrate
-./mvnw -B -ntp org.flywaydb:flyway-maven-plugin:10.17.0:validate
+./mvnw -B -ntp org.flywaydb:flyway-maven-plugin:10.20.1:migrate
+./mvnw -B -ntp org.flywaydb:flyway-maven-plugin:10.20.1:validate
 ```
 
 GitHub Actions bu nedenle once `migrate`, sonra `validate` calistirir.
