@@ -47,7 +47,7 @@ function FundTableSkeleton() {
 
 function hasMeaningfulChange(value) {
   const numeric = Number(value)
-  return value !== null && value !== undefined && Number.isFinite(numeric) && numeric !== 0
+  return value !== null && value !== undefined && Number.isFinite(numeric)
 }
 
 export default function FundsPage() {

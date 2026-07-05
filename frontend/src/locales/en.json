@@ -723,7 +723,8 @@
             "price": "Price",
             "change": "Change",
             "volume": "Volume",
-            "maturity": "Maturity"
+            "maturity": "Maturity",
+            "action": "Action"
         }
     },
     "stocksPage": {

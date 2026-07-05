@@ -723,7 +723,8 @@
             "price": "Fiyat",
             "change": "Değişim",
             "volume": "Hacim",
-            "maturity": "Vade"
+            "maturity": "Vade",
+            "action": "İşlem"
         }
     },
     "stocksPage": {

@@ -88,7 +88,7 @@ function getDisplayRate(primaryRate: number | string | null | undefined, fallbac
 function hasMeaningfulChange(value: unknown): boolean {
   if (value === null || value === undefined) return false
   const numeric = Number(value)
-  return Number.isFinite(numeric) && numeric !== 0
+  return Number.isFinite(numeric)
 }
 
 export default function CurrencyPage() {
