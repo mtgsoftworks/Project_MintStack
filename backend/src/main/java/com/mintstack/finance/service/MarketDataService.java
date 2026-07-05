@@ -138,8 +138,11 @@ public class MarketDataService {
     public List<CurrencyRateResponse> getCurrencyHistory(String currencyCode, 
                                                           LocalDate startDate, 
                                                           LocalDate endDate) {
+        boolean isSimulation = simulationDataService.isSimulationEnabled();
+        RateSource source = resolveCurrencyRateSource(isSimulation);
         List<CurrencyRate> rates = currencyRateRepository.findHistoryByCurrencyCode(
             currencyCode,
+            source,
             startDate.atStartOfDay(),
             endDate.atTime(23, 59, 59)
         );
@@ -833,7 +836,7 @@ public class MarketDataService {
         CurrencyRate startRate = findCurrencyRateAtOrBefore(
             currentRate.getCurrencyCode(),
             currentRate.getSource(),
-            changeRange.startDate().atStartOfDay()
+            changeRange.startDate().atTime(23, 59, 59)
         );
         CurrencyRate endRate = changeRange.endDate().isBefore(LocalDate.now())
             ? findCurrencyRateAtOrBefore(

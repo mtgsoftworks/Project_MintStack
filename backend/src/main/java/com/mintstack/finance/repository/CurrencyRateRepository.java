@@ -63,10 +63,11 @@ public interface CurrencyRateRepository extends JpaRepository<CurrencyRate, UUID
     List<CurrencyRate> findAllLatest();
 
     @Query("SELECT c FROM CurrencyRate c WHERE c.currencyCode = :code " +
-           "AND c.fetchedAt BETWEEN :startDate AND :endDate " +
+           "AND c.source = :source AND c.fetchedAt BETWEEN :startDate AND :endDate " +
            "ORDER BY c.fetchedAt ASC")
     List<CurrencyRate> findHistoryByCurrencyCode(
             @Param("code") String currencyCode,
+            @Param("source") RateSource source,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
 
