@@ -182,17 +182,8 @@ services:
   kafka-exporter:
     image: danielqsj/kafka-exporter:v1.7.0
     container_name: mintstack-kafka-exporter
-    environment:
-      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD}
-    entrypoint: ["/bin/sh", "-c"]
     command:
-      - |
-        exec /bin/kafka_exporter \
-          --kafka.server=kafka:9092 \
-          --sasl.enabled \
-          --sasl.username=kafka \
-          --sasl.password="$${KAFKA_SASL_PASSWORD}" \
-          --sasl.mechanism=plain
+      - --kafka.server=kafka:9092
     depends_on:
       kafka:
         condition: service_healthy
