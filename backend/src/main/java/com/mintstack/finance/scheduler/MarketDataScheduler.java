@@ -79,6 +79,15 @@ public class MarketDataScheduler {
     @Scheduled(cron = "${app.scheduler.stock-prices-cron}")
     @SchedulerLock(name = "fetchStockPrices", lockAtLeastFor = "5s", lockAtMostFor = "2m")
     public void fetchStockPrices() {
+        if (!simulationDataService.isSimulationEnabled()) {
+            UserApiConfig yahooConfig = providerResolver.getActiveConfig(ApiProvider.YAHOO_FINANCE);
+            UserApiConfig alphaConfig = providerResolver.getActiveConfig(ApiProvider.ALPHA_VANTAGE);
+            UserApiConfig finnhubConfig = providerResolver.getActiveConfig(ApiProvider.FINNHUB);
+            if (yahooConfig == null && alphaConfig == null && finnhubConfig == null) {
+                log.debug("No active stock provider configured. Skipping stock prices fetch.");
+                return;
+            }
+        }
         updateInstrumentPricesByType(Instrument.InstrumentType.STOCK, true, false);
     }
 
@@ -95,6 +104,11 @@ public class MarketDataScheduler {
     @SchedulerLock(name = "fetchBondPrices", lockAtLeastFor = "30s", lockAtMostFor = "8m")
     public void fetchBondPrices() {
         if (!simulationDataService.isSimulationEnabled()) {
+            UserApiConfig bistConfig = providerResolver.getActiveConfig(ApiProvider.BIST_DATASTORE);
+            if (bistConfig == null) {
+                log.debug("BIST DataStore API not active. Skipping bond prices fetch.");
+                return;
+            }
             try {
                 bistDataStoreMarketDataService.refreshBondPrices();
             } catch (Exception error) {
@@ -109,6 +123,11 @@ public class MarketDataScheduler {
     @SchedulerLock(name = "fetchFundPrices", lockAtLeastFor = "2m", lockAtMostFor = "8m")
     public void fetchFundPrices() {
         if (!simulationDataService.isSimulationEnabled()) {
+            UserApiConfig tefasConfig = providerResolver.getActiveConfig(ApiProvider.TEFAS);
+            if (tefasConfig == null) {
+                log.debug("TEFAS API not active. Skipping fund prices fetch.");
+                return;
+            }
             try {
                 tefasFundDataService.refreshFundPrices();
             } catch (Exception error) {
@@ -123,6 +142,11 @@ public class MarketDataScheduler {
     @SchedulerLock(name = "fetchViopPrices", lockAtLeastFor = "5s", lockAtMostFor = "2m")
     public void fetchViopPrices() {
         if (!simulationDataService.isSimulationEnabled()) {
+            UserApiConfig bistConfig = providerResolver.getActiveConfig(ApiProvider.BIST_DATASTORE);
+            if (bistConfig == null) {
+                log.debug("BIST DataStore API not active. Skipping VIOP prices fetch.");
+                return;
+            }
             try {
                 bistDataStoreMarketDataService.refreshViopPrices();
             } catch (Exception error) {
