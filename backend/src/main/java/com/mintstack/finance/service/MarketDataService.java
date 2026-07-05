@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -81,6 +82,14 @@ public class MarketDataService {
         }
         if (rates.isEmpty() && preferredSource != RateSource.TCMB) {
             rates = currencyRateRepository.findLatestBySource(RateSource.TCMB);
+        }
+        if (rates.isEmpty()) {
+            rates = currencyRateRepository.findAllLatest();
+        }
+        if (rates.isEmpty()) {
+            return simulationDataService.getCurrencies().entrySet().stream()
+                .map(entry -> mapToSimulatedRateResponse(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
         }
         return rates.stream()
             .map(rate -> mapToRateResponse(rate, changeRange))
@@ -145,7 +154,25 @@ public class MarketDataService {
                 return fallbackTcmb;
             }
         }
-        return currencyRateRepository.findTopByCurrencyCodeOrderByFetchedAtDesc(currencyCode).orElse(null);
+        CurrencyRate anyRate = currencyRateRepository.findTopByCurrencyCodeOrderByFetchedAtDesc(currencyCode).orElse(null);
+        if (anyRate != null) {
+            return anyRate;
+        }
+        SimulatedCurrency sim = simulationDataService.getCurrency(currencyCode);
+        if (sim != null) {
+            return CurrencyRate.builder()
+                .currencyCode(currencyCode.toUpperCase())
+                .currencyName(sim.getName())
+                .buyingRate(sim.getBuyingRate())
+                .sellingRate(sim.getSellingRate())
+                .effectiveBuyingRate(sim.getBuyingRate())
+                .effectiveSellingRate(sim.getSellingRate())
+                .source(RateSource.MANUAL)
+                .rateDate(LocalDateTime.now())
+                .fetchedAt(LocalDateTime.now())
+                .build();
+        }
+        return null;
     }
 
     private CurrencyRateResponse mapToSimulatedRateResponse(String code, SimulatedCurrency currency) {
