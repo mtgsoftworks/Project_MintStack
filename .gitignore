@@ -81,3 +81,8 @@ diagnostics/
 
 # Generated javadocs (use Maven javadoc:javadoc instead)
 docs/MintStack_Backend_Javadocs.zip
+
+# Local confidential presentation & credential guides (local only)
+docs/PROJE_SIFRELERI_VE_ERISIM_BILGILERI.md
+docs/FINAL_SUNUM_VE_DEMO_STRATEJI_REHBERI.md
+docs/CREDENTIALS.md

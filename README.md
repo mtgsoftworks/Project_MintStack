@@ -592,8 +592,6 @@ Projeye ait diğer tüm sistem ve operasyon notları, araştırma yapan takım �
 
 | Doküman | Açıklama |
 |---|---|
-| [Final Sunum & Demo Rehberi](docs/FINAL_SUNUM_VE_DEMO_STRATEJI_REHBERI.md) | 25 dakikalık stratejik sunum akışı, canlı demo rehberi ve tuzak soru imha taktikleri |
-| [Şifreler ve Erişim Rehberi](docs/PROJE_SIFRELERI_VE_ERISIM_BILGILERI.md) | Tüm Docker servislerinin port numaraları, kullanıcı ve şifre matrisi |
 | [Mimari & Docker Rehberi](docs/MIMARI_VE_DOCKER_REHBERI.md) | 14 Docker servisi, veri ve güvenlik akışları, mülakat Q&A |
 | [Sistem Mimarisi](docs/ARCHITECTURE.md) | C4 container view, servis sorumlulukları, veri akışları, ER modeli |
 | [Dağıtım Rehberi](docs/DEPLOYMENT.md) | Docker orchestration, CI/CD pipeline ve ortam değişkenleri |
