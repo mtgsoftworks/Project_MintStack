@@ -72,6 +72,13 @@ public class MarketDataService {
     @Transactional(readOnly = true)
     public List<CurrencyRateResponse> getLatestCurrencyRates(LocalDate changeStartDate, LocalDate changeEndDate) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
+
+        // Strict API guard: if not simulation and no currency provider is active, return empty
+        if (!isSimulation && !hasActiveApiProviderForType(InstrumentType.CURRENCY)) {
+            log.debug("No active currency provider configured. Returning empty currency rates.");
+            return List.of();
+        }
+
         RateSource preferredSource = resolveCurrencyRateSource(isSimulation);
         ChangeDateRange changeRange = normalizeChangeRange(changeStartDate, changeEndDate);
         List<CurrencyRate> rates = currencyRateRepository.findLatestBySource(preferredSource);
@@ -87,9 +94,12 @@ public class MarketDataService {
             rates = currencyRateRepository.findAllLatest();
         }
         if (rates.isEmpty()) {
-            return simulationDataService.getCurrencies().entrySet().stream()
-                .map(entry -> mapToSimulatedRateResponse(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
+            if (isSimulation) {
+                return simulationDataService.getCurrencies().entrySet().stream()
+                    .map(entry -> mapToSimulatedRateResponse(entry.getKey(), entry.getValue()))
+                    .collect(Collectors.toList());
+            }
+            return List.of();
         }
         return rates.stream()
             .map(rate -> mapToRateResponse(rate, changeRange))
@@ -99,6 +109,12 @@ public class MarketDataService {
     @Transactional(readOnly = true)
     public CurrencyRateResponse getCurrencyRate(String currencyCode) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
+
+        // Strict API guard: no active currency provider = no data
+        if (!isSimulation && !hasActiveApiProviderForType(InstrumentType.CURRENCY)) {
+            throw new ResourceNotFoundException("Kur", "kod", currencyCode);
+        }
+
         RateSource source = resolveCurrencyRateSource(isSimulation);
         String normalizedCode = currencyCode != null ? currencyCode.toUpperCase() : "";
 
@@ -214,7 +230,9 @@ public class MarketDataService {
     @Transactional(readOnly = true)
     public List<InstrumentResponse> getInstrumentsByType(InstrumentType type, LocalDate changeStartDate, LocalDate changeEndDate) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
-        if (!isSimulation && !hasActiveApiProviderForType(type) && !hasPriceHistoryForType(type)) {
+        // Strict API guard: no active provider = no data, regardless of stale DB data
+        if (!isSimulation && !hasActiveApiProviderForType(type)) {
+            log.debug("No active API provider for type {}. Returning empty list.", type);
             return List.of();
         }
         ChangeDateRange changeRange = normalizeChangeRange(changeStartDate, changeEndDate);
@@ -250,7 +268,9 @@ public class MarketDataService {
             LocalDate changeStartDate,
             LocalDate changeEndDate) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
-        if (!isSimulation && !hasActiveApiProviderForType(type) && !hasPriceHistoryForType(type)) {
+        // Strict API guard: no active provider = no data
+        if (!isSimulation && !hasActiveApiProviderForType(type)) {
+            log.debug("No active API provider for type {}. Returning empty page.", type);
             return Page.empty(pageable);
         }
         ChangeDateRange changeRange = normalizeChangeRange(changeStartDate, changeEndDate);
@@ -288,6 +308,10 @@ public class MarketDataService {
             .orElseGet(() -> instrumentRepository.findBySymbol(normalizedSymbol).orElse(null));
 
         if (instrument != null) {
+            // Strict API guard: if not simulation and no provider active for this instrument type, reject
+            if (!isSimulation && !hasActiveApiProviderForType(instrument.getType())) {
+                throw new ResourceNotFoundException("Enstrüman", "sembol", symbol);
+            }
             return mapToInstrumentResponse(instrument, changeRange);
         }
 
@@ -313,6 +337,13 @@ public class MarketDataService {
             LocalDate changeStartDate,
             LocalDate changeEndDate) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
+
+        // Strict API guard: if not simulation and no provider of any type is active, return empty
+        if (!isSimulation && !hasAnyActiveApiProvider()) {
+            log.debug("No active API provider configured at all. Returning empty search results.");
+            return Page.empty(pageable);
+        }
+
         ChangeDateRange changeRange = normalizeChangeRange(changeStartDate, changeEndDate);
         Page<Instrument> instruments = isSimulation
             ? instrumentRepository.searchBySymbolOrNameAndSimulationMode(query, true, pageable)
@@ -350,7 +381,9 @@ public class MarketDataService {
             LocalDate changeStartDate,
             LocalDate changeEndDate) {
         boolean isSimulation = simulationDataService.isSimulationEnabled();
-        if (!isSimulation && !hasActiveApiProviderForType(type) && !hasPriceHistoryForType(type)) {
+        // Strict API guard: no active provider = no data
+        if (!isSimulation && !hasActiveApiProviderForType(type)) {
+            log.debug("No active API provider for type {}. Returning empty search page.", type);
             return Page.empty(pageable);
         }
         ChangeDateRange changeRange = normalizeChangeRange(changeStartDate, changeEndDate);
@@ -415,6 +448,12 @@ public class MarketDataService {
             }
         }
 
+        // Strict API guard: no active index provider = no index data
+        if (!simulationDataService.isSimulationEnabled() && !hasActiveApiProviderForType(InstrumentType.INDEX)) {
+            log.debug("No active INDEX provider configured. Returning not found for index {}.", symbol);
+            throw new ResourceNotFoundException("Endeks", "sembol", symbol);
+        }
+
         // Try DB with active instruments first
         Instrument instrument = findFirstActiveIndexInstrument(symbolCandidates);
 
@@ -477,36 +516,25 @@ public class MarketDataService {
         };
     }
 
-    private boolean isProviderActive(ApiProvider provider) {
-        if (provider == null) return false;
-        List<UserApiConfig> activeConfigs = userApiConfigRepository.findByProviderAndIsActiveTrue(provider);
-        if (activeConfigs != null && !activeConfigs.isEmpty()) {
-            return true;
-        }
-
-        // Providers requiring API keys are inactive if no active config exists
-        if (provider == ApiProvider.ALPHA_VANTAGE || provider == ApiProvider.FINNHUB || provider == ApiProvider.FINTABLES) {
-            return false;
-        }
-
-        // For public keyless providers (TEFAS, TCMB, BIST_DATASTORE, YAHOO_FINANCE):
-        // Inactive ONLY IF explicitly configured with isActive = false
-        List<UserApiConfig> allConfigs = userApiConfigRepository.findAll();
-        if (allConfigs != null && !allConfigs.isEmpty()) {
-            boolean hasDeactivatedConfig = allConfigs.stream()
-                .filter(c -> c.getProvider() == provider)
-                .anyMatch(c -> Boolean.FALSE.equals(c.getIsActive()));
-            boolean hasActiveConfig = allConfigs.stream()
-                .filter(c -> c.getProvider() == provider)
-                .anyMatch(c -> Boolean.TRUE.equals(c.getIsActive()));
-
-            if (hasDeactivatedConfig && !hasActiveConfig) {
-                return false;
+    /**
+     * Returns true only if at least one API provider of ANY type has an active config in the DB.
+     * Used for general search endpoint guard.
+     */
+    public boolean hasAnyActiveApiProvider() {
+        for (ApiProvider provider : ApiProvider.values()) {
+            if (isProviderActive(provider)) {
+                return true;
             }
         }
+        return false;
+    }
 
-        // Otherwise public keyless providers are active by default
-        return true;
+    private boolean isProviderActive(ApiProvider provider) {
+        if (provider == null) return false;
+        // STRICT CHECK: A provider is active ONLY if there is an explicit active config entry in the DB.
+        // No config entry = provider is NOT active. No exceptions, no defaults.
+        List<UserApiConfig> activeConfigs = userApiConfigRepository.findByProviderAndIsActiveTrue(provider);
+        return activeConfigs != null && !activeConfigs.isEmpty();
     }
 
     private boolean hasPriceHistoryForType(InstrumentType type) {

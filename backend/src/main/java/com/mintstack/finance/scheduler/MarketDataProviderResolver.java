@@ -186,8 +186,10 @@ class MarketDataProviderResolver {
         UserApiConfig alphaConfig,
         UserApiConfig finnhubConfig
     ) {
+        // STRICT: Every provider requires an explicit active config entry in the DB.
+        // No config = not configured. No exceptions.
         return switch (provider) {
-            case YAHOO_FINANCE -> true;
+            case YAHOO_FINANCE -> yahooConfig != null;
             case ALPHA_VANTAGE -> alphaConfig != null;
             case FINNHUB -> finnhubConfig != null;
             default -> false;
