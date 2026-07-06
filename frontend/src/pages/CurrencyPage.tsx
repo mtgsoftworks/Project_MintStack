@@ -86,14 +86,19 @@ function getDisplayRate(primaryRate: number | string | null | undefined, fallbac
 }
 
 function hasMeaningfulChange(item: { changeStartDate?: string | null; changeEndDate?: string | null; changePercent?: number }, queryStartDate?: string, queryEndDate?: string) {
-  // Check if backend returned actual date range data that matches query
+  // Change must be a valid finite number (including 0)
   const numeric = Number(item?.changePercent)
-  if (item?.changePercent === null || item?.changePercent === undefined || !Number.isFinite(numeric)) {
+  if (!Number.isFinite(numeric)) {
     return false
   }
-  // If dates are provided in query, check if backend returned matching date range
-  if (queryStartDate && queryEndDate && item.changeStartDate) {
-    return item.changeStartDate >= queryStartDate && item.changeEndDate === queryEndDate
+  // If query has specific dates, verify backend returned matching date range
+  if (queryStartDate && queryEndDate) {
+    // If backend returned dates, they must match the query
+    if (item.changeStartDate && item.changeEndDate) {
+      return item.changeStartDate >= queryStartDate && item.changeEndDate === queryEndDate
+    }
+    // If backend didn't return dates but has a valid change value, show it
+    return true
   }
   return true
 }
