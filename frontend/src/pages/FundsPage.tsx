@@ -45,9 +45,17 @@ function FundTableSkeleton() {
   )
 }
 
-function hasMeaningfulChange(value) {
-  const numeric = Number(value)
-  return value !== null && value !== undefined && Number.isFinite(numeric)
+function hasMeaningfulChange(item: { changeStartDate?: string | null; changeEndDate?: string | null; changePercent?: number }, queryStartDate?: string, queryEndDate?: string) {
+  // Check if backend returned actual date range data that matches query
+  const numeric = Number(item?.changePercent)
+  if (item?.changePercent === null || item?.changePercent === undefined || !Number.isFinite(numeric)) {
+    return false
+  }
+  // If dates are provided in query, check if backend returned matching date range
+  if (queryStartDate && queryEndDate && item.changeStartDate) {
+    return item.changeStartDate >= queryStartDate && item.changeEndDate === queryEndDate
+  }
+  return true
 }
 
 export default function FundsPage() {
@@ -185,7 +193,7 @@ export default function FundsPage() {
                   </TableRow>
                 ) : (
                   filteredFunds.map((fund) => {
-                    const hasChange = hasMeaningfulChange(fund.changePercent)
+                    const hasChange = hasMeaningfulChange(fund, changeRange.queryParams.changeStartDate, changeRange.queryParams.changeEndDate)
                     const isPositive = hasChange && Number(fund.changePercent) >= 0
 
                     return (

@@ -45,9 +45,17 @@ function BondTableSkeleton() {
   )
 }
 
-function hasMeaningfulChange(value) {
-  const numeric = Number(value)
-  return value !== null && value !== undefined && Number.isFinite(numeric)
+function hasMeaningfulChange(item: { changeStartDate?: string | null; changeEndDate?: string | null; changePercent?: number }, queryStartDate?: string, queryEndDate?: string) {
+  // Check if backend returned actual date range data that matches query
+  const numeric = Number(item?.changePercent)
+  if (item?.changePercent === null || item?.changePercent === undefined || !Number.isFinite(numeric)) {
+    return false
+  }
+  // If dates are provided in query, check if backend returned matching date range
+  if (queryStartDate && queryEndDate && item.changeStartDate) {
+    return item.changeStartDate >= queryStartDate && item.changeEndDate === queryEndDate
+  }
+  return true
 }
 
 export default function BondsPage() {
@@ -187,7 +195,7 @@ export default function BondsPage() {
                   </TableRow>
                 ) : (
                   filteredBonds.map((bond) => {
-                    const hasChange = hasMeaningfulChange(bond.changePercent)
+                    const hasChange = hasMeaningfulChange(bond, changeRange.queryParams.changeStartDate, changeRange.queryParams.changeEndDate)
                     const isPositive = hasChange && bond.changePercent >= 0
 
                     return (

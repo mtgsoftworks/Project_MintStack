@@ -49,14 +49,22 @@ function StockTableSkeleton() {
   )
 }
 
-function hasMeaningfulChange(value) {
-  const numeric = Number(value)
-  return value !== null && value !== undefined && Number.isFinite(numeric)
+function hasMeaningfulChange(item: { changeStartDate?: string | null; changeEndDate?: string | null; changePercent?: number }, queryStartDate?: string, queryEndDate?: string) {
+  // Check if backend returned actual date range data that matches query
+  const numeric = Number(item?.changePercent)
+  if (item?.changePercent === null || item?.changePercent === undefined || !Number.isFinite(numeric)) {
+    return false
+  }
+  // If dates are provided in query, check if backend returned matching date range
+  if (queryStartDate && queryEndDate && item.changeStartDate) {
+    return item.changeStartDate >= queryStartDate && item.changeEndDate === queryEndDate
+  }
+  return true
 }
 
 // Virtual scrolling stock row component
-function VirtualStockRow({ stock, selectedPortfolioId }) {
-  const hasChange = hasMeaningfulChange(stock.changePercent)
+function VirtualStockRow({ stock, selectedPortfolioId, queryStartDate, queryEndDate }) {
+  const hasChange = hasMeaningfulChange(stock, queryStartDate, queryEndDate)
   const isPositive = hasChange && Number(stock.changePercent) >= 0
 
   return (
@@ -358,7 +366,7 @@ export default function StocksPage() {
                             transform: `translateY(${virtualRow.start}px)`,
                           }}
                         >
-                          <VirtualStockRow stock={stock} selectedPortfolioId={selectedPortfolioId} />
+                          <VirtualStockRow stock={stock} selectedPortfolioId={selectedPortfolioId} queryStartDate={changeRange.queryParams.changeStartDate} queryEndDate={changeRange.queryParams.changeEndDate} />
                         </div>
                       )
                     })}
@@ -426,7 +434,7 @@ export default function StocksPage() {
                     </TableRow>
                   ) : (
                     filteredStocks.map((stock) => {
-                      const hasChange = hasMeaningfulChange(stock.changePercent)
+                      const hasChange = hasMeaningfulChange(stock, changeRange.queryParams.changeStartDate, changeRange.queryParams.changeEndDate)
                       const isPositive = hasChange && Number(stock.changePercent) >= 0
 
                       return (

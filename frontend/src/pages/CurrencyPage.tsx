@@ -85,10 +85,17 @@ function getDisplayRate(primaryRate: number | string | null | undefined, fallbac
   return Number.isFinite(fallback) && fallback > 0 ? fallbackRate as number : null
 }
 
-function hasMeaningfulChange(value: unknown): boolean {
-  if (value === null || value === undefined) return false
-  const numeric = Number(value)
-  return Number.isFinite(numeric)
+function hasMeaningfulChange(item: { changeStartDate?: string | null; changeEndDate?: string | null; changePercent?: number }, queryStartDate?: string, queryEndDate?: string) {
+  // Check if backend returned actual date range data that matches query
+  const numeric = Number(item?.changePercent)
+  if (item?.changePercent === null || item?.changePercent === undefined || !Number.isFinite(numeric)) {
+    return false
+  }
+  // If dates are provided in query, check if backend returned matching date range
+  if (queryStartDate && queryEndDate && item.changeStartDate) {
+    return item.changeStartDate >= queryStartDate && item.changeEndDate === queryEndDate
+  }
+  return true
 }
 
 export default function CurrencyPage() {
@@ -287,7 +294,7 @@ export default function CurrencyPage() {
           if (!currency) {
             return null
           }
-          const hasChange = hasMeaningfulChange(currency?.changePercent)
+          const hasChange = hasMeaningfulChange(currency, changeRange.queryParams.changeStartDate, changeRange.queryParams.changeEndDate)
           const change = Number(currency.changePercent || 0)
           const simulatedCurrency = isSimulatedMarketData(currency)
 
@@ -365,7 +372,7 @@ export default function CurrencyPage() {
                   </TableRow>
                 ) : (
                   filteredCurrencies.map((currency: CurrencyRate) => {
-                    const hasChange = hasMeaningfulChange(currency.changePercent)
+                    const hasChange = hasMeaningfulChange(currency, changeRange.queryParams.changeStartDate, changeRange.queryParams.changeEndDate)
                     const isPositive = hasChange && Number(currency.changePercent) >= 0
 
                     return (
