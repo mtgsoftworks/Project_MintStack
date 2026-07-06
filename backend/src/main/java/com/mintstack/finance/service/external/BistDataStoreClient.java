@@ -460,11 +460,8 @@ public class BistDataStoreClient {
             return null;
         }
 
-        if (rawChangePercent.signum() != 0) {
-            return rawChangePercent;
-        }
-
-        return normalizedVolume != null && normalizedVolume.signum() > 0 ? rawChangePercent : null;
+        // Always return the change value including 0 - volume should not affect whether we show change
+        return rawChangePercent;
     }
 
     public record BistBondPrice(
