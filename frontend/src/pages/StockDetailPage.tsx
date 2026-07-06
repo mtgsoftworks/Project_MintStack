@@ -61,7 +61,7 @@ function hasFiniteChange(value) {
 export default function StockDetailPage() {
   const { t, i18n } = useTranslation()
   const { symbol } = useParams()
-  const [period, setPeriod] = useState('1M')
+  const [period, setPeriod] = useState('1D')
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [selectedPortfolioId, setSelectedPortfolioId] = useState('')
   const [quantity, setQuantity] = useState('1')

@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -136,8 +137,11 @@ public class YahooFinanceClient {
             if (!yahooSymbol.contains(".")) {
                 yahooSymbol = symbol + ".IS";
             }
-            long period1 = startDate.atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
-            long period2 = endDate.atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
+            // Use Istanbul timezone explicitly to avoid Windows/environment issues
+            ZoneId zone = ZoneId.of("Europe/Istanbul");
+            long period1 = startDate.atStartOfDay(zone).toEpochSecond();
+            // Add 1 day to endDate so Yahoo includes that day's data, then convert to start of next day
+            long period2 = endDate.plusDays(1).atStartOfDay(zone).toEpochSecond();
             
             String url = "/chart/" + yahooSymbol + "?period1=" + period1 + "&period2=" + period2 + "&interval=1d";
             
@@ -195,8 +199,9 @@ public class YahooFinanceClient {
                 }
                 
                 long timestamp = timestamps.get(i).asLong();
+                // Use Istanbul timezone for consistency with the request
                 LocalDate date = Instant.ofEpochSecond(timestamp)
-                    .atZone(ZoneId.systemDefault())
+                    .atZone(zone)
                     .toLocalDate();
                 
                 PriceHistory priceHistory = PriceHistory.builder()

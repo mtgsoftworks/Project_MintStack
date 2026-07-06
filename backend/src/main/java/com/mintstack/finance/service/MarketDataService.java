@@ -478,16 +478,33 @@ public class MarketDataService {
             }
 
             if (price != null) {
+                BigDecimal previousClose = instrument != null ? instrument.getPreviousClose() : null;
+                BigDecimal change = null;
+                BigDecimal changePercent = null;
+                if (previousClose != null && previousClose.compareTo(BigDecimal.ZERO) > 0) {
+                    change = price.subtract(previousClose);
+                    changePercent = change.divide(previousClose, 4, RoundingMode.HALF_UP).multiply(new BigDecimal("100"));
+                } else if (instrument != null && instrument.getId() != null) {
+                    PricePoint prevPoint = findPricePointAtOrBefore(instrument.getId(), LocalDate.now().minusDays(1));
+                    if (prevPoint != null && prevPoint.price() != null && prevPoint.price().compareTo(BigDecimal.ZERO) > 0) {
+                        previousClose = prevPoint.price();
+                        change = price.subtract(previousClose);
+                        changePercent = change.divide(previousClose, 4, RoundingMode.HALF_UP).multiply(new BigDecimal("100"));
+                    }
+                }
+
                 InstrumentResponse.InstrumentResponseBuilder builder = InstrumentResponse.builder()
                     .symbol(symbol)
                     .name(instrument != null ? instrument.getName() : symbol)
                     .currentPrice(price)
+                    .previousClose(previousClose)
+                    .change(change)
+                    .changePercent(changePercent)
                     .type(InstrumentType.INDEX)
                     .currency("TRY");
 
                 if (instrument != null) {
-                    builder.id(instrument.getId())
-                        .previousClose(instrument.getPreviousClose());
+                    builder.id(instrument.getId());
                 }
 
                 return builder.build();
@@ -1245,6 +1262,14 @@ public class MarketDataService {
         PricePoint endPoint = changeRange.endDate().isBefore(today)
             ? findPricePointAtOrBefore(instrument.getId(), changeRange.endDate())
             : new PricePoint(currentPrice, today);
+
+        if (startPoint == null || (endPoint != null && startPoint.date() != null && startPoint.date().isEqual(endPoint.date()))) {
+            if (isPositive(openingBasePrice) && (endPoint == null || endPoint.price() == null || openingBasePrice.compareTo(endPoint.price()) != 0)) {
+                startPoint = new PricePoint(openingBasePrice, changeRange.startDate());
+            } else if (isPositive(instrument.getPreviousClose()) && (endPoint == null || endPoint.price() == null || instrument.getPreviousClose().compareTo(endPoint.price()) != 0)) {
+                startPoint = new PricePoint(instrument.getPreviousClose(), changeRange.startDate());
+            }
+        }
 
         if (startPoint == null || endPoint == null) {
             return InstrumentRangeChange.empty();

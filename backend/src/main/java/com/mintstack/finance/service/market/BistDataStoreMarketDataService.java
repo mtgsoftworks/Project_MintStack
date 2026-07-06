@@ -403,16 +403,16 @@ public class BistDataStoreMarketDataService {
         }
 
         BigDecimal existingPrevious = firstPositive(existing.getPreviousClose());
-        if (existingPrevious != null && settlement != null && existingPrevious.compareTo(settlement) != 0) {
+        if (existingPrevious != null) {
             return existingPrevious;
         }
 
         BigDecimal historyPrevious = resolvePreviousCloseFromHistory(existing, price.date());
-        if (historyPrevious != null && settlement != null && historyPrevious.compareTo(settlement) != 0) {
+        if (historyPrevious != null) {
             return historyPrevious;
         }
 
-        return null;
+        return settlement;
     }
 
     private BigDecimal resolvePreviousCloseFromHistory(Instrument instrument, LocalDate currentDate) {

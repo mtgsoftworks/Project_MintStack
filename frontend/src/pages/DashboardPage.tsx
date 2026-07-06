@@ -431,7 +431,10 @@ export default function DashboardPage() {
   } else if (bistData?.currentPrice != null) {
     bistValue = formatCurrency(bistData.currentPrice, 'TRY')
     bistChange = bistData.changePercent
-    bistTrend = bistData.changePercent >= 0 ? 'up' : 'down'
+    if ((bistChange === undefined || bistChange === null) && bistData.previousClose != null && bistData.previousClose > 0) {
+      bistChange = ((bistData.currentPrice - bistData.previousClose) / bistData.previousClose) * 100
+    }
+    bistTrend = (bistChange ?? 0) >= 0 ? 'up' : 'down'
   } else {
     bistValue = t('dashboard.widgets.bist100.noData')
   }

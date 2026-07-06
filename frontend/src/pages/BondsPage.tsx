@@ -45,23 +45,9 @@ function BondTableSkeleton() {
   )
 }
 
-function hasMeaningfulChange(item: { changeStartDate?: string | null; changeEndDate?: string | null; changePercent?: number }, queryStartDate?: string, queryEndDate?: string) {
-  // Change must be a valid finite number (including 0)
+function hasMeaningfulChange(item: { changePercent?: number }, queryStartDate?: string, queryEndDate?: string) {
   const numeric = Number(item?.changePercent)
-  if (!Number.isFinite(numeric)) {
-    return false
-  }
-  // If query has specific dates, verify backend returned matching date range
-  if (queryStartDate && queryEndDate) {
-    // If backend returned dates, they must match the query
-    if (item.changeStartDate && item.changeEndDate) {
-      return item.changeStartDate >= queryStartDate && item.changeEndDate === queryEndDate
-    }
-    // If backend didn't return dates but has a valid change value, show it
-    // This handles cases like BIST 100 where change is calculated but dates aren't set
-    return true
-  }
-  return true
+  return Number.isFinite(numeric)
 }
 
 export default function BondsPage() {
