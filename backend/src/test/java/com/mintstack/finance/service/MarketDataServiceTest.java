@@ -300,8 +300,8 @@ class MarketDataServiceTest {
     @Test
     @DisplayName("getCurrencyHistory should return rates within date range")
     void getCurrencyHistory_ShouldReturnRatesInDateRange() {
-        LocalDate startDate = istanbulDate().minusDays(7);
-        LocalDate endDate = istanbulDate();
+        LocalDate startDate = LocalDate.now().minusDays(7);
+        LocalDate endDate = LocalDate.now();
         
         when(currencyRateRepository.findHistoryByCurrencyCode(
                 eq("USD"), eq(RateSource.TCMB), any(LocalDateTime.class), any(LocalDateTime.class)))
@@ -391,7 +391,7 @@ class MarketDataServiceTest {
     void getInstrumentsByType_WithPagination_ShouldCalculateChangeFromRequestedDateRange() {
         Pageable pageable = PageRequest.of(0, 10);
         LocalDate startDate = LocalDate.of(2026, 5, 1);
-        LocalDate endDate = istanbulDate();
+        LocalDate endDate = LocalDate.now();
         thyaoStock.setCurrentPrice(new BigDecimal("120.000000"));
         thyaoStock.setPreviousClose(new BigDecimal("119.000000"));
 
@@ -421,14 +421,14 @@ class MarketDataServiceTest {
         assertThat(response.getChange()).isEqualByComparingTo(new BigDecimal("20.000000"));
         assertThat(response.getChangePercent()).isEqualByComparingTo(new BigDecimal("20.000000"));
         assertThat(response.getChangeStartDate()).isEqualTo(startDate);
-        assertThat(response.getChangeEndDate()).isEqualTo(istanbulDate());
+        assertThat(response.getChangeEndDate()).isEqualTo(LocalDate.now());
     }
 
     @Test
     @DisplayName("getInstrumentsByType with 1D range should calculate change from today's open")
     void getInstrumentsByType_WithOneDayRange_ShouldCalculateChangeFromTodayOpen() {
         Pageable pageable = PageRequest.of(0, 10);
-        LocalDate today = istanbulDate();
+        LocalDate today = LocalDate.now();
         thyaoStock.setCurrentPrice(new BigDecimal("120.000000"));
         thyaoStock.setPreviousClose(new BigDecimal("109.000000"));
 
@@ -465,7 +465,7 @@ class MarketDataServiceTest {
     @DisplayName("getInstrumentsByType with 1D range should use latest session open when today's history is synthetic")
     void getInstrumentsByType_WithOneDayRange_ShouldUseLatestSessionOpenForSyntheticTodayHistory() {
         Pageable pageable = PageRequest.of(0, 10);
-        LocalDate today = istanbulDate();
+        LocalDate today = LocalDate.now();
         thyaoStock.setCurrentPrice(new BigDecimal("120.000000"));
         thyaoStock.setPreviousClose(new BigDecimal("120.000000"));
 

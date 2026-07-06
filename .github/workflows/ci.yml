@@ -57,6 +57,7 @@ jobs:
         run: ./mvnw -B -ntp clean test -DskipITs=true
         env:
           SPRING_PROFILES_ACTIVE: test
+          TZ: Europe/Istanbul
 
   frontend:
     name: Frontend Build
