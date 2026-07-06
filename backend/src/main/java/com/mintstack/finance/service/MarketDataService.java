@@ -224,7 +224,6 @@ public class MarketDataService {
     }
 
     // Instruments
-    @Cacheable(value = "instruments", key = "#type.name() + '-' + @simulationDataService.isSimulationEnabled()")
     @Transactional(readOnly = true)
     public List<InstrumentResponse> getInstrumentsByType(InstrumentType type) {
         return getInstrumentsByType(type, null, null);
@@ -833,12 +832,10 @@ public class MarketDataService {
             return new CurrencyRateChange(null, null, null, null);
         }
 
-        CurrencyRate startRate = findCurrencyRateAtOrBefore(
-            currentRate.getCurrencyCode(),
-            currentRate.getSource(),
-            changeRange.startDate().atTime(23, 59, 59)
-        );
-        CurrencyRate endRate = changeRange.endDate().isBefore(LocalDate.now())
+        LocalDate today = LocalDate.now();
+        boolean isSingleDayOrToday = changeRange.startDate().isEqual(today) || changeRange.startDate().isEqual(changeRange.endDate());
+
+        CurrencyRate endRate = changeRange.endDate().isBefore(today)
             ? findCurrencyRateAtOrBefore(
                 currentRate.getCurrencyCode(),
                 currentRate.getSource(),
@@ -846,8 +843,73 @@ public class MarketDataService {
             )
             : currentRate;
 
-        if (startRate == null || endRate == null) {
+        if (endRate == null) {
             return new CurrencyRateChange(null, null, null, null);
+        }
+
+        CurrencyRate startRate = null;
+
+        if (isSingleDayOrToday) {
+            List<CurrencyRate> previous = currencyRateRepository.findPreviousRatesByRateDate(
+                currentRate.getCurrencyCode(),
+                currentRate.getSource(),
+                endRate.getRateDate() != null ? endRate.getRateDate() : LocalDateTime.now(),
+                BigDecimal.ZERO,
+                PageRequest.of(0, 1)
+            );
+            if (!previous.isEmpty()) {
+                startRate = previous.get(0);
+            }
+        }
+
+        if (startRate == null) {
+            startRate = findCurrencyRateAtOrBefore(
+                currentRate.getCurrencyCode(),
+                currentRate.getSource(),
+                changeRange.startDate().atTime(23, 59, 59)
+            );
+        }
+
+        if (startRate == null) {
+            List<CurrencyRate> earliest = currencyRateRepository.findEarliestAtOrAfter(
+                currentRate.getCurrencyCode(),
+                currentRate.getSource(),
+                changeRange.startDate().atStartOfDay(),
+                BigDecimal.ZERO,
+                PageRequest.of(0, 1)
+            );
+            if (!earliest.isEmpty()) {
+                startRate = earliest.get(0);
+            }
+        }
+
+        if (startRate == null) {
+            List<CurrencyRate> earliestEver = currencyRateRepository.findEarliestRate(
+                currentRate.getCurrencyCode(),
+                currentRate.getSource(),
+                BigDecimal.ZERO,
+                PageRequest.of(0, 1)
+            );
+            if (!earliestEver.isEmpty()) {
+                startRate = earliestEver.get(0);
+            }
+        }
+
+        if (startRate == null) {
+            return new CurrencyRateChange(null, null, null, null);
+        }
+
+        if (startRate.getId() != null && endRate.getId() != null && startRate.getId().equals(endRate.getId())) {
+            List<CurrencyRate> previous = currencyRateRepository.findPreviousRatesByRateDate(
+                currentRate.getCurrencyCode(),
+                currentRate.getSource(),
+                endRate.getRateDate() != null ? endRate.getRateDate() : LocalDateTime.now(),
+                BigDecimal.ZERO,
+                PageRequest.of(0, 1)
+            );
+            if (!previous.isEmpty()) {
+                startRate = previous.get(0);
+            }
         }
 
         BigDecimal start = positiveOrFallback(startRate.getSellingRate(), startRate.getBuyingRate());
@@ -1292,12 +1354,39 @@ public class MarketDataService {
                 date,
                 PageRequest.of(0, 1)
             );
-        if (history == null || history.isEmpty()) {
-            return null;
+        if (history != null && !history.isEmpty()) {
+            PriceHistory point = history.get(0);
+            BigDecimal price = positiveOrFallback(point.getAdjustedClose(), point.getClosePrice());
+            if (price != null) {
+                return new PricePoint(price, point.getPriceDate());
+            }
         }
-        PriceHistory point = history.get(0);
-        BigDecimal price = positiveOrFallback(point.getAdjustedClose(), point.getClosePrice());
-        return price != null ? new PricePoint(price, point.getPriceDate()) : null;
+        List<PriceHistory> after = priceHistoryRepository
+            .findByInstrumentIdAndPriceDateGreaterThanEqualOrderByPriceDateAsc(
+                instrumentId,
+                date,
+                PageRequest.of(0, 1)
+            );
+        if (after != null && !after.isEmpty()) {
+            PriceHistory point = after.get(0);
+            BigDecimal price = positiveOrFallback(point.getAdjustedClose(), point.getClosePrice());
+            if (price != null) {
+                return new PricePoint(price, point.getPriceDate());
+            }
+        }
+        List<PriceHistory> earliest = priceHistoryRepository
+            .findByInstrumentIdOrderByPriceDateAsc(
+                instrumentId,
+                PageRequest.of(0, 1)
+            );
+        if (earliest != null && !earliest.isEmpty()) {
+            PriceHistory point = earliest.get(0);
+            BigDecimal price = positiveOrFallback(point.getAdjustedClose(), point.getClosePrice());
+            if (price != null) {
+                return new PricePoint(price, point.getPriceDate());
+            }
+        }
+        return null;
     }
 
     private PriceHistoryResponse mapToPriceHistoryResponse(PriceHistory history) {

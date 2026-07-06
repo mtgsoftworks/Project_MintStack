@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 export const MARKET_CHANGE_PERIODS = [
-  { value: '1D', days: 0 },
+  { value: '1D', days: 1 },
   { value: '1W', days: 7 },
   { value: '1M', days: 30 },
   { value: '3M', days: 90 },
