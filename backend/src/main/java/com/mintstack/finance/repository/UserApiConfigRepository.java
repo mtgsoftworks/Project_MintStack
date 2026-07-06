@@ -15,4 +15,5 @@ public interface UserApiConfigRepository extends JpaRepository<UserApiConfig, UU
     List<UserApiConfig> findByProviderAndIsActiveTrue(UserApiConfig.ApiProvider provider);
     Optional<UserApiConfig> findTopByProviderAndIsActiveTrueOrderByUpdatedAtDesc(UserApiConfig.ApiProvider provider);
     Optional<UserApiConfig> findByUserIdAndProviderAndIsActiveTrue(UUID userId, UserApiConfig.ApiProvider provider);
+    boolean existsByIsActiveTrue();
 }

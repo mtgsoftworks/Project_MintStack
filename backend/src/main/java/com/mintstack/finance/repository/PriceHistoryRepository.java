@@ -74,6 +74,12 @@ public interface PriceHistoryRepository extends JpaRepository<PriceHistory, UUID
     List<PriceHistory> findByInstrumentIdAndPriceDateLessThanEqualOrderByPriceDateDesc(
             UUID instrumentId, LocalDate priceDate, Pageable pageable);
 
+    List<PriceHistory> findByInstrumentIdAndPriceDateGreaterThanEqualOrderByPriceDateAsc(
+            UUID instrumentId, LocalDate priceDate, Pageable pageable);
+
+    List<PriceHistory> findByInstrumentIdOrderByPriceDateAsc(
+            UUID instrumentId, Pageable pageable);
+
     @Query("SELECT ph FROM PriceHistory ph WHERE ph.instrument.symbol = :symbol " +
            "AND ph.priceDate BETWEEN :startDate AND :endDate ORDER BY ph.priceDate ASC")
     List<PriceHistory> findBySymbolAndDateRange(

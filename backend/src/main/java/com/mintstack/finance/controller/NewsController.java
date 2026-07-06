@@ -98,6 +98,13 @@ public class NewsController {
         return ResponseEntity.ok(ApiResponse.success(categories));
     }
 
+    @PostMapping("/refresh")
+    @Operation(summary = "Haberleri manuel olarak dış kaynaklardan yenile")
+    public ResponseEntity<ApiResponse<Void>> refreshNews() {
+        newsService.fetchNewsManually();
+        return ResponseEntity.ok(ApiResponse.success(null, "Haberler başarıyla güncellendi"));
+    }
+
     @PostMapping("/{id}/view")
     @Operation(summary = "Haber görüntülenme sayısını artır")
     public ResponseEntity<ApiResponse<Void>> incrementViewCount(@PathVariable UUID id) {

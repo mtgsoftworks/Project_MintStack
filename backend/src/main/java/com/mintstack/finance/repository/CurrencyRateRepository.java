@@ -42,13 +42,34 @@ public interface CurrencyRateRepository extends JpaRepository<CurrencyRate, UUID
             Pageable pageable);
 
     @Query("SELECT c FROM CurrencyRate c WHERE c.currencyCode = :code " +
-           "AND c.source = :source AND c.fetchedAt <= :at " +
+           "AND c.source = :source AND c.rateDate <= :at " +
            "AND (c.sellingRate > :minimumRate OR c.buyingRate > :minimumRate) " +
-           "ORDER BY c.fetchedAt DESC")
+           "ORDER BY c.rateDate DESC, c.fetchedAt DESC")
     List<CurrencyRate> findLatestAtOrBefore(
             @Param("code") String currencyCode,
             @Param("source") RateSource source,
             @Param("at") LocalDateTime at,
+            @Param("minimumRate") BigDecimal minimumRate,
+            Pageable pageable);
+
+    @Query("SELECT c FROM CurrencyRate c WHERE c.currencyCode = :code " +
+           "AND c.source = :source AND c.rateDate >= :at " +
+           "AND (c.sellingRate > :minimumRate OR c.buyingRate > :minimumRate) " +
+           "ORDER BY c.rateDate ASC, c.fetchedAt ASC")
+    List<CurrencyRate> findEarliestAtOrAfter(
+            @Param("code") String currencyCode,
+            @Param("source") RateSource source,
+            @Param("at") LocalDateTime at,
+            @Param("minimumRate") BigDecimal minimumRate,
+            Pageable pageable);
+
+    @Query("SELECT c FROM CurrencyRate c WHERE c.currencyCode = :code " +
+           "AND c.source = :source " +
+           "AND (c.sellingRate > :minimumRate OR c.buyingRate > :minimumRate) " +
+           "ORDER BY c.rateDate ASC, c.fetchedAt ASC")
+    List<CurrencyRate> findEarliestRate(
+            @Param("code") String currencyCode,
+            @Param("source") RateSource source,
             @Param("minimumRate") BigDecimal minimumRate,
             Pageable pageable);
 

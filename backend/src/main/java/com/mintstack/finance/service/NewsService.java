@@ -26,6 +26,7 @@ public class NewsService {
 
     private final NewsRepository newsRepository;
     private final NewsCategoryRepository categoryRepository;
+    private final com.mintstack.finance.scheduler.NewsScheduler newsScheduler;
 
     @Cacheable(value = "news", key = "'latest'")
     @Transactional(readOnly = true)
@@ -76,6 +77,16 @@ public class NewsService {
             .stream()
             .map(this::mapToCategoryResponse)
             .collect(Collectors.toList());
+    }
+
+    @org.springframework.cache.annotation.CacheEvict(value = "news", allEntries = true)
+    public void fetchNewsManually() {
+        log.info("Manual news fetch requested");
+        try {
+            newsScheduler.fetchNews();
+        } catch (Exception e) {
+            log.warn("Manual news fetch exception: {}", e.getMessage());
+        }
     }
 
     @Transactional
