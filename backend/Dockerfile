@@ -1,16 +1,3 @@
-# Build stage
-FROM maven:3.9-eclipse-temurin-21-alpine AS build
-WORKDIR /app
-
-# Copy pom.xml first to cache dependencies
-COPY pom.xml .
-RUN mvn dependency:go-offline -B
-
-# Copy source and build
-COPY src ./src
-RUN mvn clean package -DskipUTs=true -DskipITs=true -Djacoco.skip=true -B
-
-# Runtime stage
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
@@ -21,8 +8,8 @@ RUN apk add --no-cache curl
 RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 
-# Copy the built jar and entrypoint
-COPY --from=build /app/target/*.jar app.jar
+# Copy pre-built jar and entrypoint
+COPY target/*.jar app.jar
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 
