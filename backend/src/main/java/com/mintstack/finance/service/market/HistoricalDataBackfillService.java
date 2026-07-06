@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
@@ -47,6 +48,7 @@ public class HistoricalDataBackfillService {
     private final TcmbApiClient tcmbApiClient;
     private final BistDataStoreMarketDataService bistDataStoreMarketDataService;
 
+    @Transactional
     public HistoricalDataBackfillResponse backfill(HistoricalDataBackfillRequest request) {
         BackfillWindow window = resolveWindow(request);
         Set<InstrumentType> requestedTypes = resolveTypes(request);
@@ -244,23 +246,24 @@ public class HistoricalDataBackfillService {
 
     private boolean savePriceHistoryWithRetry(PriceHistory item) {
         RuntimeException lastFailure = null;
-        for (int attempt = 1; attempt <= 2; attempt++) {
+        for (int attempt = 1; attempt <= 3; attempt++) {
             try {
                 marketDataService.savePriceHistory(item);
                 return true;
             } catch (OptimisticLockingFailureException error) {
                 lastFailure = error;
-                log.debug("Retrying historical row save for {} on {} after optimistic lock conflict",
-                    item.getInstrument().getSymbol(), item.getPriceDate());
+                if (attempt < 3) {
+                    log.debug("Retrying historical row save for {} on {} (attempt {}/3) after optimistic lock conflict",
+                        item.getInstrument().getSymbol(), item.getPriceDate(), attempt);
+                }
             } catch (DataIntegrityViolationException error) {
-                lastFailure = error;
-                log.warn("Skipping historical row for {} on {} because of data conflict: {}",
+                log.debug("Skipping duplicate historical row for {} on {}: {}",
                     item.getInstrument().getSymbol(), item.getPriceDate(), error.getMessage());
-                return false;
+                return true; // Already exists, not an error
             }
         }
 
-        log.warn("Skipping historical row for {} on {} after concurrent update conflict: {}",
+        log.debug("Skipping historical row for {} on {} after {} concurrent update conflicts",
             item.getInstrument().getSymbol(),
             item.getPriceDate(),
             lastFailure != null ? lastFailure.getMessage() : "unknown");
