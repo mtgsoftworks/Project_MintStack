@@ -10,7 +10,7 @@ import {
     TableHeader,
     TableRow
 } from '@/components/ui/table'
-import { formatCurrency, formatDate, formatNumber } from '@/lib/utils'
+import { formatCurrency, formatUserCurrency, formatDate, formatNumber } from '@/lib/utils'
 
 type OrderType = 'LIMIT' | 'STOP' | 'MARKET'
 type OrderStatus = 'PENDING' | 'PARTIALLY_FILLED' | 'FILLED' | 'CANCELED' | 'REJECTED'
@@ -181,10 +181,10 @@ export function PortfolioTransactionsCard({
                                             </TableCell>
                                             <TableCell className="text-right">{formatNumber(transaction.quantity)}</TableCell>
                                             <TableCell className="text-right">{formatNumber(transaction.filledQuantity ?? 0)}</TableCell>
-                                            <TableCell className="text-right">{formatCurrency(transaction.averageFillPrice ?? transaction.price, 'TRY')}</TableCell>
-                                            <TableCell className="text-right">{formatCurrency(transaction.grossTotal ?? transaction.total, 'TRY')}</TableCell>
-                                            <TableCell className="text-right text-muted-foreground">{formatCurrency(transaction.commissionAmount ?? 0, 'TRY')}</TableCell>
-                                            <TableCell className="text-right font-semibold">{formatCurrency(transaction.netTotal ?? transaction.total, 'TRY')}</TableCell>
+                                            <TableCell className="text-right">{formatUserCurrency(transaction.averageFillPrice ?? transaction.price)}</TableCell>
+                                            <TableCell className="text-right">{formatUserCurrency(transaction.grossTotal ?? transaction.total)}</TableCell>
+                                            <TableCell className="text-right text-muted-foreground">{formatUserCurrency(transaction.commissionAmount ?? 0)}</TableCell>
+                                            <TableCell className="text-right font-semibold">{formatUserCurrency(transaction.netTotal ?? transaction.total)}</TableCell>
                                             <TableCell>
                                                 {(transaction.orderStatus === 'PENDING' || transaction.orderStatus === 'PARTIALLY_FILLED') ? (
                                                     <Button

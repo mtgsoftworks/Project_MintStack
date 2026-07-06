@@ -384,10 +384,15 @@ export default function DashboardPage() {
       const requests: Promise<unknown>[] = []
 
       // Only refetch if the query was actually used (not skipped)
-      if (refetchCurrencies) requests.push(refetchCurrencies())
-      if (refetchBist) requests.push(refetchBist())
+      // Wrap each refetch in try-catch to handle "query not started" error
+      if (refetchCurrencies) {
+        try { requests.push(refetchCurrencies()) } catch {}
+      }
+      if (refetchBist) {
+        try { requests.push(refetchBist()) } catch {}
+      }
       if (isAuthenticated && refetchPortfolios) {
-        requests.push(refetchPortfolios())
+        try { requests.push(refetchPortfolios()) } catch {}
       }
 
       if (requests.length > 0) {

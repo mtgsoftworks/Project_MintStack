@@ -3,7 +3,7 @@ import { Sparkles, TrendingUp, TrendingDown, Clock, ChevronDown, ChevronUp } fro
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { cn, formatCurrency, formatPercent } from '@/lib/utils'
+import { cn, formatCurrency, formatUserCurrency, formatPercent } from '@/lib/utils'
 import { useGetCurrenciesQuery, useGetStocksQuery, useGetBondsQuery, useGetFundsQuery, useGetViopQuery } from '@/store/api/marketApi'
 
 interface PortfolioItem {
@@ -220,17 +220,17 @@ export function PortfolioWhatIfWidget({ items = [] }: PortfolioWhatIfWidgetProps
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" /> {PERIOD_LABELS[period]} Tahmini Değeri
             </p>
-            <p className="text-xl font-bold mt-1">{formatCurrency(totalThen, 'TRY')}</p>
+            <p className="text-xl font-bold mt-1">{formatUserCurrency(totalThen)}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Bugünkü Portföy Değeri</p>
-            <p className="text-xl font-bold mt-1">{formatCurrency(totalNow, 'TRY')}</p>
+            <p className="text-xl font-bold mt-1">{formatUserCurrency(totalNow)}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Potansiyel Fark / Kazanç</p>
             <div className="flex items-center gap-2 mt-1">
               <span className={cn('text-xl font-bold', isPositive ? 'text-success' : 'text-danger')}>
-                {isPositive ? '+' : ''}{formatCurrency(totalDiff, 'TRY')}
+                {isPositive ? '+' : ''}{formatUserCurrency(totalDiff)}
               </span>
               <Badge variant={isPositive ? 'success' : 'danger'} className="flex items-center gap-1">
                 {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
@@ -248,7 +248,7 @@ export function PortfolioWhatIfWidget({ items = [] }: PortfolioWhatIfWidgetProps
             : 'border-danger/20 bg-danger/10 text-danger'
         )}>
           <span>
-            💡 Portföyünüzdeki varlıkları <strong>{PERIOD_LABELS[period].toLowerCase()}</strong> almış olsaydınız, bugünkü portföy değeriniz <strong>{formatCurrency(Math.abs(totalDiff), 'TRY')} ({formatPercent(Math.abs(totalDiffPercent))})</strong> {isPositive ? 'daha kârlı' : 'daha zararda'} olacaktı.
+            💡 Portföyünüzdeki varlıkları <strong>{PERIOD_LABELS[period].toLowerCase()}</strong> almış olsaydınız, bugünkü portföy değeriniz <strong>{formatUserCurrency(Math.abs(totalDiff))} ({formatPercent(Math.abs(totalDiffPercent))})</strong> {isPositive ? 'daha kârlı' : 'daha zararda'} olacaktı.
           </span>
           <Button
             size="sm"
@@ -277,11 +277,11 @@ export function PortfolioWhatIfWidget({ items = [] }: PortfolioWhatIfWidgetProps
                     <div className="flex items-center gap-4 text-right">
                       <div>
                         <p className="text-muted-foreground text-[11px]">{PERIOD_LABELS[period]} Fiyatı</p>
-                        <p className="font-medium">{formatCurrency(item.historicalUnitPrice, 'TRY')}</p>
+                        <p className="font-medium">{formatUserCurrency(item.historicalUnitPrice)}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground text-[11px]">Bugünkü Fiyat</p>
-                        <p className="font-semibold">{formatCurrency(item.currentPrice, 'TRY')}</p>
+                        <p className="font-semibold">{formatUserCurrency(item.currentPrice)}</p>
                       </div>
                       <div className="min-w-[90px]">
                         <p className="text-muted-foreground text-[11px]">Fark</p>

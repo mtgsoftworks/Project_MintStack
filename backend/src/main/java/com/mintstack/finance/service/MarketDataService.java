@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -50,6 +51,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @io.micrometer.observation.annotation.Observed(name = "market.data.service", contextualName = "market-data-operations")
 public class MarketDataService {
+
+    // Use Istanbul timezone for all date operations to ensure consistency
+    private static final ZoneId ISTANBUL_TZ = ZoneId.of("Europe/Istanbul");
+
+    private LocalDate istanbulDate() {
+        return LocalDate.now(ISTANBUL_TZ);
+    }
 
     private final InstrumentRepository instrumentRepository;
     private final CurrencyRateRepository currencyRateRepository;
@@ -420,7 +428,7 @@ public class MarketDataService {
 
     @Transactional(readOnly = true)
     public List<PriceHistoryResponse> getRecentPriceHistory(String symbol, int days) {
-        LocalDate endDate = LocalDate.now();
+        LocalDate endDate = istanbulDate();
         LocalDate startDate = endDate.minusDays(days);
         return getPriceHistory(symbol, startDate, endDate);
     }
@@ -485,7 +493,7 @@ public class MarketDataService {
                     change = price.subtract(previousClose);
                     changePercent = change.divide(previousClose, 4, RoundingMode.HALF_UP).multiply(new BigDecimal("100"));
                 } else if (instrument != null && instrument.getId() != null) {
-                    PricePoint prevPoint = findPricePointAtOrBefore(instrument.getId(), LocalDate.now().minusDays(1));
+                    PricePoint prevPoint = findPricePointAtOrBefore(instrument.getId(), istanbulDate().minusDays(1));
                     if (prevPoint != null && prevPoint.price() != null && prevPoint.price().compareTo(BigDecimal.ZERO) > 0) {
                         previousClose = prevPoint.price();
                         change = price.subtract(previousClose);
@@ -849,7 +857,7 @@ public class MarketDataService {
             return new CurrencyRateChange(null, null, null, null);
         }
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = istanbulDate();
         boolean isSingleDayOrToday = changeRange.startDate().isEqual(today) || changeRange.startDate().isEqual(changeRange.endDate());
 
         CurrencyRate endRate = changeRange.endDate().isBefore(today)
@@ -1056,7 +1064,7 @@ public class MarketDataService {
             instrument.getPreviousClose()
         );
         if (previousClose == null && instrument.getId() != null) {
-            PricePoint prevPoint = findPricePointAtOrBefore(instrument.getId(), LocalDate.now().minusDays(1));
+            PricePoint prevPoint = findPricePointAtOrBefore(instrument.getId(), istanbulDate().minusDays(1));
             if (prevPoint != null && isPositive(prevPoint.price())) {
                 previousClose = prevPoint.price();
             }
@@ -1127,6 +1135,8 @@ public class MarketDataService {
             List<Instrument> instruments,
             Map<UUID, InstrumentMetricsService.InstrumentMetrics> metricsByInstrument,
             ChangeDateRange changeRange) {
+        log.debug("resolveBatchRangeChanges called with changeRange={}, instruments.size={}", changeRange, instruments.size());
+
         if (changeRange == null || instruments.isEmpty()) {
             return Map.of();
         }
@@ -1139,7 +1149,46 @@ public class MarketDataService {
             return Map.of();
         }
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = istanbulDate();
+
+        // For VIOP/BOND/FUND instruments with endDate = today, use previousClose directly for change calculation
+        // This ensures correct daily change calculation even when intraday history is incomplete
+        boolean allViopBondOrFund = instruments.stream()
+                .allMatch(i -> i.getType() == InstrumentType.VIOP
+                    || i.getType() == InstrumentType.BOND
+                    || i.getType() == InstrumentType.FUND);
+
+        log.debug("allViopBondOrFund={} for types={}",
+            allViopBondOrFund, instruments.stream().map(Instrument::getType).distinct().toList());
+
+        if (allViopBondOrFund && changeRange.endDate().isEqual(today)) {
+            log.debug("Taking VIOP/BOND/FUND fast path with previousClose for change calculation");
+            Map<UUID, InstrumentRangeChange> result = new java.util.HashMap<>();
+            instruments.forEach(instrument -> {
+                BigDecimal currentPrice = instrumentMetricsService.resolveMetrics(instrument).currentPrice();
+                BigDecimal previousClose = instrument.getPreviousClose();
+                log.debug("VIOP/BOND/FUND instrument {}: currentPrice={}, previousClose={}",
+                    instrument.getSymbol(), currentPrice, previousClose);
+                if (isPositive(currentPrice) && isPositive(previousClose)) {
+                    BigDecimal change = currentPrice.subtract(previousClose);
+                    BigDecimal changePercent = change
+                            .divide(previousClose, 6, RoundingMode.HALF_UP)
+                            .multiply(new BigDecimal("100"));
+                    result.put(instrument.getId(), new InstrumentRangeChange(
+                            change,
+                            changePercent,
+                            previousClose,
+                            changeRange.startDate(),
+                            changeRange.endDate()
+                    ));
+                } else {
+                    result.put(instrument.getId(), InstrumentRangeChange.empty());
+                }
+            });
+            log.debug("VIOP/BOND/FUND fast path returning {} results", result.size());
+            return result;
+        }
+
         Map<UUID, PricePoint> startPoints = new java.util.HashMap<>();
         if (changeRange.startDate().isEqual(today)) {
             instruments.forEach(instrument -> {
@@ -1264,7 +1313,7 @@ public class MarketDataService {
             return InstrumentRangeChange.empty();
         }
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = istanbulDate();
         PricePoint startPoint = changeRange.startDate().isEqual(today)
             ? findOpeningPricePoint(instrument.getId(), today, openingBasePrice)
             : findPricePointAtOrBefore(instrument.getId(), changeRange.startDate());
@@ -1286,10 +1335,25 @@ public class MarketDataService {
             }
         }
 
-        // For 1-day range queries, always use previousClose as start point
-        // This ensures we show the actual daily change even when historical data has gaps (weekends, holidays)
-        if (changeRange.endDate().isEqual(LocalDate.now()) && isPositive(instrument.getPreviousClose())) {
-            startPoint = new PricePoint(instrument.getPreviousClose(), changeRange.startDate());
+        // For VIOP/BOND/FUND instruments with endDate = today, use previousClose as start point
+        // These instruments lack proper intraday historical data, so we use previousClose directly
+        boolean isViopBondOrFund = instrument.getType() == InstrumentType.VIOP
+            || instrument.getType() == InstrumentType.BOND
+            || instrument.getType() == InstrumentType.FUND;
+
+        if (isViopBondOrFund && changeRange.endDate().isEqual(today) && isPositive(instrument.getPreviousClose())) {
+            // Use previousClose for VIOP/BOND/FUND queries ending today, with query dates
+            BigDecimal change = currentPrice.subtract(instrument.getPreviousClose());
+            BigDecimal changePercent = change
+                .divide(instrument.getPreviousClose(), 6, RoundingMode.HALF_UP)
+                .multiply(new BigDecimal("100"));
+            return new InstrumentRangeChange(
+                change,
+                changePercent,
+                instrument.getPreviousClose(),
+                changeRange.startDate(),   // Use query start date
+                changeRange.endDate()       // Use query end date
+            );
         } else if (startPoint == null || (endPoint != null && startPoint.date() != null && startPoint.date().isEqual(endPoint.date()))) {
             // For same-day historical range, use openingBasePrice or previousClose
             if (isPositive(openingBasePrice)) {
@@ -1437,7 +1501,7 @@ public class MarketDataService {
             return null;
         }
 
-        LocalDate resolvedEnd = endDate != null ? endDate : LocalDate.now();
+        LocalDate resolvedEnd = endDate != null ? endDate : istanbulDate();
         LocalDate resolvedStart = startDate != null ? startDate : resolvedEnd.minusDays(1);
 
         if (resolvedStart.isAfter(resolvedEnd)) {

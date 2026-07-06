@@ -39,9 +39,14 @@ export function useMarketDataRefresh(dataTypes: string[]) {
       } finally {
         if (refetchAfterRefresh) {
           try {
-            await Promise.resolve(refetchAfterRefresh())
+            // Wrap in timeout to ensure query is registered in RTK Query state
+            setTimeout(() => {
+              Promise.resolve(refetchAfterRefresh()).catch(() => {
+                // Ignore refetch errors - query might not be started yet
+              })
+            }, 100)
           } catch (refetchError) {
-            console.warn('Refetch after refresh failed:', refetchError)
+            // Silently ignore refetch errors
           }
         }
       }

@@ -132,8 +132,15 @@ public class HistoricalDataBackfillService {
             stats.warnings.add(instrument.getSymbol() + " icin tarihsel kaynak desteklenmiyor.");
             return 0;
         } catch (Exception error) {
-            log.warn("Historical backfill failed for {}: {}", instrument.getSymbol(), error.getMessage());
-            stats.warnings.add(instrument.getSymbol() + " atlandi: " + error.getMessage());
+            // Check if it's a rate limit error
+            String errorMsg = error.getMessage() != null ? error.getMessage().toLowerCase() : "";
+            if (errorMsg.contains("rate limit") || errorMsg.contains("429") || errorMsg.contains("too many request")) {
+                stats.warnings.add("YASHO Finance rate limit asildi " + instrument.getSymbol() + " icin. Devam ediliyor...");
+                log.warn("Yahoo Finance rate limit hatasi {}: {}", instrument.getSymbol(), error.getMessage());
+            } else {
+                log.warn("Historical backfill failed for {}: {}", instrument.getSymbol(), error.getMessage());
+                stats.warnings.add(instrument.getSymbol() + " atlandi: " + error.getMessage());
+            }
             return 0;
         }
     }
@@ -152,29 +159,44 @@ public class HistoricalDataBackfillService {
             ));
         Map<String, Integer> savedBySymbol = new LinkedHashMap<>();
         int saved = 0;
+        int rateLimitWarnings = 0;
 
         for (LocalDate date = window.startDate(); !date.isAfter(window.endDate()); date = date.plusDays(1)) {
             if (isWeekend(date)) {
                 continue;
             }
 
-            List<TefasFundPrice> prices = tefasFundClient.fetchFundPrices(date);
-            for (TefasFundPrice price : prices) {
-                Instrument instrument = selectedFunds.get(normalizeSymbol(price.fundCode()));
-                if (instrument == null) {
-                    continue;
+            try {
+                List<TefasFundPrice> prices = tefasFundClient.fetchFundPrices(date);
+                for (TefasFundPrice price : prices) {
+                    Instrument instrument = selectedFunds.get(normalizeSymbol(price.fundCode()));
+                    if (instrument == null) {
+                        continue;
+                    }
+                    try {
+                        upsertFundPrice(instrument, price);
+                        saved++;
+                        savedBySymbol.merge(instrument.getSymbol(), 1, Integer::sum);
+                    } catch (OptimisticLockingFailureException error) {
+                        String warning = instrument.getSymbol() + " " + date
+                            + " fiyat satiri es zamanli guncelleme nedeniyle atlandi.";
+                        stats.warnings.add(warning);
+                        log.debug("{} {}", warning, error.getMessage());
+                    }
+                    // DataIntegrityViolationException is NOT caught here - let it propagate
+                    // This ensures we always try to insert/update, never silently skip
                 }
-                try {
-                    upsertFundPrice(instrument, price);
-                    saved++;
-                    savedBySymbol.merge(instrument.getSymbol(), 1, Integer::sum);
-                } catch (OptimisticLockingFailureException | DataIntegrityViolationException error) {
-                    String warning = instrument.getSymbol() + " " + date
-                        + " fiyat satiri es zamanli guncelleme nedeniyle atlandi.";
-                    stats.warnings.add(warning);
-                    log.warn("{} {}", warning, error.getMessage());
-                }
+            } catch (Exception error) {
+                // Rate limit or API error - log warning and continue with next date
+                rateLimitWarnings++;
+                String warning = "TEFAS " + date + " icin veri cekilemedi: " + error.getMessage();
+                stats.warnings.add(warning);
+                log.warn("Rate limit veya API hatasi: {}", error.getMessage());
             }
+        }
+
+        if (rateLimitWarnings > 0) {
+            log.warn("Backfill sirasinda {} tarih icin TEFAS API rate limit veya baglanti hatasi olustu.", rateLimitWarnings);
         }
 
         for (Instrument instrument : instruments) {
@@ -256,11 +278,9 @@ public class HistoricalDataBackfillService {
                     log.debug("Retrying historical row save for {} on {} (attempt {}/3) after optimistic lock conflict",
                         item.getInstrument().getSymbol(), item.getPriceDate(), attempt);
                 }
-            } catch (DataIntegrityViolationException error) {
-                log.debug("Skipping duplicate historical row for {} on {}: {}",
-                    item.getInstrument().getSymbol(), item.getPriceDate(), error.getMessage());
-                return true; // Already exists, not an error
             }
+            // NOTE: DataIntegrityViolationException is NOT caught here
+            // This allows savePriceHistory to upsert existing records instead of skipping
         }
 
         log.debug("Skipping historical row for {} on {} after {} concurrent update conflicts",

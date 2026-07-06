@@ -10,7 +10,7 @@ import {
     TableRow
 } from '@/components/ui/table'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn, formatCurrency, formatNumber, formatPercent } from '@/lib/utils'
+import { cn, formatCurrency, formatUserCurrency, formatNumber, formatPercent } from '@/lib/utils'
 
 export function PortfolioItemsTable({ t, items, onOpenAddDialog, onSellItem }) {
     return (
@@ -67,10 +67,10 @@ export function PortfolioItemsTable({ t, items, onOpenAddDialog, onSellItem }) {
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-right">{formatNumber(item.quantity)}</TableCell>
-                                        <TableCell className="text-right">{formatCurrency(item.purchasePrice, 'TRY')}</TableCell>
-                                        <TableCell className="text-right">{formatCurrency(item.currentPrice, 'TRY')}</TableCell>
+                                        <TableCell className="text-right">{formatUserCurrency(item.purchasePrice)}</TableCell>
+                                        <TableCell className="text-right">{formatUserCurrency(item.currentPrice)}</TableCell>
                                         <TableCell className="text-right font-semibold">
-                                            {formatCurrency(item.currentValue, 'TRY')}
+                                            {formatUserCurrency(item.currentValue)}
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex flex-col items-end">
@@ -78,7 +78,7 @@ export function PortfolioItemsTable({ t, items, onOpenAddDialog, onSellItem }) {
                                                     'font-medium',
                                                     item.profitLoss >= 0 ? 'text-success' : 'text-danger'
                                                 )}>
-                                                    {formatCurrency(item.profitLoss, 'TRY')}
+                                                    {formatUserCurrency(item.profitLoss)}
                                                 </span>
                                                 <Badge variant={item.profitLossPercent >= 0 ? 'success' : 'danger'} className="mt-1">
                                                     {formatPercent(item.profitLossPercent)}

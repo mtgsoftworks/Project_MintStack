@@ -111,6 +111,7 @@ public class BistDataStoreMarketDataService {
         }
         Predicate<String> filter = symbolFilter(symbols);
         int saved = 0;
+        int rateLimitCount = 0;
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
             if (isWeekend(date)) {
                 continue;
@@ -118,8 +119,17 @@ public class BistDataStoreMarketDataService {
             try {
                 saved += upsertBondPrices(bistDataStoreClient.fetchBondPrices(date), filter, maxInstruments);
             } catch (Exception error) {
-                log.debug("BIST DataStore bond backfill skipped for {}: {}", date, error.getMessage());
+                String errorMsg = error.getMessage() != null ? error.getMessage().toLowerCase() : "";
+                if (errorMsg.contains("rate limit") || errorMsg.contains("429") || errorMsg.contains("too many")) {
+                    rateLimitCount++;
+                    log.warn("BIST DataStore BOND rate limit hatasi {} tarihi: {}", date, error.getMessage());
+                } else {
+                    log.debug("BIST DataStore bond backfill skipped for {}: {}", date, error.getMessage());
+                }
             }
+        }
+        if (rateLimitCount > 0) {
+            log.warn("BIST DataStore BOND backfill: {} tarih icin rate limit asildi.", rateLimitCount);
         }
         logBondMaturityEnrichment(enrichBondMaturityMetadata());
         return saved;
@@ -139,6 +149,7 @@ public class BistDataStoreMarketDataService {
         }
         Predicate<String> filter = symbolFilter(symbols);
         int saved = 0;
+        int rateLimitCount = 0;
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
             if (isWeekend(date)) {
                 continue;
@@ -146,8 +157,17 @@ public class BistDataStoreMarketDataService {
             try {
                 saved += upsertViopPrices(bistDataStoreClient.fetchViopPrices(date), filter, maxInstruments);
             } catch (Exception error) {
-                log.debug("BIST DataStore VIOP backfill skipped for {}: {}", date, error.getMessage());
+                String errorMsg = error.getMessage() != null ? error.getMessage().toLowerCase() : "";
+                if (errorMsg.contains("rate limit") || errorMsg.contains("429") || errorMsg.contains("too many")) {
+                    rateLimitCount++;
+                    log.warn("BIST DataStore VIOP rate limit hatasi {} tarihi: {}", date, error.getMessage());
+                } else {
+                    log.debug("BIST DataStore VIOP backfill skipped for {}: {}", date, error.getMessage());
+                }
             }
+        }
+        if (rateLimitCount > 0) {
+            log.warn("BIST DataStore VIOP backfill: {} tarih icin rate limit asildi.", rateLimitCount);
         }
         return saved;
     }

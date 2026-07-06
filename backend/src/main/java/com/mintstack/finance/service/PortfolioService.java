@@ -267,8 +267,30 @@ public class PortfolioService {
         @CacheEvict(value = "portfolios", key = "#portfolioId"),
         @CacheEvict(value = "userPortfolios", key = "#keycloakId")
     })
-    @Transactional
     public PortfolioResponse executeTrade(String keycloakId, UUID portfolioId, ExecutePortfolioTradeRequest request) {
+        // Retry mechanism for optimistic locking conflicts
+        int maxRetries = 3;
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                return executeTradeInternal(keycloakId, portfolioId, request);
+            } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
+                if (attempt == maxRetries) {
+                    throw e;
+                }
+                log.debug("Optimistic lock conflict on trade attempt {}/{} for portfolio {}, retrying...", attempt, maxRetries, portfolioId);
+                try {
+                    Thread.sleep(50 * attempt); // Brief backoff
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Trade interrupted", ie);
+                }
+            }
+        }
+        throw new IllegalStateException("Trade failed after retries");
+    }
+
+    @Transactional
+    protected PortfolioResponse executeTradeInternal(String keycloakId, UUID portfolioId, ExecutePortfolioTradeRequest request) {
         User user = userService.getUserByKeycloakId(keycloakId);
         Portfolio portfolio = portfolioRepository.findByIdAndUserId(portfolioId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Portföy", "id", portfolioId));
