@@ -35,6 +35,7 @@ vi.mock('@/store/api/newsApi', () => ({
     data: { data: [], totalPages: 0 },
     isLoading: false,
   })),
+  useRefreshNewsMutation: vi.fn(() => [vi.fn(), { isLoading: false }]),
 }))
 
 describe('NewsPage', () => {
