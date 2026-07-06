@@ -1,12 +1,17 @@
 package com.mintstack.finance;
 
+import com.mintstack.finance.scheduler.NewsScheduler;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles("test")
 class FinanceApplicationTests {
+
+    @MockBean
+    private NewsScheduler newsScheduler;
 
     @Test
     void contextLoads() {

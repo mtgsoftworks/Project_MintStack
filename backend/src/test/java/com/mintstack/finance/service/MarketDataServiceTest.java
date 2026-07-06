@@ -188,6 +188,21 @@ class MarketDataServiceTest {
             .thenReturn(Optional.empty());
         lenient().when(currencyRateRepository.findPreviousRatesByRateDate(anyString(), any(), any(), any(), any()))
             .thenReturn(List.of());
+
+        // Enable necessary API providers for tests
+        UserApiConfig yahooConfig = UserApiConfig.builder().provider(ApiProvider.YAHOO_FINANCE).isActive(true).build();
+        UserApiConfig tcmbConfig = UserApiConfig.builder().provider(ApiProvider.TCMB).isActive(true).build();
+        UserApiConfig bistConfig = UserApiConfig.builder().provider(ApiProvider.BIST_DATASTORE).isActive(true).build();
+        UserApiConfig tefasConfig = UserApiConfig.builder().provider(ApiProvider.TEFAS).isActive(true).build();
+
+        lenient().when(userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.YAHOO_FINANCE)).thenReturn(List.of(yahooConfig));
+        lenient().when(userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.TCMB)).thenReturn(List.of(tcmbConfig));
+        lenient().when(userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.BIST_DATASTORE)).thenReturn(List.of(bistConfig));
+        lenient().when(userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.TEFAS)).thenReturn(List.of(tefasConfig));
+        // Others remain empty
+        for (ApiProvider provider : List.of(ApiProvider.ALPHA_VANTAGE, ApiProvider.FINNHUB, ApiProvider.FINTABLES)) {
+            lenient().when(userApiConfigRepository.findByProviderAndIsActiveTrue(provider)).thenReturn(List.of());
+        }
     }
 
     // ===================== CURRENCY RATE TESTS =====================
@@ -268,6 +283,8 @@ class MarketDataServiceTest {
     @Test
     @DisplayName("getCurrencyRate should throw exception when currency not found")
     void getCurrencyRate_ShouldThrowException_WhenNotFound() {
+        // No stub needed - findTopByCurrencyCodeAndSourceOrderByFetchedAtDesc returns Optional.empty()
+        // by default (Mockito returns null for unstubbed Optional) or we can use lenient stub
         when(currencyRateRepository.findTopByCurrencyCodeAndSourceOrderByFetchedAtDesc("XYZ", RateSource.TCMB))
                 .thenReturn(Optional.empty());
 

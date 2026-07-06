@@ -47,11 +47,16 @@ class MarketDataProviderResolverTest {
     private MarketDataProviderResolver resolver;
 
     @Test
-    @DisplayName("hasStockProviderForDataType should return true for Yahoo even without user config")
-    void hasStockProviderForDataType_ShouldReturnTrue_ForYahooWithoutConfig() {
-        boolean result = resolver.hasStockProviderForDataType(ApiProvider.YAHOO_FINANCE, null, null, null);
+    @DisplayName("hasStockProviderForDataType should return true only when config is explicitly provided")
+    void hasStockProviderForDataType_ShouldReturnTrue_OnlyWithExplicitConfig() {
+        // Strict behavior: Yahoo requires an explicit config object to be considered available
+        boolean resultWithNull = resolver.hasStockProviderForDataType(ApiProvider.YAHOO_FINANCE, null, null, null);
+        assertThat(resultWithNull).isFalse();
 
-        assertThat(result).isTrue();
+        // With explicit config, it should return true
+        UserApiConfig yahooConfig = new UserApiConfig();
+        boolean resultWithConfig = resolver.hasStockProviderForDataType(ApiProvider.YAHOO_FINANCE, yahooConfig, null, null);
+        assertThat(resultWithConfig).isTrue();
     }
 
     @Test
