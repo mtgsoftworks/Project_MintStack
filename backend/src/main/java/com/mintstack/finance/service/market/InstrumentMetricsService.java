@@ -173,6 +173,7 @@ public class InstrumentMetricsService {
             return false;
         }
         return instrument.getType() == InstrumentType.STOCK
+            || instrument.getType() == InstrumentType.INDEX
             || instrument.getType() == InstrumentType.BOND
             || instrument.getType() == InstrumentType.FUND
             || instrument.getType() == InstrumentType.VIOP;

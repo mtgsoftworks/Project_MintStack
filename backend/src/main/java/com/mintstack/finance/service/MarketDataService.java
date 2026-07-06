@@ -1051,7 +1051,16 @@ public class MarketDataService {
             InstrumentMetricsService.InstrumentMetrics metrics,
             InstrumentRangeChange precomputedRangeChange) {
         BigDecimal currentPrice = metrics.currentPrice();
-        BigDecimal previousClose = metrics.previousClose();
+        BigDecimal previousClose = positiveOrFallback(
+            metrics.previousClose(),
+            instrument.getPreviousClose()
+        );
+        if (previousClose == null && instrument.getId() != null) {
+            PricePoint prevPoint = findPricePointAtOrBefore(instrument.getId(), LocalDate.now().minusDays(1));
+            if (prevPoint != null && isPositive(prevPoint.price())) {
+                previousClose = prevPoint.price();
+            }
+        }
         BigDecimal change = null;
         BigDecimal changePercent = null;
         BigDecimal changeBasePrice = previousClose;
@@ -1263,6 +1272,20 @@ public class MarketDataService {
             ? findPricePointAtOrBefore(instrument.getId(), changeRange.endDate())
             : new PricePoint(currentPrice, today);
 
+        if (startPoint == null && changeRange.startDate().isBefore(today)) {
+            List<PriceHistory> earliestList = priceHistoryRepository.findByInstrumentIdOrderByPriceDateAsc(
+                instrument.getId(),
+                PageRequest.of(0, 1)
+            );
+            if (earliestList != null && !earliestList.isEmpty()) {
+                PriceHistory earliest = earliestList.get(0);
+                BigDecimal price = positiveOrFallback(earliest.getAdjustedClose(), earliest.getClosePrice());
+                if (price != null && (endPoint == null || earliest.getPriceDate().isBefore(endPoint.date()))) {
+                    startPoint = new PricePoint(price, earliest.getPriceDate());
+                }
+            }
+        }
+
         if (startPoint == null || (endPoint != null && startPoint.date() != null && startPoint.date().isEqual(endPoint.date()))) {
             if (isPositive(openingBasePrice) && (endPoint == null || endPoint.price() == null || openingBasePrice.compareTo(endPoint.price()) != 0)) {
                 startPoint = new PricePoint(openingBasePrice, changeRange.startDate());
@@ -1381,31 +1404,6 @@ public class MarketDataService {
             );
         if (history != null && !history.isEmpty()) {
             PriceHistory point = history.get(0);
-            BigDecimal price = positiveOrFallback(point.getAdjustedClose(), point.getClosePrice());
-            if (price != null) {
-                return new PricePoint(price, point.getPriceDate());
-            }
-        }
-        List<PriceHistory> after = priceHistoryRepository
-            .findByInstrumentIdAndPriceDateGreaterThanEqualOrderByPriceDateAsc(
-                instrumentId,
-                date,
-                PageRequest.of(0, 1)
-            );
-        if (after != null && !after.isEmpty()) {
-            PriceHistory point = after.get(0);
-            BigDecimal price = positiveOrFallback(point.getAdjustedClose(), point.getClosePrice());
-            if (price != null) {
-                return new PricePoint(price, point.getPriceDate());
-            }
-        }
-        List<PriceHistory> earliest = priceHistoryRepository
-            .findByInstrumentIdOrderByPriceDateAsc(
-                instrumentId,
-                PageRequest.of(0, 1)
-            );
-        if (earliest != null && !earliest.isEmpty()) {
-            PriceHistory point = earliest.get(0);
             BigDecimal price = positiveOrFallback(point.getAdjustedClose(), point.getClosePrice());
             if (price != null) {
                 return new PricePoint(price, point.getPriceDate());

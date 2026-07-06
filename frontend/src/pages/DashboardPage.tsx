@@ -381,14 +381,27 @@ export default function DashboardPage() {
 
   const handleRefresh = async () => {
     await refreshAndRefetch(async () => {
-      const requests = [Promise.resolve(refetchCurrencies()), Promise.resolve(refetchBist())]
-      if (isAuthenticated) {
-        requests.push(Promise.resolve(refetchPortfolios()))
+      const requests: Promise<unknown>[] = []
+
+      // Only refetch if the query was actually used (not skipped)
+      if (refetchCurrencies) requests.push(refetchCurrencies())
+      if (refetchBist) requests.push(refetchBist())
+      if (isAuthenticated && refetchPortfolios) {
+        requests.push(refetchPortfolios())
       }
-      await Promise.all(requests)
+
+      if (requests.length > 0) {
+        await Promise.all(requests)
+      }
 
       // Refresh dashboard widgets that subscribe to these tags.
-      dispatch(baseApi.util.invalidateTags(['Stocks', 'News', 'Currencies', 'Indices', 'Portfolios']))
+      dispatch(baseApi.util.invalidateTags([
+        { type: 'Stocks' },
+        { type: 'Currencies' },
+        { type: 'Indices' },
+        { type: 'Portfolios' },
+        { type: 'News' },
+      ]))
     })
   }
 
