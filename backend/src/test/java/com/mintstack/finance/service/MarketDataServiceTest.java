@@ -282,7 +282,7 @@ class MarketDataServiceTest {
         LocalDate endDate = LocalDate.now();
         
         when(currencyRateRepository.findHistoryByCurrencyCode(
-                eq("USD"), any(LocalDateTime.class), any(LocalDateTime.class)))
+                eq("USD"), eq(RateSource.TCMB), any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenReturn(Arrays.asList(usdRate));
 
         List<CurrencyRateResponse> result = marketDataService.getCurrencyHistory("USD", startDate, endDate);

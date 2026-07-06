@@ -148,6 +148,9 @@ export default function NewsPage() {
   const news = data?.data || []
   const totalPages = data?.totalPages || 0
 
+  // Hook must be called before conditional return - React hooks rules
+  const [refreshNews, { isLoading: isRefreshingNews }] = useRefreshNewsMutation()
+
   if (!enableNews) {
     return (
       <div className="space-y-6 animate-in">
@@ -172,8 +175,6 @@ export default function NewsPage() {
       </div>
     )
   }
-
-  const [refreshNews, { isLoading: isRefreshingNews }] = useRefreshNewsMutation()
 
   const handleRefresh = async () => {
     try {
