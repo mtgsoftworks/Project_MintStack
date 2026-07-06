@@ -1286,12 +1286,20 @@ public class MarketDataService {
             }
         }
 
-        if (startPoint == null || (endPoint != null && startPoint.date() != null && startPoint.date().isEqual(endPoint.date()))) {
-            if (isPositive(openingBasePrice) && (endPoint == null || endPoint.price() == null || openingBasePrice.compareTo(endPoint.price()) != 0)) {
+        // For 1-day range queries, always use previousClose as start point
+        // This ensures we show the actual daily change even when historical data has gaps (weekends, holidays)
+        if (changeRange.endDate().isEqual(LocalDate.now()) && isPositive(instrument.getPreviousClose())) {
+            startPoint = new PricePoint(instrument.getPreviousClose(), changeRange.startDate());
+        } else if (startPoint == null || (endPoint != null && startPoint.date() != null && startPoint.date().isEqual(endPoint.date()))) {
+            // For same-day historical range, use openingBasePrice or previousClose
+            if (isPositive(openingBasePrice)) {
                 startPoint = new PricePoint(openingBasePrice, changeRange.startDate());
-            } else if (isPositive(instrument.getPreviousClose()) && (endPoint == null || endPoint.price() == null || instrument.getPreviousClose().compareTo(endPoint.price()) != 0)) {
+            } else if (isPositive(instrument.getPreviousClose())) {
                 startPoint = new PricePoint(instrument.getPreviousClose(), changeRange.startDate());
             }
+        } else if (startPoint == null && isPositive(instrument.getPreviousClose())) {
+            // No historical data found - use previousClose as fallback
+            startPoint = new PricePoint(instrument.getPreviousClose(), changeRange.startDate());
         }
 
         if (startPoint == null || endPoint == null) {
