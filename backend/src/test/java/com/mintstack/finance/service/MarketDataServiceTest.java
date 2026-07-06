@@ -36,6 +36,7 @@ import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +50,6 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -59,6 +59,11 @@ import static org.mockito.Mockito.never;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("MarketDataService Unit Tests")
 class MarketDataServiceTest {
+
+    private static final ZoneId ISTANBUL_TZ = ZoneId.of("Europe/Istanbul");
+    private static LocalDate istanbulDate() {
+        return LocalDate.now(ISTANBUL_TZ);
+    }
 
     @Mock
     private CurrencyRateRepository currencyRateRepository;
@@ -186,7 +191,7 @@ class MarketDataServiceTest {
         lenient().when(instrumentRepository.findBySymbol(anyString())).thenReturn(Optional.empty());
         lenient().when(userDataPreferenceRepository.findFirstByDataTypeAndIsEnabledTrueOrderByUpdatedAtDesc(any()))
             .thenReturn(Optional.empty());
-        lenient().when(currencyRateRepository.findPreviousRatesByRateDate(anyString(), any(), any(), any(), any()))
+        lenient().when(currencyRateRepository.findPreviousRatesByRateDate(any(), any(), any(), any(), any()))
             .thenReturn(List.of());
 
         // Enable necessary API providers for tests
@@ -295,8 +300,8 @@ class MarketDataServiceTest {
     @Test
     @DisplayName("getCurrencyHistory should return rates within date range")
     void getCurrencyHistory_ShouldReturnRatesInDateRange() {
-        LocalDate startDate = LocalDate.now().minusDays(7);
-        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = istanbulDate().minusDays(7);
+        LocalDate endDate = istanbulDate();
         
         when(currencyRateRepository.findHistoryByCurrencyCode(
                 eq("USD"), eq(RateSource.TCMB), any(LocalDateTime.class), any(LocalDateTime.class)))
@@ -386,7 +391,7 @@ class MarketDataServiceTest {
     void getInstrumentsByType_WithPagination_ShouldCalculateChangeFromRequestedDateRange() {
         Pageable pageable = PageRequest.of(0, 10);
         LocalDate startDate = LocalDate.of(2026, 5, 1);
-        LocalDate endDate = LocalDate.now();
+        LocalDate endDate = istanbulDate();
         thyaoStock.setCurrentPrice(new BigDecimal("120.000000"));
         thyaoStock.setPreviousClose(new BigDecimal("119.000000"));
 
@@ -416,14 +421,14 @@ class MarketDataServiceTest {
         assertThat(response.getChange()).isEqualByComparingTo(new BigDecimal("20.000000"));
         assertThat(response.getChangePercent()).isEqualByComparingTo(new BigDecimal("20.000000"));
         assertThat(response.getChangeStartDate()).isEqualTo(startDate);
-        assertThat(response.getChangeEndDate()).isEqualTo(LocalDate.now());
+        assertThat(response.getChangeEndDate()).isEqualTo(istanbulDate());
     }
 
     @Test
     @DisplayName("getInstrumentsByType with 1D range should calculate change from today's open")
     void getInstrumentsByType_WithOneDayRange_ShouldCalculateChangeFromTodayOpen() {
         Pageable pageable = PageRequest.of(0, 10);
-        LocalDate today = LocalDate.now();
+        LocalDate today = istanbulDate();
         thyaoStock.setCurrentPrice(new BigDecimal("120.000000"));
         thyaoStock.setPreviousClose(new BigDecimal("109.000000"));
 
@@ -460,7 +465,7 @@ class MarketDataServiceTest {
     @DisplayName("getInstrumentsByType with 1D range should use latest session open when today's history is synthetic")
     void getInstrumentsByType_WithOneDayRange_ShouldUseLatestSessionOpenForSyntheticTodayHistory() {
         Pageable pageable = PageRequest.of(0, 10);
-        LocalDate today = LocalDate.now();
+        LocalDate today = istanbulDate();
         thyaoStock.setCurrentPrice(new BigDecimal("120.000000"));
         thyaoStock.setPreviousClose(new BigDecimal("120.000000"));
 
@@ -922,7 +927,7 @@ class MarketDataServiceTest {
         when(instrumentRepository.findBySymbol("XU100")).thenReturn(Optional.empty());
         when(userApiConfigRepository.findByProviderAndIsActiveTrue(ApiProvider.YAHOO_FINANCE))
                 .thenReturn(List.of(activeConfig));
-        when(yahooFinanceClient.fetchStockPrice(eq("XU100.IS"), eq("test-key"), isNull()))
+        when(yahooFinanceClient.fetchStockPrice(anyString(), anyString(), any()))
                 .thenReturn(new BigDecimal("10123.45"));
 
         InstrumentResponse result = marketDataService.getMarketIndex("XU100.IS");
