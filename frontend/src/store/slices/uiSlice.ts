@@ -10,6 +10,7 @@ export interface UIState {
   currency: Currency
   timezone: string
   autoUpdate: boolean
+  enableNews: boolean
   refreshRate: number
   loading: boolean
   globalError: string | null
@@ -43,6 +44,7 @@ const initialState: UIState = {
   currency: getStoredCurrency(),
   timezone: localStorage.getItem('timezone') || 'Europe/Istanbul',
   autoUpdate: localStorage.getItem('autoUpdate') !== 'false',
+  enableNews: localStorage.getItem('enableNews') !== 'false',
   refreshRate: getStoredRefreshRate(),
   loading: false,
   globalError: null,
@@ -93,6 +95,10 @@ const uiSlice = createSlice({
       state.autoUpdate = action.payload
       localStorage.setItem('autoUpdate', action.payload.toString())
     },
+    setEnableNews: (state, action: PayloadAction<boolean>) => {
+      state.enableNews = action.payload
+      localStorage.setItem('enableNews', action.payload.toString())
+    },
     setRefreshRate: (state, action: PayloadAction<number>) => {
       state.refreshRate = action.payload
       localStorage.setItem('refreshRate', action.payload.toString())
@@ -113,6 +119,7 @@ export const {
   setCurrency,
   setTimezone,
   setAutoUpdate,
+  setEnableNews,
   setRefreshRate,
 } = uiSlice.actions
 
@@ -123,6 +130,7 @@ export const selectTheme = (state: { ui: UIState }): Theme => state.ui.theme
 export const selectCurrency = (state: { ui: UIState }): Currency => state.ui.currency
 export const selectTimezone = (state: { ui: UIState }) => state.ui.timezone
 export const selectAutoUpdate = (state: { ui: UIState }) => state.ui.autoUpdate
+export const selectEnableNews = (state: { ui: UIState }) => state.ui.enableNews
 export const selectRefreshRate = (state: { ui: UIState }) => state.ui.refreshRate
 export const selectLoading = (state: { ui: UIState }) => state.ui.loading
 export const selectGlobalError = (state: { ui: UIState }): string | null => state.ui.globalError

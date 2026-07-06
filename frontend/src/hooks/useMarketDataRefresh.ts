@@ -38,7 +38,11 @@ export function useMarketDataRefresh(dataTypes: string[]) {
         toast.error(getApiErrorMessage(error, t('marketRefresh.failed')))
       } finally {
         if (refetchAfterRefresh) {
-          await Promise.resolve(refetchAfterRefresh())
+          try {
+            await Promise.resolve(refetchAfterRefresh())
+          } catch (refetchError) {
+            console.warn('Refetch after refresh failed:', refetchError)
+          }
         }
       }
     },

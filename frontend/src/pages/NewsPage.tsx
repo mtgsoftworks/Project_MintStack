@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Clock, Eye, Search } from 'lucide-react'
+import { Clock, Eye, Search, Newspaper } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,11 +11,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatRelativeTime } from '@/lib/utils'
 import { getNewsDisplayTitle, getNewsSourceLabel, getNewsSummary, isSimulationNews } from '@/lib/news'
 import NewsImage from '@/components/news/NewsImage'
+import { useSelector } from 'react-redux'
+import { selectEnableNews } from '@/store/slices/uiSlice'
+import RefreshButton from '@/components/common/RefreshButton'
+import { toast } from 'sonner'
 import {
   useGetNewsByCategoryQuery,
   useGetNewsCategoriesQuery,
   useGetNewsQuery,
   useSearchNewsQuery,
+  useRefreshNewsMutation,
 } from '@/store/api/newsApi'
 
 function NewsCard({ news }) {
@@ -95,6 +100,7 @@ function NewsCardSkeleton() {
 
 export default function NewsPage() {
   const { t } = useTranslation()
+  const enableNews = useSelector(selectEnableNews)
   const [page, setPage] = useState(0)
   const [category, setCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -142,6 +148,42 @@ export default function NewsPage() {
   const news = data?.data || []
   const totalPages = data?.totalPages || 0
 
+  if (!enableNews) {
+    return (
+      <div className="space-y-6 animate-in">
+        <div>
+          <h1 className="text-2xl font-bold">{t('newsPage.title')}</h1>
+          <p className="text-muted-foreground">{t('newsPage.subtitle')}</p>
+        </div>
+        <Card className="border-warning/40 bg-warning/5">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <Newspaper className="h-12 w-12 text-warning mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Piyasa Haberleri Devre Dışı</h3>
+            <p className="text-sm text-muted-foreground max-w-md mb-4">
+              Piyasa haberleri akışı Genel Ayarlar menüsünden pasifleştirilmiştir. Haberleri görüntülemek için Genel Ayarlar sekmesinden Piyasa Haberleri seçeneğini açabilirsiniz.
+            </p>
+            <Link to="/settings">
+              <Button variant="outline" size="sm">
+                Ayarlara Git
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const [refreshNews, { isLoading: isRefreshingNews }] = useRefreshNewsMutation()
+
+  const handleRefresh = async () => {
+    try {
+      await refreshNews(undefined).unwrap()
+      toast.success('Haberler yenilendi')
+    } catch {
+      toast.error('Haberler yenilenirken hata oluştu')
+    }
+  }
+
   return (
     <div className="space-y-6 animate-in">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -159,6 +201,12 @@ export default function NewsPage() {
               className="w-64 pl-9"
             />
           </div>
+          <RefreshButton
+            variant="outline"
+            size="icon"
+            isLoading={isFetching || isRefreshingNews}
+            onRefresh={handleRefresh}
+          />
         </div>
       </div>
 

@@ -1026,8 +1026,12 @@
                 }
             },
             "autoUpdate": {
-                "label": "Automatic Data Updates",
+                "label": "Automatic Data Refresh",
                 "description": "Automatically refresh market data in the background"
+            },
+            "enableNews": {
+                "label": "Market News",
+                "description": "Enable or disable market news feed"
             },
             "refreshRate": {
                 "label": "Refresh Rate",

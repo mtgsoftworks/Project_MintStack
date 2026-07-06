@@ -35,6 +35,7 @@ export interface GeneralSettingsTabProps {
     currency: string
     timezone: string
     autoUpdate: boolean
+    enableNews: boolean
     refreshRate: number
     notificationSettings: NotificationSettings
     isClearingCache: boolean
@@ -44,6 +45,7 @@ export interface GeneralSettingsTabProps {
     onCurrencyChange: (value: string) => void
     onTimezoneChange: (value: string) => void
     onAutoUpdateChange: (value: boolean) => void
+    onEnableNewsChange: (value: boolean) => void
     onRefreshRateChange: (value: number) => void
     onNotificationToggle: (key: keyof NotificationSettings, value: boolean) => void
     isAdmin: boolean
@@ -59,6 +61,7 @@ export function GeneralSettingsTab({
     currency,
     timezone,
     autoUpdate,
+    enableNews,
     refreshRate,
     notificationSettings,
     isClearingCache,
@@ -68,6 +71,7 @@ export function GeneralSettingsTab({
     onCurrencyChange,
     onTimezoneChange,
     onAutoUpdateChange,
+    onEnableNewsChange,
     onRefreshRateChange,
     onNotificationToggle,
     isAdmin,
@@ -159,6 +163,13 @@ export function GeneralSettingsTab({
                                 <p className="text-sm text-muted-foreground">{t('settingsPage.data.autoUpdate.description')}</p>
                             </div>
                             <Switch checked={autoUpdate} onCheckedChange={onAutoUpdateChange} />
+                        </div>
+                        <div className="flex items-center justify-between py-2 border-b">
+                            <div className="space-y-0.5">
+                                <Label>{t('settingsPage.data.enableNews.label')}</Label>
+                                <p className="text-sm text-muted-foreground">{t('settingsPage.data.enableNews.description')}</p>
+                            </div>
+                            <Switch checked={enableNews} onCheckedChange={onEnableNewsChange} />
                         </div>
                         <div className="flex items-center justify-between py-2 border-b">
                             <div className="space-y-0.5">

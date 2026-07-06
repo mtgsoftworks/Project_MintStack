@@ -61,6 +61,7 @@ export default function SettingsPage() {
                         currency={generalSettings.currency}
                         timezone={generalSettings.timezone}
                         autoUpdate={generalSettings.autoUpdate}
+                        enableNews={generalSettings.enableNews}
                         refreshRate={generalSettings.refreshRate}
                         notificationSettings={generalSettings.notificationSettings}
                         isClearingCache={generalSettings.isClearingCache}
@@ -70,6 +71,7 @@ export default function SettingsPage() {
                         onCurrencyChange={generalSettings.handleCurrencyChange}
                         onTimezoneChange={generalSettings.handleTimezoneChange}
                         onAutoUpdateChange={generalSettings.handleAutoUpdateChange}
+                        onEnableNewsChange={generalSettings.handleEnableNewsChange}
                         onRefreshRateChange={generalSettings.handleRefreshRateChange}
                         onNotificationToggle={generalSettings.handleNotificationToggle}
                         isAdmin={isAdmin}

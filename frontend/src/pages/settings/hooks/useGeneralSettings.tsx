@@ -11,6 +11,8 @@ import {
     setTimezone,
     selectAutoUpdate,
     setAutoUpdate,
+    selectEnableNews,
+    setEnableNews,
     selectRefreshRate,
     setRefreshRate
 } from '@/store/slices/uiSlice'
@@ -40,6 +42,7 @@ export function useGeneralSettings({ t, i18n }: UseGeneralSettingsOptions) {
     const currency = useSelector(selectCurrency)
     const timezone = useSelector(selectTimezone)
     const autoUpdate = useSelector(selectAutoUpdate)
+    const enableNews = useSelector(selectEnableNews)
     const refreshRate = useSelector(selectRefreshRate)
 
     const { data: profile } = useGetProfileQuery(skipToken)
@@ -119,6 +122,11 @@ export function useGeneralSettings({ t, i18n }: UseGeneralSettingsOptions) {
 
     const handleAutoUpdateChange = (value: boolean) => {
         dispatch(setAutoUpdate(value))
+        toast.success(t('success.saved'))
+    }
+
+    const handleEnableNewsChange = (value: boolean) => {
+        dispatch(setEnableNews(value))
         toast.success(t('success.saved'))
     }
 
@@ -238,6 +246,7 @@ export function useGeneralSettings({ t, i18n }: UseGeneralSettingsOptions) {
         currency,
         timezone,
         autoUpdate,
+        enableNews,
         refreshRate,
         notificationSettings,
         isClearingCache,
@@ -247,6 +256,7 @@ export function useGeneralSettings({ t, i18n }: UseGeneralSettingsOptions) {
         handleCurrencyChange,
         handleTimezoneChange,
         handleAutoUpdateChange,
+        handleEnableNewsChange,
         handleRefreshRateChange,
         handleNotificationToggle,
         handleFullReset,

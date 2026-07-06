@@ -64,6 +64,15 @@ export const newsApi = baseApi.injectEndpoints({
       transformResponse: (response) => response,
     }),
 
+    // Refresh news from external feeds
+    refreshNews: builder.mutation({
+      query: () => ({
+        url: '/news/refresh',
+        method: 'POST',
+      }),
+      invalidatesTags: [{ type: 'News', id: 'LIST' }, { type: 'News', id: 'FEATURED' }],
+    }),
+
     // Increment view count
     incrementViewCount: builder.mutation({
       query: (id) => ({
@@ -82,5 +91,6 @@ export const {
   useGetNewsByCategoryQuery,
   useGetNewsCategoriesQuery,
   useSearchNewsQuery,
+  useRefreshNewsMutation,
   useIncrementViewCountMutation,
 } = newsApi

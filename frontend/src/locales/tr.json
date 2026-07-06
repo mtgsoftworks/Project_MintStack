@@ -1029,6 +1029,10 @@
                 "label": "Otomatik Veri Güncelleme",
                 "description": "Piyasa verilerini arka planda otomatik yenile"
             },
+            "enableNews": {
+                "label": "Piyasa Haberleri",
+                "description": "Piyasa haberlerini ve haber akışını aktif et / kapat"
+            },
             "refreshRate": {
                 "label": "Yenileme Sıklığı",
                 "description": "Veri yenileme aralığı",
