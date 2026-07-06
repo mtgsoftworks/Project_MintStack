@@ -401,7 +401,7 @@ class MarketDataServiceTest {
         when(priceHistoryRepository.findByInstrumentIdOrderByPriceDateDesc(eq(thyaoStock.getId()), any(Pageable.class)))
                 .thenReturn(List.of());
         when(priceHistoryRepository.findByInstrumentIdAndPriceDateLessThanEqualOrderByPriceDateDesc(
-                eq(thyaoStock.getId()), eq(startDate), any(Pageable.class)))
+                eq(thyaoStock.getId()), any(LocalDate.class), any(Pageable.class)))
                 .thenReturn(List.of(rangeStart));
 
         Page<InstrumentResponse> result = marketDataService.getInstrumentsByType(
