@@ -105,7 +105,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Build backend JAR
-        run: ./backend/mvnw -B -ntp package -DskipTests -q
+        run: ./backend/mvnw -B -ntp package -DskipTests -q -f ./backend/pom.xml
         env:
           JAVA_OPTS: "-Xmx1024m"
 
