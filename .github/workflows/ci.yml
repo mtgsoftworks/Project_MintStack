@@ -90,6 +90,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build backend JAR
+        run: cd backend && ../mvnw -B -ntp package -DskipTests -q
+        env:
+          JAVA_OPTS: "-Xmx1024m"
+
+      - name: Build frontend
+        run: cd frontend && npm ci && npm run build
+
       - name: Build backend image
         run: docker build -t mintstack-backend:ci ./backend
 

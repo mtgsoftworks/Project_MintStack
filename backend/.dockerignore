@@ -7,6 +7,6 @@
 .project
 *.log
 *_log.txt
-Dockerfile*
 README.md
 src/test/
+target/
